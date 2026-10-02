@@ -55,7 +55,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 		'wc/store/checkout': { prefersCollection: () => model.collection },
 	};
 	const select = (name: string) => stores[name];
-	window.wp = { element: { ...React, createPortal }, components: { ComboboxControl: (props: any) => React.createElement('label', null, props.label, React.createElement('select', { 'aria-label': props.label, value: props.value || '', disabled: props.disabled, onChange: (event: any) => props.onChange(event.target.value) }, React.createElement('option', { value: '' }, props.placeholder), ...props.options.map((row: any) => React.createElement('option', { key: row.value, value: row.value }, row.label)))) }, data: {
+	window.wp = { element: { ...React, createPortal }, data: {
 		select,
 		useSelect(callback: any) { const [, update] = React.useState(0); React.useEffect(() => { const listener = () => update((value: number) => value + 1); subscribers.add(listener); return () => subscribers.delete(listener); }, []); return callback(select); },
 		dispatch: (name: string) => name === 'wc/store/checkout' ? { setExtensionData: (...args: any[]) => publications.push(args) } : { setValidationErrors: (errors: any) => validations.push(errors), clearValidationError: (id: string) => validations.push({ clear: id }) },
@@ -116,7 +116,7 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			await h.flush(250); await h.reply(); await h.flush(0);
 			expect(h.badges().map(node => node.textContent)).toEqual(['Pin location']);
 			expect(h.window.kiriofBuyerCheckout.getDestination().district_label).toBe('District Seven');
-			await h.editing(true); expect(h.document.querySelector('.kiriof-address-status')).toBeNull(); expect(h.document.querySelector('select[aria-label="District"]')).not.toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map')).not.toBeNull(); expect(h.maps).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
+			await h.editing(true); expect(h.document.querySelector('.kiriof-address-status')).toBeNull(); expect(h.document.querySelector('.wc-blocks-components-select__select')).not.toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map')).not.toBeNull(); expect(h.maps).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
 			await h.act(async () => h.maps[0].fire('click', { latlng: { lat: 1, lng: 2 } }));
 			const destination = h.window.kiriofBuyerCheckout.getDestination(); expect(destination.destination_latitude).toBe('1.0000000');
 			await h.editing(false); expect(h.maps[0].removed).toBe(1); expect(h.document.querySelector('.kiriof-buyer-map')).toBeNull(); expect(h.document.querySelector('.kiriof-buyer-district')).toBeNull(); expect(h.window.kiriofBuyerCheckout.getDestination()).toEqual(destination); expect(h.window.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress).longitude).toBe('2.0000000'); expect(h.window.kiriofBuyerCheckout.active).toBe(true);

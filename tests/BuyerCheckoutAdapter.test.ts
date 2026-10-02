@@ -73,7 +73,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		},
 	};
 	const wp: any = {
-		element, components: { ComboboxControl: 'ComboboxControl' },
+		element, components: {},
 		plugins: { registerPlugin: (name: string, value: any) => { pluginName = name; plugin = value; } },
 		data: { select, useSelect: (callback: any) => callback(select),
 			dispatch: (name: string) => name === 'wc/store/checkout' ? checkoutDispatch : validationDispatch,
@@ -163,11 +163,13 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	return { root, model, timers, lookups, sends, publications, validations, classes, queries, subscribers,
 		plugin: () => plugin, pluginName: () => pluginName, registeredBlocks: () => registeredBlocks,
 		mount, mountRegisteredBlock, render, settle, flush, reply, notify, pagehide, unmount, find, findIn,
-		choose: (id: string | null) => { find('ComboboxControl').props.onChange(id); render(); },
+		choose: (id: string | null) => { find('select').props.onChange({ target: { value: id || '' } }); render(); },
 		retry: () => { find('button').props.onClick(); render(); },
 		status: () => find('p')?.children[0],
 	};
 }
+
+function options(node: any): {value: string; label: string}[] { return node.children.flat(Infinity).filter((child: any) => child?.type === 'option' && child.props.value).map((child: any) => ({value: child.props.value, label: child.children[0]})); }
 
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
@@ -182,7 +184,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		await h.flush(250);
 		expect(h.lookups).toHaveLength(1);
 		await h.reply();
-		expect(h.find('ComboboxControl')).toBeDefined();
+		expect(h.find('select')).toBeDefined();
 		expect(h.root.kiriofBuyerCheckout.active).toBe(true);
 		expect(h.root.kiriofBuyerCheckout.getDestination().postcode).toBe('12345');
 	});
@@ -241,7 +243,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.sends).toHaveLength(0); expect(h.status()).toBe('Lookup failed');
 		expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)?.latitude).toBe('-6.2000000');
 		h.retry(); await h.flush(250); await h.reply(1, [{ id: 9, text: 'Other district' }]);
-		expect(h.find('ComboboxControl').props.value).toBeNull();
+		expect(h.find('select').props.value).toBe('');
 	});
 	test('saved coordinate restoration rejects non-plain numbers, range errors and inconsistent address context', async () => {
 		for (const patch of [{ version: 1 }, { destination_latitude: '0x10' }, { destination_longitude: '1e2' }, { destination_latitude: '91' }, { destination_longitude: '181' }, { district_id: '' }, { country: 'SG' }, { postcode: '54321' }]) {
@@ -290,7 +292,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(await missingSlot.root.kiriofBuyerCheckout.ready).toBe(false);
 		expect(missingSlot.root.kiriofBuyerCheckout.pending).toBe(false);
 		missingSlot.mount(); await missingSlot.flush(250); await missingSlot.flush(0);
-		expect(missingSlot.find('ComboboxControl')).toBeUndefined();
+		expect(missingSlot.find('select')).toBeUndefined();
 		expect(missingSlot.classes).toEqual([]); expect(missingSlot.root.kiriofBuyerCheckout.active).toBe(false);
 		expect(missingSlot.lookups).toHaveLength(0); expect(missingSlot.sends).toHaveLength(0);
 		expect(missingSlot.publications).toHaveLength(0); expect(missingSlot.validations).toHaveLength(0);
@@ -304,9 +306,9 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		h.findIn(1, 'button').props.onClick(); h.render(); await h.flush(250);
 		expect(h.lookups).toHaveLength(2); await h.reply(1);
 		const publications = h.publications.length;
-		h.findIn(1, 'ComboboxControl').props.onChange('7'); h.render();
-		expect(h.findIn(0, 'ComboboxControl').props.value).toBe('7');
-		expect(h.findIn(1, 'ComboboxControl').props.value).toBe('7');
+		h.findIn(1, 'select').props.onChange({ target: { value: '7' } }); h.render();
+		expect(h.findIn(0, 'select').props.value).toBe('7');
+		expect(h.findIn(1, 'select').props.value).toBe('7');
 		expect(h.publications.length).toBe(publications + 1);
 		await h.flush(0); expect(h.sends).toHaveLength(1);
 		h.sends[0].reject(new Error('offline')); await h.settle();
@@ -326,11 +328,11 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.root.kiriofBuyerCheckout.active).toBe(true); await h.flush(250);
 		expect(h.lookups).toHaveLength(2);
 		await h.reply(1, [{ id: 9, text: 'Replacement' }]); await h.reply(0);
-		expect(h.findIn(1, 'ComboboxControl').props.options).toEqual([{ value: '9', label: 'Replacement' }]);
+		expect(options(h.findIn(1, 'select'))).toEqual([{ value: '9', label: 'Replacement' }]);
 		h.choose('9'); await h.flush(0); expect(h.sends).toHaveLength(1);
 		h.sends[0].resolve(); await h.settle();
 		h.mount(); const searches = h.lookups.length; h.unmount(1); await h.flush(250);
-		expect(h.lookups).toHaveLength(searches); expect(h.find('ComboboxControl').props.value).toBe('9');
+		expect(h.lookups).toHaveLength(searches); expect(h.find('select').props.value).toBe('9');
 		h.model.payment = 'bacs'; h.render(); await h.flush(0);
 		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data.destination.district_id).toBe('9');
 	});
@@ -347,11 +349,11 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	});
 	test('restores live postcode selections and config district fallback after lookup confirmation', async () => {
 		const h = harness({ config: { districtPostcode: ' 12 345 ', district: { id: 7 } } }); await ready(h);
-		expect(h.find('ComboboxControl').props.value).toBe('7'); h.choose(null);
+		expect(h.find('select').props.value).toBe('7'); h.choose(null);
 		h.choose('7'); h.model.cart.shippingAddress.postcode = '54321'; h.render(); await h.flush(250);
 		await h.reply(1, [{ id: 9, text: 'Other' }]); h.choose('9');
 		h.model.cart.shippingAddress.postcode = '12345'; h.render(); await h.flush(250); await h.reply(2);
-		expect(h.find('ComboboxControl').props.value).toBe('7');
+		expect(h.find('select').props.value).toBe('7');
 	});
 	test('feature detection fails closed and supports ExperimentalOrderMeta', () => {
 		for (const missing of ['session', 'update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment']) {
@@ -361,19 +363,19 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(innerOnly.root.kiriofBuyerCheckout.active).toBe(true); expect(innerOnly.plugin()).toBeUndefined();
 		expect(harness({ enabled: false }).registeredBlocks()).toHaveLength(0);
 		expect(harness({ missing: 'slot' }).registeredBlocks()).toHaveLength(1);
-		const experimental = harness({ slot: 'ExperimentalOrderMeta' }); experimental.mount(); expect(experimental.find('ComboboxControl')).toBeDefined();
-		const slotOnly = harness({ missing: 'inner' }); slotOnly.mount(); expect(slotOnly.find('ComboboxControl')).toBeDefined();
+		const experimental = harness({ slot: 'ExperimentalOrderMeta' }); experimental.mount(); expect(experimental.find('select')).toBeDefined();
+		const slotOnly = harness({ missing: 'inner' }); slotOnly.mount(); expect(slotOnly.find('select')).toBeDefined();
 	});
 	test('debounces lookup, validates district, filters bad IDs and publishes canonical selection', async () => {
 		const h = harness(); h.model.cart.shippingAddress.postcode = ' 12 345 '; h.mount();
-		expect(h.status()).toBe('Loading'); expect(h.find('ComboboxControl').props.disabled).toBe(true);
+		expect(h.status()).toBe('Loading'); expect(h.find('select').props.disabled).toBe(true);
 		await h.flush(0); expect(h.lookups).toHaveLength(0); expect(h.sends).toHaveLength(0);
 		await h.flush(250);
 		expect(h.lookups[0].url).toBe('/ajax'); expect(h.lookups[0].init.credentials).toBe('same-origin');
 		expect(new URLSearchParams(h.lookups[0].init.body).get('term')).toBe('12345');
 		expect(new URLSearchParams(h.lookups[0].init.body).get('nonce')).toBe('nonce');
 		await h.reply(0, [{ id: 0, text: 'Bad' }, { id: 'abc', text: 'Bad' }, { id: 8, text: '' }, { id: 7, text: 'District Seven' }]);
-		expect(h.find('ComboboxControl').props.options).toEqual([{ value: '7', label: 'District Seven' }]);
+		expect(options(h.find('select'))).toEqual([{ value: '7', label: 'District Seven' }]);
 		h.choose('7'); expect(h.root.kiriofBuyerCheckout.getDestination()).toEqual({ version: 1, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping' });
 		expect(h.validations.some(errors => errors['kiriof-buyer-destination']?.hidden === false)).toBe(true);
 	});
@@ -396,23 +398,23 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	test('restores saved identity only after lookup confirms an option, before empty mutation', async () => {
 		const h = harness({ config: { savedDestination: { postcode: '12345', country: 'ID', district_id: '7', district_label: 'Stale label' } } });
 		h.mount(); await h.flush(0); expect(h.sends).toHaveLength(0); expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
-		await h.flush(250); await h.reply(); expect(h.find('ComboboxControl').props.value).toBe('7');
+		await h.flush(250); await h.reply(); expect(h.find('select').props.value).toBe('7');
 		await h.flush(0); expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.destination.district_label).toBe('District Seven');
 		const invalid = harness({ config: { savedDistrictByPostcode: { '12345': { destination_id: 99 } } } });
-		await ready(invalid); expect(invalid.find('ComboboxControl').props.value).toBeNull();
+		await ready(invalid); expect(invalid.find('select').props.value).toBe('');
 	});
 	test('aborts obsolete postcode AJAX and ignores even a late successful response', async () => {
 		const h = harness(); h.mount(); await h.flush(250);
 		h.model.cart.shippingAddress.postcode = '54321'; h.render(); expect(h.lookups[0].init.signal.aborted).toBe(true);
 		await h.flush(250); await h.reply(1, [{ id: 9, text: 'New district' }]); await h.reply(0);
-		expect(h.find('ComboboxControl').props.options).toEqual([{ value: '9', label: 'New district' }]);
+		expect(options(h.find('select'))).toEqual([{ value: '9', label: 'New district' }]);
 		h.choose('9'); expect(h.root.kiriofBuyerCheckout.getDestination().postcode).toBe('54321');
 	});
 	test('same postcode with new country invalidates selection and lookup context', async () => {
 		const h = harness(); await ready(h); h.choose('7');
-		h.model.cart.shippingAddress.country = 'SG'; h.render(); expect(h.find('ComboboxControl')).toBeUndefined();
+		h.model.cart.shippingAddress.country = 'SG'; h.render(); expect(h.find('select')).toBeUndefined();
 		expect(h.root.kiriofBuyerCheckout.getDestination().country).toBe('SG'); expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
-		h.model.cart.shippingAddress.country = 'ID'; h.render(); expect(h.find('ComboboxControl').props.disabled).toBe(true);
+		h.model.cart.shippingAddress.country = 'ID'; h.render(); expect(h.find('select').props.disabled).toBe(true);
 		await h.flush(250); expect(h.lookups).toHaveLength(2);
 	});
 	test('lookup failure blocks mutation and offers a real retry', async () => {
@@ -423,7 +425,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	test('failed checkout update preserves selected district and retries the identical snapshot', async () => {
 		const h = harness(); await ready(h); h.choose('7'); await h.flush(0);
 		h.sends[0].reject(new Error('offline')); await h.settle();
-		expect(h.status()).toBe('Update failed'); expect(h.find('ComboboxControl').props.value).toBe('7'); expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('7');
+		expect(h.status()).toBe('Update failed'); expect(h.find('select').props.value).toBe('7'); expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('7');
 		h.notify(); await h.flush(0); expect(h.sends).toHaveLength(1);
 		h.retry(); await h.flush(0); expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data).toEqual(h.sends[0].request.data);
 		h.sends[1].resolve(); await h.settle(); expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
@@ -455,12 +457,33 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
 		expect(h.sends[0].request.data.shipping_method).toBeUndefined();
 	});
-	test('filters district labels locally without issuing new search requests', async () => {
+	test('native District select shares Woo floating-label markup and offers postcode options without search requests', async () => {
 		const h = harness(); h.mount(); await h.flush(250);
 		await h.reply(0, [{ id: 7, text: 'North district' }, { id: 8, text: 'South district' }]);
-		h.find('ComboboxControl').props.onFilterValueChange('south'); h.render();
-		expect(h.find('ComboboxControl').props.options).toEqual([{ value: '8', label: 'South district' }]);
-		expect(h.lookups).toHaveLength(1);
+		const select = h.find('select');
+		expect(select.props.className).toBe('wc-blocks-components-select__select');
+		expect(h.find('label').props.className).toBe('wc-blocks-components-select__label');
+		expect(h.find('label').props.htmlFor).toBe(select.props.id);
+		expect(select.props['aria-describedby']).toBe(h.find('p').props.id);
+		expect(select.props['aria-required']).toBe(true);
+		expect(options(select)).toEqual([{ value: '7', label: 'North district' }, { value: '8', label: 'South district' }]);
+		h.choose('8'); expect(h.find('select').props.value).toBe('8'); expect(h.lookups).toHaveLength(1);
+	});
+	test('native select placements have unique stable label/status IDs without admin component APIs', async () => {
+		const h = harness(); h.mount();
+		const fallbackId = h.findIn(0, 'select').props.id;
+		const inner = h.mountRegisteredBlock();
+		const innerId = h.findIn(inner, 'select').props.id;
+		expect(innerId).not.toBe(fallbackId);
+		h.render(); expect(h.findIn(inner, 'select').props.id).toBe(innerId);
+		await h.flush(250); await h.reply();
+		expect(h.findIn(inner, 'label').props.htmlFor).toBe(innerId);
+		expect(h.findIn(inner, 'select').props['aria-invalid']).toBe(true);
+		h.findIn(inner, 'select').props.onChange({ target: { value: '7' } }); h.render();
+		expect(h.findIn(inner, 'select').props['aria-invalid']).toBe(false);
+		h.findIn(inner, 'select').props.onChange({ target: { value: '' } }); h.render();
+		expect(h.findIn(inner, 'select').props.value).toBe('');
+		expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
 	});
 	test('pagehide unsubscribes and disposes pending updates; unmount aborts lookup and clears validation', async () => {
 		const h = harness(); h.mount(); await h.flush(250); expect(h.subscribers.size).toBe(1);
@@ -473,7 +496,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	test('collection and no-shipping carts render no district and perform no lookup or mutation', async () => {
 		for (const mode of ['collection', 'noShipping']) {
 			const h = harness(); if (mode === 'collection') h.model.collection = true; else h.model.cart.needsShipping = false;
-			h.mount(); await h.flush(250); await h.flush(0); expect(h.find('ComboboxControl')).toBeUndefined(); expect(h.lookups).toHaveLength(0); expect(h.sends).toHaveLength(0);
+			h.mount(); await h.flush(250); await h.flush(0); expect(h.find('select')).toBeUndefined(); expect(h.lookups).toHaveLength(0); expect(h.sends).toHaveLength(0);
 			expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
 		}
 	});
@@ -498,7 +521,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
 		await h.flush(0); expect(h.sends).toHaveLength(1); h.sends[0].resolve(); await h.settle();
 		expect(h.validations.at(-1)).toEqual({ 'kiriof-buyer-destination': { message: 'District required', hidden: false } });
-		expect(h.find('ComboboxControl').props.value).toBeNull();
+		expect(h.find('select').props.value).toBe('');
 	});
 	test('changing address_1 invalidates a pin without losing district and rejects stale coordinate callbacks', async () => {
 		const h = harness(); await ready(h); h.choose('7');
@@ -544,12 +567,12 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	test('shipping-address owner suppresses OrderMeta fallback and transfers pin state after unmount', async () => {
 		const h = harness(); const fallback = h.mount(); await h.flush(250); await h.reply();
 		const inner = h.mountRegisteredBlock();
-		expect(h.findIn(fallback, 'ComboboxControl')).toBeUndefined(); expect(h.findIn(inner, 'ComboboxControl')).toBeDefined();
-		h.findIn(inner, 'ComboboxControl').props.onChange('7'); h.render();
+		expect(h.findIn(fallback, 'select')).toBeUndefined(); expect(h.findIn(inner, 'select')).toBeDefined();
+		h.findIn(inner, 'select').props.onChange({ target: { value: '7' } }); h.render();
 		expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude: 0, longitude: 0 })).toBe(true); h.render(); await h.flush(0);
 		expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(1);
 		h.sends[0].resolve(); await h.settle(); h.unmount(inner);
-		expect(h.findIn(fallback, 'ComboboxControl').props.value).toBe('7');
+		expect(h.findIn(fallback, 'select').props.value).toBe('7');
 		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2); expect(h.root.kiriofBuyerCheckout.active).toBe(true);
 		h.model.payment = 'bacs'; h.render(); await h.flush(0);
 		expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(2);

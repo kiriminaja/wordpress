@@ -5274,6 +5274,14 @@ msgstr "Biaya admin"
 msgid "District Not Set"
 msgstr "Kecamatan belum dipilih"
 
+#: inc/Base/Enqueue.php
+msgid "Delivery location map"
+msgstr "Peta lokasi pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Use arrow keys to move the map. Press Enter to select the center location."
+msgstr "Gunakan tombol panah untuk menggerakkan peta. Tekan Enter untuk memilih lokasi tengah."
+
 msgid "Checking District…"
 msgstr "Memeriksa kecamatan…"
 

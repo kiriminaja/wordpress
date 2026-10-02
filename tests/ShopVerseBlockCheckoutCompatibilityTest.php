@@ -82,6 +82,22 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function modern_district_uses_native_checkout_select_styling_not_admin_combobox(): void
+    {
+        $buyer = file_get_contents( PLUGIN_DIR . '/assets/wp/js/kiriof-buyer-checkout.js' );
+        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        foreach ( array( 'wc-blocks-components-select', 'wc-blocks-components-select__container', 'wc-blocks-components-select__label', 'wc-blocks-components-select__select', 'wc-blocks-components-select__expand' ) as $class ) {
+            $this->assertStringContainsString( $class, $buyer );
+        }
+        $this->assertStringNotContainsString( 'ComboboxControl', $buyer );
+        $this->assertStringNotContainsString( 'components-combobox-control', $css );
+        $map = file_get_contents( PLUGIN_DIR . '/assets/wp/js/kiriof-map-checkout.js' );
+        $this->assertStringNotContainsString( 'kiriof-buyer-map__clear', $map );
+        $this->assertStringNotContainsString( 'strings.mapClear', $map );
+        $this->assertStringContainsString( "'aria-description': strings.mapKeyboard", $map );
+    }
+
+    #[Test]
     public function modern_buyer_checkout_loads_session_script_and_bypasses_legacy_block_writers(): void
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
@@ -101,7 +117,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             );
         }
         $this->assertStringContainsString("'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
-        $this->assertStringContainsString("'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
+        $this->assertStringContainsString("'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
         $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig'", $enqueue);
         $this->assertStringContainsString('root.kiriofBuyerCheckoutSession', $buyer, 'The modern buyer must consume the dedicated session transport');
         $this->assertStringContainsString('register_block_type_from_metadata', $controller, 'District must be registered as a real checkout block, not only a SlotFill');

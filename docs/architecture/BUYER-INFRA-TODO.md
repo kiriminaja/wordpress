@@ -26,6 +26,10 @@ The original version-1 contract remains backward compatible. Version 2 adds opti
 
 There are no manual coordinate inputs, Apply button, or Load map button. Keyboard arrows move the map and Enter selects its center. Map failure does not make an optional pin mandatory. The pin is saved as order metadata. The separate Instant quote/order path consumes an address-bound version-2 pin; collecting a pin alone never guarantees a deliverable quote.
 
+District now renders a native HTML select using WooCommerce's `wc-blocks-components-select` container/floating-label/select/chevron classes, matching Province instead of loading WordPress's admin combobox. It inherits checkout/theme field styling without hard-coded field colors, borders or sizes. Options remain postcode-scoped and canonical; native keyboard selection, associated label, required/invalid state and live validation messages remain. A blank option clears the district. Each mount has a stable unique field/status ID, including fallback/inner-block placements.
+
+The map no longer renders the default movement-instruction paragraph or a reset/clear button. Current location, automatic moveend saving, address-change invalidation, and meaningful error/moving/placed status remain. Accessible map label and keyboard instructions remain without a visible default paragraph. The underlying clear API is retained for lifecycle/state management but has no buyer reset control.
+
 ### Collapsed shipping-address presentation
 
 On supported Checkout Blocks markup, a collapsed native shipping-address card contains plugin-owned status badges: green **Pin Location**, orange **Need Pin Location**, and **District Not Set** when district identity is missing. During lookup/restoration it shows **Checking District…** rather than implying a validated district. A pin warning is informational for Express, not a new checkout requirement; pins remain mandatory for Instant. Labels are translated, use visible text/icons as well as color, and announce changes politely.

@@ -14,7 +14,7 @@
 	var checkoutDispatch;
 	var validationDispatch;
 
-	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.components || ! wp.components.ComboboxControl || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
+	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
 		return;
 	}
 
@@ -49,6 +49,7 @@
 	// Prefer in-address mounts over fallback order-summary mounts.
 	var controllers = new Map();
 	var owner = null;
+	var nextDistrictId = 0;
 	var state = { destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
 	var savedPin = savedCoordinates( config.savedDestination );
 	var restorationAttempted = ! savedPin;
@@ -236,6 +237,8 @@
 		} );
 		var revision = useState( 0 );
 		var token = useRef( {} ).current;
+		if ( ! token.fieldId ) { token.fieldId = 'kiriof-buyer-district-' + ( ++nextDistrictId ); }
+		var inputId = token.fieldId;
 		var isOwner = owner === token;
 		var selection = state.selection;
 		var mapPin = getCoordinates( address );
@@ -243,9 +246,6 @@
 		var results = state.results;
 		var updateState = state.queue;
 		var retryLookup = state.retryLookup;
-		var filterState = useState( '' );
-		var filter = filterState[ 0 ];
-		var setFilter = filterState[ 1 ];
 		var currentSelection = selection && selection.key === addressKey ? selection : null;
 		var currentPin = mapPin && mapPin.key === shippingAddressKey( address ) ? mapPin : null;
 		var destination = destinationForAddress( currentSelection, address, currentPin );
@@ -322,7 +322,6 @@
 			var generation = ++lookupGeneration.current;
 			var controller = new AbortController();
 			var timer;
-			setFilter( '' );
 			setResults( { key: addressKey, options: [], loading: required && postcode.length >= 3, error: false } );
 			if ( required && postcode.length >= 3 ) {
 				timer = root.setTimeout( function() {
@@ -399,28 +398,34 @@
 		}
 		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? strings.lookupFailed : ( results.options.length ? message : strings.empty ) ) );
 		return h( 'div', { className: 'kiriof-buyer-district kiriof-buyer-district--inner-block' },
-			h( wp.components.ComboboxControl, {
-				label: strings.district,
-				value: currentSelection ? currentSelection.id : null,
-				options: results.key === addressKey ? results.options.filter( function( option ) {
-					return option.label.toLowerCase().indexOf( filter.toLowerCase() ) !== -1;
-				} ) : [],
-				onFilterValueChange: setFilter,
-				allowReset: true,
-				disabled: postcode.length < 3 || results.loading,
-				placeholder: strings.selectDistrict,
-				onChange: function( value ) {
-					var selected = results.options.find( function( option ) { return option.value === value; } );
-					if ( selected ) {
-						savedSelections[ postcode ] = { destination_id: selected.value, destination_name: selected.label };
-					} else {
-						delete savedSelections[ postcode ];
-					}
-					setSelection( selected ? { id: selected.value, label: selected.label, key: addressKey } : null );
-				},
-				__nextHasNoMarginBottom: true
-			} ),
-			h( 'p', { role: 'status', 'aria-live': 'polite' }, status ),
+			h( 'div', { className: 'wc-blocks-components-select' },
+				h( 'div', { className: 'wc-blocks-components-select__container' },
+					h( 'label', { className: 'wc-blocks-components-select__label', htmlFor: inputId }, strings.district ),
+					h( 'select', {
+						id: inputId,
+						className: 'wc-blocks-components-select__select',
+						value: currentSelection ? currentSelection.id : '',
+						disabled: postcode.length < 3 || results.loading,
+						'aria-required': true,
+						'aria-describedby': inputId + '-status',
+						'aria-invalid': Boolean( results.error || ( results.key === addressKey && ! results.loading && ! currentSelection ) ),
+						onChange: function( event ) {
+							var value = event.target.value;
+							var selected = results.options.find( function( option ) { return option.value === value; } );
+							if ( selected ) {
+								savedSelections[ postcode ] = { destination_id: selected.value, destination_name: selected.label };
+							} else {
+								delete savedSelections[ postcode ];
+							}
+							setSelection( selected ? { id: selected.value, label: selected.label, key: addressKey } : null );
+						}
+					}, h( 'option', { value: '' }, strings.selectDistrict ),
+					( results.key === addressKey ? results.options : [] ).map( function( option ) {
+						return h( 'option', { key: option.value, value: option.value }, option.label );
+					} ) ),
+					h( 'svg', { className: 'wc-blocks-components-select__expand', viewBox: '0 0 24 24', width: 24, height: 24, 'aria-hidden': 'true', focusable: 'false' },
+						h( 'path', { d: 'm6 9 6 6 6-6', fill: 'none', stroke: 'currentColor', strokeWidth: 2 } ) ) ) ),
+			h( 'p', { id: inputId + '-status', role: 'status', 'aria-live': 'polite' }, status ),
 			results.error || updateState.error ? h( 'button', {
 				type: 'button',
 				className: 'wc-block-components-button wp-element-button',

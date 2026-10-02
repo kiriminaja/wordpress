@@ -129,16 +129,6 @@
 	width: 100%;
 }
 
-.kiriof-buyer-district .components-base-control,
-.kiriof-buyer-district .components-combobox-control__suggestions-container {
-	width: 100%;
-}
-
-.kiriof-buyer-district .components-combobox-control__input {
-	font: inherit;
-	min-height: 44px;
-}
-
 .kiriof-buyer-district p {
 	margin-block: 0.5em;
 }

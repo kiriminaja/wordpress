@@ -220,12 +220,12 @@ class Enqueue extends BaseInit{
             'attribution' => wp_kses_post( (string) apply_filters( 'kiriof_map_checkout_attribution', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' ) ),
             'i18n' => array(
                 'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
-                'mapHelp' => __( 'Move the map to position the pin. Your delivery location saves automatically when you stop.', 'kiriminaja-official' ),
+                'mapHelp' => __( 'Delivery location map', 'kiriminaja-official' ),
+                'mapKeyboard' => __( 'Use arrow keys to move the map. Press Enter to select the center location.', 'kiriminaja-official' ),
                 'mapOptional' => __( 'Optional. A delivery pin helps the courier find your address.', 'kiriminaja-official' ),
                 'mapLocate' => __( 'Current location', 'kiriminaja-official' ),
                 'mapPermission' => __( 'Your browser will ask for location permission. Your location is used only when you choose this option.', 'kiriminaja-official' ),
                 'mapLocationFailed' => __( 'Could not access your location. Move the map to choose your delivery pin.', 'kiriminaja-official' ),
-                'mapClear' => __( 'Clear delivery pin', 'kiriminaja-official' ),
                 'mapInvalid' => __( 'This map location is invalid. Please choose another location.', 'kiriminaja-official' ),
                 'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
                 'mapMoving' => __( 'Move the map to position your delivery pin…', 'kiriminaja-official' ),
@@ -240,7 +240,7 @@ class Enqueue extends BaseInit{
             'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
             'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
             'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) ),
-            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wp-components', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
             'kiriof-map-checkout' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-leaflet', 'wp-element', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
             'kiriof-map-checkout-editor' => array( 'blocks/map-checkout/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
             'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
@@ -257,7 +257,7 @@ class Enqueue extends BaseInit{
         }
         if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
             $style_path = KIRIOF_DIR . 'assets/wp/css/kiriof-buyer-checkout.css';
-            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet', 'wp-components' ), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet' ), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
         }
         if ( $localize ) {
             $map_data = wp_scripts()->get_data( 'kiriof-map-checkout', 'data' );
@@ -381,7 +381,6 @@ class Enqueue extends BaseInit{
             $this->register_buyer_checkout_assets( true );
             wp_enqueue_script( 'kiriof-buyer-checkout' );
             wp_enqueue_script( 'kiriof-map-checkout' );
-            wp_enqueue_style( 'wp-components' );
             wp_enqueue_style( 'kiriof-buyer-checkout' );
             wp_enqueue_script(
                 'kiriof-block-checkout',

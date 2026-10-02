@@ -183,18 +183,18 @@
 			return function() { mapSession.dispose(); if ( session.current === mapSession ) { session.current = null; } };
 		}, [ addressKey, visible ] );
 		if ( ! visible ) { return null; }
+		var status = error || ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : '' ) );
 		return h( 'section', { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
 			h( 'h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle ),
 			h( 'p', null, strings.mapOptional ),
 			h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
-				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp } ),
+				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp, 'aria-description': strings.mapKeyboard } ),
 				h( 'div', { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
 					h( 'svg', { viewBox: '0 0 32 44', width: 32, height: 44, focusable: 'false' },
 						h( 'path', { d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z', fill: 'currentColor', stroke: '#fff', strokeWidth: 2 } ),
 						h( 'circle', { cx: 16, cy: 16, r: 5, fill: '#fff' } ) ) ),
 				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', onClick: function() { if ( session.current ) { session.current.locate(); } } }, strings.mapLocate ) ),
-			selected ? h( 'button', { type: 'button', className: 'kiriof-buyer-map__clear', onClick: function() { if ( session.current ) { session.current.clear(); } } }, strings.mapClear ) : null,
-			h( 'p', { role: 'status', 'aria-live': 'polite' }, error || ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : strings.mapHelp ) ) ) );
+			status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, status ) : null );
 
 	}
 	blocks.registerCheckoutBlock( {

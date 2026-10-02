@@ -289,7 +289,7 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean } = {}) {
 	root.L = options.noLeaflet ? undefined : f.L;
 	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (success: any, failure: any, options: any) => f.locations.push({ success, failure, options }) } });
 	root.kiriofMapCheckoutConfig = { enabled: true, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
-		mapTitle: 'Delivery pin', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapClear: 'Clear pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Choose a pin', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
+		mapTitle: 'Delivery pin', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
 	} };
 	root.kiriofBuyerCheckout = {
 		getCoordinates: (address: any) => coordinates.get(JSON.stringify(address)) || null,
@@ -313,6 +313,23 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean } = {}) {
 }
 
 describe('MapControl: actual React commit/ref runtime (optional installed React + DOM)', () => {
+	uiTest('location permission errors remain visible without a selected pin', () => {
+		const h = uiHarness(); try {
+			h.click('Locate me'); React.act(() => h.locations[0].failure({ code: 1 }));
+			expect(h.container.querySelector('[role="status"]').textContent).toBe('Permission denied'); expect(h.writes).toEqual([]);
+		} finally { h.cleanup(); }
+	});
+	uiTest('unselected map has an accessible label and keyboard help without a visible help or empty status paragraph', () => {
+		const h = uiHarness(); try {
+			const canvas = h.container.querySelector('.kiriof-buyer-map__canvas');
+			expect(canvas.getAttribute('aria-label')).toBe('Delivery location map');
+			expect(canvas.getAttribute('aria-description')).toBe('Use arrow keys to move the map. Press Enter to select the center location.');
+			expect(h.container.textContent).not.toContain('Delivery location map'); expect(h.container.textContent).not.toContain('Use arrow keys');
+			expect(h.container.querySelector('[role="status"]')).toBeNull();
+			expect([...h.container.querySelectorAll('p')].every((paragraph: any) => paragraph.textContent.trim())).toBe(true);
+			expect(h.writes).toEqual([]); expect(h.locations).toEqual([]);
+		} finally { h.cleanup(); }
+	});
 	uiTest('collapsed presentation does not create a map, tiles, or geolocation; editing opens automatically without selecting', () => {
 		const h = uiHarness({ editing: false }); try {
 			expect(h.container.childElementCount).toBe(0); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0);
@@ -335,7 +352,7 @@ describe('MapControl: actual React commit/ref runtime (optional installed React 
 			expect(h.writes).toHaveLength(1); expect([...h.coordinates.values()]).toEqual([saved]);
 			h.presentation.editing = true; h.render();
 			expect(h.maps).toHaveLength(2); expect(h.maps[1].views).toEqual([{ center: [-6.2088, 106.8456], zoom: 13 }, { center: [0, 0], zoom: 16 }]);
-			expect(h.button('Clear pin')).toBeDefined(); expect(h.container.textContent).toContain('Pin placed');
+			expect(h.button('Clear pin')).toBeUndefined(); expect(h.container.textContent).toContain('Pin placed');
 			expect(h.writes).toHaveLength(1); expect(h.locations).toHaveLength(1);
 		} finally { h.cleanup(); }
 	});
@@ -385,7 +402,7 @@ describe('MapControl: actual React commit/ref runtime (optional installed React 
 			expect(h.writes).toHaveLength(0); expect(h.container.querySelector('.is-moving')).not.toBeNull(); expect(h.container.querySelector('[role="status"]').textContent).toBe('Moving pin');
 			React.act(() => h.maps[0].fire('moveend'));
 			expect(h.writes).toEqual([{ address: { address_1: 'First Street', address_2: '', city: 'Jakarta', state: '', country: 'ID', postcode: '12345' }, point: { latitude: '-6.0000000', longitude: '106.0000000' } }]);
-			expect(h.container.querySelector('.is-moving')).toBeNull(); expect(h.container.textContent).toContain('Pin placed'); expect(h.button('Clear pin')).toBeDefined();
+			expect(h.container.querySelector('.is-moving')).toBeNull(); expect(h.container.textContent).toContain('Pin placed'); expect(h.button('Clear pin')).toBeUndefined();
 		} finally { h.cleanup(); }
 	});
 	uiTest('address edits reset to default without saving and invalidate old geolocation', () => {
@@ -396,15 +413,22 @@ describe('MapControl: actual React commit/ref runtime (optional installed React 
 			React.act(() => h.position(0, 5, 6)); expect(h.writes).toHaveLength(1); expect(h.writes[0].address.address_1).toBe('First Street'); expect(h.markers).toHaveLength(0);
 		} finally { h.cleanup(); }
 	});
-	uiTest('clear removes selected UI without moving the center or requesting location', () => {
+	uiTest('movement preserves the saved pin on rerender without offering a reset or clear button', () => {
 		const h = uiHarness(); try {
-			React.act(() => h.maps[0].fire('click', { latlng: { lat: 1, lng: 2 } })); h.click('Clear pin');
-			expect(h.writes.at(-1).point).toBeNull(); expect(h.button('Clear pin')).toBeUndefined(); expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.locations).toHaveLength(0);
+			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; h.maps[0].fire('moveend'); });
+			h.render(); h.render();
+			expect(h.writes).toHaveLength(1); expect(h.writes[0].point).toEqual({ latitude: '1.0000000', longitude: '2.0000000' });
+			expect([...h.coordinates.values()]).toEqual([h.writes[0].point]); expect(h.container.querySelector('[role="status"]').textContent).toBe('Pin placed');
+			expect(h.button('Clear pin')).toBeUndefined(); expect(h.container.querySelector('.kiriof-buyer-map__clear')).toBeNull();
+			expect([...h.container.querySelectorAll('button')].map((button: any) => button.textContent)).toEqual(['Locate me']);
+			expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.maps).toHaveLength(1); expect(h.locations).toHaveLength(0);
 		} finally { h.cleanup(); }
 	});
 	uiTest('tile errors are visible with no manual fallback, and unmount removes map', () => {
 		const h = uiHarness(); try {
 			React.act(() => h.tiles.at(-1).fire('tileerror')); expect(h.container.textContent).toContain('Map unavailable');
+			React.act(() => h.maps[0].fire('movestart'));
+			expect(h.container.querySelector('[role="status"]').textContent).toBe('Map unavailable');
 			expect(h.container.querySelectorAll('input')).toHaveLength(0); expect(h.button('Apply pin')).toBeUndefined(); expect(h.writes).toHaveLength(0);
 		} finally { h.cleanup(); } expect(h.maps[0].removed).toBe(1);
 	});
