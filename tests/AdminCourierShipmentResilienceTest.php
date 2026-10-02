@@ -12,14 +12,15 @@ final class AdminCourierShipmentResilienceTest extends TestCase
 
         $this->assertStringContainsString('KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY', $content);
         $this->assertStringContainsString(
-            'get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY )',
+            'get_transient( $fallback_key )',
             $content
         );
         $this->assertStringContainsString(
-            'set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $data, WEEK_IN_SECONDS )',
+            'set_transient( $fallback_key, $data, WEEK_IN_SECONDS )',
             $content
         );
         $this->assertStringContainsString("'courier_cache_fallback'", $content);
+        $this->assertStringContainsString('KIRIOF_ALL_COURIERS_LAST_SUCCESS_CACHE_KEY', $content);
     }
 
     #[Test]

@@ -713,7 +713,7 @@ final class InsuranceFeatureTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "'kiriminaja-setting' === \$page || \$is_wc_warehouses_settings",
+            "true ) || \$is_wc_warehouses_settings || \$is_wc_general_settings",
             $enqueue,
             'WooCommerce Warehouses settings must load Leaflet for the Pin Location mirror field'
         );

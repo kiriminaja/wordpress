@@ -101,27 +101,24 @@ function kiriof_shipping_method(){
                     return;
                 }
 
-                if ($this->hasActiveFreeShippingCoupon()) {
-                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
-                    }
-                    // Add a 0-cost rate so KiriminAja remains a valid shipping option
-                    // rather than leaving the customer with no available shipping methods.
-                    $this->add_rate( array(
-                        'id'    => $this->id . '_free',
-                        'label' => __( 'Free shipping', 'kiriminaja-official' ),
-                        'cost'  => 0,
-                    ) );
-                    return;
-                }
-
                 $destination_id = WC()->session->get( 'shipping_destination_id' );
                 if ( empty( $destination_id ) ) {
                     $destination_id = WC()->session->get( 'destination_id' );
                 }
+                $buyer_destination = WC()->session->get( 'kiriof_buyer_destination', null );
+                if ( is_array( $buyer_destination ) ) {
+                    $destination_id = $buyer_destination['district_id'] ?? '';
+                    $package_destination = $package['destination'] ?? array();
+                    $package_postcode = strtoupper( preg_replace( '/\s+/', '', (string) ( $package_destination['postcode'] ?? '' ) ) );
+                    $package_country = strtoupper( (string) ( $package_destination['country'] ?? '' ) );
+                    if ( ( '' !== $package_postcode && $package_postcode !== ( $buyer_destination['postcode'] ?? '' ) )
+                        || ( '' !== $package_country && $package_country !== ( $buyer_destination['country'] ?? '' ) ) ) {
+                        $destination_id = '';
+                    }
+                }
                 // Fallback: read from customer additional fields in case the
                 // session was not persisted between API requests.
-                if ( empty( $destination_id ) ) {
+                if ( empty( $destination_id ) && ! is_array( $buyer_destination ) ) {
                     try {
                         if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
                             $meta_keys = array(
@@ -230,7 +227,7 @@ function kiriof_shipping_method(){
                     kiriof_log( 'info', 'getPricing data count=' . count( $kiriofPricing['data'] ) );
                 }
                 
-                $res_pricing = $kiriofPricing['data']; //object
+                $res_pricing = ! empty( $kiriofPricing['status'] ) ? ( $kiriofPricing['data'] ?? null ) : null;
                 $kiriofRateMetaMap = array();
                 foreach($this->filterOptions($res_pricing, $quantity, $kiriof_insurance) as $row){
                     
@@ -381,6 +378,7 @@ function kiriof_shipping_method(){
                 }
 
                 if ( '' !== $description && method_exists( $this->rates[ $rate_id ], 'set_description' ) ) {
+                    // WooCommerce shows these details beneath the selected courier.
                     $this->rates[ $rate_id ]->set_description( $description );
                 }
 
@@ -415,6 +413,10 @@ function kiriof_shipping_method(){
                 $filteredOptions = [];
                 $allOptions = [];
                 foreach ($options as $option){
+                    // A complete address or map pin does not opt checkout into Instant.
+                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( (string) ( $option->service ?? '' ), (array) $option, 'express' ) ) {
+                        continue;
+                    }
                     $shipping_cost = $option->cost - $option->discount_amount;
                     $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
 
@@ -535,9 +537,8 @@ function kiriof_shipping_method(){
                     $parts[] = $service_label;
                 }
 
-                if ( ! empty( $kiriof_insurance ) ) {
-                    $parts[] = __( 'Includes insurance', 'kiriminaja-official' );
-                }
+                $insurance_label = \KiriminAjaOfficial\Services\CheckoutRatePresentation::insuranceLabel( $option, ! empty( $kiriof_insurance ) );
+                if ( '' !== $insurance_label ) { $parts[] = $insurance_label; }
 
                 return implode( ' • ', array_filter( $parts ) );
             }
@@ -567,20 +568,6 @@ function kiriof_shipping_method(){
                 return ucwords( strtolower( $service_type ) ) . ' ' . __( 'service', 'kiriminaja-official' );
             }
 
-            private function hasActiveFreeShippingCoupon(){
-                if (!function_exists('WC') || !WC() || !isset(WC()->cart) || !WC()->cart) {
-                    return false;
-                }
-
-                foreach (WC()->cart->get_coupons() as $coupon) {
-                    if ($coupon && method_exists($coupon, 'get_free_shipping') && $coupon->get_free_shipping()) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            
         }
     }
 }

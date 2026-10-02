@@ -21,6 +21,11 @@ final class CheckoutShippingPerformanceTest extends TestCase
             $methodBody,
             'Checkout shipping cache should be keyed by checkout context instead of always being busted'
         );
+        $this->assertStringContainsString(
+            "'rate_presentation_version' => 4",
+            $methodBody,
+            'Existing sessions must rebuild old total-priced/decorated rates and method-grouped ordering'
+        );
         $this->assertStringNotContainsString(
             'wp_rand',
             $methodBody,

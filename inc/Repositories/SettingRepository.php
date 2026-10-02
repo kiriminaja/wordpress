@@ -333,8 +333,7 @@ class SettingRepository{
         }
         try {
             $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $row->value );
-            unset( $selection['ninja_inter'] );
-            return $selection;
+            return \KiriminAjaOfficial\Services\CourierServiceCatalog::filterSelection( $selection );
         } catch ( \InvalidArgumentException $e ) {
             return array();
         }
@@ -342,11 +341,14 @@ class SettingRepository{
 
     public function isCourierServiceEnabled( string $courier, string $service ): bool {
         $courier = strtolower( trim( $courier ) );
-        if ( 'ninja_inter' === $courier ) {
+        if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier, array(), null ) ) {
             return false;
         }
         $selection = $this->getCourierServiceSelection();
         if ( null === $selection ) {
+            if ( in_array( $courier, \KiriminAjaOfficial\Services\CourierServiceCatalog::instantCodes(), true ) ) {
+                return false;
+            }
             $ids = array_map( 'strtolower', $this->getWhitelistExpeditionIds() );
             return ( empty( $ids ) && ! $this->hasLegacyCourierRestriction() ) || in_array( $courier, $ids, true );
         }
@@ -367,7 +369,7 @@ class SettingRepository{
         $datas = array();
         foreach ( $data as $row ) {
             $fields = (array) $row;
-            if ( $this->isCourierServiceEnabled( (string) ( $fields['service'] ?? '' ), (string) ( $fields['service_type'] ?? $fields['service_name'] ?? '' ) ) ) {
+            if ( \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( (string) ( $fields['service'] ?? '' ), $fields ) && $this->isCourierServiceEnabled( (string) ( $fields['service'] ?? '' ), (string) ( $fields['service_type'] ?? $fields['service_name'] ?? '' ) ) ) {
                 $datas[] = $row;
             }
         }
@@ -405,7 +407,7 @@ class SettingRepository{
             array_map(
                 static function ( $expedition_id ) {
                     $id = sanitize_text_field( (string) $expedition_id );
-                    return 'ninja_inter' === strtolower( $id ) ? '' : $id;
+                    return \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $id, array(), null ) ? $id : '';
                 },
                 $ids
             )
@@ -417,7 +419,7 @@ class SettingRepository{
     }
 
     /** Keep an unsupported-only legacy whitelist restrictive rather than allow-all. */
-    private function hasLegacyCourierRestriction(): bool {
+    public function hasLegacyCourierRestriction(): bool {
         $row = $this->getSettingByKey( 'origin_whitelist_expedition_id' );
         if ( ! $row || null === $row->value ) {
             return false;

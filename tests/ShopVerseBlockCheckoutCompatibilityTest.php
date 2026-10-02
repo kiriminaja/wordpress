@@ -72,6 +72,71 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
+    public function collapsed_address_badges_have_a_plugin_scoped_full_width_row(): void
+    {
+        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        $this->assertStringContainsString( '.wc-block-components-address-card:has(> .kiriof-address-status-host)', $css );
+        $this->assertStringContainsString( 'flex-wrap: wrap;', $css );
+        $this->assertStringContainsString( 'flex-basis: 100%;', $css );
+        $this->assertStringContainsString( '@media (forced-colors: active)', $css );
+    }
+
+    #[Test]
+    public function modern_district_uses_native_checkout_select_styling_not_admin_combobox(): void
+    {
+        $buyer = file_get_contents( PLUGIN_DIR . '/assets/wp/js/kiriof-buyer-checkout.js' );
+        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        foreach ( array( 'wc-blocks-components-select', 'wc-blocks-components-select__container', 'wc-blocks-components-select__label', 'wc-blocks-components-select__select', 'wc-blocks-components-select__expand' ) as $class ) {
+            $this->assertStringContainsString( $class, $buyer );
+        }
+        $this->assertStringNotContainsString( 'ComboboxControl', $buyer );
+        $this->assertStringNotContainsString( 'components-combobox-control', $css );
+        $map = file_get_contents( PLUGIN_DIR . '/assets/wp/js/kiriof-map-checkout.js' );
+        $this->assertStringNotContainsString( 'kiriof-buyer-map__clear', $map );
+        $this->assertStringNotContainsString( 'strings.mapClear', $map );
+        $this->assertStringContainsString( "'aria-description': strings.mapKeyboard", $map );
+    }
+
+    #[Test]
+    public function modern_buyer_checkout_loads_session_script_and_bypasses_legacy_block_writers(): void
+    {
+        $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
+        $script = self::billingAddressScriptContent();
+        $buyer = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-buyer-checkout.js');
+        $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
+        $block = file_get_contents(PLUGIN_DIR . '/blocks/checkout-district/block.json');
+
+        $this->assertStringContainsString("'kiriof-checkout-session'", $enqueue, 'The modern buyer session transport must have its own registered handle');
+        $this->assertStringContainsString('assets/wp/js/kiriof-checkout-session.js', $enqueue);
+        $this->assertStringContainsString("'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) )", $enqueue);
+        foreach ( array( 'kiriof-buyer-checkout', 'kiriof-map-checkout' ) as $handle ) {
+            $this->assertMatchesRegularExpression(
+                '/\x27' . preg_quote( $handle, '/' ) . '\x27 => array\( [^\n]+array\( \x27kiriof-address-presentation\x27/',
+                $enqueue,
+                'Address presentation must load before its consumers to keep hook order stable'
+            );
+        }
+        $this->assertStringContainsString("'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
+        $this->assertStringContainsString("'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
+        $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig'", $enqueue);
+        $this->assertStringContainsString('root.kiriofBuyerCheckoutSession', $buyer, 'The modern buyer must consume the dedicated session transport');
+        $this->assertStringContainsString('register_block_type_from_metadata', $controller, 'District must be registered as a real checkout block, not only a SlotFill');
+        $this->assertStringContainsString('kiriof_render_district_checkout_block', $controller, 'District block registration must have a render callback');
+        $this->assertStringContainsString('woocommerce/checkout-shipping-address-block', $block, 'District must be parented to the shipping-address step, not the order summary');
+        $this->assertStringContainsString('blocks.registerCheckoutBlock', $buyer, 'District must use the supported inner-block registration API');
+        $this->assertStringContainsString('kiriof-checkout-district-editor', $enqueue, 'District editor assets must be registered');
+        foreach (array('kiriofInitBlockCheckoutCompatibility()', 'kiriofCodInsurance()') as $function) {
+            $start = strpos($script, 'function ' . $function);
+            $this->assertNotFalse($start, 'Legacy compatibility helper must remain for classic and fallback flows');
+            $this->assertStringContainsString(
+                "if (kiriofUsesNativeBuyerCheckout()) {\n                return;\n            }",
+                substr($script, $start, 1200),
+                'Active modern checkout must bypass legacy block initialization and fee writers to avoid duplicate requests'
+            );
+        }
+    }
+
+    #[Test]
     public function block_checkout_script_must_run_on_cart_page_when_shopverse_redirects_empty_checkout_to_cart(): void
     {
         $content = self::billingAddressTemplateContent();
@@ -733,7 +798,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_register_block_checkout_fields');
         $this->assertNotFalse($start, 'Block checkout registration method must exist');
-        $methodBody = substr($content, $start, 2600);
+        $end = strpos($content, 'public function kiriof_register_destination_schema', $start);
+        $this->assertNotFalse($end, 'Next Blocks registration method must exist');
+        $methodBody = substr($content, $start, $end - $start);
 
         $this->assertStringContainsString(
             "'type'         => 'text'",
@@ -1373,7 +1440,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $calculateBody = substr($shippingMethod, $calculateStart, 12000);
 
         $addressGatePosition = strpos($calculateBody, 'kiriof_has_sufficient_checkout_address');
-        $freeShippingPosition = strpos($calculateBody, 'hasActiveFreeShippingCoupon');
+        $this->assertStringNotContainsString("'id'    => \$this->id . '_free'", $calculateBody);
         $pricingPosition = strpos($calculateBody, 'getPricing');
 
         $this->assertNotFalse(
@@ -1381,17 +1448,8 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'KiriminAja rates must be gated by checkout address length'
         );
         $this->assertNotFalse(
-            $freeShippingPosition,
-            'Free-shipping coupon branch must remain present'
-        );
-        $this->assertNotFalse(
             $pricingPosition,
             'API pricing branch must remain present'
-        );
-        $this->assertLessThan(
-            $freeShippingPosition,
-            $addressGatePosition,
-            'Address-length validation must run before adding the KiriminAja free-shipping rate'
         );
         $this->assertLessThan(
             $pricingPosition,
@@ -1869,7 +1927,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 2400);
+        $methodEnd = strpos($content, '
+    public function ', $start + 1);
+        $methodBody = substr($content, $start, $methodEnd === false ? null : $methodEnd - $start);
 
         $this->assertStringContainsString(
             'WC()->session->set( \'chosen_payment_method\', $payment_method );',
@@ -2524,7 +2584,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $template = self::billingAddressTemplateContent();
         $start = strpos($template, 'function kiriofCodInsurance()');
         $this->assertNotFalse($start, 'Fee AJAX function must exist');
-        $functionBody = substr($template, $start, 7600);
+        $functionBody = substr($template, $start);
 
         $this->assertStringContainsString(
             'var kiriofFeeRefreshRequest = null;',
@@ -3316,7 +3376,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function shipping_chosen_method_filter_preserves_posted_ajax_selection_and_prefixed_session_mirror(): void
+    public function shipping_chosen_method_filter_preserves_explicit_ajax_selection_and_uses_mirror_only_as_fallback(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_shipping_chosen_method');
@@ -3338,7 +3398,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             "WC()->session->get( 'kiriof_chosen_shipping_methods'",
             $methodBody,
-            'If WooCommerce enters the chosen-method filter without POST data, it should fall back to the prefixed plugin mirror before using the old/default method'
+            'Without an explicit request or valid native method, the prefixed plugin mirror remains a legacy fallback'
         );
 
         $this->assertStringContainsString(
@@ -3347,10 +3407,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'A valid Woo-selected shipping method must be authoritative; otherwise a stale plugin mirror can force the Order Summary back to the previous courier'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             "WC()->session->set( 'kiriof_chosen_shipping_methods', array( (string) \$method ) );",
             $methodBody,
-            'When Woo has a valid current method, the plugin mirror should be updated to that method instead of overriding it'
+            'Accepting a native method must not rewrite the plugin mirror into a single-package selection'
         );
 
         $this->assertStringNotContainsString(
@@ -3390,34 +3450,25 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function block_checkout_shipping_chosen_method_filter_trusts_wc_resolved_method(): void
+    public function block_checkout_shipping_chosen_method_filter_trusts_native_method_without_collapsing_package_selection(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_shipping_chosen_method');
         $this->assertNotFalse($start, 'Chosen shipping method filter must exist');
         $methodBody = substr($content, $start, 3600);
 
-        // When WooCommerce Blocks calls selectShippingRate (no form POST), WC passes the
-        // newly chosen rate as $method. The filter must trust that value rather than
-        // overriding it with the stale session cache — otherwise the Order Summary always
-        // shows the first/cheapest courier.
         $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
-        $this->assertNotFalse(
-            $methodCheckPosition,
-            'The filter must trust the $method parameter resolved by WooCommerce when it is a valid available method (blocks selectShippingRate path)'
-        );
+        $mirrorPosition = strpos($methodBody, "WC()->session->get( 'kiriof_chosen_shipping_methods'");
+        $storeApiPosition = strpos($methodBody, '$store_api_method = $this->kiriof_get_store_api_selected_shipping_rate();');
+        $this->assertNotFalse($methodCheckPosition, 'A valid WC-resolved method must remain authoritative over the stale plugin mirror');
+        $this->assertNotFalse($mirrorPosition, 'The legacy plugin mirror fallback must remain available');
+        $this->assertNotFalse($storeApiPosition, 'Explicit Store API shipping selections must remain supported');
+        $this->assertLessThan($methodCheckPosition, $storeApiPosition, 'An explicit Store API rate_id must win over the session-derived native method');
+        $this->assertLessThan($mirrorPosition, $methodCheckPosition, 'Native method resolution must precede the legacy plugin mirror fallback');
 
-        // The session must be updated so subsequent cart/fee hooks see the correct value.
-        $sessionUpdateAfterMethodCheck = strpos($methodBody, "WC()->session->set( 'chosen_shipping_methods', array( (string) \$method ) );");
-        $this->assertNotFalse(
-            $sessionUpdateAfterMethodCheck,
-            'Accepting the WC-resolved $method must sync chosen_shipping_methods session so cart totals reflect the real selection'
-        );
-        $this->assertGreaterThan(
-            strpos($methodBody, "WC()->session->get( 'kiriof_chosen_shipping_methods'"),
-            $methodCheckPosition,
-            'The WC-resolved method remains a fallback after explicit plugin/session selections have been checked'
-        );
+        $nativeBranch = substr($methodBody, $methodCheckPosition, $mirrorPosition - $methodCheckPosition);
+        $this->assertStringContainsString('return $method;', $nativeBranch, 'The native method must pass through unchanged');
+        $this->assertStringNotContainsString('WC()->session->set(', $nativeBranch, 'Returning a valid native method must preserve WooCommerce package indexes and must not collapse either session array');
     }
 
     #[Test]
@@ -3455,7 +3506,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function block_checkout_store_api_recalculation_prefers_plugin_session_mirror_before_wc_default(): void
+    public function block_checkout_store_api_recalculation_uses_plugin_session_mirror_only_after_native_method(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_shipping_chosen_method');
@@ -3466,16 +3517,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $methodCheckPosition = strpos($methodBody, "'' !== (string) \$method && array_key_exists( (string) \$method, \$available_methods )");
 
         $this->assertNotFalse($mirrorPosition, 'Plugin selected-rate mirror must be read during chosen-method resolution');
-        $this->assertNotFalse($methodCheckPosition, 'Woo default method fallback must still exist');
+        $this->assertNotFalse($methodCheckPosition, 'Native Woo method resolution must still exist');
         $this->assertLessThan(
-            $methodCheckPosition,
             $mirrorPosition,
-            'Store API extension/cart recalculations must not overwrite the plugin-selected courier with Woo default ID Express'
+            $methodCheckPosition,
+            'Store API recalculation must honor a valid native method before considering a stale plugin-selected courier'
         );
         $this->assertStringContainsString(
             "WC()->session->set( 'chosen_shipping_methods', array( \$kiriof_chosen_methods[0] ) );",
             $methodBody,
-            'The plugin mirror must keep Woo chosen_shipping_methods synchronized for the next cart GET'
+            'Only when no valid native method exists may the legacy mirror restore Woo chosen_shipping_methods'
         );
     }
 
@@ -3777,7 +3828,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'function afterCheckoutAfterCreated');
         $this->assertNotFalse($start, 'Order processed hook must exist');
-        $methodBody = substr($content, $start, 2600);
+        $end = strpos($content, 'function afterCheckoutBeforeCreated', $start);
+        $this->assertNotFalse($end, 'Next checkout lifecycle method must exist');
+        $methodBody = substr($content, $start, $end - $start);
 
         $helperStart = strpos($content, 'private function kiriof_get_checkout_payment_method');
         $this->assertNotFalse($helperStart, 'Shared payment method fallback helper must exist');
@@ -3820,10 +3873,26 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 		$view = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php');
 
         $this->assertStringContainsString(
-            'WordPressTransactionListQuery::normalizeStatusFilter($filters["status"])',
+            '$status = WordPressTransactionListQuery::normalizeStatusFilter($filters["status"]);',
             $renderer,
             'Opening the transaction-process page without a status filter should show all newly-created transactions, including BACS/on-hold orders'
         );
+
+        $this->assertStringContainsString(
+            '$filters["status"] = is_array($status) ? implode(",", $status) : $status;',
+            $renderer,
+            'The renderer must pass the normalized status to the page query and UI'
+        );
+
+        require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
+        require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
+        foreach (array('', 'invalid-status', null, array('wc-processing')) as $status) {
+            $this->assertSame(
+                'all',
+                \KiriminAjaOfficial\Queries\WordPressTransactionListQuery::normalizeStatusFilter($status),
+                'Empty/invalid status values must default to all rather than hiding non-processing orders'
+            );
+        }
 
         $this->assertStringContainsString(
             '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );',
@@ -3832,6 +3901,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $normalizePosition = strpos($query, '$status       = $this->normalizeStatusFilter( $filters[\'status\'] ?? \'\' );');
+        $this->assertStringContainsString('$singleStatus = $isMultiStatus ? \'\' : $status;', $query);
         $isAllPosition = strpos($query, '$isAllFilter = (\'all\' === $singleStatus);');
         $this->assertNotFalse($normalizePosition, 'The page query must normalize empty/invalid status values to all');
         $this->assertNotFalse($isAllPosition, 'The page query must calculate the all-filter flag');
@@ -3934,15 +4004,15 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "has_block( 'woocommerce/cart'",
+            "has_block( 'woocommerce/checkout'",
             $enqueue,
-            'Cart Block pages need the shipping discount totals script too'
+            'Checkout Block pages need the shipping discount totals script too'
         );
 
         $this->assertStringContainsString(
-            'is_cart_block_default',
+            'isBlockCartOrCheckoutPage',
             $enqueue,
-            'Default Woo Cart Block pages need the shipping discount totals script too'
+            'Checkout detection must preserve the dedicated cart/checkout request helper'
         );
 
         $this->assertStringContainsString(

@@ -12,6 +12,7 @@ namespace Automattic\WooCommerce\Utilities {
 namespace {
     define('ABSPATH', dirname(__DIR__, 2) . '/');
     require_once ABSPATH . 'inc/Contracts/TransactionListQueryInterface.php';
+    require_once ABSPATH . 'inc/Services/TransactionDeliveryType.php';
     require_once ABSPATH . 'inc/Queries/WordPressTransactionListQuery.php';
 
     function sanitize_text_field($value): string { return trim(strip_tags((string) $value)); }
@@ -53,7 +54,7 @@ namespace {
             foreach ([
                 'CREATE TABLE wp_posts (ID INTEGER PRIMARY KEY, post_date TEXT, post_status TEXT, post_type TEXT)',
                 'CREATE TABLE wp_wc_orders (id INTEGER PRIMARY KEY, date_created_gmt TEXT, status TEXT, type TEXT)',
-                'CREATE TABLE wp_kiriminaja_transactions (id INTEGER PRIMARY KEY, wp_wc_order_stat_order_id INTEGER, status TEXT, pickup_number TEXT, is_deficit INTEGER, cod_fee REAL, service TEXT, is_printed INTEGER, awb TEXT, order_id TEXT, created_at TEXT)',
+                'CREATE TABLE wp_kiriminaja_transactions (id INTEGER PRIMARY KEY, wp_wc_order_stat_order_id INTEGER, status TEXT, pickup_number TEXT, is_deficit INTEGER, cod_fee REAL, service TEXT, delivery_type TEXT, is_printed INTEGER, awb TEXT, order_id TEXT, created_at TEXT)',
                 'CREATE TABLE wp_kiriminaja_payments (id INTEGER PRIMARY KEY, pickup_number TEXT)',
                 'CREATE TABLE wp_woocommerce_order_items (order_item_id INTEGER PRIMARY KEY, order_id INTEGER, order_item_type TEXT)',
                 'CREATE TABLE wp_woocommerce_order_itemmeta (order_item_id INTEGER, meta_key TEXT, meta_value TEXT)',
@@ -123,7 +124,8 @@ namespace {
                 $pickup = 'PICKUP-' . $id;
                 $this->insert('wp_posts', [$id, $date, $row[0], 'shop_order']);
                 $this->insert('wp_wc_orders', [$id, $date, $row[0], 'shop_order']);
-                $this->insert('wp_kiriminaja_transactions', [$id, $id, $row[1], $pickup, $row['deficit'] ?? 0, $row['cod'] ?? 100, $row['courier'] ?? ($id % 2 ? 'jne' : 'pos'), $row['printed'] ?? 0, $row['awb'] ?? 'KA-10-' . $id, $row['order_id'] ?? 'KA-10-' . $id, $date]);
+                $courier = $row['courier'] ?? ($id % 2 ? 'jne' : 'pos');
+                $this->insert('wp_kiriminaja_transactions', [$id, $id, $row[1], $pickup, $row['deficit'] ?? 0, $row['cod'] ?? 100, $courier, in_array($courier, ['gosend', 'grab_express', 'borzo'], true) ? 'instant' : 'express', $row['printed'] ?? 0, $row['awb'] ?? 'KA-10-' . $id, $row['order_id'] ?? 'KA-10-' . $id, $date]);
                 if (!empty($row['paid'])) {
                     $this->insert('wp_kiriminaja_payments', [$id * 10, $pickup]);
                     if (4 === $id || 6 === $id) { // Real duplicate joined rows.
@@ -147,7 +149,7 @@ namespace {
     \Automattic\WooCommerce\Utilities\OrderUtil::$enabled = !empty($payload['hpos']);
     $wpdb = new TransactionMultiFilterDatabaseWpdb();
     $query = new \KiriminAjaOfficial\Queries\WordPressTransactionListQuery($wpdb);
-    $defaults = ['key' => '', 'month' => '', 'status' => 'all', 'cod' => '', 'courier' => '', 'print_status' => ''];
+    $defaults = ['key' => '', 'month' => '', 'status' => 'all', 'cod' => '', 'courier' => '', 'print_status' => '', 'delivery_type' => 'express'];
     $responses = [];
     foreach ($payload['requests'] ?? [$payload] as $request) {
         $wpdb->queries = [];

@@ -213,7 +213,7 @@ class TransactionListRenderService
                 "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
             ),
             "bulk" => [
-                "showPrint" => "all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true),
+                "showPrint" => "express" === $filters["delivery_type"] && ("all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true)),
                 "printAction" => admin_url("admin-post.php"),
                 "printNonce" => wp_create_nonce("kiriof_resi_print_bulk"),
                 "printPreviewNonce" => wp_create_nonce("kiriof_resi_print"),
@@ -224,6 +224,90 @@ class TransactionListRenderService
                 ),
             ],
             "i18n" => [
+                "regularDelivery" => __("Regular Delivery", "kiriminaja-official"),
+                "instantDelivery" => __("Instant Delivery", "kiriminaja-official"),
+                "orderIssue" => __("Order Issue", "kiriminaja-official"),
+                "transactionScope" => __("Transaction scope", "kiriminaja-official"),
+                "vehicle" => __("Vehicle", "kiriminaja-official"),
+                "vehicleUnavailable" => __("Not specified", "kiriminaja-official"),
+                "processShipment" => __("Process Shipment", "kiriminaja-official"),
+                "instantReviewDescription" => __("Review selected shipments and current courier prices.", "kiriminaja-official"),
+                "instantRatesTitle" => __("Instant Rates", "kiriminaja-official"),
+                "instantRatesNotice" => __("Courier prices may change before booking.", "kiriminaja-official"),
+                "instantOrderInformation" => __("Order Information", "kiriminaja-official"),
+                "instantOrdersChanged" => __("orders changed", "kiriminaja-official"),
+                "instantCourierService" => __("Courier / service", "kiriminaja-official"),
+                "instantOrigin" => __("Origin", "kiriminaja-official"),
+                "instantRecipient" => __("Recipient", "kiriminaja-official"),
+                "instantUnavailable" => __("Unavailable", "kiriminaja-official"),
+                "instantChanged" => __("Price changed", "kiriminaja-official"),
+                "instantShippingInformation" => __("Shipping Information", "kiriminaja-official"),
+                "instantSelectedOrders" => __("selected shipments", "kiriminaja-official"),
+                "instantPriceGap" => __("Price Gap", "kiriminaja-official"),
+                "instantPriceIncrease" => __("Price increase", "kiriminaja-official"),
+                "instantPriceDecrease" => __("Price decrease", "kiriminaja-official"),
+                "instantTotalShipment" => __("Total Shipment", "kiriminaja-official"),
+                "instantTotalScope" => __("Totals include selected eligible shipments only and compare carrier shipping charges. Checkout insurance and customer admin fees are not included.", "kiriminaja-official"),
+                "instantQuoteRefreshFailed" => __("Prices could not be refreshed. Review prices again to continue; no shipment has been booked.", "kiriminaja-official"),
+                "instantRefreshingPrices" => __("Refreshing prices…", "kiriminaja-official"),
+                "instantContinuePayment" => __("Confirm & continue to payment", "kiriminaja-official"),
+                "instantQuoteExpired" => __("Prices have expired. They will refresh automatically before you can confirm.", "kiriminaja-official"),
+                "instantBefore" => __("Saved price", "kiriminaja-official"),
+                "instantAfter" => __("Current price", "kiriminaja-official"),
+                "instantPin" => __("KA Credit PIN (6 digits)", "kiriminaja-official"),
+                "instantUnknown" => __("Unable to confirm the Instant booking. Contact support before trying again.", "kiriminaja-official"),
+                "instantRefreshPayment" => __("Refresh payment status", "kiriminaja-official"),
+                "instantClose" => __("Close", "kiriminaja-official"),
+                "instantReview" => __("Review prices again", "kiriminaja-official"),
+                "instantCredit" => __("KA Credit", "kiriminaja-official"),
+                "creditDescription" => __("Remaining Credit", "kiriminaja-official"),
+                "creditUnavailable" => __("Unable to verify credit balance.", "kiriminaja-official"),
+                "creditInsufficient" => __("Insufficient credit balance for this pickup.", "kiriminaja-official"),
+                "creditNoPin" => __("Set a PIN on your KiriminAja profile to pay with credit.", "kiriminaja-official"),
+                "instantCreditBalance" => __("KA Credit balance remaining", "kiriminaja-official"),
+                "instantCreditUnavailable" => __("Unable to verify KA Credit balance. Refresh prices to check again.", "kiriminaja-official"),
+                "instantCreditInsufficient" => __("Insufficient KA Credit balance for these shipments.", "kiriminaja-official"),
+                "instantQrisDescription" => __("Scan the QR code after booking to pay for these shipments.", "kiriminaja-official"),
+                "instantPinStep" => __("Input PIN & Validation", "kiriminaja-official"),
+                "instantPinDescription" => __("Enter your six-digit KA Credit PIN. The server checks your PIN and balance before creating a shipment.", "kiriminaja-official"),
+                "instantPinInvalid" => __("Unable to validate KA Credit payment. Check your PIN and try again.", "kiriminaja-official"),
+                "instantValidatePin" => __("Validate PIN & process", "kiriminaja-official"),
+                "instantPinValidating" => __("Validating KA Credit payment…", "kiriminaja-official"),
+                "instantBackSummary" => __("Back to Summary", "kiriminaja-official"),
+                "instantTop" => __("TOP", "kiriminaja-official"),
+                "instantQris" => __("QRIS", "kiriminaja-official"),
+                "instantQrLabel" => __("Scan this QRIS code to pay", "kiriminaja-official"),
+                "instantResult_booked" => __("Booked", "kiriminaja-official"),
+                "instantResult_failed" => __("Failed", "kiriminaja-official"),
+                "instantResult_unknown" => __("Unknown outcome", "kiriminaja-official"),
+                "instantResult_skipped" => __("Skipped", "kiriminaja-official"),
+                "instantPayment_unpaid" => __("Unpaid", "kiriminaja-official"),
+                "instantPayment_refunded" => __("Refunded", "kiriminaja-official"),
+                "instantPayment_paid" => __("Paid", "kiriminaja-official"),
+                "instantPayment_pending" => __("Pending payment", "kiriminaja-official"),
+                "instantPayment_failed" => __("Payment failed", "kiriminaja-official"),
+                "instantPayment_expired" => __("Payment expired", "kiriminaja-official"),
+                "instantPayment_unknown" => __("Unknown payment state", "kiriminaja-official"),
+                "liveTracking" => __("Live Tracking", "kiriminaja-official"),
+            "instantCancel" => __("Cancel Instant shipment", "kiriminaja-official"),
+            "instantRecheck" => __("Recheck booking", "kiriminaja-official"),
+            "instantRecheckDescription" => __("Check whether this uncertain booking exists. This does not create another shipment or clear the retry guard. If no shipment is found, contact support to confirm the booking was not accepted.", "kiriminaja-official"),
+            "instantResult_reconciled" => __("Booking evidence checked", "kiriminaja-official"),
+            "instantCancelTerms" => __("Confirm cancellation of this Instant shipment only. This does not cancel the WooCommerce order or issue a WooCommerce refund. A cancellation request may still be pending.", "kiriminaja-official"),
+            "instantOperationDescription" => __("Review this shipment before continuing.", "kiriminaja-official"),
+            "instantOperationUnknown" => __("Unable to confirm the operation. Contact support before trying again.", "kiriminaja-official"),
+            "instantResult_tracked" => __("Tracking available", "kiriminaja-official"),
+            "instantResult_not_found" => __("Shipment not found", "kiriminaja-official"),
+            "instantResult_cancel_requested" => __("Cancellation requested", "kiriminaja-official"),
+            "instantResult_canceled" => __("Shipment canceled", "kiriminaja-official"),
+            "instantPaymentPollTimeout" => __("Automatic payment checks stopped after the time limit. Refresh payment status manually.", "kiriminaja-official"),
+                "instantPaymentPollExpired" => __("This payment has expired. Automatic payment checks stopped.", "kiriminaja-official"),
+                "instantPaymentPollError" => __("Automatic payment checks stopped after repeated errors. Refresh payment status manually.", "kiriminaja-official"),
+                "instantPaymentChecking" => __("Checking payment status…", "kiriminaja-official"),
+                "instantIssue" => __("Instant order issue", "kiriminaja-official"),
+                "paymentMethod" => __("Payment method", "kiriminaja-official"),
+                "paymentStatus" => __("Payment status", "kiriminaja-official"),
+                "paymentId" => __("Payment ID", "kiriminaja-official"),
                 "search" => __("Search order…", "kiriminaja-official"),
                 "orderNumber" => __("Order Number", "kiriminaja-official"),
                 "kaOrderId" => __("KA Order ID", "kiriminaja-official"),
@@ -407,13 +491,13 @@ class TransactionListRenderService
     /**
      * Read, sanitize, and normalize list filters.
      *
-     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string}
+     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string,delivery_type:string}
      */
     private function getFilters(): array
     {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin list filters.
         $filters = [];
-        foreach (["key", "month", "status", "cod", "courier", "print_status"] as $name) {
+        foreach (["key", "month", "status", "cod", "courier", "print_status", "delivery_type"] as $name) {
             $filters[$name] = isset( $_GET[ $name ] ) && is_string( $_GET[ $name ] )
                 ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) )
                 : "";
@@ -422,6 +506,13 @@ class TransactionListRenderService
 
         $status = WordPressTransactionListQuery::normalizeStatusFilter($filters["status"]);
         $filters["status"] = is_array($status) ? implode(",", $status) : $status;
+        $filters["delivery_type"] = "order-issue" === $filters["status"]
+            ? "express"
+            : TransactionDeliveryType::normalize($filters["delivery_type"]);
+        if ("instant" === $filters["delivery_type"]) {
+            $filters["cod"] = "";
+            $filters["print_status"] = "";
+        }
         $filters["courier"] = implode(",", WordPressTransactionListQuery::normalizeCourierFilter($filters["courier"]));
         if (!in_array($filters["print_status"], ["0", "1"], true)) {
             $filters["print_status"] = "";

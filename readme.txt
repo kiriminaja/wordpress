@@ -8,8 +8,8 @@ Requires PHP: 8.1
 Stable tag: 2.4.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-WC requires at least: 8.0
-WC tested up to: 10.8
+WC requires at least: 8.5
+WC tested up to: 10.6
 Requires Plugins: woocommerce
 
 WooCommerce shipping integration for KiriminAja rates, pickup requests, waybill printing, COD, Non-COD, QRIS, KA Credit, and TOP merchant workflows.

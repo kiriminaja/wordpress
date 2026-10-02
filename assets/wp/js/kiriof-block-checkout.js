@@ -4,20 +4,24 @@
   }
 
   var SHIPPING_DISCOUNT_TYPES = [
-    "kiriof_fixed_shipping_discount",
-    "kiriof_percent_shipping_discount",
+    'kiriof_fixed_shipping_discount',
+    'kiriof_percent_shipping_discount',
   ];
 
-  var COUPON_FORM_ID = "coupon-form";
-  var APPLIED_MARKER = "has been applied to your cart";
+  var COUPON_FORM_ID = 'coupon-form';
+  var hasCouponNoticeFilter = !!(
+    wc &&
+    wc.blocksCheckout &&
+    typeof wc.blocksCheckout.registerCheckoutFilters === 'function'
+  );
 
   function normalizeCouponCode(code) {
-    return String(code || "").toLowerCase();
+    return String(code || '').toLowerCase();
   }
 
   function getCartCoupons() {
     try {
-      var cartData = wp.data.select("wc/store/cart").getCartData();
+      var cartData = wp.data.select('wc/store/cart').getCartData();
       return cartData && Array.isArray(cartData.coupons) ? cartData.coupons : [];
     } catch (e) {
       return [];
@@ -40,7 +44,7 @@
   function getNativeCouponCodes(coupons) {
     var nativeCodes = [];
     for (var i = 0; i < coupons.length; i++) {
-      if (typeof coupons[i] === "string") {
+      if (typeof coupons[i] === 'string') {
         nativeCodes.push(coupons[i]);
         continue;
       }
@@ -53,16 +57,15 @@
 
   function getShippingCouponNotice(couponCode, coupons) {
     var nativeCodes = getNativeCouponCodes(coupons);
+    var strings = window.kiriofBlockCheckoutStrings || {};
     if (nativeCodes.length > 0) {
-      return (
-        'Shipping discount "' +
-        couponCode +
-        '" applied and combined with: ' +
-        nativeCodes.join(", ") +
-        "."
-      );
+      return (strings.couponCombined || '').replace(/%([12])\$s/g, function (_, position) {
+        return position === '1' ? couponCode : nativeCodes.join(', ');
+      });
     }
-    return 'Shipping discount "' + couponCode + '" applied to your cart.';
+    return (strings.couponApplied || '').replace(/%s/g, function () {
+      return couponCode;
+    });
   }
 
   function createShippingCouponNotice(couponCode, context) {
@@ -72,15 +75,13 @@
     }
 
     try {
-      wp.data.dispatch("core/notices").createNotice(
-        "info",
-        getShippingCouponNotice(couponCode, coupons),
-        {
+      wp.data
+        .dispatch('core/notices')
+        .createNotice('info', getShippingCouponNotice(couponCode, coupons), {
           id: COUPON_FORM_ID,
-          type: "snackbar",
-          context: context || "wc/cart",
-        },
-      );
+          type: 'snackbar',
+          context: context || 'wc/cart',
+        });
       return true;
     } catch (e) {
       return false;
@@ -88,12 +89,8 @@
   }
 
   (function registerCouponNoticeFilter() {
-    if (
-      wc &&
-      wc.blocksCheckout &&
-      typeof wc.blocksCheckout.registerCheckoutFilters === "function"
-    ) {
-      wc.blocksCheckout.registerCheckoutFilters("kiriminaja-official", {
+    if (hasCouponNoticeFilter) {
+      wc.blocksCheckout.registerCheckoutFilters('kiriminaja-official', {
         showApplyCouponNotice: function (defaultValue, extensions, args) {
           var couponCode = args && args.couponCode;
           if (couponCode && createShippingCouponNotice(couponCode, args.context)) {
@@ -112,16 +109,16 @@
     }
 
     var body = new URLSearchParams();
-    body.append("action", "kiriof_get_applied_coupon_scopes");
-    body.append("nonce", window.kiriofAjax.nonce || "");
-    body.append("coupon_code", couponCode || "");
+    body.append('action', 'kiriof_get_applied_coupon_scopes');
+    body.append('nonce', window.kiriofAjax.nonce || '');
+    body.append('coupon_code', couponCode || '');
 
     window
       .fetch(window.kiriofAjax.ajaxurl, {
-        method: "POST",
-        credentials: "same-origin",
+        method: 'POST',
+        credentials: 'same-origin',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         },
         body: body.toString(),
       })
@@ -137,25 +134,45 @@
   }
 
   (function replaceCouponNoticeFallback() {
-    if (!wp || !wp.data || !wp.data.subscribe || !wp.data.select) {
+    // Modern Blocks provide the coupon code directly; never inspect their notices.
+    if (hasCouponNoticeFilter || !wp || !wp.data || !wp.data.subscribe || !wp.data.select) {
       return;
     }
+
+    // On older Blocks, only recognize WooCommerce's complete, localized success
+    // template. Without its translation API, leave the native notice untouched.
+    if (!wp.i18n || typeof wp.i18n.__ !== 'function') return;
+    var appliedTemplate = wp.i18n.__(
+      'Coupon code "%s" has been applied to your cart.',
+      'woocommerce',
+    );
+    if (typeof appliedTemplate !== 'string') return;
+    var templateParts = appliedTemplate.split('%s');
+    if (templateParts.length !== 2) return;
+    function escapePattern(value) {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    var appliedPattern = new RegExp(
+      '^' + escapePattern(templateParts[0]) + '(.+?)' + escapePattern(templateParts[1]) + '$',
+    );
 
     var replacedNotices = {};
     var pendingNotices = {};
 
     function replaceCouponNotice() {
       try {
-        var notices = wp.data.select("core/notices").getNotices();
+        var notices = wp.data.select('core/notices').getNotices();
         var toReplace = null;
         for (var i = 0; i < notices.length; i++) {
           var n = notices[i];
           if (
             n &&
             n.id === COUPON_FORM_ID &&
-            typeof n.content === "string" &&
-            n.content.indexOf(APPLIED_MARKER) !== -1 &&
-            !replacedNotices[n.id + "|" + n.content]
+            typeof n.content === 'string' &&
+            n.status !== 'error' &&
+            n.status !== 'warning' &&
+            appliedPattern.test(n.content) &&
+            !replacedNotices[n.id + '|' + n.content]
           ) {
             toReplace = n;
             break;
@@ -167,20 +184,22 @@
         var couponCode = extractCouponCode(toReplace.content);
         if (!couponCode) return;
 
-        var key = toReplace.id + "|" + toReplace.content;
+        var key = toReplace.id + '|' + toReplace.content;
         var coupons = getCartCoupons();
         if (isShippingCouponCode(couponCode, coupons)) {
           replacedNotices[key] = true;
-          wp.data.dispatch("core/notices").removeNotice(toReplace.id, toReplace.context);
-          wp.data.dispatch("core/notices").createNotice(
-            toReplace.status || "info",
-            getShippingCouponNotice(couponCode, coupons),
-            {
-              id: COUPON_FORM_ID,
-              type: "snackbar",
-              context: toReplace.context || "wc/cart",
-            },
-          );
+          wp.data.dispatch('core/notices').removeNotice(toReplace.id, toReplace.context);
+          wp.data
+            .dispatch('core/notices')
+            .createNotice(
+              toReplace.status || 'info',
+              getShippingCouponNotice(couponCode, coupons),
+              {
+                id: COUPON_FORM_ID,
+                type: 'snackbar',
+                context: toReplace.context || 'wc/cart',
+              },
+            );
           return;
         }
 
@@ -192,16 +211,18 @@
 
           replacedNotices[key] = true;
           try {
-            wp.data.dispatch("core/notices").removeNotice(toReplace.id, toReplace.context);
-            wp.data.dispatch("core/notices").createNotice(
-              toReplace.status || "info",
-              getShippingCouponNotice(couponCode, data.native || []),
-              {
-                id: COUPON_FORM_ID,
-                type: "snackbar",
-                context: toReplace.context || "wc/cart",
-              },
-            );
+            wp.data.dispatch('core/notices').removeNotice(toReplace.id, toReplace.context);
+            wp.data
+              .dispatch('core/notices')
+              .createNotice(
+                toReplace.status || 'info',
+                getShippingCouponNotice(couponCode, data.native || []),
+                {
+                  id: COUPON_FORM_ID,
+                  type: 'snackbar',
+                  context: toReplace.context || 'wc/cart',
+                },
+              );
           } catch (e) {}
         });
       } catch (e) {}
@@ -212,7 +233,7 @@
     } catch (e) {}
 
     function extractCouponCode(msg) {
-      var match = msg.match(/Coupon code "([^"]+)" has been applied/);
+      var match = msg.match(appliedPattern);
       return match ? match[1] : null;
     }
   })();
@@ -437,6 +458,9 @@
   }
 
   function invalidateBlockShippingRates() {
+    if (window.kiriofBuyerCheckout && (window.kiriofBuyerCheckout.active || window.kiriofBuyerCheckout.pending)) {
+      return;
+    }
     if (!wp || !wp.data || !wp.data.dispatch) {
       return;
     }

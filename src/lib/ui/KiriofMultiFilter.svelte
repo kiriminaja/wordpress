@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { IconChevronDown, IconSearch } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Checkbox } from '$lib/components/ui/checkbox';
+  import KiriofCheckbox from '$lib/ui/KiriofCheckbox.svelte';
   import { Badge } from '$lib/components/ui/badge';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Popover from '$lib/components/ui/popover';
@@ -73,14 +73,14 @@
     </div>
     <div class="border-y border-border p-2">
       <div class="!flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-        <Checkbox id={`${id}-all`} checked={allChecked} {disabled} onCheckedChange={() => { draft = []; }} />
+        <KiriofCheckbox id={`${id}-all`} checked={allChecked} {disabled} onCheckedChange={() => { draft = []; }} />
         <label class="flex-1 cursor-pointer text-sm font-medium" for={`${id}-all`}>{allLabel}</label>
       </div>
     </div>
     <div class="max-h-64 overflow-y-auto p-2" role="group" aria-label={allLabel}>
       {#each visibleOptions as option (option.value)}
         <div class="!flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted">
-          <Checkbox id={`${id}-${option.value}`} checked={draft.includes(option.value)} {disabled} onCheckedChange={(checked) => toggle(option, checked)} />
+          <KiriofCheckbox id={`${id}-${option.value}`} checked={draft.includes(option.value)} {disabled} onCheckedChange={(checked) => toggle(option, checked)} />
           <label class="min-w-0 flex-1 cursor-pointer text-sm" for={`${id}-${option.value}`}>{option.label}</label>
           {#if option.count !== undefined}<span class="text-xs tabular-nums text-muted-foreground">{option.count}</span>{/if}
         </div>

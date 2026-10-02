@@ -2,53 +2,35 @@
 namespace KiriminAjaOfficial\Services\TransactionProcessServices;
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Utils\CreditBalance;
 
 class GetCreditBalanceService extends BaseService {
-    public function call() {
-        try {
-            $result = ( new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository() )->getCreditBalance();
+	public function call() {
+		try {
+			$result = ( new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository() )->getCreditBalance();
+			$balance = true === ( $result['status'] ?? null ) ? $this->extract_balance( $result['data'] ?? null ) : null;
+			if ( null === $balance ) {
+				$this->log_unavailable();
+				return self::error( array( 'balance' => null ), 'Unable to verify credit balance.' );
+			}
+			return self::success( array( 'balance' => $balance ), 'success' );
+		} catch ( \Throwable $throwable ) {
+			$this->log_unavailable();
+			return self::error( array( 'balance' => null ), 'Unable to verify credit balance.' );
+		}
+	}
 
-            if ( empty( $result['status'] ) || empty( $result['data'] ) ) {
-                return self::error( [ 'balance' => 0 ], $result['data'] ?? 'Failed to get credit balance' );
-            }
+	private function extract_balance( $data ): ?float {
+		return CreditBalance::parse( $data );
+	}
 
-            // SDK >= 2.1.4 normalizes the payload to [ 'balance' => int ].
-            $balance = $this->extract_balance( $result['data'] );
-            return self::success( [ 'balance' => $balance ], 'success' );
-        } catch ( \Throwable $th ) {
-            return self::error( [ 'balance' => 0 ], $th->getMessage() );
-        }
-    }
-
-    /**
-     * Defensive unwrap for the SDK payload. SDK >= 2.1.4 returns
-     * [ 'balance' => int ]; older shapes nested it under results/data.
-     *
-     * @param mixed $data SDK response payload.
-     */
-    private function extract_balance( $data ): float {
-        if ( is_numeric( $data ) ) {
-            return (float) $data;
-        }
-
-        if ( is_object( $data ) ) {
-            $data = json_decode( wp_json_encode( $data ), true );
-        }
-
-        if ( ! is_array( $data ) ) {
-            return 0.0;
-        }
-
-        foreach ( array( 'results', 'data', 'payload', 'result' ) as $wrapper ) {
-            if ( isset( $data[ $wrapper ] ) && is_array( $data[ $wrapper ] ) && isset( $data[ $wrapper ]['balance'] ) ) {
-                return (float) $data[ $wrapper ]['balance'];
-            }
-        }
-
-        return (float) ( $data['balance'] ?? 0 );
-    }
+	private function log_unavailable(): void {
+		if ( function_exists( 'kiriof_log' ) ) {
+			kiriof_log( 'warning', 'Unable to verify credit balance.', array( 'source' => 'kiriminaja_api', 'operation' => 'credit_balance', 'reason' => 'balance_unavailable' ) );
+		}
+	}
 }

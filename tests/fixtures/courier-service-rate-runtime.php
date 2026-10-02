@@ -265,7 +265,7 @@ switch ( $argv[1] ?? '' ) {
 			'item_value' => 10000,
 			'courier' => array( 'jne' ),
 		);
-		$pricing = (object) array( 'results' => array( (object) array(
+		$pricing = (object) array( 'status' => true, 'results' => array( (object) array(
 			'service' => 'jne',
 			'service_type' => 'REG',
 			'service_name' => 'Regular',

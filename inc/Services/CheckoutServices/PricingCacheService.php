@@ -16,19 +16,19 @@ class PricingCacheService {
     public static function get( array $payload ) {
         $key   = self::cacheKey( $payload );
         if ( isset( self::$runtime_cache[ $key ] ) && self::isFresh( self::$runtime_cache[ $key ] ) ) {
-            return self::$runtime_cache[ $key ]['data'] ?? null;
+            return self::copyData( self::$runtime_cache[ $key ]['data'] );
         }
 
         $cache = self::getCache();
         if ( isset( $cache[ $key ] ) && self::isFresh( $cache[ $key ] ) ) {
             self::$runtime_cache[ $key ] = $cache[ $key ];
-            return $cache[ $key ]['data'] ?? null;
+            return self::copyData( $cache[ $key ]['data'] );
         }
 
         $transient_entry = get_transient( self::transientKey( $key ) );
         if ( self::isFresh( $transient_entry ) ) {
             self::storeEntry( $key, $transient_entry );
-            return $transient_entry['data'] ?? null;
+            return self::copyData( $transient_entry['data'] );
         }
 
         $base_key = self::baseKey( $payload );
@@ -42,7 +42,7 @@ class PricingCacheService {
                 ? $entry['couriers']
                 : array();
             if ( self::couriersAreCompatible( $couriers, $entry_couriers ) ) {
-                return $entry['data'] ?? null;
+                return self::copyData( $entry['data'] );
             }
         }
 
@@ -50,7 +50,7 @@ class PricingCacheService {
     }
 
     public static function put( array $payload, $pricing_data ): void {
-        if ( empty( $pricing_data ) ) {
+        if ( ! self::isPricingData( $pricing_data ) ) {
             return;
         }
 
@@ -58,7 +58,7 @@ class PricingCacheService {
         $entry = array(
             'base_key'  => self::baseKey( $payload ),
             'couriers'  => self::normalizeCouriers( $payload['courier'] ?? null ),
-            'data'      => $pricing_data,
+            'data'      => self::copyData( $pricing_data ),
             'stored_at' => time(),
         );
 
@@ -101,11 +101,45 @@ class PricingCacheService {
     }
 
     private static function isFresh( $entry ): bool {
-        if ( ! is_array( $entry ) || empty( $entry['stored_at'] ) ) {
+        if ( ! is_array( $entry ) || empty( $entry['stored_at'] ) || ! is_numeric( $entry['stored_at'] )
+            || ! isset( $entry['base_key'], $entry['couriers'], $entry['data'] )
+            || ! is_string( $entry['base_key'] ) || '' === $entry['base_key']
+            || ! is_array( $entry['couriers'] ) || ! self::isPricingData( $entry['data'] ) ) {
             return false;
         }
 
         return ( time() - (int) $entry['stored_at'] ) <= self::TTL_SECONDS;
+    }
+
+    private static function isPricingData( $data ): bool {
+        if ( ! ( $data instanceof \stdClass ) || empty( $data->status )
+            || ! isset( $data->results ) || ! is_array( $data->results ) ) {
+            return false;
+        }
+
+        foreach ( $data->results as $row ) {
+            if ( ! ( $row instanceof \stdClass ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** Detach JSON pricing graphs without changing their object/array shape. */
+    private static function copyData( $value ) {
+        if ( is_array( $value ) ) {
+            foreach ( $value as $key => $child ) {
+                $value[ $key ] = self::copyData( $child );
+            }
+        } elseif ( $value instanceof \stdClass ) {
+            $value = clone $value;
+            foreach ( $value as $key => $child ) {
+                $value->{$key} = self::copyData( $child );
+            }
+        }
+
+        return $value;
     }
 
     private static function cacheKey( array $payload ): string {

@@ -68,9 +68,15 @@ class CheckoutCalculationService extends BaseService{
         }
         
         /** Origin Data*/
-        $settingRepo = $this->setting_repository->getSettingByKey('origin_sub_district_id');
-        if(!$settingRepo||$settingRepo->value === null){
-            return self::error([],'Terjadi Kesalahan!');
+        if ( ! empty( $this->payload['blocks_quote_validation'] ) && is_array( $this->payload['origin'] ?? null ) ) {
+            $originDistrict = (int) ( $this->payload['origin']['origin_sub_district_id'] ?? 0 );
+            if ( $originDistrict < 1 ) { return self::error( array(), 'Invalid Express checkout origin.' ); }
+        } else {
+            $settingRepo = $this->setting_repository->getSettingByKey('origin_sub_district_id');
+            if(!$settingRepo||$settingRepo->value === null){
+                return self::error([],'Terjadi Kesalahan!');
+            }
+            $originDistrict = (int) $settingRepo->value;
         }
         /** Cart Attribute Data*/
         $cartAttributes = (new GetWCCartAttributeService([
@@ -80,7 +86,11 @@ class CheckoutCalculationService extends BaseService{
             return self::error([],'Terjadi Kesalahan!');
         }
 
-        if ($this->hasActiveFreeShippingCoupon()) {
+        // Classic checkout retains its historical free-shipping shortcut. Blocks
+        // final validation must obtain the real enabled carrier quote first: a
+        // coupon waives delivery, not the carrier's insurance or COD charges.
+        // Buyer coupon pricing is applied later by the Blocks validator only.
+        if ( empty( $this->payload['blocks_quote_validation'] ) && $this->hasActiveFreeShippingCoupon() ) {
             $this->selectedExpedition = (object) [
                 'cost' => 0,
                 'discount_amount' => 0,
@@ -107,7 +117,7 @@ class CheckoutCalculationService extends BaseService{
         
         $courier = $this->expeditionParts[0];
         $pricingPayload = [
-            'subdistrict_origin'        => (int) $settingRepo->value,
+            'subdistrict_origin'        => $originDistrict,
             'subdistrict_destination'   => $this->destination_area_id,
             'weight'                    => $cartAttributes->data['weight'],
             "length"                    => $cartAttributes->data['length'],

@@ -69,8 +69,11 @@ final class RequestPickupPaymentFlowTest extends TestCase
 	{
 		$dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
 		$styles = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
+		$methods = file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentMethodSelector.svelte' );
 
-		$this->assertStringContainsString( '<RadioGroup.Root bind:value={paymentMethod}', $dialog );
+		$this->assertStringContainsString( "import PaymentMethodSelector from '\$lib/payments/PaymentMethodSelector.svelte'", $dialog );
+		$this->assertStringContainsString( '<PaymentMethodSelector idPrefix="pickup-method" bind:value={paymentMethod}', $dialog );
+		$this->assertStringContainsString( '<RadioGroup.Root bind:value', $methods );
 		$this->assertStringContainsString( '{#if paymentRequired && paymentOptions.length >= 1}', $dialog );
 		$this->assertStringContainsString( "paymentMethod = creditEnabled && creditAvailable ? 'credit'", $dialog );
 		$this->assertStringContainsString( 'creditEnabled', $dialog );
@@ -78,8 +81,12 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$this->assertStringContainsString( 'Remaining Credit', $dialog );
 		$this->assertStringContainsString( 'Maximum Transaction Rp10.000.000', $dialog );
 		$this->assertStringContainsString( 'Continue to Payment', $dialog );
-		$this->assertStringContainsString( 'disabled={submitting || option.disabled}', $dialog );
-		$this->assertStringContainsString( 'kiriof-payment-method-card', $dialog );
+		$this->assertStringContainsString( 'disabled={submitting} required', $dialog );
+		$this->assertStringContainsString( 'disabled || Boolean(option.disabled)', $methods );
+		$this->assertStringContainsString( 'disabled={unavailable}', $methods );
+		$this->assertStringContainsString( 'kiriof-payment-method-card', $methods );
+		$this->assertStringContainsString( 'aria-labelledby={`${idPrefix}-label`}', $methods );
+		$this->assertStringContainsString( 'for={`${idPrefix}-${option.value}`}', $methods );
 		$this->assertStringContainsString( 'let submitting = $state(false)', $dialog );
 		$this->assertStringContainsString( 'IconLoader2', $dialog );
 		$schedule = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/pickup-schedule.ts' );
@@ -334,14 +341,18 @@ final class RequestPickupPaymentFlowTest extends TestCase
 		$dialog = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
 		$template = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
 		$enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+		$pin = file_get_contents( PLUGIN_DIR . '/src/lib/payments/CreditPinInput.svelte' );
 
 		$this->assertStringContainsString( 'const canSubmitPin = $derived', $dialog );
 		$this->assertStringContainsString( "call('kiriof_request_pickup_transaction'", $dialog );
-		$this->assertStringContainsString( 'inputId="kiriof-pickup-pin"', $dialog );
-		$this->assertStringContainsString( 'type="password" bind:value={pin}', $dialog );
-		$this->assertStringContainsString( 'pattern={REGEXP_ONLY_DIGITS}', $dialog );
-		$this->assertStringContainsString( 'bind:value={pin}', $dialog );
-		$this->assertStringContainsString( '<InputOTP.Slot {cell} mask />', $dialog );
+		$this->assertStringContainsString( "import CreditPinInput from '\$lib/payments/CreditPinInput.svelte'", $dialog );
+		$this->assertStringContainsString( '<CreditPinInput id="kiriof-pickup-pin" bind:value={pin}', $dialog );
+		$this->assertStringContainsString( 'disabled={submitting} invalid={Boolean(errorMessage)}', $dialog );
+		$this->assertStringContainsString( 'inputId={id} maxlength={6} pattern={REGEXP_ONLY_DIGITS} bind:value {disabled} type="password"', $pin );
+		$this->assertStringContainsString( '<InputOTP.Slot {cell} mask', $pin );
+		$this->assertStringContainsString( 'autocomplete="off" inputmode="numeric"', $pin );
+		$this->assertStringContainsString( '<Field.Label for={id}>{label}</Field.Label>', $pin );
+		$this->assertStringContainsString( 'aria-label={label} aria-describedby={`${id}-help`} aria-invalid={invalid || undefined}', $pin );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/lib/pin-input/pin-input.js' );
 		$this->assertStringNotContainsString( 'tmpl-kiriof-modal-request-pickup', file_get_contents( PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php' ) );
 		$this->assertStringNotContainsString( 'kiriofTransactionProcess', $template );

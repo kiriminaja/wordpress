@@ -61,7 +61,7 @@ class GeneralAjaxController
                 wp_send_json_success( array() );
             }
 
-            $subdistrict_search = ( new \KiriminAjaOfficial\Services\KiriminajaApiService() )->sub_district_search( $search );
+            $subdistrict_search = $this->checkout_service_factory->districtSearch( $search );
             if ( 200 !== $subdistrict_search->status ) {
                 kiriof_log(
                     'warning',
@@ -237,6 +237,7 @@ class GeneralAjaxController
         $discount_context = $this->kiriof_get_cart_discount_context();
 
         return array(
+            'cart_hash'       => method_exists( WC()->cart, 'get_cart_hash' ) ? WC()->cart->get_cart_hash() : '',
             'shipping_method' => $shipping_method,
             'destination_id'  => $destination_id,
             'payment_method'  => $payment_method,

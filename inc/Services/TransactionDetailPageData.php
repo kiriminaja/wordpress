@@ -93,7 +93,10 @@ class TransactionDetailPageData
         $awb = (string) ($transaction->awb ?? "");
         $is_deficit = !empty($transaction->is_deficit);
         $terminal_statuses = array("shipped", "finished", "returned", "return", "canceled");
-        $can_cancel = !$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true);
+        $delivery_type = TransactionDeliveryType::resolve( $transaction );
+        $is_express = 'express' === $delivery_type;
+        $can_cancel = $is_express ? (!$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true)) : InstantShipmentState::canCancel($transaction);
+        $can_remote_instant = !$is_express && "new" !== $status && in_array(strtolower(trim((string) ($transaction->service ?? ""))), array("gosend", "grab_express"), true);
         $order_url = $wc_order && method_exists($wc_order, "get_edit_order_url") ? (string) $wc_order->get_edit_order_url() : "";
         $wc_status = $wc_order && method_exists($wc_order, "get_status") ? (string) $wc_order->get_status() : "";
         $payment_status = $cod_fee > 0 ? "" : ("on-hold" === $wc_status ? __("Unpaid", "kiriminaja-official") : __("Paid", "kiriminaja-official"));
@@ -127,7 +130,7 @@ class TransactionDetailPageData
             $warnings[] = $this->record_warning( $transaction, 'actions', $error );
         }
         $print_url =
-            "" !== (string) ($transaction->awb ?? "")
+            $is_express && "" !== (string) ($transaction->awb ?? "")
                 ? admin_url(
                     "admin-post.php?action=kiriof_resi_print&oids=" .
                         rawurlencode((string) ($transaction->order_id ?? "")) .
@@ -136,9 +139,13 @@ class TransactionDetailPageData
                 )
                 : "";
 
+        if (!$is_express && InstantLabelService::canPrint($transaction)) {
+            $print_url = admin_url('admin-post.php?action=kiriof_instant_labels&oids=' . rawurlencode((string) ($transaction->order_id ?? '')) . '&_wpnonce=' . wp_create_nonce('kiriof_instant_labels'));
+        }
+
         $toolbar = [
             "logoUrl" => KIRIOF_URL . "assets/admin/img/icon-128x128.png",
-            "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction"),
+            "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction" . ( $is_express ? "" : "&delivery_type=instant" )),
             "rootLabel" => __("Transactions", "kiriminaja-official"),
             "title" =>
                 "#" .
@@ -166,6 +173,8 @@ class TransactionDetailPageData
                 "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
             ),
             "transaction" => [
+                "deliveryType" => $delivery_type,
+                "vehicle" => TransactionDeliveryType::normalizeVehicle($transaction->vehicle ?? null),
                 "id" => (int) ($transaction->id ?? 0),
                 "orderId" => (string) ($transaction->order_id ?? ""),
                 "orderNumber" =>
@@ -173,15 +182,12 @@ class TransactionDetailPageData
                     (string) ($transaction->wp_wc_order_stat_order_id ?? ""),
                 "orderUrl" => $order_url,
                 "createdAt" => $this->date($transaction->created_at ?? ""),
-                "paymentLabel" => $payment_label,
-                "isCod" => $cod_fee > 0,
-                "supportsLiveTracking" => "" !== $awb && "-" !== $awb && "" !== (string) ($transaction->order_id ?? ""),
+                "paymentLabel" => $is_express ? $payment_label : (string) ($transaction->instant_payment_method ?? ""),
+                "isCod" => $is_express && $cod_fee > 0,
+                "supportsLiveTracking" => $is_express && "" !== $awb && "-" !== $awb && "" !== (string) ($transaction->order_id ?? ""),
                 "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
-                "status" => [
-                    "label" => $this->status_label($status),
-                    "tone" => $this->status_tone($status),
-                ],
-                "steps" => $this->steps($transaction, $status),
+                "status" => $this->status_presentation($transaction),
+                "steps" => $is_express ? $this->steps($transaction, $status) : [],
                 "sender" => $sender,
                 "recipient" => [
                     "name" => trim(
@@ -229,7 +235,9 @@ class TransactionDetailPageData
                         "service" => $courier_name,
                     ],
                     "awb" => $awb,
-                    "paymentStatus" => $payment_status,
+                    "paymentStatus" => $is_express ? $payment_status : (string) ($transaction->instant_payment_status ?? ""),
+                    "paymentMethod" => $is_express ? "" : (string) ($transaction->instant_payment_method ?? ""),
+                    "paymentId" => $is_express ? "" : (string) ($transaction->instant_payment_id ?? ""),
                     "costs" => [
                         "orderTotal" => $order_total,
                         "subtotal" => $subtotal,
@@ -249,12 +257,16 @@ class TransactionDetailPageData
                     ],
                     "codValue" => $cod_value,
                     "printUrl" => $print_url,
+                    "liveTrackingUrl" => $is_express ? "" : InstantTrackingPresentation::trackingUrl($transaction),
+                    "routeMap" => InstantDetailMapData::prepare($transaction),
                     "trackingOrder" => (string) ($transaction->order_id ?? ""),
                 ],
                 "actions" => [
-                    "changeOrigin" => "new" === $status,
-                    "adjustDeficit" => $is_deficit,
-                    "cancelDeficit" => $is_deficit,
+                    "track" => $can_remote_instant && InstantTrackingPresentation::hasRoute($transaction),
+                    "reconcile" => InstantShipmentState::canRecheck($transaction),
+                    "changeOrigin" => $is_express && "new" === $status,
+                    "adjustDeficit" => $is_express && $is_deficit,
+                    "cancelDeficit" => $is_express && $is_deficit,
                     "cancel" => $can_cancel,
                     "data" => $action_data,
                 ],
@@ -266,6 +278,8 @@ class TransactionDetailPageData
             ],
             "bootstrapError" => empty( $warnings ) ? "" : __( 'Some optional transaction details could not be loaded. See the KiriminAja log for diagnostics.', 'kiriminaja-official' ),
             "i18n" => $this->i18n(),
+            "map" => $is_express ? null : InstantDetailMapData::mapConfig(),
+            "map" => $is_express ? null : InstantDetailMapData::mapConfig(),
         ];
     }
 
@@ -301,11 +315,13 @@ class TransactionDetailPageData
         $insurance = (float) ($transaction->insurance_cost ?? 0);
         $cod_fee = (float) ($transaction->cod_fee ?? 0);
         $is_deficit = !empty($transaction->is_deficit);
+        $delivery_type = TransactionDeliveryType::resolve($transaction);
+        $is_express = "express" === $delivery_type;
 
         return [
             "toolbar" => [
                 "logoUrl" => KIRIOF_URL . "assets/admin/img/icon-128x128.png",
-                "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction"),
+                "rootUrl" => admin_url("admin.php?page=kiriminaja-transaction" . ($is_express ? "" : "&delivery_type=instant")),
                 "rootLabel" => __("Transactions", "kiriminaja-official"),
                 "title" => "#" . ($wc_order_id ?: (int) ($transaction->id ?? 0)),
                 "menu" => $this->toolbar_menu(),
@@ -314,17 +330,19 @@ class TransactionDetailPageData
             "locationsUrl" => admin_url("admin.php?page=wc-settings&tab=kiriminaja_warehouses"),
             "bootstrapError" => $message,
             "transaction" => [
+                "deliveryType" => $delivery_type,
+                "vehicle" => TransactionDeliveryType::normalizeVehicle($transaction->vehicle ?? null),
                 "id" => (int) ($transaction->id ?? 0),
                 "orderId" => $order_id,
                 "orderNumber" => "#" . $wc_order_id,
                 "orderUrl" => $wc_order_id ? admin_url("admin.php?page=wc-orders&action=edit&id=" . $wc_order_id) : "",
                 "createdAt" => $this->date($transaction->created_at ?? ""),
-                "paymentLabel" => $cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official"),
-                "isCod" => $cod_fee > 0,
+                "paymentLabel" => $is_express ? ($cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official")) : (string) ($transaction->instant_payment_method ?? ""),
+                "isCod" => $is_express && $cod_fee > 0,
                 "supportsLiveTracking" => false,
                 "pickupNumber" => (string) ($transaction->pickup_number ?? ""),
-                "status" => ["label" => $this->status_label($status), "tone" => $this->status_tone($status)],
-                "steps" => $this->steps($transaction, $status),
+                "status" => $this->status_presentation($transaction),
+                "steps" => $is_express ? $this->steps($transaction, $status) : [],
                 "sender" => ["name" => __("Default origin", "kiriminaja-official"), "phone" => "", "address" => []],
                 "recipient" => ["name" => "", "phone" => "", "address" => []],
                 "package" => ["weight" => (int) ($transaction->weight ?? 0), "length" => (float) ($transaction->length ?? 0), "width" => (float) ($transaction->width ?? 0), "height" => (float) ($transaction->height ?? 0)],
@@ -333,13 +351,17 @@ class TransactionDetailPageData
                 "shipment" => [
                     "courier" => ["code" => strtolower((string) ($transaction->service ?? "")), "service" => (string) ($transaction->service_name ?? $transaction->service ?? "")],
                     "awb" => (string) ($transaction->awb ?? ""),
-                    "paymentStatus" => "",
+                    "paymentStatus" => $is_express ? "" : (string) ($transaction->instant_payment_status ?? ""),
+                    "paymentMethod" => $is_express ? "" : (string) ($transaction->instant_payment_method ?? ""),
+                    "paymentId" => $is_express ? "" : (string) ($transaction->instant_payment_id ?? ""),
                     "costs" => ["orderTotal" => 0, "subtotal" => 0, "totalShipping" => $shipping + $insurance + $cod_fee, "actualShipping" => $shipping, "shippingDiscount" => 0, "shipping" => $shipping, "insurance" => $insurance, "codFee" => $cod_fee, "itemDiscount" => 0, "total" => $shipping + $insurance + $cod_fee],
                     "codValue" => 0,
                     "printUrl" => "",
+                    "liveTrackingUrl" => $is_express ? "" : InstantTrackingPresentation::trackingUrl($transaction),
+                    "routeMap" => InstantDetailMapData::prepare($transaction),
                     "trackingOrder" => $order_id,
                 ],
-                "actions" => ["changeOrigin" => false, "adjustDeficit" => false, "cancelDeficit" => false, "cancel" => false, "data" => ["nonce" => wp_create_nonce(KIRIOF_NONCE), "kaOrderId" => $order_id, "currentOrigin" => "", "currentOriginAddress" => "", "currentLocationId" => 0, "currentCod" => 0, "codMinimum" => $shipping + $insurance + $cod_fee, "codMaximum" => (float) KIRIOF_MAX_COD_AMOUNT, "shippingCost" => $shipping, "insuranceFee" => $insurance, "codFee" => $cod_fee, "itemPrice" => 0, "itemDiscount" => 0, "shippingDiscount" => 0, "itemCoupon" => "", "shippingCoupon" => ""]],
+                "actions" => ["track" => false, "reconcile" => false, "changeOrigin" => false, "adjustDeficit" => false, "cancelDeficit" => false, "cancel" => false, "data" => ["nonce" => wp_create_nonce(KIRIOF_NONCE), "kaOrderId" => $order_id, "currentOrigin" => "", "currentOriginAddress" => "", "currentLocationId" => 0, "currentCod" => 0, "codMinimum" => $shipping + $insurance + $cod_fee, "codMaximum" => (float) KIRIOF_MAX_COD_AMOUNT, "shippingCost" => $shipping, "insuranceFee" => $insurance, "codFee" => $cod_fee, "itemPrice" => 0, "itemDiscount" => 0, "shippingDiscount" => 0, "itemCoupon" => "", "shippingCoupon" => ""]],
             ],
             "ajax" => ["url" => admin_url("admin-ajax.php"), "nonce" => wp_create_nonce(KIRIOF_NONCE), "printPreviewNonce" => wp_create_nonce("kiriof_resi_print")],
             "i18n" => $this->i18n(),
@@ -498,6 +520,19 @@ class TransactionDetailPageData
             ? ""
             : wp_date("d M Y, H:i", strtotime((string) $value));
     }
+    private function status_presentation(object $transaction): array
+    {
+        if ('instant' === TransactionDeliveryType::resolve($transaction)) {
+            $presentation = InstantDeliveryStatus::describe($transaction);
+            if (!empty($transaction->is_deficit)) {
+                $presentation['issue'] = $presentation['issue'] ?: __('Instant order issue', 'kiriminaja-official');
+            }
+            return $presentation;
+        }
+        $status = (string) ($transaction->status ?? 'new');
+        return ['label' => $this->status_label($status), 'tone' => $this->status_tone($status), 'tooltip' => '', 'issue' => false];
+    }
+
     private function status_label(string $status): string
     {
         $labels = [
@@ -556,9 +591,37 @@ class TransactionDetailPageData
     private function i18n(): array
     {
         return [
+            "vehicle" => __("Vehicle", "kiriminaja-official"),
+            "vehicleUnavailable" => __("Vehicle unavailable", "kiriminaja-official"),
+            "paymentMethod" => __("Payment method", "kiriminaja-official"),
+            "paymentStatus" => __("Payment status", "kiriminaja-official"),
+            "paymentId" => __("Payment ID", "kiriminaja-official"),
+            "instantCancel" => __("Cancel Instant shipment", "kiriminaja-official"),
+            "instantRecheck" => __("Recheck booking", "kiriminaja-official"),
+            "instantRecheckDescription" => __("Check whether this uncertain booking exists. This does not create another shipment or clear the retry guard. If no shipment is found, contact support to confirm the booking was not accepted.", "kiriminaja-official"),
+            "instantResult_reconciled" => __("Booking evidence checked", "kiriminaja-official"),
+            "instantCancelTerms" => __("Confirm cancellation of this Instant shipment only. This does not cancel the WooCommerce order or issue a WooCommerce refund. A cancellation request may still be pending.", "kiriminaja-official"),
+            "instantOperationDescription" => __("Review this shipment before continuing.", "kiriminaja-official"),
+            "instantOperationUnknown" => __("Unable to confirm the operation. Contact support before trying again.", "kiriminaja-official"),
+            "instantResult_tracked" => __("Tracking available", "kiriminaja-official"),
+            "instantResult_not_found" => __("Shipment not found", "kiriminaja-official"),
+            "instantResult_cancel_requested" => __("Cancellation requested", "kiriminaja-official"),
+            "instantResult_canceled" => __("Shipment canceled", "kiriminaja-official"),
+            "instantClose" => __("Close", "kiriminaja-official"),
+            "instantResult_unknown" => __("Unknown outcome", "kiriminaja-official"),
+            "instantIssue" => __("Instant order issue", "kiriminaja-official"),
             "pickupId" => __("Pickup ID", "kiriminaja-official"),
             "printLabel" => __("Print Label", "kiriminaja-official"),
             "liveTracking" => __("Live Tracking", "kiriminaja-official"),
+            "routeMap" => __("Delivery route", "kiriminaja-official"),
+            "routeRecorded" => __("Recorded route data — not live tracking.", "kiriminaja-official"),
+            "routeIllustration" => __("Illustrative straight-line connection — not a driving route or live tracking.", "kiriminaja-official"),
+            "routeUnavailable" => __("Saved delivery coordinates are unavailable.", "kiriminaja-official"),
+            "routeMapError" => __("Unable to load the delivery map.", "kiriminaja-official"),
+            "routeOrigin" => __("Saved pickup location", "kiriminaja-official"),
+            "routeDestination" => __("Saved delivery location", "kiriminaja-official"),
+            "routeStart" => __("Recorded route start", "kiriminaja-official"),
+            "routeEnd" => __("Recorded route end", "kiriminaja-official"),
             "sender" => __("Sender", "kiriminaja-official"),
             "recipient" => __("Recipient", "kiriminaja-official"),
             "contactCustomer" => __("Contact Customer", "kiriminaja-official"),

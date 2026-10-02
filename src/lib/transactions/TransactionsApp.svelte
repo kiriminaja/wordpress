@@ -24,7 +24,7 @@
     IconXboxX,
   } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
-  import { Checkbox } from '$lib/components/ui/checkbox';
+  import KiriofCheckbox from '$lib/ui/KiriofCheckbox.svelte';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
@@ -38,8 +38,11 @@
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import KiriofMultiFilter from '$lib/ui/KiriofMultiFilter.svelte';
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
+  import InstantProcessDialog from './InstantProcessDialog.svelte';
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
+  import InstantOperationDialog from './InstantOperationDialog.svelte';
+  import { safeInstantTrackingUrl, type InstantOperationMode, instantStatusIcon } from './types';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let {
@@ -54,7 +57,7 @@
   }
 
   function openPickupDialog(): void {
-    if (pickupOrderIds.length > 0) pickupDialogOpen = true;
+    if (!isInstant && pickupOrderIds.length > 0) pickupDialogOpen = true;
   }
 
   /** Re-run the current list query, preserving every filter + pagination state. */
@@ -78,16 +81,24 @@
   let selected = $state<Record<string, boolean>>({});
   let refreshing = $state(false);
   let searchTimer: number | null = null;
+  let instantDialogOpen = $state(false);
+  let instantOrderIds = $state<string[]>([]);
+  let instantOperation = $state<{ mode: InstantOperationMode; id: string } | null>(null);
   let pickupDialogOpen = $state(false);
   let actionDialog = $state<TransactionActionDialog | null>(null);
   let printPreviewOpen = $state(false);
   let printPreviewOrderIds = $state<string[]>([]);
 
   const isOrderIssue = $derived(filters.status === 'order-issue');
-  const selectedRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => selected[row.kaOrderId]));
-  const selectableRows = $derived(isOrderIssue ? [] : bootstrap.rows.filter((row) => !row.selection.disabled));
+  const isInstant = $derived(!isOrderIssue && filters.delivery_type === 'instant');
+  const readOnly = $derived(isOrderIssue);
+  const selectedRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType === (isInstant ? 'instant' : 'express') && !row.selection.disabled && selected[row.kaOrderId]));
+  const selectableRows = $derived(readOnly ? [] : bootstrap.rows.filter((row) => row.deliveryType === (isInstant ? 'instant' : 'express') && !row.selection.disabled));
   const allSelected = $derived(selectableRows.length > 0 && selectableRows.every((row) => selected[row.kaOrderId]));
+  const someSelected = $derived(selectedRows.length > 0 && !allSelected);
   const selectedPickupCount = $derived(selectedRows.filter((row) => row.selection.canPickup).length);
+  const selectedProcessCount = $derived(selectedRows.filter((row) => row.selection.canProcess).length);
+  const processOrderIds = $derived(selectedRows.filter((row) => row.selection.canProcess).map((row) => row.kaOrderId));
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
   const selectedCount = $derived(selectedRows.length);
   const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
@@ -106,21 +117,24 @@
         filters.print_status,
     ),
   );
-  const scopeValue = $derived(filters.status === 'order-issue' ? 'order-issue' : 'regular');
+  const scopeValue = $derived(isOrderIssue ? 'order-issue' : isInstant ? 'instant' : 'regular');
   const scopeTabs = $derived([
-    { value: 'regular', label: 'Regular Delivery' },
-    { value: 'instant', label: 'Instant Delivery', disabled: true, title: 'Instant delivery is not available in this workspace' },
-    { value: 'order-issue', label: 'Order Issue', count: orderIssueOption?.count ?? 0 },
+    { value: 'regular', label: bootstrap.i18n.regularDelivery },
+    { value: 'instant', label: bootstrap.i18n.instantDelivery },
+    // Order Issue remains an Express-only local status workspace.
+    { value: 'order-issue', label: bootstrap.i18n.orderIssue, count: orderIssueOption?.count ?? 0 },
   ]);
 
   function buildUrl(values: Record<string, string>): URL {
     const url = new URL(window.location.href);
+    url.searchParams.set('delivery_type', values.delivery_type || (isInstant ? 'instant' : 'express'));
     for (const [key, value] of Object.entries(values)) {
       if (value) url.searchParams.set(key, value);
       else url.searchParams.delete(key);
     }
     url.searchParams.delete('search_by');
-    if (!('cpage' in values)) url.searchParams.set('cpage', '1');
+    // Pagination resets to page 1 whenever a filter or workspace changes.
+    if (!('cpage' in values)) url.searchParams.set('cpage', Object.keys(values).length === 0 ? String(bootstrap.pagination.page) : '1');
     return url;
   }
 
@@ -141,9 +155,9 @@
       key: filters.key,
       month: filters.month === 'all' ? '' : filters.month,
       status: filters.status,
-      cod: filters.cod === 'all' ? '' : filters.cod,
+      cod: isInstant || filters.cod === 'all' ? '' : filters.cod,
       courier: filters.courier === 'all' ? '' : filters.courier,
-      print_status: filters.print_status === 'all' ? '' : filters.print_status,
+      print_status: isInstant || filters.print_status === 'all' ? '' : filters.print_status,
       per_page: String(bootstrap.pagination.perPage),
     });
   }
@@ -168,13 +182,20 @@
   }
 
   function toggleRow(row: TransactionRow, checked: boolean): void {
+    if (readOnly || row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')) return;
     selected = { ...selected, [row.kaOrderId]: checked };
   }
 
   function openPrintPreview(orderIds: string[]): void {
-    if (orderIds.length === 0) return;
+    if (readOnly || orderIds.length === 0) return;
     printPreviewOrderIds = orderIds;
     printPreviewOpen = true;
+  }
+
+  function openInstantDialog(orderIds: string[]): void {
+    if (!isInstant || readOnly || !orderIds.length) return;
+    instantOrderIds = [...orderIds];
+    instantDialogOpen = true;
   }
 
   function printSelected(): void {
@@ -203,8 +224,7 @@
   }
 
   /**
-   * Package status icon map — each status carries its own icon, mirroring
-   * the kaj-shopify-plugin `getLabelProps` icon mapping.
+   * Icons for existing Express local labels. Instant uses the shared remote status presentation.
    * Pending/awaiting states (incl. request_pickup) use the clock icon;
    * New uses a package, In Transit a truck, terminal successes a check,
    * returns/warnings an arrow, danger an X.
@@ -229,10 +249,16 @@
   }
 
   function changeScope(value: string): void {
-    if (value !== 'order-issue' && value !== 'regular') return;
+    if (value !== 'order-issue' && value !== 'regular' && value !== 'instant') return;
     if (searchTimer) window.clearTimeout(searchTimer);
     searchTimer = null;
+    selected = {};
+    pickupDialogOpen = false;
+    actionDialog = null;
+    printPreviewOpen = false;
+    printPreviewOrderIds = [];
     void navigate({
+      delivery_type: value === 'instant' ? 'instant' : 'express',
       key: '',
       month: '',
       status: value === 'order-issue' ? 'order-issue' : 'all',
@@ -254,15 +280,21 @@
         <IconPrinter data-icon="inline-start" />
         <span>{bootstrap.i18n.print} ({selectedPrintCount} of {selectedCount})</span>
       </Button>
+      {#if isInstant}
+      <Button disabled={refreshing || selectedProcessCount === 0} onclick={() => openInstantDialog(processOrderIds)}>
+        <span>{bootstrap.i18n.processShipment} ({selectedProcessCount} {bootstrap.i18n.pageOf} {selectedCount})</span>
+      </Button>
+      {:else}
       <Button id="kj-request-pickup-btn" disabled={refreshing || selectedPickupCount === 0} onclick={openPickupDialog}>
         <span>{bootstrap.i18n.requestPickup} ({selectedPickupCount} of {selectedCount})</span>
       </Button>
+      {/if}
     </div>
   </Toolbar>
 
   <KiriofCard class="kiriof-transactions-card">
     <div class="kiriof-admin-list-filterbar kiriof-transactions-filterbar">
-      <nav class="kiriof-admin-list-scopes kiriof-transactions-scopes" aria-label="Transaction scope">
+      <nav class="kiriof-admin-list-scopes kiriof-transactions-scopes" aria-label={bootstrap.i18n.transactionScope}>
         <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
         <div class="kiriof-admin-list-tools kiriof-transactions-list-tools">
           <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={applySelectFilter}>
@@ -283,7 +315,7 @@
           <AutoRefresh
             storageKey="kiriof-transactions-refresh-interval"
             loading={refreshing}
-            disabled={pickupDialogOpen || actionDialog !== null}
+            disabled={pickupDialogOpen || instantDialogOpen || printPreviewOpen || actionDialog !== null || instantOperation !== null}
             hint={bootstrap.i18n.autoRefresh}
             options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
             onRefresh={refreshList}
@@ -302,6 +334,7 @@
           <InputGroup.Addon align="inline-start"><IconSearch /></InputGroup.Addon>
           <InputGroup.Input bind:value={filters.key} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
         </InputGroup.Root>
+        {#if !isInstant}
         <Select.Root type="single" bind:value={filters.cod} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconCash /><Select.Value>{paymentLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
@@ -310,6 +343,7 @@
             <Select.Item value="0">{bootstrap.i18n.nonCod}</Select.Item>
           </Select.Content>
         </Select.Root>
+        {/if}
         {#if !isOrderIssue}
           <KiriofMultiFilter
             value={filters.status}
@@ -326,6 +360,7 @@
             {#snippet prefix()}<IconAdjustmentsHorizontal class="size-4 shrink-0 text-muted-foreground" />{/snippet}
           </KiriofMultiFilter>
         {/if}
+        {#if !isInstant}
         <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
@@ -334,6 +369,7 @@
             <Select.Item value="0">{bootstrap.i18n.unprinted}</Select.Item>
           </Select.Content>
         </Select.Root>
+        {/if}
         <KiriofMultiFilter
           value={filters.courier}
           options={courierOptions}
@@ -358,12 +394,12 @@
         <Table.Header>
           {#if selectedCount > 0}
             <Table.Row class="kiriof-selection-summary">
-              <Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={!allSelected} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
+              <Table.Head class="is-check"><KiriofCheckbox checked={allSelected} indeterminate={someSelected} disabled={selectableRows.length === 0} aria-label={bootstrap.i18n.selectAll ?? 'Select all orders'} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>
               <Table.Head colspan={6}>{selectedCount} selected</Table.Head>
             </Table.Row>
           {:else}
             <Table.Row>
-              {#if isOrderIssue}<Table.Head class="is-row-number">#</Table.Head>{:else}<Table.Head class="is-check"><Checkbox checked={allSelected} indeterminate={false} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>{/if}
+              {#if readOnly}<Table.Head class="is-row-number">#</Table.Head>{:else}<Table.Head class="is-check"><KiriofCheckbox checked={allSelected} indeterminate={someSelected} disabled={selectableRows.length === 0} aria-label={bootstrap.i18n.selectAll ?? 'Select all orders'} onCheckedChange={(checked) => toggleAll(Boolean(checked))} /></Table.Head>{/if}
               <Table.Head>{bootstrap.i18n.order}</Table.Head>
               <Table.Head>{bootstrap.i18n.expedition}</Table.Head>
               <Table.Head>{bootstrap.i18n.airwaybill}</Table.Head>
@@ -379,14 +415,14 @@
           {:else}
             {#each bootstrap.rows as row, rowIndex (row.id)}
               <Table.Row class={selected[row.kaOrderId] ? 'is-selected' : undefined}>
-                {#if isOrderIssue}
+                {#if readOnly}
                   <Table.Cell class="is-row-number">{(bootstrap.pagination.page - 1) * bootstrap.pagination.perPage + rowIndex + 1}</Table.Cell>
                 {:else}
                   <Table.Cell class="is-check">
                     <ActionTooltip label={row.selection.title} disabled={!row.selection.title}>
-                      <Checkbox
+                      <KiriofCheckbox
                         checked={Boolean(selected[row.kaOrderId])}
-                        disabled={!row.selection.canPrint && !row.selection.canPickup}
+                        disabled={row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')}
                         name="transaction_id[]"
                         value={row.kaOrderId}
                         data-can-pickup={row.selection.canPickup ? '1' : '0'}
@@ -408,21 +444,31 @@
                     <CourierLogo code={row.courier.code} service={row.courier.service} />
                     <div class="kiriof-courier-summary__content">
                       <strong class="kiriof-row-title">{row.courier.service}</strong>
+                      {#if row.deliveryType === 'instant'}
+                        <span class="kiriof-row-muted">{bootstrap.i18n.vehicle}: {row.vehicle || bootstrap.i18n.vehicleUnavailable}</span>
+                      {:else}
                       <span class="kiriof-payment-type {row.courier.paymentLabel === 'COD' ? 'is-cod' : 'is-non-cod'}">
                         {#if row.courier.paymentLabel === 'COD'}<IconCash />{:else}<IconCreditCard />{/if}
                         {row.courier.paymentLabel}
                       </span>
+                      {/if}
                     </div>
                   </div>
                   <div class="kiriof-shipment-states">
-                    {#if row.status.deficit}
+                    {#if row.deliveryType === 'instant'}
+                      {@const InstantIcon = instantStatusIcon(row.status)}
+                      <ActionTooltip label={row.status.tooltip || ''} disabled={!row.status.tooltip}>
+                        <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><InstantIcon />{row.status.label}</span>
+                      </ActionTooltip>
+                      {#if row.status.issue}<ActionTooltip label={String(row.status.issue)}><span class="kiriof-transaction-status is-warning"><IconAlertTriangle />{bootstrap.i18n.instantIssue}</span></ActionTooltip>{/if}
+                    {:else if row.status.deficit}
                       {@const DeficitIcon = statusIcon(row.status.tone, true, row.status)}
                       <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)} kiriof-badge--strong"><DeficitIcon />{row.status.label}</span></ActionTooltip>
                     {:else}
                       {@const ShipmentIcon = statusIcon(row.status.tone, false, row.status)}
                       <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><ShipmentIcon />{row.status.label}</span>
                     {/if}
-                    {#if row.printStatus === 'unprinted'}
+                    {#if row.deliveryType !== 'instant' && row.printStatus === 'unprinted'}
                       <ActionTooltip label={bootstrap.i18n.unprintedLabel}>
                         <span class="kiriof-print-status {row.printStatus}" aria-label={bootstrap.i18n.unprintedLabel}><IconPrinter />{bootstrap.i18n.unprintedLabel}</span>
                       </ActionTooltip>
@@ -432,6 +478,11 @@
                 <Table.Cell>
                   <CopyableValue label={bootstrap.i18n.awb} value={row.awb} copyLabel={bootstrap.i18n.copyAwb} copiedLabel={bootstrap.i18n.copied} />
                   <CopyableValue label={bootstrap.i18n.kaOrderId} value={row.kaOrderId} copyLabel={bootstrap.i18n.copyKaOrderId} copiedLabel={bootstrap.i18n.copied} />
+                  {#if row.deliveryType === 'instant'}
+                    {#if row.instantPayment.method}<span class="kiriof-row-muted">{bootstrap.i18n.paymentMethod}: {row.instantPayment.method}</span>{/if}
+                    {#if row.instantPayment.status}<span class="kiriof-row-muted">{bootstrap.i18n.paymentStatus}: {row.instantPayment.status}</span>{/if}
+                    {#if row.instantPayment.id}<span class="kiriof-row-muted">{bootstrap.i18n.paymentId}: {row.instantPayment.id}</span>{/if}
+                  {/if}
                 </Table.Cell>
                 <Table.Cell>
                   <strong class="kiriof-row-title">{row.route.origin}</strong>
@@ -460,6 +511,18 @@
                     {#if row.actions.preview}
                       <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
                     {/if}
+                    {#if row.deliveryType === 'instant' && isInstant}
+                      {@const trackingUrl = safeInstantTrackingUrl(row.actions.liveTrackingUrl)}
+                      {#if row.actions.reconcile}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}>{bootstrap.i18n.instantRecheck}</Button>{/if}
+                      {#if row.actions.track}
+                        {#if trackingUrl}<Button variant="outline" size="sm" href={trackingUrl} target="_blank" rel="noopener noreferrer">{bootstrap.i18n.liveTracking}</Button>
+                        {:else}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}>{bootstrap.i18n.liveTracking}</Button>{/if}
+                      {/if}
+                      {#if row.actions.cancel}<Button variant="destructive" size="sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })}>{bootstrap.i18n.instantCancel}</Button>{/if}
+                      {#if row.actions.process}<ActionTooltip label={bootstrap.i18n.processShipment}><Button variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])} aria-label={bootstrap.i18n.processShipment}><IconTruck /></Button></ActionTooltip>{/if}
+                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
+                    {/if}
+                    {#if row.deliveryType !== 'instant'}
                     {#if row.actions.changeOrigin}
                       <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })} aria-label={bootstrap.i18n.changeOrigin}><IconSwitch2 /></Button></ActionTooltip>
                     {/if}
@@ -469,6 +532,7 @@
                     {:else}
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
                       {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
+                    {/if}
                     {/if}
                   </div>
                 </Table.Cell>
@@ -488,6 +552,7 @@
       onPageChange={(page) => void navigate({ cpage: String(page) })}
     />
   </KiriofCard>
+  {#if !isInstant}
   <RequestPickupDialog
     bind:open={pickupDialogOpen}
     orderIds={pickupOrderIds}
@@ -497,5 +562,10 @@
     i18n={bootstrap.i18n}
   />
   <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
-  <PrintPreviewDialog bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
+  {/if}
+  {#if instantOperation}
+    <InstantOperationDialog mode={instantOperation.mode} orderIds={[instantOperation.id]} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onClose={(completed) => { instantOperation = null; if (completed) refreshList(); }} />
+  {/if}
+  <InstantProcessDialog bind:open={instantDialogOpen} orderIds={instantOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onComplete={refreshList} />
+  <PrintPreviewDialog deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={isInstant ? bootstrap.bulk.nonce : bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
 </div>

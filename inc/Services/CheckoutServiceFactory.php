@@ -14,6 +14,7 @@ use KiriminAjaOfficial\Services\CheckoutServices\CreateTransactionService;
 use KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService;
 use KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId;
 use KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService;
+use KiriminAjaOfficial\Utils\ServiceResponse;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -43,6 +44,27 @@ class CheckoutServiceFactory
         $this->api_repository              = $api_repository;
         $this->cod_fee_repository          = $cod_fee_repository;
         $this->shipment_location_service   = $shipment_location_service;
+    }
+
+    public function districtSearch( string $search ): ServiceResponse
+    {
+        // Bound shared lookups to exact postcodes; free-text searches stay live.
+        $cache_key = preg_match( '/^\d{5}$/D', $search ) === 1
+            ? 'kiriof_district_search_v3_' . md5( $search )
+            : null;
+        if ( null !== $cache_key && function_exists( 'get_transient' ) ) {
+            $cached = get_transient( $cache_key );
+            if ( is_array( $cached ) ) {
+                return new ServiceResponse( $cached, 'success', 200 );
+            }
+        }
+
+        $response = ( new KiriminajaApiService( $this->api_repository ) )->sub_district_search( $search );
+        if ( null !== $cache_key && 200 === $response->status && is_array( $response->data ) && function_exists( 'set_transient' ) ) {
+            set_transient( $cache_key, $response->data, 300 );
+        }
+
+        return $response;
     }
 
     public function calculation( array $payload ): CheckoutCalculationService

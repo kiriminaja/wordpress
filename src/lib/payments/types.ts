@@ -29,3 +29,11 @@ export type PaymentsBootstrap = {
   modals: Record<string, string>;
 };
 import type { ToolbarConfig } from '$lib/ui/toolbar';
+
+export interface PaymentMethodOption {
+  value: 'credit' | 'qris';
+  title: string;
+  description?: string;
+  disabled?: boolean;
+  balance?: number | null;
+}

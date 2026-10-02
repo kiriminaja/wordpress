@@ -112,6 +112,9 @@ class OngkirPricingService extends BaseService{
         $filteredOptions = [];
         $allOptions = [];
         foreach ($options as $option){
+            if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( (string) ( $option->service ?? '' ), (array) $option, 'express' ) ) {
+                continue;
+            }
             $kiriof_raw_price = max( 0, (float) ( $option->cost ?? 0 ) );
             $kiriof_discount  = min( $kiriof_raw_price, max( 0, (float) ( $option->discount_amount ?? 0 ) ) );
             $kiriof_price     = max( 0, $kiriof_raw_price - $kiriof_discount );

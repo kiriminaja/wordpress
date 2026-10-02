@@ -15,6 +15,27 @@ if ( ! function_exists( 'kiriof_log' ) ) {
     }
 }
 
+// Model the production recursive helper without loading WordPress/plugin bootstrap.
+if ( ! function_exists( 'kiriof_sanitize_recursive' ) ) {
+    function kiriof_sanitize_recursive( $value ) {
+        if ( is_object( $value ) || is_array( $value ) ) {
+            $clean = is_object( $value ) ? new stdClass() : array();
+            foreach ( $value as $key => $item ) {
+                $key = is_string( $key ) ? preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) ) : $key;
+                if ( is_object( $clean ) ) {
+                    $clean->{$key} = kiriof_sanitize_recursive( $item );
+                } else {
+                    $clean[$key] = kiriof_sanitize_recursive( $item );
+                }
+            }
+            return $clean;
+        }
+        return is_scalar( $value )
+            ? trim( preg_replace( '/%[a-f0-9]{2}/i', '', preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $value ) ) ) )
+            : null;
+    }
+}
+
 if ( ! function_exists( 'kiriof_helper' ) ) {
     function kiriof_helper() {
         return new CallbackHelperFake();
@@ -293,6 +314,93 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         );
     }
 
+    #[Test]
+    #[DataProvider( 'invalidRoutingProvider' )]
+    public function invalid_raw_routing_is_rejected_before_lookup( $body ): void {
+        $transactions = new CallbackTransactionRepositoryFake( array( $this->transaction( 'ORDER-1', 'PICKUP-1' ) ) );
+        $payments = new CallbackPaymentRepositoryFake( array() );
+        $service = $this->service( $transactions, $payments )->body( $body );
+        $response = $service->call();
+        $this->assertSame( 400, $response->status );
+        $this->assertSame( 'Invalid callback payload', $response->message );
+        $this->assertSame( array(), $response->data );
+        $this->assertSame( array(), $transactions->lookupOrderIds );
+        $this->assertSame( array(), $transactions->updatedOrderIds );
+        $this->assertSame( array(), $payments->updatedPickupNumbers );
+    }
+
+    public static function invalidRoutingProvider(): array {
+        $cases = array(
+            'body array' => array(),
+            'method object' => (object) array( 'method' => new stdClass(), 'data' => array() ),
+            'missing collection' => (object) array( 'method' => 'validated_packages' ),
+            'collection object' => (object) array( 'method' => 'validated_packages', 'data' => new stdClass() ),
+            'null collection' => (object) array( 'method' => 'validated_packages', 'data' => null ),
+        );
+        foreach ( array( '<b>ORDER-1</b>', 'ORDER%2d-1', ' ORDER-1', 'ORDER-1 ', '', str_repeat( 'a', 101 ), 123, null, array(), new stdClass() ) as $i => $id ) {
+            $cases['id-' . $i] = (object) array( 'method' => 'validated_packages', 'data' => array( (object) array( 'order_id' => $id ) ) );
+        }
+        foreach ( array(
+            array( (object) array() ), array( null ),
+            array( array( 'order_id' => 'ORDER-1' ), array( 'order_id' => 'ORDER-1' ) ),
+            array_fill( 0, 201, array( 'order_id' => 'ORDER-1' ) ),
+        ) as $i => $packages ) {
+            $cases['packages-' . $i] = (object) array( 'method' => 'validated_packages', 'packages' => $packages );
+        }
+        return array_map( static fn( $body ) => array( $body ), $cases );
+    }
+
+    #[Test]
+    public function express_values_are_sanitized_only_after_exact_routing(): void {
+        $transactions = new CallbackTransactionRepositoryFake( array( $this->transaction( 'ORDER-1', 'PICKUP-1' ) ) );
+        $service = $this->eventService( $transactions, new CallbackPaymentRepositoryFake( array() ), 'rejected_packages',
+            array( array( 'order_id' => 'ORDER-1', 'reason' => ' <b>Invalid</b> %41address ', 'rejected_at' => '<b>2026-07-30</b>' ) ) );
+        $this->assertSame( 200, $service->call()->status );
+        $this->assertSame( array( array( 'ORDER-1' ) ), $transactions->lookupOrderIds );
+        $this->assertSame( 'Invalid address', $transactions->transactions['ORDER-1']->rejected_reason );
+        $this->assertSame( '2026-07-30', $transactions->transactions['ORDER-1']->rejected_at );
+    }
+
+    #[Test]
+    public function empty_data_uses_packages_and_empty_batch_keeps_no_order_id_response(): void {
+        $transactions = new CallbackTransactionRepositoryFake( array( $this->transaction( '123', 'PICKUP-1' ) ) );
+        $service = $this->service( $transactions, new CallbackPaymentRepositoryFake( array() ) );
+        $service->body( (object) array( 'method' => 'validated_packages', 'data' => array(), 'packages' => array( array( 'order_id' => '123', 'shipping_cost' => 25000 ) ) ) );
+        $this->assertSame( 200, $service->call()->status );
+        $this->assertSame( array( array( '123' ) ), $transactions->lookupOrderIds );
+        $service->body( (object) array( 'method' => 'validated_packages', 'data' => array() ) );
+        $this->assertSame( 'No Order ID Found', $service->call()->message );
+        $this->assertSame( array(), $service->packages );
+        $this->assertNull( $service->processing );
+    }
+
+    #[Test]
+    public function maximum_batch_and_identity_length_are_accepted_without_transformation(): void {
+        $packages = array();
+        $rows = array();
+        for ( $i = 0; $i < 200; ++$i ) {
+            $id = str_pad( 'ORDER_' . $i, 100, '-' );
+            $packages[] = array( 'order_id' => $id, 'shipping_cost' => '25000' );
+            $rows[] = $this->transaction( $id, 'PICKUP-1' );
+        }
+        $transactions = new CallbackTransactionRepositoryFake( $rows );
+        $service = $this->eventService( $transactions, new CallbackPaymentRepositoryFake( array() ), 'validated_packages', $packages );
+        $this->assertSame( 200, $service->call()->status );
+        $this->assertSame( array_column( $packages, 'order_id' ), $transactions->lookupOrderIds[0] );
+        $this->assertCount( 200, $transactions->updatedOrderIds );
+    }
+
+    #[Test]
+    public function raw_authorization_cannot_be_sanitized_into_a_match(): void {
+        foreach ( array( 'Bearer <b>secret</b>', 'Bearer se%41cret', array( 'Bearer secret' ), new stdClass() ) as $header ) {
+            $transactions = new CallbackTransactionRepositoryFake( array() );
+            $service = $this->service( $transactions, new CallbackPaymentRepositoryFake( array() ) );
+            $service->header( array( 'Authorization' => $header ) );
+            $this->assertSame( 401, $service->call()->status );
+            $this->assertSame( array(), $transactions->lookupOrderIds );
+        }
+    }
+
     private function service( $transactionRepository, $paymentRepository ): CallbackHandlerService {
         return $this->eventService(
             $transactionRepository,
@@ -360,6 +468,7 @@ final class CallbackOrderFake {
 
 final class CallbackTransactionRepositoryFake {
     public array $transactions;
+    public array $lookupOrderIds = array();
     public array $failedOrderIds = array();
     public array $updatedOrderIds = array();
 
@@ -371,6 +480,7 @@ final class CallbackTransactionRepositoryFake {
     }
 
     public function getTransactionByOrderIds( $orderIds ) {
+        $this->lookupOrderIds[] = $orderIds;
         return array_values( array_intersect_key( $this->transactions, array_flip( $orderIds ) ) );
     }
 

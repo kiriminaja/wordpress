@@ -14,6 +14,7 @@ use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\KiriminajaApiService;
 use KiriminAjaOfficial\Services\SettingService;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
@@ -234,6 +235,10 @@ class SendRequestPickupTransactionService extends BaseService
         if (empty($this->orderIds)) {
             return self::error([], 'There is no id');
         }
+        $preflight_error = $this->expressPreflight();
+        if ( null !== $preflight_error ) {
+            return $preflight_error;
+        }
         if (empty($this->schedule)) {
             return self::error([], 'Schedule is required');
         }
@@ -429,6 +434,19 @@ class SendRequestPickupTransactionService extends BaseService
             'payment_status' => $localPaymentStatus,
         ], 'success');
     }
+    /** Reject the complete batch before reading origins, calling APIs, or mutating state. */
+    public function expressPreflight(): ?object
+    {
+        $transactions = $this->transactionRepository->getTransactionByOrderIds( $this->orderIds );
+        foreach ( (array) $transactions as $transaction ) {
+            if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+                return self::error( array(), __( 'Instant shipment processing is not available yet.', 'kiriminaja-official' ) );
+            }
+        }
+
+        return null;
+    }
+
     private function getOriginData()
     {
         if ($this->originDataCache !== null) {

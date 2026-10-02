@@ -22,6 +22,9 @@ class KiriminAjaTrackingService extends BaseService{
         if (!$transactionRepo){
             return self::error([],'Transaksi tidak ditemukan');
         }
+        if ( 'instant' === TransactionDeliveryType::resolve( $transactionRepo ) ) {
+            return self::error( [], 'Instant tracking is not available in the Express tracking flow.' );
+        }
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getTracking([
             'order_id' => $transactionRepo->order_id
         ]);

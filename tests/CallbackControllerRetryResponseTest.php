@@ -25,5 +25,12 @@ final class CallbackControllerRetryResponseTest extends TestCase {
             substr( $content, $catch, 900 ),
             'Unexpected callback failures must return HTTP 500 so the webhook can be retried'
         );
+        $this->assertStringContainsString(
+            'Unable to process KiriminAja callback. Please retry.',
+            substr( $content, $catch ),
+            'Unexpected failures must return a fixed message rather than exception details'
+        );
+        $this->assertStringNotContainsString( 'getMessage()', substr( $content, $catch ) );
+        $this->assertStringContainsString( 'get_class( $th )', substr( $content, $catch ) );
     }
 }
