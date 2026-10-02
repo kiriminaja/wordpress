@@ -2566,3 +2566,11 @@ msgstr ""
 #, php-format
 msgid "%s selected"
 msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery."
+msgstr ""

@@ -208,6 +208,10 @@ class Enqueue extends BaseInit{
     }
     /** Public map settings: initial viewport is not buyer-selected coordinates. */
     public function map_checkout_config(): array {
+        $coverage_service = new \KiriminAjaOfficial\Services\InstantMapCoverageService();
+        $coverage = function_exists( 'is_account_page' ) && is_account_page()
+            ? $coverage_service->defaultCoverage()
+            : $coverage_service->checkoutCoverage();
         $tiles = (string) apply_filters( 'kiriof_map_checkout_tiles_url', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' );
         if ( 0 !== strpos( $tiles, 'https://' ) ) {
             $tiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -215,12 +219,15 @@ class Enqueue extends BaseInit{
         return array(
             'enabled' => (bool) apply_filters( 'kiriof_map_checkout_enabled', true ),
             'defaultCenter' => array( -6.2088, 106.8456 ),
+            'coverage' => $coverage,
             'zoom' => 13,
             'tiles' => $tiles,
             'attribution' => wp_kses_post( (string) apply_filters( 'kiriof_map_checkout_attribution', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' ) ),
             'i18n' => array(
                 'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
                 'mapHelp' => __( 'Delivery location map', 'kiriminaja-official' ),
+                'mapCoverage' => __( 'Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area.', 'kiriminaja-official' ),
+                'mapOutsideRadius' => __( 'This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery.', 'kiriminaja-official' ),
                 'mapKeyboard' => __( 'Use arrow keys to move the map. Press Enter to select the center location.', 'kiriminaja-official' ),
                 'mapOptional' => __( 'Optional. A delivery pin helps the courier find your address.', 'kiriminaja-official' ),
                 'mapLocate' => __( 'Current location', 'kiriminaja-official' ),

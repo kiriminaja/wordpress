@@ -5402,3 +5402,15 @@ msgstr "Izin lokasi ditolak. Pemilih peta disembunyikan. Anda dapat mengizinkan 
 #: inc/Base/Enqueue.php
 msgid "Your location is unavailable or the request timed out. The map picker is hidden."
 msgstr "Lokasi Anda tidak tersedia atau permintaan kehabisan waktu. Pemilih peta disembunyikan."
+
+#: inc/Base/Enqueue.php
+msgid "Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area."
+msgstr "Cakupan Instant: 40 km garis lurus dari lokasi penjemputan. Alamat Express dapat berada di luar area ini."
+
+#: inc/Base/Enqueue.php
+msgid "This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery."
+msgstr "Pin ini berada di luar area cakupan Instant 40 km. Anda tetap dapat menyimpan alamat ini untuk pengiriman Express."
+
+#: inc/Services/InstantDeliveryCoverage.php inc/Services/InstantCheckoutQuoteService.php inc/Services/InstantShipmentContext.php
+msgid "Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address."
+msgstr "Pengiriman Instant hanya tersedia dalam jarak 40 km dari lokasi penjemputan. Anda dapat menggunakan pengiriman Express untuk alamat ini."

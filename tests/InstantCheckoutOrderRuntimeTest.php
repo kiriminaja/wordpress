@@ -134,6 +134,18 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function durable_checkout_receipts_cannot_bypass_radius_after_session_expiry(): void {
+        foreach (['durable_outside_radius', 'durable_missing_origin_pin', 'durable_malformed_origin_pin'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertNotEmpty($r['processed_error'], $scenario);
+            $this->assertSame([], $r['rows'], $scenario);
+            $this->assertSame(1, $r['calls'], $scenario);
+            $this->assertSame(0, $r['invoice_calls'], $scenario);
+        }
+    }
+
+    #[Test]
     public function native_cart_fee_is_validated_exactly_once_and_zero_fee_does_not_clutter(): void {
         foreach (['', 'insurance', 'session_insurance', 'opaque_price_meta', 'example_total'] as $scenario) {
             $r = $this->fixture($scenario);

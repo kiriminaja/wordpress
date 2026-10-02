@@ -127,6 +127,8 @@ final class AccountShippingDestinationController {
         echo '<button type="button" id="kiriof-account-district-retry" hidden>' . esc_html( $strings['retry'] ) . '</button>';
         echo '<section class="kiriof-buyer-map" aria-label="' . esc_attr( $strings['mapTitle'] ) . '">';
         echo '<h3 class="kiriof-buyer-map__title">' . esc_html( $strings['mapTitle'] ) . '</h3><p>' . esc_html( $strings['mapOptional'] ) . '</p>';
+        echo '<p class="kiriof-buyer-map__coverage-legend" role="note" hidden></p>';
+        echo '<p class="kiriof-buyer-map__coverage-warning" role="note" aria-live="polite" hidden></p>';
         echo '<div class="kiriof-buyer-map__viewport" hidden><div class="kiriof-buyer-map__canvas" aria-label="' . esc_attr( $strings['mapHelp'] ) . '" aria-description="' . esc_attr( $strings['mapKeyboard'] ) . '"></div>';
         echo '<span class="kiriof-buyer-map__indicator" aria-hidden="true"><svg viewBox="0 0 32 44" focusable="false"><path fill="currentColor" stroke="white" stroke-width="2" d="M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z"/><circle cx="16" cy="16" r="5" fill="white"/></svg></span>';
         echo '<button type="button" class="kiriof-buyer-map__locate" title="' . esc_attr( $strings['mapPermission'] ) . '">' . esc_html( $strings['mapLocate'] ) . '</button></div>';

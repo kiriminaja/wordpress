@@ -22,7 +22,7 @@ final class CheckoutShippingPerformanceTest extends TestCase
             'Checkout shipping cache should be keyed by checkout context instead of always being busted'
         );
         $this->assertStringContainsString(
-            "'rate_presentation_version' => 3",
+            "'rate_presentation_version' => 4",
             $methodBody,
             'Existing sessions must rebuild old total-priced/decorated rates and method-grouped ordering'
         );

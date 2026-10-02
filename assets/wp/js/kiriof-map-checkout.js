@@ -38,7 +38,6 @@
 					sequence++;
 					if ( options.onError ) { options.onError( code ); }
 				}
-			reportCoverage( selected );
 				var geolocation = options.geolocation;
 				if ( ! geolocation || 'function' !== typeof geolocation.getCurrentPosition ) { fail( 'unavailable' ); return; }
 				try {
@@ -129,6 +128,7 @@
 				selected = normalizePoint( options.initial.latitude, options.initial.longitude );
 				if ( selected ) { show( selected ); }
 			}
+			reportCoverage( selected );
 			timer = schedule( function() { if ( ! disposed ) { map.invalidateSize( { pan: false } ); } }, 150 );
 			if ( root.ResizeObserver ) {
 				observer = new root.ResizeObserver( function() { if ( ! disposed ) { map.invalidateSize( { pan: false } ); } } );
@@ -200,7 +200,8 @@
 			return { cart: select( 'wc/store/cart' ).getCartData(), collection: checkout.prefersCollection ? checkout.prefersCollection() : false };
 		}, [] );
 		var cart = data.cart || {};
-		var coverage = config.coverage;
+		var coverageExtension = cart.extensions && cart.extensions[ 'kiriminaja-official-instant-coverage' ];
+		var coverage = coverageExtension && Object.prototype.hasOwnProperty.call( coverageExtension, 'coverage' ) ? coverageExtension.coverage : config.coverage;
 		var coverageKey = JSON.stringify( coverage || null );
 		var hasCoverage = Boolean( coverageStatus( coverage, coverage && coverage.origin ) );
 		var address = addressSnapshot( cart.shippingAddress || {} );

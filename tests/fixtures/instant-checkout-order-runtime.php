@@ -152,6 +152,15 @@ namespace {
         if ($scenario === 'processed_fee_edit') { $fee->total++; }
         if ($scenario === 'processed_fee_missing') { $order->fees = []; }
         if ($scenario === 'snapshot_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['context']['destination']['destination_latitude'] = '-6.4'; }
+        if (in_array($scenario, ['durable_outside_radius', 'durable_missing_origin_pin', 'durable_malformed_origin_pin'], true)) {
+            $key = \KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY;
+            if ($scenario === 'durable_outside_radius') { $order->meta[$key]['context']['origin']['latitude'] = 0; $order->meta[$key]['context']['origin']['longitude'] = 0; }
+            if ($scenario === 'durable_missing_origin_pin') { unset($order->meta[$key]['context']['origin']['latitude']); }
+            if ($scenario === 'durable_malformed_origin_pin') { $order->meta[$key]['context']['origin']['latitude'] = 'NaN'; }
+            // Model an otherwise self-consistent old durable receipt, not merely a bad hash.
+            $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SELECTION_META_KEY] = hash('sha256', wp_json_encode($order->meta[$key]));
+            $wc->session->data = [];
+        }
         if ($scenario === 'snapshot_fee_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['rate']['admin_fee']++; }
         if ($scenario === 'receipt_fee_edit') { $order->meta['_kiriof_instant_admin_fee']++; }
         if ($scenario === 'receipt_total_edit') { $order->meta['_kiriof_instant_customer_shipping_total']++; }

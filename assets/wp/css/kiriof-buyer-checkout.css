@@ -5,6 +5,17 @@
 	display: none;
 }
 
+.kiriof-buyer-map__coverage-warning {
+	border-inline-start: 3px solid currentColor;
+	padding-inline-start: 0.75em;
+	font-weight: 600;
+}
+
+.kiriof-buyer-map__coverage-warning[hidden],
+.kiriof-buyer-map__coverage-legend[hidden] {
+	display: none !important;
+}
+
 /* Native My Account fields retain theme colors, typography and validation.
  * A marker scopes the grid to shipping only; billing/checkout stay untouched. */
 .woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper {

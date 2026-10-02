@@ -55,6 +55,8 @@ No live courier pricing, booking, payment, or cancellation requests were perform
 
 ## Courier selection and totals
 
+`outside_instant_radius` indicates the validated destination is more than 40 km straight-line from the actual pickup origin. This check happens locally before a quote/dispatch request, including durable checkout retries. It does not imply courier road-distance availability inside the radius; API coverage is still required. Outside locations may still be saved for Express.
+
 Install the complete rebuilt package when investigating Instant reverting to Express. The shipping-selection filter now uses WooCommerce's previous package selection (third argument), rather than its default first rate. An available native Instant rate must survive totals recalculation. Rates that disappear because of changed context or expiry are not revived from a stale mirror.
 
 Instant names stay clean; API hour ETA remains native delivery time. Admin Fee is a separate native totals row. Delivery plus Admin Fee equals API `total_price`, while booking uses `shipping_costs`. Order validation checks the durable fee identity and amount; it does not silently substitute an Express transaction.

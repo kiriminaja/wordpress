@@ -97,12 +97,12 @@
 				coverageWarning.hidden = ! status || false !== status.inside;
 				coverageWarning.setAttribute( 'role', 'note' );
 				coverageWarning.setAttribute( 'aria-live', 'polite' );
-				coverageWarning.textContent = coverageWarning.hidden ? '' : mapStrings.mapOutsideRadius || 'This pin is outside Instant coverage. Express remains available.';
+				coverageWarning.textContent = coverageWarning.hidden ? '' : mapStrings.mapOutsideRadius || '';
 			}
 			if ( coverageLegend ) {
 				coverageLegend.hidden = ! getCoverageStatus( mapConfig.coverage && mapConfig.coverage.origin );
 				coverageLegend.setAttribute( 'role', 'note' );
-				coverageLegend.textContent = coverageLegend.hidden ? '' : mapStrings.mapCoverage || 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.';
+				coverageLegend.textContent = coverageLegend.hidden ? '' : mapStrings.mapCoverage || '';
 			}
 		}
 		function renderBadges() {

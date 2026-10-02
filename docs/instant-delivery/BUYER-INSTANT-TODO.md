@@ -16,6 +16,7 @@ Scope: Classic Checkout, Checkout Blocks, buyer destination, separate Instant pr
 - [x] Authenticated My Account shipping-address district/pin form and status badges; validated durable user snapshots hydrate future checkout. Matching checkout updates sync without silently replacing a saved profile with a temporary delivery address. Account edits persist only after successful Save address.
 - [x] Guest and authenticated quote/order paths; no blanket logged-in-only Instant restriction.
 - [x] Dedicated bounded transport and short-lived session quote cache. Context includes cart, origin, address/pin, vehicle, timezone, payment and enabled-service policy.
+- [x] Enforce 40 km inclusive straight-line pickup-origin coverage before quotes, final checkout, durable retries and admin shipment context/dispatch. Advisory map circles and outside warnings use known actual origins; outside pins remain usable for Express.
 - [x] Motor only; enforce valid items/dimensions and the 40,000 gram limit. Default request timezone WIB.
 - [x] Reject COD. Ignore Express insurance preferences for Instant without changing those preferences.
 - [x] Validate the exact cached quote at final checkout; reject expiry or changed context instead of silently repricing or switching couriers.

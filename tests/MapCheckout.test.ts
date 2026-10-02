@@ -394,6 +394,17 @@ describe('shared location authorization gate', () => {
 });
 
 describe('MapControl: permission-gated actual React commit/ref runtime', () => {
+	uiTest('Store API package coverage overrides the initial circle and explicit unknown never falls back', () => {
+		const h = uiHarness({ coverage: {origin: {latitude: 0, longitude: 0}, radiusMeters: 40000} });
+		try {
+			(h.model.cart as any).extensions = {'kiriminaja-official-instant-coverage': {coverage: {origin: {latitude: -6, longitude: 106}, radiusMeters: 40000}}};
+			h.render(); expect(h.circles.at(-1).position).toEqual([-6, 106]); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull();
+			const requests = h.initialRequests.length;
+			(h.model.cart as any).extensions['kiriminaja-official-instant-coverage'].coverage = null;
+			h.render(); expect(h.container.querySelector('.kiriof-buyer-map__coverage-legend')).toBeNull(); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull(); expect(h.initialRequests).toHaveLength(requests);
+			expect(h.circles.at(-1).removed).toBe(1);
+		} finally { h.cleanup(); }
+	});
 	uiTest('coverage circle awaits grant; out pin persists and warning never replaces permission or tile errors', () => {
 		const h = uiHarness({ autoLocation: false, coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } }); try {
 			expect(h.circles).toHaveLength(0); expect(h.container.textContent).toContain('Instant coverage: 40 km');

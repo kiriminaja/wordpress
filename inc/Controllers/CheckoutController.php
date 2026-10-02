@@ -141,6 +141,7 @@ class CheckoutController
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_block_checkout_fields'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_store_api_update_callback'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_destination_schema'));
+            add_action( 'woocommerce_blocks_loaded', array( $this, 'kiriof_register_coverage_schema' ) );
             add_action('init', array($this, 'kiriof_register_district_checkout_block'));
             add_filter( 'render_block', array( $this, 'kiriof_identify_checkout_child' ), 9, 2 );
 
@@ -1588,7 +1589,7 @@ class CheckoutController
             wp_json_encode(
                 array(
                     // Rebuild cached Woo rates after the combined Express/Instant sort.
-                    'rate_presentation_version' => 3,
+                    'rate_presentation_version' => 4,
                     'cart_hash'        => $cart_hash,
                     'supported_country' => 'ID',
                     'instant_pin' => WC()->session ? WC()->session->get( 'kiriof_buyer_destination', null ) : null,
@@ -2282,6 +2283,43 @@ class CheckoutController
             'schema_callback' => static function () { return array( 'destination' => BuyerDestination::schema() ); },
             // Do not echo a session snapshot into a new checkout request implicitly.
             'data_callback' => static function () { return array(); },
+        ) );
+    }
+
+    /** Independent read-only Cart extension; the Checkout destination stays unchanged. */
+    public function kiriof_register_coverage_schema(): void {
+        $schema = '\Automattic\WooCommerce\StoreApi\Schemas\V1\CartSchema';
+        if ( ! function_exists( 'woocommerce_store_api_register_endpoint_data' ) || ! class_exists( $schema ) ) {
+            return;
+        }
+        woocommerce_store_api_register_endpoint_data( array(
+            'endpoint' => $schema::IDENTIFIER,
+            'namespace' => 'kiriminaja-official-instant-coverage',
+            'schema_type' => ARRAY_A,
+            'schema_callback' => static function () {
+                return array( 'coverage' => array(
+                    'description' => 'Advisory Instant coverage from the effective pickup origin.',
+                    'type' => array( 'object', 'null' ),
+                    'default' => null,
+                    'readonly' => true,
+                    'context' => array( 'view' ),
+                    'required' => array( 'origin', 'radiusMeters' ),
+                    'properties' => array(
+                        'origin' => array(
+                            'type' => 'object',
+                            'required' => array( 'latitude', 'longitude' ),
+                            'properties' => array(
+                                'latitude' => array( 'type' => 'string' ),
+                                'longitude' => array( 'type' => 'string' ),
+                            ),
+                        ),
+                        'radiusMeters' => array( 'type' => 'integer', 'enum' => array( 40000 ) ),
+                    ),
+                ) );
+            },
+            'data_callback' => static function () {
+                return array( 'coverage' => ( new \KiriminAjaOfficial\Services\InstantMapCoverageService() )->checkoutCoverage() );
+            },
         ) );
     }
 
