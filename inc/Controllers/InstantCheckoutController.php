@@ -234,6 +234,15 @@ class InstantCheckoutController {
 	private function checkSnapshot( $order, $line, array $snapshot ): void {
 		$rate = $snapshot['rate'] ?? array();
 		$context = $snapshot['context'] ?? array();
+		// A durable receipt must explicitly record IDR; legacy unbound receipts fail closed.
+		$currency = is_callable( array( $order, 'get_currency' ) ) ? $order->get_currency() : ( function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'IDR' );
+		if ( 'IDR' !== $currency || 'IDR' !== ( $context['currency'] ?? null ) ) {
+			throw new \InvalidArgumentException( 'currency_unsupported' );
+		}
+		if ( (float) $line->get_total_tax() !== 0.0 ) {
+			throw new \InvalidArgumentException( 'shipping_tax_invalid' );
+		}
+
 		if ( ! \KiriminAjaOfficial\Services\InstantDeliveryCoverage::covers(
 			$context['origin']['latitude'] ?? null, $context['origin']['longitude'] ?? null,
 			$context['destination']['destination_latitude'] ?? null, $context['destination']['destination_longitude'] ?? null
@@ -356,7 +365,7 @@ class InstantCheckoutController {
 
 	/** Only fixed codes can reach logs; never upstream details or selected tokens. */
 	private function reason( \Throwable $error, string $fallback ): string {
-		$allowed = array( 'outside_instant_radius', 'shipping_invalid', 'packages_invalid', 'address_invalid', 'address_changed', 'recipient_changed', 'method_invalid', 'method_disabled', 'rate_invalid', 'snapshot_invalid', 'selection_changed', 'snapshot_changed', 'order_invalid', 'checkout_busy', 'transaction_conflict', 'snapshot_missing', 'insert_failed', 'quote_invalid', 'quote_expired_or_changed', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'items_invalid', 'timezone_unsupported', 'context_unavailable' );
+		$allowed = array( 'currency_unsupported', 'shipping_tax_invalid', 'outside_instant_radius', 'shipping_invalid', 'packages_invalid', 'address_invalid', 'address_changed', 'recipient_changed', 'method_invalid', 'method_disabled', 'rate_invalid', 'snapshot_invalid', 'selection_changed', 'snapshot_changed', 'order_invalid', 'checkout_busy', 'transaction_conflict', 'snapshot_missing', 'insert_failed', 'quote_invalid', 'quote_expired_or_changed', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'items_invalid', 'timezone_unsupported', 'context_unavailable' );
 		return in_array( $error->getMessage(), $allowed, true ) ? $error->getMessage() : $fallback;
 	}
 

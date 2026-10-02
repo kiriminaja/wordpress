@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class InstantCheckoutQuoteService {
 	public const SESSION_KEY = 'kiriof_instant_checkout_quotes';
 	private const TTL = 120;
-	private const AMOUNT_VERSION = 2;
+	private const AMOUNT_VERSION = 3;
 	private const MAX_QUOTES = 8;
 	private SettingRepository $settings;
 	private ShipmentLocationService $locations;
@@ -142,6 +142,18 @@ class InstantCheckoutQuoteService {
 	}
 
 	private function build( array $package, array $destination, string $payment, bool $insurance ): array {
+		$currency = function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'IDR';
+		if ( 'IDR' !== $currency ) {
+			throw new InvalidArgumentException( 'currency_unsupported' );
+		}
+		$wc = function_exists( 'WC' ) ? WC() : null;
+		$cart = $wc->cart ?? null;
+		if ( is_object( $cart ) && is_callable( array( $cart, 'get_shipping_packages' ) ) ) {
+			$packages = $cart->get_shipping_packages();
+			if ( ! is_array( $packages ) || count( $packages ) > 1 ) {
+				throw new InvalidArgumentException( 'packages_invalid' );
+			}
+		}
 		if ( 'cod' === strtolower( trim( $payment ) ) ) {
 			throw new InvalidArgumentException( 'cod_unsupported' );
 		}
@@ -264,7 +276,7 @@ class InstantCheckoutQuoteService {
 		if ( ! is_string( $package_id ) && ! is_int( $package_id ) ) {
 			throw new InvalidArgumentException( 'items_invalid' );
 		}
-		$context = array( 'coverage_version' => 1, 'package_id' => (string) $package_id, 'origin' => $origin, 'destination' => $destination, 'recipient' => $recipient, 'items' => $items,
+		$context = array( 'amount_version' => self::AMOUNT_VERSION, 'currency' => $currency, 'coverage_version' => 1, 'package_id' => (string) $package_id, 'origin' => $origin, 'destination' => $destination, 'recipient' => $recipient, 'items' => $items,
 			'weight' => $weight, 'item_value' => $value, 'package_type_id' => $this->integer( $package['package_type_id'] ?? 7, 1 ), 'pricing' => $pricing, 'policy' => $policy, 'payment_method' => $payment, 'insurance' => false );
 		$encoded = wp_json_encode( $this->canonical( $context ) );
 		if ( false === $encoded ) {
@@ -444,6 +456,8 @@ class InstantCheckoutQuoteService {
 		$reason = $this->reason( $reason );
 		$this->trace( $reason, false, false, 0, $live_checked );
 		$messages = array(
+			'currency_unsupported' => __( 'Instant delivery requires Indonesian rupiah (IDR).', 'kiriminaja-official' ),
+			'packages_invalid' => __( 'Instant delivery supports only one shipping package.', 'kiriminaja-official' ),
 			'outside_instant_radius' => __( 'Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', 'kiriminaja-official' ),
 			'cod_unsupported' => __( 'Cash on delivery is not supported for Instant delivery.', 'kiriminaja-official' ),
 			'insurance_unsupported' => __( 'Insurance is not supported for Instant delivery.', 'kiriminaja-official' ),
@@ -476,7 +490,7 @@ class InstantCheckoutQuoteService {
 
 	/** Only internal reason codes may cross the buyer boundary, even for repository exceptions. */
 	private function reason( string $reason ): string {
-		$allowed = array( 'outside_instant_radius', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'timezone_unsupported', 'items_invalid', 'no_rates', 'context_invalid', 'context_unavailable', 'session_unavailable', 'quote_unavailable', 'quote_invalid', 'quote_expired_or_changed' );
+		$allowed = array( 'currency_unsupported', 'packages_invalid', 'outside_instant_radius', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'timezone_unsupported', 'items_invalid', 'no_rates', 'context_invalid', 'context_unavailable', 'session_unavailable', 'quote_unavailable', 'quote_invalid', 'quote_expired_or_changed' );
 		return in_array( $reason, $allowed, true ) ? $reason : 'context_unavailable';
 	}
 }

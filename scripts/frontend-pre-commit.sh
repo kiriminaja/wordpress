@@ -1,10 +1,16 @@
 #!/bin/sh
 set -eu
 
-if ! git diff --cached --name-only --diff-filter=ACMR -- \
+if ! git diff --cached --name-only --diff-filter=ACMRD -- \
 	'package.json' \
 	'bun.lock' \
 	'src/**' \
+	'assets/wp/**' \
+	'blocks/**' \
+	'tests/**' \
+	'scripts/**' \
+	'lang/**' \
+	'inc/**' \
 	'vite.config.ts' \
 	'svelte.config.js' \
 	'tsconfig.json' \

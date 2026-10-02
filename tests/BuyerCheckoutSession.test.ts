@@ -4,9 +4,9 @@ import { runInNewContext } from 'node:vm';
 
 type Snapshot = Record<string, unknown>;
 type Result = { status: 'success' | 'error' | 'superseded' | 'disposed'; snapshot: Snapshot | null; error: unknown };
-type State = { pending: Snapshot | null; inFlight: Snapshot | null; acknowledged: Snapshot | null; error: unknown; blocked: boolean; disposed: boolean };
+type State = { pending: Snapshot | null; inFlight: Snapshot | null; acknowledged: Snapshot | null; error: unknown; blocked: boolean; disposed: boolean; stalled: boolean; uncertain: boolean };
 type Queue = { update(snapshot: Snapshot): Promise<Result>; retry(): Promise<Result>; resume(): void; dispose(): void; getState(): State };
-type Options = { send(snapshot: Snapshot): unknown; onChange?(state: State): void; isBlocked?(): boolean; schedule?(callback: () => void): unknown; cancel?(handle: unknown): void };
+type Options = { send(snapshot: Snapshot): unknown; onChange?(state: State): void; isBlocked?(): boolean; schedule?(callback: () => void): unknown; cancel?(handle: unknown): void; setTimeout?(callback: () => void, delay: number): unknown; clearTimeout?(handle: unknown): void };
 type Session = { createQueue(options: Options): Queue; normalizeDestination(input: Snapshot): Snapshot };
 
 const source = readFileSync(new URL('../assets/wp/js/kiriof-checkout-session.js', import.meta.url), 'utf8');
@@ -57,6 +57,25 @@ const B = { district_id: '2' };
 const C = { district_id: '3' };
 
 describe('buyer checkout session', () => {
+	test('timeout holds serialization until actual settlement, never acknowledges late success, and retries only latest', async () => {
+		const timers = new Map<number, () => void>(); let id = 0;
+		const c = setup({ setTimeout(callback, delay) { expect(delay).toBe(15000); timers.set(++id, callback); return id; }, clearTimeout(handle) { timers.delete(handle as number); } });
+		const a = c.queue.update(A); c.tick(); const b = c.queue.update(B);
+		timers.get(1)!(); expect((await a).status).toBe('error'); expect((await b).status).toBe('error');
+		expect(c.queue.getState().uncertain).toBe(true); expect(c.queue.getState().inFlight).toEqual(A);
+		expect((await c.queue.retry()).status).toBe('error'); expect((await c.queue.update(C)).status).toBe('error');
+		c.queue.resume(); c.tick(); expect(c.sent).toEqual([A]);
+		c.requests[0].resolve(); await flush(); expect(c.queue.getState().acknowledged).toBeNull(); expect(c.queue.getState().uncertain).toBe(false);
+		c.tick(); expect(c.sent).toEqual([A]); const retry = c.queue.retry(); c.tick(); expect(c.sent).toEqual([A, C]);
+		c.requests[1].resolve(); expect((await retry).status).toBe('success'); expect(c.queue.getState().stalled).toBe(false); expect(timers.size).toBe(0);
+	});
+	test('dispose clears watchdog and late transport rejection is inert', async () => {
+		let timer: (() => void) | null = null;
+		const c = setup({ setTimeout(callback) { timer = callback; return 1; }, clearTimeout() { timer = null; } });
+		const result = c.queue.update(A); c.tick(); expect(timer).not.toBeNull(); c.queue.dispose(); expect(timer).toBeNull();
+		c.requests[0].reject(new Error('late')); await flush(); expect((await result).status).toBe('disposed'); expect(c.queue.getState().acknowledged).toBeNull();
+	});
+
 	test('browser global and globalThis fallback need no WordPress or jQuery', () => {
 		expect(typeof session.createQueue).toBe('function');
 		expect(typeof load(true).createQueue).toBe('function');

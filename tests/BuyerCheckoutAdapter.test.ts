@@ -25,7 +25,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	const events: Record<string, { callback: (event?: any) => void; once: boolean }> = {};
 	const model = {
 		cart: { needsShipping: true, shippingAddress: { postcode: '12345', country: 'ID' } as any,
-			shippingRates: [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }] },
+			extensions: {} as any, shippingRates: [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }] },
 		payment: 'cod', rateBusy: false, customerBusy: false, pendingItems: false, collection: false,
 	};
 	const forbidden = () => { throw new Error('Adapter must not call native customer/rate or legacy DOM methods'); };
@@ -84,9 +84,9 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		registerCheckoutBlock: options.inner === false ? undefined : (registration: any) => { registeredBlocks.push(registration); },
 		extensionCartUpdate: (request: any) => { const task = deferred(); sends.push({ request, ...task }); return task.promise; },
 	};
-	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
+	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', lookupTimeout: 'Lookup timed out', saveStalled: 'Save stalled', reloadCheckout: 'Reload checkout', quoteRefreshFailed: 'Quote refresh failed', instantUnavailable: 'Instant unavailable', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
 	const root: any = {
-		wp, wc: { blocksCheckout: blocks }, setTimeout, clearTimeout,
+		wp, wc: { blocksCheckout: blocks }, setTimeout, clearTimeout, location: { reload: () => { root.reloaded = true; } },
 		kiriofBuyerCheckoutConfig: { enabled: options.enabled !== false, nonce: 'nonce', ajaxUrl: '/ajax', globalInsurance: true, map: { enabled: true }, i18n: strings, ...options.config },
 		fetch: (url: string, init: any) => { const task = deferred(); lookups.push({ url, init, ...task }); return task.promise; },
 		addEventListener: (name: string, callback: () => void, init: any) => { events[name] = { callback, once: !!init?.once }; },
@@ -174,6 +174,44 @@ function options(node: any): {value: string; label: string}[] { return node.chil
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
 describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
+	test('district lookup deadline aborts and reports once; retry ignores late old success', async () => {
+		const h = harness(); h.mount(); await h.flush(250); await h.flush(10000);
+		expect(h.lookups[0].init.signal.aborted).toBe(true); expect(h.status()).toBe('Lookup timed out');
+		h.retry(); await h.flush(250); await h.reply(1, [{ id: 9, text: 'Fresh' }]); await h.reply(0);
+		expect(options(h.find('select'))).toEqual([{ value: '9', label: 'Fresh' }]);
+		expect([...h.timers.values()].some(timer => timer.delay === 10000)).toBe(false);
+	});
+	test('never-settling cart mutation requires reload or actual settle before explicit retry', async () => {
+		const h = harness(); await ready(h); h.choose('7'); await h.flush(0); await h.flush(15000);
+		expect(h.status()).toBe('Save stalled'); expect(h.find('button').children[0]).toBe('Reload checkout');
+		h.model.payment = 'stripe'; h.notify(); await h.flush(0); expect(h.sends).toHaveLength(1);
+		h.find('button').props.onClick(); expect(h.root.reloaded).toBe(true);
+		h.sends[0].resolve(); await h.settle(); await h.flush(0); expect(h.sends).toHaveLength(1);
+		h.retry(); await h.flush(0); expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data.payment_method).toBe('stripe');
+	});
+	test('selected Instant quote expiry refreshes once through the serialized native gate', async () => {
+		const h = harness(); const expires_at = Math.floor(Date.now() / 1000) + 120;
+		h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: true, code: 'available', message: '', expires_at };
+		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
+		await ready(h); h.choose('7'); await h.flush(0); h.sends[0].resolve(); await h.settle();
+		const timer = [...h.timers.values()].find(timer => timer.delay > 100000)!; expect(timer.delay).toBeLessThanOrEqual(121000);
+		h.model.rateBusy = true; await h.flush(timer.delay); await h.flush(0); expect(h.sends).toHaveLength(1);
+		h.model.rateBusy = false; h.notify(); await h.flush(0); expect(h.sends).toHaveLength(2);
+		expect(h.sends[1].request.data.refresh_instant).toBe(true); expect(h.sends[1].request.data.quote_refresh_version).toBe(1);
+		expect(h.sends[1].request.data.destination).toEqual(h.sends[0].request.data.destination);
+		h.sends[1].resolve(); await h.settle(); h.notify(); await h.flush(timer.delay); await h.flush(0); expect(h.sends).toHaveLength(2);
+		expect(h.status()).toBe('Quote refresh failed');
+	});
+	test('server ineligibility blocks stale selected Instant and recipient changes enqueue fresh snapshots', async () => {
+		const h = harness(); await ready(h); h.choose('7'); await h.flush(0); h.sends[0].resolve(); await h.settle();
+		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
+		h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'outside_coverage', message: 'Outside coverage', expires_at: 0 };
+		h.notify(); expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Outside coverage');
+		h.model.cart.shippingAddress.first_name = 'New Buyer'; h.model.cart.shippingAddress.phone = '123'; h.notify(); await h.flush(0);
+		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data.recipient_context).toEqual({ first_name: 'New Buyer', last_name: '', phone: '123' });
+		expect(h.sends[1].request.data.destination).toEqual(h.sends[0].request.data.destination);
+	});
+
 	test('registers one in-address District component with shared District logic', async () => {
 		const h = harness();
 		expect(h.registeredBlocks()).toHaveLength(1);
@@ -384,7 +422,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.sends).toHaveLength(1);
 		const request = h.sends[0].request;
 		expect(request.namespace).toBe('kiriminaja-official'); expect(request.overwriteDirtyCustomerData).toBe(false);
-		expect(request.data).toEqual({ action: 'sync_checkout', destination: h.root.kiriofBuyerCheckout.getDestination(), payment_method: 'cod', insurance: 1, force_insurance: 0 });
+		expect(request.data).toEqual({ action: 'sync_checkout', destination: h.root.kiriofBuyerCheckout.getDestination(), payment_method: 'cod', insurance: 1, force_insurance: 0, recipient_context: { first_name: '', last_name: '', phone: '' }, quote_refresh_version: 0, refresh_instant: false });
 		expect(request.data.shipping_method).toBeUndefined(); expect(Object.isFrozen(request.data)).toBe(true); expect(Object.isFrozen(request.data.destination)).toBe(true);
 		expect(h.status()).toBe('Saving'); h.sends[0].resolve(); await h.settle();
 		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
@@ -511,7 +549,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination }]);
 		h.model.payment = 'bacs'; h.render(); await h.flush(0);
 		expect(h.sends).toHaveLength(1);
-		expect(h.sends[0].request.data).toEqual({ action: 'sync_checkout', destination, payment_method: 'bacs', insurance: 1, force_insurance: 0 });
+		expect(h.sends[0].request.data).toEqual({ action: 'sync_checkout', destination, payment_method: 'bacs', insurance: 1, force_insurance: 0, recipient_context: { first_name: 'Buyer', last_name: '', phone: 'private' }, quote_refresh_version: 0, refresh_instant: false });
 		expect(Object.isFrozen(h.sends[0].request.data.destination.shipping_address)).toBe(true);
 	});
 	test('a map-only destination still requires district after its update completes', async () => {

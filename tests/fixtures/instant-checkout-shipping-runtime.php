@@ -10,7 +10,10 @@ namespace KiriminAjaOfficial\Services {
 			if ( 'throw' === $this->mode ) {
 				throw new \RuntimeException( 'Private API failure secret address' );
 			}
-			$rate = array( 'courier' => 'gosend', 'service' => 'instant', 'label' => 'GoSend Instant', 'cost' => 55000, 'shipping_costs' => 54000, 'admin_fee' => 1000, 'total_price' => 55000, 'estimation' => '1-2 hours', 'vehicle' => 'motor', 'quote_token' => 'opaque_token', 'expires' => time() + 300 );
+			if ( in_array( $this->mode, array( 'outside_instant_radius', 'recipient_invalid', 'services_disabled', 'items_invalid', 'secret_reason' ), true ) ) {
+                return array( 'eligible' => false, 'code' => $this->mode, 'message' => 'Private API message', 'rates' => array() );
+            }
+			$rate = array( 'courier' => 'gosend', 'service' => 'instant', 'label' => 'GoSend Instant', 'cost' => 55000, 'shipping_costs' => 54000, 'admin_fee' => 1000, 'total_price' => 55000, 'estimation' => '1-2 hours', 'vehicle' => 'motor', 'quote_token' => 'opaque_token', 'expires' => time() + 120 );
 			$rates = array( $rate );
 			foreach ( array( 'service' => 'bad:service', 'courier' => 'UPPER', 'expires' => time() - 10, 'quote_token' => array( 'private' ), 'cost' => -1, 'vehicle' => 'car' ) as $field => $value ) {
 				$invalid = $rate;
@@ -34,6 +37,7 @@ namespace {
 	function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 	function wp_json_encode( $value ) { return json_encode( $value ); }
 	function WC() { return $GLOBALS['wc']; }
+	function get_woocommerce_currency() { return $GLOBALS['currency'] ?? 'IDR'; }
 	function kiriof_setting_repository() { return new class { public function getSettingByKey( $key ) { return (object) array( 'value' => $GLOBALS['insurance'] ); } }; }
 	class FixtureSession {
 		public $data = array();
@@ -53,14 +57,14 @@ namespace {
 	// Runtime declaration ensures the first registration really runs without WooCommerce.
 	eval( 'class WC_Shipping_Method {
 		public $id, $instance_id, $method_title, $method_description, $supports, $instance_form_fields, $enabled, $title;
-		public $rates = array();
+		public $rates = array(); public $tax_status; public $submitted_rates = array();
 		public $instance_settings_initialized = false;
 		public function init_instance_settings() { $this->instance_settings_initialized = true; }
 		public function init_settings() {}
 		public function get_option($key, $default) { return $GLOBALS["instance_options"][$this->instance_id][$key] ?? $default; }
 		public function process_admin_options() {}
 		public function is_available($package) { return true; }
-		public function add_rate($rate) { $this->rates[$rate["id"]] = new WC_Shipping_Rate($rate["id"], $rate["label"], $rate["cost"], array(), $this->id, $this->instance_id); foreach ($rate["meta_data"] as $key => $value) { $this->rates[$rate["id"]]->add_meta_data($key, $value); } }
+		public function add_rate($rate) { $this->submitted_rates[] = $rate; $this->rates[$rate["id"]] = new WC_Shipping_Rate($rate["id"], $rate["label"], $rate["cost"], array(), $this->id, $this->instance_id); foreach ($rate["meta_data"] as $key => $value) { $this->rates[$rate["id"]]->add_meta_data($key, $value); } }
 	}' );
 	class WC_Shipping_Rate {
 		private $id, $label, $cost, $method_id, $instance_id;
@@ -127,7 +131,7 @@ namespace {
 	$disabled->calculate_shipping( $package );
 	$result['disabled'] = array( 'available' => $disabled->is_available( $package ), 'calls' => count( $quotes->calls ) - $before_disabled, 'rates' => fixture_rates( $disabled ) );
 	$quotes->mode = 'ok';
-	$valid = array( 'courier' => 'gosend', 'service' => 'instant', 'label' => 'GoSend Instant', 'cost' => 55000, 'shipping_costs' => 54000, 'admin_fee' => 1000, 'total_price' => 55000, 'estimation' => '1-2 hours', 'vehicle' => 'motor', 'quote_token' => 'opaque_token', 'expires' => time() + 300 );
+	$valid = array( 'courier' => 'gosend', 'service' => 'instant', 'label' => 'GoSend Instant', 'cost' => 55000, 'shipping_costs' => 54000, 'admin_fee' => 1000, 'total_price' => 55000, 'estimation' => '1-2 hours', 'vehicle' => 'motor', 'quote_token' => 'opaque_token', 'expires' => time() + 120 );
 	$uppercase = $valid;
 	$uppercase['service'] = 'GO-INSTANT';
 	$quotes->rows = array( $valid, $uppercase );
@@ -173,6 +177,33 @@ namespace {
 	$method = new Kiriof_Instant_Shipping_Method_Controller( 77, $quotes );
 	$method->calculate_shipping( $package );
 	$result['zero_rates'] = fixture_rates( $method );
+	$result['money'] = array( 'tax_status' => $one->tax_status, 'taxes' => $one->submitted_rates[0]['taxes'] );
+	$GLOBALS['wc']->cart = new class { public $packages = array(); public function get_shipping_packages() { return $this->packages; } };
+	foreach ( array( 'multi', 'currency', 'virtual' ) as $scenario ) {
+		$GLOBALS['wc']->cart->packages = 'multi' === $scenario ? array( $package, $package ) : array( $package );
+		$GLOBALS['currency'] = 'currency' === $scenario ? 'USD' : 'IDR';
+		$guard_package = 'virtual' === $scenario ? array() : $package;
+		$guard = new Kiriof_Instant_Shipping_Method_Controller( 88, $quotes );
+		$before_calls = count( $quotes->calls );
+		$before_status = $session->get( 'kiriof_instant_checkout_status' );
+		$guard->calculate_shipping( $guard_package );
+		$result['guards'][ $scenario ] = array( 'available' => $guard->is_available( $guard_package ), 'calls' => count( $quotes->calls ) - $before_calls, 'rates' => fixture_rates( $guard ), 'status' => $session->get( 'kiriof_instant_checkout_status' ), 'status_unchanged' => $before_status === $session->get( 'kiriof_instant_checkout_status' ) );
+	}
+	$GLOBALS['currency'] = 'IDR';
+	$GLOBALS['wc']->cart->packages = array( $package );
+	$valid['expires'] = time() + 90;
+	$zero['expires'] = time() + 60;
+	$zero['service'] = 'sameday';
+	$quotes->rows = array( $valid, $zero );
+	$guard = new Kiriof_Instant_Shipping_Method_Controller( 99, $quotes );
+	$guard->calculate_shipping( $package );
+	$result['earliest'] = array( 'rates' => fixture_rates( $guard ), 'status' => $session->get( 'kiriof_instant_checkout_status' )['99:' . hash( 'sha256', json_encode( array_keys( $package['contents'] ) ) )] );
+	foreach ( array( 'outside_instant_radius', 'recipient_invalid', 'services_disabled', 'items_invalid', 'secret_reason' ) as $reason ) {
+		$quotes->mode = $reason;
+		$guard = new Kiriof_Instant_Shipping_Method_Controller( 100, $quotes );
+		$guard->calculate_shipping( $package );
+		$result['reasons'][ $reason ] = $session->get( 'kiriof_instant_checkout_status' )['100:' . hash( 'sha256', json_encode( array_keys( $package['contents'] ) ) )];
+	}
 	echo json_encode( $result );
 
 }

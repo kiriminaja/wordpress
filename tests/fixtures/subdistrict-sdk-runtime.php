@@ -1,5 +1,5 @@
 <?php
-// Offline facade double: execute callbacks through the real call_sdk safety layer.
+// Offline address data double; the repository transport seam never sends HTTP.
 namespace KiriminAja\Services {
     class KiriminAja {
         public static array $parents = array();
@@ -25,9 +25,22 @@ namespace {
     $repository = new class() extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
         public array $addresses = array();
         public function __construct() {} // No settings, credentials, or networking.
-        public function get( $endpoint, $body = array(), $log_context = array() ) {
-            \KiriminAja\Services\KiriminAja::$calls[] = array( 'get', $endpoint, $body );
-            return array( 'status' => true, 'data' => json_decode( json_encode( array( 'status' => true, 'data' => $this->addresses ) ) ) );
+        public float $clock = 0.0;
+        public float $request_duration = 0.0;
+        protected function address_lookup_clock(): float { return $this->clock; }
+        protected function address_request( string $method, string $endpoint, array $body ): array {
+            $this->clock += $this->request_duration;
+            if ( 'GET' === $method ) {
+                \KiriminAja\Services\KiriminAja::$calls[] = array( 'get', '/' . $endpoint, $body );
+                return array( true, array( 'status' => true, 'data' => $this->addresses ) );
+            }
+            if ( 'api/mitra/v2/get_address_by_name' === $endpoint ) {
+                $response = \KiriminAja\Services\KiriminAja::getDistrictByName( $body['search'] );
+                return array( true, array( 'status' => true, 'data' => $response->data ) );
+            }
+            if ( 'api/mitra/kelurahan' !== $endpoint ) { throw new \RuntimeException( 'Unexpected endpoint' ); }
+            $response = \KiriminAja\Services\KiriminAja::getSubDistrict( $body['kecamatan_id'] );
+            return array( true, array( 'status' => true, 'results' => $response->data ) );
         }
     };
     $service = new \KiriminAjaOfficial\Services\KiriminajaApiService( $repository );
@@ -37,7 +50,8 @@ namespace {
         array( 'id' => '31484', 'subdistrict_name' => 'Wonokromo', 'zip_code' => '55792' ),
         array( 'id' => 31485, 'kelurahan_name' => 'Segoroyoso', 'kecamatan_id' => 548 ),
     );
-    $run = static function ( $parents, $child_rows, $search ) use ( $service ) {
+    $run = static function ( $parents, $child_rows, $search ) use ( $service, $repository ) {
+        $repository->clock = 0.0;
         \KiriminAja\Services\KiriminAja::$parents = $parents;
         \KiriminAja\Services\KiriminAja::$children = $child_rows;
         \KiriminAja\Services\KiriminAja::$calls = array();
@@ -79,5 +93,11 @@ namespace {
     $child_rows = array();
     for ( $i = 1; $i <= 50; $i++ ) { $child_rows[$i] = array( array( 'id' => $i, 'subdistrict_name' => 'Bawuran' ) ); }
     $results['postcode_boundary'] = $run( array(), $child_rows, '55791' );
+    $repository->request_duration = 8.0;
+    $results['deadline'] = $run( array_slice( $parents, 0, 50 ), array(), 'District' );
+    $results['postcode_deadline'] = $run( array(), $child_rows, '55791' );
+    // A late response cannot leak partial rows even if a mock ignores timeouts.
+    $repository->request_duration = 26.0;
+    $results['late_response'] = $run( array( $parent ), array( 548 => $children ), 'Pleret' );
     echo json_encode( $results, JSON_THROW_ON_ERROR );
 }

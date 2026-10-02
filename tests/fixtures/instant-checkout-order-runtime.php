@@ -43,12 +43,13 @@ namespace {
     }
     $GLOBALS['wpdb'] = new LockDatabase();
     class OrderShipping {
-        public string $method = 'kiriminaja-instant'; public int $instance = 4; public $total = 19000; public array $meta;
+        public string $method = 'kiriminaja-instant'; public int $instance = 4; public $total = 19000; public $tax = 0; public array $meta;
         public function __construct($rate) { $this->total = $rate['shipping_costs']; foreach (['courier', 'service', 'vehicle', 'quote_token'] as $key) { $this->meta['kiriof_instant_' . $key] = $rate[$key]; } $this->meta['kiriof_instant_quote_expires'] = $rate['expires']; }
         public function get_id() { return $this->method . ':' . $this->instance . ':' . $this->meta['kiriof_instant_courier'] . ':' . $this->meta['kiriof_instant_service']; }
         public function get_method_id() { return $this->method; }
         public function get_instance_id() { return $this->instance; }
         public function get_total() { return $this->total; }
+        public function get_total_tax() { return $this->tax; }
         public function get_cost() { return $this->total; }
         public function get_meta_data() { return $this->meta; }
         public function get_meta($key) { return $this->meta[$key] ?? ''; }
@@ -62,7 +63,7 @@ namespace {
         public function add_meta_data($key, $value, $unique = false) { $this->meta[$key] = $value; }
     }
     class OrderFixture {
-        public array $fees = []; public array $meta = []; public array $address; public array $lines; public string $payment = 'bacs';
+        public array $fees = []; public array $meta = []; public array $address; public array $lines; public string $payment = 'bacs'; public string $currency = 'IDR';
         public function __construct($address, $line) { $this->address = $address; $this->lines = [$line]; }
         public function get_items($type) { return $type === 'shipping' ? $this->lines : ($type === 'fee' ? $this->fees : []); }
         public function get_id() { return 123; }
@@ -70,6 +71,7 @@ namespace {
         public function update_meta_data($key, $value) { $this->meta[$key] = $value; }
         public function get_payment_method() { return $this->payment; }
         public function set_payment_method($value) { $this->payment = $value; }
+        public function get_currency() { return $this->currency; }
         public function get_discount_total() { return 100; }
         public function save_meta_data() {}
         public function __call($name, $args) { if (str_starts_with($name, 'get_shipping_')) { return $this->address[substr($name, 13)] ?? ''; } if (str_starts_with($name, 'set_shipping_')) { $this->address[substr($name, 13)] = $args[0]; } }
@@ -106,6 +108,8 @@ namespace {
         case 'duplicate_fee': $order->fees[] = clone $fee; break;
         case 'renamed_duplicate_fee': $duplicate = clone $fee; $duplicate->name = 'Other Fee'; $order->fees[] = $duplicate; break;
         case 'tampered_fee': $fee->total++; break;
+        case 'currency': $order->currency = 'USD'; break;
+        case 'taxed_shipping': $line->tax = 100; break;
         case 'taxed_fee': $fee->tax = 100; break;
         case 'untagged_fee': $fee->meta = []; break;
         case 'wrong_selection': $wc->session->set('chosen_shipping_methods', ['kiriminaja-instant:4:gosend:GO-INSTANT-extra']); break;
@@ -149,6 +153,9 @@ namespace {
     $wc->packages[0]['rates'] = $savedRates;
     try { if ($scenario === 'classic') { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
     if ($error === '') {
+        if ($scenario === 'processed_currency') { $order->currency = 'USD'; }
+        if ($scenario === 'processed_shipping_tax') { $line->tax = 100; }
+        if ($scenario === 'durable_missing_currency') { unset($order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['context']['currency']); }
         if ($scenario === 'processed_fee_edit') { $fee->total++; }
         if ($scenario === 'processed_fee_missing') { $order->fees = []; }
         if ($scenario === 'snapshot_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['context']['destination']['destination_latitude'] = '-6.4'; }

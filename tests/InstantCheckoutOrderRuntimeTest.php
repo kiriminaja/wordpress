@@ -41,7 +41,7 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
 
     #[Test]
     public function final_checkout_rejects_changed_or_unsupported_context_without_remote_calls(): void {
-        foreach (['price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'private_error', 'missing_fee', 'duplicate_fee', 'renamed_duplicate_fee', 'tampered_fee', 'taxed_fee', 'untagged_fee', 'wrong_selection', 'missing_selection'] as $scenario) {
+        foreach (['currency', 'taxed_shipping', 'price', 'fraction', 'pin', 'address', 'phone', 'service', 'expiry', 'cart', 'origin', 'disabled', 'zone', 'instance', 'cod', 'mixed', 'packages', 'missing_rates', 'rate_vehicle', 'private_error', 'missing_fee', 'duplicate_fee', 'renamed_duplicate_fee', 'tampered_fee', 'taxed_fee', 'untagged_fee', 'wrong_selection', 'missing_selection'] as $scenario) {
             $r = $this->fixture($scenario);
             $this->assertNotEmpty($r['error'], $scenario);
             $this->assertSame([], $r['rows'], $scenario);
@@ -164,6 +164,20 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
                 $this->assertCount(1, $r['rows']);
             }
         }
+    }
+
+    #[Test]
+    public function durable_receipts_recheck_shipping_tax_and_order_currency(): void {
+        foreach (['processed_currency', 'processed_shipping_tax', 'durable_missing_currency'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertNotEmpty($r['processed_error'], $scenario);
+            $this->assertSame([], $r['rows'], $scenario);
+            $this->assertSame(1, $r['calls'], $scenario);
+        }
+        $r = $this->fixture('processed_expiry');
+        $this->assertSame('IDR', $r['meta']['_kiriof_instant_checkout_snapshot']['context']['currency']);
+        $this->assertCount(1, $r['rows']);
     }
 
 }

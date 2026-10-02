@@ -36,11 +36,14 @@ final class SubdistrictSdkRuntimeTest extends TestCase {
         $results = $this->scenarios();
         $this->assertSame( array(), $results['empty']['response']['data'] );
         $this->assertSame( 200, $results['empty']['response']['status'] );
-        foreach ( array( 'failure', 'invalid_parent', 'malformed_child', 'wrong_parent', 'conflicting_duplicate', 'bounds', 'postcode_missing_child', 'postcode_invalid_parent', 'postcode_invalid_child', 'postcode_wrong_parent', 'postcode_failure', 'postcode_bounds' ) as $scenario ) {
+        foreach ( array( 'failure', 'invalid_parent', 'malformed_child', 'wrong_parent', 'conflicting_duplicate', 'bounds', 'postcode_missing_child', 'postcode_invalid_parent', 'postcode_invalid_child', 'postcode_wrong_parent', 'postcode_failure', 'postcode_bounds', 'deadline', 'postcode_deadline', 'late_response' ) as $scenario ) {
             $this->assertSame( 400, $results[$scenario]['response']['status'], $scenario );
             $this->assertSame( array(), $results[$scenario]['response']['data'], $scenario );
             $this->assertSame( 'Could not load subdistricts.', $results[$scenario]['response']['message'], $scenario );
         }
+        $this->assertCount( 3, $results['deadline']['calls'] );
+        $this->assertCount( 3, $results['postcode_deadline']['calls'] );
+        $this->assertCount( 1, $results['late_response']['calls'] );
         $this->assertCount( 1, $results['bounds']['calls'] );
         $this->assertCount( 1, $results['invalid_parent']['calls'] );
         $this->assertCount( 51, $results['boundary']['calls'] );

@@ -16,6 +16,12 @@ namespace Automattic\WooCommerce\StoreApi\Schemas\V1 {
     class CheckoutSchema { public const IDENTIFIER = 'checkout'; }
 }
 namespace KiriminAjaOfficial\Services {
+    // Quote validation is exercised independently with native rates and fees.
+    class ExpressCheckoutValidationService {
+        public const META_KEY = '_kiriof_express_validated';
+        public function __construct( ...$args ) {}
+        public function validate( ...$args ): array { return array( 'validated_calculation' => array() ); }
+    }
     class CheckoutServiceFactory {
         public function districtSearch( string $postcode ): \KiriminAjaOfficial\Utils\ServiceResponse {
             $GLOBALS['lookup_calls'][] = $postcode;

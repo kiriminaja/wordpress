@@ -67,6 +67,8 @@ namespace {
     function wc_get_dimension($value, $unit) { return $value; }
     function wp_json_encode($value) { return json_encode($value); }
     function WC() { return $GLOBALS['wc']; }
+    function get_woocommerce_currency() { return $GLOBALS['currency'] ?? 'IDR'; }
+    class QuoteCart { public array $packages = []; public function get_shipping_packages() { return $this->packages; } }
     class QuoteSession {
         public array $data = [];
         public function get($key, $default = null) { return $this->data[$key] ?? $default; }
@@ -94,12 +96,15 @@ namespace {
     $locations = new \KiriminAjaOfficial\Services\ShipmentLocationService();
     $api = new \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository(); $api->scenario = $scenario;
     $GLOBALS['wc'] = (object) ['session' => new QuoteSession()];
+    $GLOBALS['currency'] = 'IDR';
     $product = new QuoteProduct();
     $address = ['address_1' => 'Jalan Pembeli number 123 Jakarta', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID'];
     $package = ['package_id' => 0, 'contents' => ['cart-key' => ['data' => $product, 'quantity' => 2, 'product_id' => 123, 'variation_id' => 0, 'line_total' => 100000]], 'destination' => $address + ['first_name' => 'Buyer', 'last_name' => 'Full Name', 'phone' => '081234567890']];
     $destination = ['district_id' => '42', 'district_label' => 'Jakarta District', 'postcode' => '12345', 'country' => 'ID', 'address_type' => 'shipping', 'version' => 2, 'destination_latitude' => '-6.3', 'destination_longitude' => '106.9', 'shipping_address' => $address];
     $payment = 'bacs'; $insurance = false;
     switch ($scenario) {
+        case 'currency': $GLOBALS['currency'] = 'USD'; break;
+        case 'packages': $GLOBALS['wc']->cart = new QuoteCart(); $GLOBALS['wc']->cart->packages = [$package, $package]; break;
         case 'cod': $payment = 'cod'; break;
         case 'insurance': $insurance = true; break;
         case 'disabled': $settings->selection = []; break;
@@ -132,6 +137,7 @@ namespace {
     if (str_starts_with($scenario, 'cache_') && $scenario !== 'cache_bound') {
         foreach (WC()->session->data['kiriof_instant_checkout_quotes'] as &$entry) {
             switch ($scenario) {
+                case 'cache_version2': $entry['amount_version'] = 2; break;
                 case 'cache_old': unset($entry['amount_version'], $entry['rates'][0]['total_price'], $entry['rates'][0]['admin_fee']); break;
                 case 'cache_total': $entry['rates'][0]['total_price']++; break;
                 case 'cache_admin': $entry['rates'][0]['admin_fee']++; break;
@@ -151,6 +157,8 @@ namespace {
     if ($quote['eligible']) {
         $rate = $quote['rates'][0];
         switch ($scenario) {
+            case 'mutate_currency': $GLOBALS['currency'] = 'USD'; break;
+            case 'mutate_packages': $GLOBALS['wc']->cart = new QuoteCart(); $GLOBALS['wc']->cart->packages = [$package, $package]; break;
             case 'mutate_cart': $package['contents']['cart-key']['quantity'] = 3; break;
             case 'mutate_name': $package['destination']['first_name'] = 'Changed'; break;
             case 'mutate_phone': $package['destination']['phone'] = '081234567899'; break;

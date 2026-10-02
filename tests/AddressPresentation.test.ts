@@ -1,27 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync, existsSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
+import { React, happy, rendererRequire as scoped } from './helpers/ui-runtime';
 import { runInNewContext } from 'node:vm';
 
 const source = readFileSync(new URL('../assets/wp/js/kiriof-address-presentation.js', import.meta.url), 'utf8');
-const require = createRequire(import.meta.url);
-function optionalRuntime(name: string, candidates: string[]) {
-	try { return require(name); } catch {}
-	for (const candidate of candidates) {
-		const path = `${homedir()}/${candidate}/node_modules/${name}`;
-		if (existsSync(`${path}/package.json`)) { try { return require(path); } catch {} }
-	}
-	return null;
-}
-const happy = optionalRuntime('happy-dom', ['Kerjaa/kaj-shopify-plugin-cart']);
-const React = optionalRuntime('react', ['Kerjaa/portfolio', 'Kerjaa/kaj-shopify-plugin']);
-let scoped: any;
-for (const candidate of ['Kerjaa/portfolio', 'Kerjaa/kaj-shopify-plugin']) {
-	try { const r = createRequire(`${homedir()}/${candidate}/package.json`); if (r('react') === React) { scoped = r; break; } } catch {}
-}
-const domTest = happy ? test : test.skip;
-const uiTest = happy && React && scoped ? test : test.skip;
+const domTest = test;
+const uiTest = test;
 const step = (scope = 'shipping', editing = false) => `<section id="${scope}-fields"><div class="wc-block-components-address-address-wrapper${editing ? ' is-editing' : ''}"><div class="wc-block-components-address-card"><p>Native address</p><button class="wc-block-components-address-card__edit" aria-controls="${scope}" aria-expanded="${editing}">Edit</button></div><form><input name="${scope}_address_1"></form><div class="kiriof-buyer-map"><div class="leaflet-pane"></div></div><div class="kiriof-buyer-district"></div></div></section>`;
 function fixture(options: { native?: boolean; portal?: boolean; observer?: boolean; html?: string } = {}) {
 	const window = new happy.Window();

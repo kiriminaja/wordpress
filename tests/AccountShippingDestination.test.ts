@@ -1,14 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
-import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
-
-const require = createRequire(import.meta.url);
-let happy: any;
-for (const path of ['happy-dom', `${homedir()}/Kerjaa/kaj-shopify-plugin-cart/node_modules/happy-dom`]) {
-	try { happy = require(path); break; } catch {}
-}
+import { happy } from './helpers/ui-runtime';
 
 const source = readFileSync(new URL('../assets/wp/js/kiriof-account-shipping.js', import.meta.url), 'utf8');
 const mapSource = readFileSync(new URL('../assets/wp/js/kiriof-map-checkout.js', import.meta.url), 'utf8');
@@ -90,7 +83,7 @@ function fixture(saved: any = null, extra: any = {}, locationMode = 'grant', wit
 }
 async function settle() { for (let index = 0; index < 8; index++) await Promise.resolve(); }
 
-(happy ? test : test.skip)('actual native select unlocks after success, failure and timeout; retry publishes canonical choices', async () => {
+test('actual native select unlocks after success, failure and timeout; retry publishes canonical choices', async () => {
 	const window = new happy.Window({ url: 'https://account.example.test' });
 	const document = window.document;
 	document.body.innerHTML = `<form>${Object.entries(initialAddress).map(([key, value]) => `<input name="shipping_${key}" value="${value}">`).join('')}

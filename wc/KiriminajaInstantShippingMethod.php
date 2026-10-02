@@ -28,6 +28,8 @@ function kiriof_instant_shipping_method() {
 
 		public function __construct( $instance_id = 0, ?\KiriminAjaOfficial\Services\InstantCheckoutQuoteService $quotes = null ) {
 			$this->id                 = 'kiriminaja-instant';
+			// API totals already include carrier charges; never add WooCommerce tax.
+			$this->tax_status         = 'none';
 			$this->instance_id        = absint( $instance_id );
 			$this->method_title       = __( 'KiriminAja Instant', 'kiriminaja-official' );
 			$this->method_description = __( 'Add this method to a shipping zone. Instant requires a saved origin map pin and a buyer shipping map pin. COD and shipping insurance are not supported.', 'kiriminaja-official' );
@@ -46,10 +48,25 @@ function kiriof_instant_shipping_method() {
 
 		/** Availability must never make a remote quote request. */
 		public function is_available( $package ) {
-			if ( 'yes' !== $this->enabled || ! $this->has_physical_contents( $package ) ) {
+			if ( 'yes' !== $this->enabled || ! $this->has_physical_contents( $package ) || $this->has_multiple_packages() || ! $this->uses_idr() ) {
 				return false;
 			}
 			return parent::is_available( $package );
+		}
+
+		/** Cart packages are canonical while shipping packages may be partially calculated. */
+		private function has_multiple_packages() {
+			$wc = function_exists( 'WC' ) ? WC() : null;
+			$cart = $wc->cart ?? null;
+			if ( ! is_object( $cart ) || ! is_callable( array( $cart, 'get_shipping_packages' ) ) ) {
+				return false;
+			}
+			$packages = $cart->get_shipping_packages();
+			return ! is_array( $packages ) || count( $packages ) > 1;
+		}
+
+		private function uses_idr() {
+			return ! function_exists( 'get_woocommerce_currency' ) || 'IDR' === get_woocommerce_currency();
 		}
 
 		private function has_physical_contents( $package ) {
@@ -80,6 +97,14 @@ function kiriof_instant_shipping_method() {
 			$wc      = function_exists( 'WC' ) ? WC() : null;
 			$session = $wc && isset( $wc->session ) ? $wc->session : null;
 			if ( ! $session ) {
+				return;
+			}
+			if ( $this->has_multiple_packages() ) {
+				$this->store_status( $session, $package, 'packages_invalid', false, 0 );
+				return;
+			}
+			if ( ! $this->uses_idr() ) {
+				$this->store_status( $session, $package, 'currency_unsupported', false, 0 );
 				return;
 			}
 			$payment = $session->get( 'chosen_payment_method', '' );
@@ -115,6 +140,7 @@ function kiriof_instant_shipping_method() {
 			try {
 				$result = $this->quote_service()->quote( $package, $destination, $payment, $insurance );
 				$count  = 0;
+				$expires = 0;
 				if ( ! empty( $result['eligible'] ) ) {
 					foreach ( $result['rates'] ?? array() as $rate ) {
 						if ( ! $this->valid_rate( $rate ) ) {
@@ -124,6 +150,7 @@ function kiriof_instant_shipping_method() {
 							'id' => $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'],
 							'label' => sanitize_text_field( $rate['label'] ),
 							'cost' => (float) $rate['shipping_costs'],
+							'taxes' => false,
 							'meta_data' => array(
 								'kiriof_delivery_type' => 'instant',
 								'kiriof_instant_quote_token' => $rate['quote_token'],
@@ -137,6 +164,7 @@ function kiriof_instant_shipping_method() {
 						if ( isset( $this->rates[$rate_id] ) && method_exists( $this->rates[$rate_id], 'set_delivery_time' ) ) {
 							$this->rates[$rate_id]->set_delivery_time( $rate['estimation'] );
 						}
+						$expires = $expires ? min( $expires, (int) $rate['expires'] ) : (int) $rate['expires'];
 						++$count;
 					}
 				}
@@ -144,7 +172,7 @@ function kiriof_instant_shipping_method() {
 				if ( ! $count && 'available' === $code ) {
 					$code = 'unavailable';
 				}
-				$this->store_status( $session, $package, $code, $count > 0, $count, $result['context'] ?? array() );
+				$this->store_status( $session, $package, $code, $count > 0, $count, $result['context'] ?? array(), $expires );
 			} catch ( \Throwable $exception ) {
 				$this->store_status( $session, $package, 'quote_failed', false, 0 );
 			}
@@ -169,12 +197,29 @@ function kiriof_instant_shipping_method() {
 				&& is_numeric( $rate['cost'] ) && is_finite( (float) $rate['cost'] ) && (float) $rate['cost'] >= 0
 				&& is_string( $rate['label'] ) && '' !== trim( $rate['label'] )
 				&& is_string( $rate['quote_token'] ) && preg_match( '/^[a-zA-Z0-9_-]{1,255}$/D', $rate['quote_token'] )
-				&& is_numeric( $rate['expires'] ) && (int) $rate['expires'] > time() && 'motor' === $rate['vehicle'];
+				&& is_numeric( $rate['expires'] ) && (int) $rate['expires'] > time() && (int) $rate['expires'] <= time() + 120 && 'motor' === $rate['vehicle'];
 		}
 
 		/** Keep only fixed diagnostics and a one-way context hash, never address data. */
-		private function store_status( $session, $package, $code, $eligible, $count, $context = array() ) {
+		private function store_status( $session, $package, $code, $eligible, $count, $context = array(), $expires = 0 ) {
 			$messages = array(
+				'packages_invalid' => __( 'Instant delivery supports only one shipping package.', 'kiriminaja-official' ),
+				'currency_unsupported' => __( 'Instant delivery requires Indonesian rupiah (IDR).', 'kiriminaja-official' ),
+				'outside_instant_radius' => __( 'Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', 'kiriminaja-official' ),
+				'cod_unsupported' => __( 'Instant delivery does not support COD.', 'kiriminaja-official' ),
+				'insurance_unsupported' => __( 'Instant delivery does not support shipping insurance.', 'kiriminaja-official' ),
+				'services_disabled' => __( 'No Instant courier services are enabled.', 'kiriminaja-official' ),
+				'account_unavailable' => __( 'Instant delivery is not available for this store.', 'kiriminaja-official' ),
+				'destination_invalid' => __( 'Complete your Indonesian shipping address and update its map pin for Instant delivery.', 'kiriminaja-official' ),
+				'recipient_invalid' => __( 'A valid recipient name, Indonesian phone number and full address are required for Instant delivery.', 'kiriminaja-official' ),
+				'origin_invalid' => __( 'The store pickup address is not ready for Instant delivery.', 'kiriminaja-official' ),
+				'timezone_unsupported' => __( 'A supported Indonesian timezone is required for Instant delivery.', 'kiriminaja-official' ),
+				'items_invalid' => __( 'Instant delivery requires valid physical items weighing at most 40000 grams.', 'kiriminaja-official' ),
+				'no_rates' => __( 'No Instant delivery rates are available for this address and cart.', 'kiriminaja-official' ),
+				'context_invalid' => __( 'Instant delivery could not be quoted. Please try again.', 'kiriminaja-official' ),
+				'context_unavailable' => __( 'Instant delivery could not be quoted. Please try again.', 'kiriminaja-official' ),
+				'session_unavailable' => __( 'Instant delivery could not be quoted. Please try again.', 'kiriminaja-official' ),
+				'quote_unavailable' => __( 'Instant delivery rates are temporarily unavailable. Please try again.', 'kiriminaja-official' ),
 				'available' => __( 'Instant delivery is available.', 'kiriminaja-official' ),
 				'cod_not_supported' => __( 'Instant delivery does not support COD.', 'kiriminaja-official' ),
 				'insurance_not_supported' => __( 'Instant delivery does not support shipping insurance.', 'kiriminaja-official' ),
@@ -183,11 +228,11 @@ function kiriof_instant_shipping_method() {
 				'unavailable' => __( 'Instant delivery is unavailable for this shipment.', 'kiriminaja-official' ),
 			);
 			// Service reason codes are machine-only; never relay upstream error messages.
-			$code = is_string( $code ) && preg_match( '/^[a-z0-9_-]{1,80}$/D', $code ) ? $code : 'unavailable';
+			$code = is_string( $code ) && isset( $messages[ $code ] ) ? $code : 'unavailable';
 			$key = $this->instance_id . ':' . hash( 'sha256', wp_json_encode( array_keys( $package['contents'] ?? array() ) ) );
 			$status = $session->get( 'kiriof_instant_checkout_status', array() );
 			$status = is_array( $status ) ? $status : array();
-			$status[ $key ] = array( 'code' => $code, 'message' => $messages[ $code ] ?? $messages['unavailable'], 'eligible' => (bool) $eligible, 'count' => (int) $count, 'updated' => time(), 'fingerprint' => hash( 'sha256', wp_json_encode( $context ) ) );
+			$status[ $key ] = array( 'code' => $code, 'message' => $messages[ $code ] ?? $messages['unavailable'], 'eligible' => (bool) $eligible, 'count' => (int) $count, 'updated' => time(), 'expires' => $eligible ? (int) $expires : 0, 'fingerprint' => hash( 'sha256', wp_json_encode( $context ) ) );
 			$session->set( 'kiriof_instant_checkout_status', $status );
 			if ( function_exists( 'kiriof_log' ) ) {
 				kiriof_log( $eligible ? 'info' : 'warning', 'Instant checkout rate calculation completed.', array(

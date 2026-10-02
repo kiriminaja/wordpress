@@ -1,17 +1,10 @@
 import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
+import { happy } from './helpers/ui-runtime';
 import { join, resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
 
-// Optional local DOM, consistent with the other browser-runtime suites. Never download dependencies.
-const require = createRequire(import.meta.url);
-let happy: any;
-for (const scope of [require, createRequire(`${homedir()}/Kerjaa/kaj-shopify-plugin-cart/package.json`)]) {
-  try { happy = scope('happy-dom'); break; } catch {}
-}
-const runtimeTest = happy ? test : test.skip;
+const runtimeTest = test;
 const root = resolve(import.meta.dir, '..');
 let directory: string;
 let runtime: any;

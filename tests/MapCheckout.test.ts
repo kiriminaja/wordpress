@@ -1,38 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
-import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
+import { React, happy, loadRenderer } from './helpers/ui-runtime';
 
 const source = readFileSync(new URL('../assets/wp/js/kiriof-map-checkout.js', import.meta.url), 'utf8');
-const require = createRequire(import.meta.url);
-// React is not a dependency of this Svelte repository. Use an installed runtime
-// when available, without downloading dependencies or adding production hooks.
-function optionalRuntime(name: string, candidates: string[]) {
-	try { return require(name); } catch {}
-	for (const candidate of candidates) {
-		const path = `${homedir()}/${candidate}/node_modules/${name}`;
-		if (existsSync(`${path}/package.json`)) { try { return require(path); } catch {} }
-	}
-	return null;
-}
-const React = optionalRuntime('react', ['Kerjaa/portfolio', 'Kerjaa/kaj-shopify-plugin']);
-const happy = optionalRuntime('happy-dom', ['Kerjaa/kaj-shopify-plugin-cart']);
-// Load the renderer only after DOM globals exist: React determines input event
-// support at module initialization. Resolve beside React to share one runtime.
 let renderer: any;
-let loadRenderer: (() => any) | undefined;
-if (React) {
-	try { require.resolve('react-dom/client'); loadRenderer = () => require('react-dom/client'); } catch {}
-}
-if (!loadRenderer && React) {
-	for (const candidate of ['Kerjaa/portfolio', 'Kerjaa/kaj-shopify-plugin']) {
-		try {
-			const scoped = createRequire(`${homedir()}/${candidate}/package.json`);
-			if (scoped('react') === React) { loadRenderer = () => scoped('react-dom/client'); break; }
-		} catch {}
-	}
-}
 
 function emitter() {
 	const handlers = new Map<string, Set<(...args: any[]) => void>>();
@@ -48,8 +20,8 @@ function fixture(extra: any = {}, browserRoot?: any) {
 	const maps: any[] = [], markers: any[] = [], circles: any[] = [], tiles: any[] = [], selections: any[] = [], errors: string[] = [];
 	const pending = new Map<number, () => void>(), scheduled: any[] = [], cancelled: any[] = [], observers: any[] = [], locations: any[] = [];
 	let id = 0;
-	// Use a DOM node where installed; otherwise a branded HTMLElement stand-in,
-	// never an untyped {} accepted unconditionally by a permissive Leaflet stub.
+	// Required DOM runtime supplies real elements; retain the branded fixture
+	// fallback for session doubles, never permissively accept an untyped {}.
 	const document = happy ? new happy.Window().document : null;
 	class ElementFixture { nodeType = 1; nodeName = 'DIV'; }
 	const node = document ? document.createElement('div') : new ElementFixture();
@@ -314,7 +286,7 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 	});
 });
 
-const uiTest = React && loadRenderer && happy ? test : test.skip;
+const uiTest = test;
 function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any; coverage?: any } = {}) {
 	const window = new happy.Window({ url: 'https://checkout.example.test' });
 	const saved = new Map<string, PropertyDescriptor | undefined>();

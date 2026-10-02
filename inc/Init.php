@@ -38,6 +38,7 @@ final class Init {
             Controllers\InstantCheckoutController::class,
             Controllers\AccountShippingDestinationController::class,
             Services\CustomerShippingDestinationService::class,
+            Services\CustomerDestinationPrivacyService::class,
             Services\InstantCheckoutDiagnosticsService::class,
             Services\InstantShippingZoneProvisioningService::class,
         ];

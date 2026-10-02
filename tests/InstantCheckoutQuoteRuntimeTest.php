@@ -48,7 +48,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function context_guards_fail_closed_without_api_calls(): void {
-        foreach (['cod', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone_invalid', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
+        foreach (['currency', 'packages', 'cod', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone_invalid', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertFalse($r['quote']['eligible'], $scenario);
             $this->assertSame([], $r['quote']['rates'], $scenario);
@@ -76,7 +76,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function validation_rebuilds_context_without_api_and_blocks_stale_or_forged_tokens(): void {
-        foreach (['mutate_cart', 'mutate_name', 'mutate_phone', 'mutate_pin', 'mutate_origin', 'mutate_policy', 'mutate_payment', 'expire', 'clear_session', 'forge', 'wrong_selection', 'mutate_package_id', 'mutate_dimensions', 'mutate_variation', 'mutate_value', 'mutate_fractional_value', 'mutate_fractional_dimensions', 'mutate_credentials'] as $scenario) {
+        foreach (['mutate_currency', 'mutate_packages', 'mutate_cart', 'mutate_name', 'mutate_phone', 'mutate_pin', 'mutate_origin', 'mutate_policy', 'mutate_payment', 'expire', 'clear_session', 'forge', 'wrong_selection', 'mutate_package_id', 'mutate_dimensions', 'mutate_variation', 'mutate_value', 'mutate_fractional_value', 'mutate_fractional_dimensions', 'mutate_credentials'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertTrue($r['quote']['eligible'], $scenario);
             $this->assertNotEmpty($r['validation_error'], $scenario);
@@ -137,12 +137,25 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
 
     #[Test]
     public function incompatible_cached_amounts_are_refreshed_not_reused(): void {
-        foreach (['cache_old', 'cache_total', 'cache_admin', 'cache_cost', 'cache_eta', 'cache_expiry', 'cache_context'] as $scenario) {
+        foreach (['cache_version2', 'cache_old', 'cache_total', 'cache_admin', 'cache_cost', 'cache_eta', 'cache_expiry', 'cache_context'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);
             $this->assertTrue($r['again']['eligible'], $scenario);
             $this->assertSame(2, $r['calls'], $scenario);
             $this->assertNotSame($r['quote']['rates'][0]['quote_token'], $r['again']['rates'][0]['quote_token'], $scenario);
         }
+    }
+
+    #[Test]
+    public function currency_is_explicit_fingerprinted_and_changes_invalidate_without_api(): void {
+        $r = $this->runFixture();
+        $this->assertSame('IDR', $r['quote']['context']['currency']);
+        $this->assertSame(3, $r['quote']['context']['amount_version']);
+        $this->assertSame('currency_unsupported', $this->runFixture(['scenario' => 'currency'])['quote']['code']);
+        $this->assertSame('currency_unsupported', $this->runFixture(['scenario' => 'mutate_currency'])['validation_error']);
+        $this->assertSame('packages_invalid', $this->runFixture(['scenario' => 'mutate_packages'])['validation_error']);
+        $expires = $r['quote']['rates'][0]['expires'];
+        $this->assertGreaterThan(time(), $expires);
+        $this->assertLessThanOrEqual(time() + 120, $expires);
     }
 
 }

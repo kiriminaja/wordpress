@@ -1936,7 +1936,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $start = strpos($content, 'public function kiriof_store_api_update_checkout');
         $this->assertNotFalse($start, 'Store API update callback must exist');
-        $methodBody = substr($content, $start, 2400);
+        $methodEnd = strpos($content, '
+    public function ', $start + 1);
+        $methodBody = substr($content, $start, $methodEnd === false ? null : $methodEnd - $start);
 
         $this->assertStringContainsString(
             'WC()->session->set( \'chosen_payment_method\', $payment_method );',

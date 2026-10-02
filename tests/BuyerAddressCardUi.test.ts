@@ -1,27 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { homedir } from 'node:os';
+import { readFileSync } from 'node:fs';
+import { React, happy, rendererRequire } from './helpers/ui-runtime';
 import { runInNewContext } from 'node:vm';
 
-// These optional runtimes are also used by MapCheckout.test.ts. No downloads,
-// test-only production exports, live Woo API, or theme behavior are involved.
-const require = createRequire(import.meta.url);
-function optional(name: string, candidates: string[]) {
-	try { return require(name); } catch {}
-	for (const candidate of candidates) {
-		const path = `${homedir()}/${candidate}/node_modules/${name}`;
-		if (existsSync(`${path}/package.json`)) { try { return require(path); } catch {} }
-	}
-	return null;
-}
-const React = optional('react', ['Kerjaa/portfolio', 'Kerjaa/kaj-shopify-plugin']);
-const happy = optional('happy-dom', ['Kerjaa/kaj-shopify-plugin-cart']);
-let rendererRequire: any;
-for (const scope of [require, ...['Kerjaa/portfolio', 'Kerjaa/kaj-shopify-plugin'].map(path => createRequire(`${homedir()}/${path}/package.json`))]) {
-	try { if (scope('react') === React) { scope.resolve('react-dom/client'); rendererRequire = scope; break; } } catch {}
-}
-const uiTest = React && happy && rendererRequire ? test : test.skip;
+const uiTest = test;
 const scripts = ['kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-buyer-checkout', 'kiriof-map-checkout'].map(name => readFileSync(new URL(`../assets/wp/js/${name}.js`, import.meta.url), 'utf8'));
 const address = { address_1: 'Main Road', address_2: '', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' };
 function saved(overrides: any = {}) {

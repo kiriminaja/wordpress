@@ -125,6 +125,11 @@ class Enqueue extends BaseInit{
         if ( ! in_array( $handle, $module_handles, true ) || false !== strpos( $tag, ' type=' ) ) {
             return $tag;
         }
+        if ( function_exists( 'wp_set_script_translations' ) ) {
+            foreach ( array( 'kiriof-map-checkout-editor', 'kiriof-checkout-district-editor' ) as $editor_handle ) {
+                wp_set_script_translations( $editor_handle, 'kiriminaja-official', KIRIOF_DIR . 'lang' );
+            }
+        }
 
         return str_replace( '<script ', '<script type="module" ', $tag );
     }
@@ -195,6 +200,11 @@ class Enqueue extends BaseInit{
                 'loading' => __( 'Loading districts…', 'kiriminaja-official' ),
                 'empty' => __( 'No districts found. Check your shipping postcode.', 'kiriminaja-official' ),
                 'lookupFailed' => __( 'Districts could not be loaded. Please retry.', 'kiriminaja-official' ),
+                'lookupTimeout' => __( 'District lookup timed out. Please retry.', 'kiriminaja-official' ),
+                'saveStalled' => __( 'Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed.', 'kiriminaja-official' ),
+                'reloadCheckout' => __( 'Reload checkout', 'kiriminaja-official' ),
+                'quoteRefreshFailed' => __( 'Instant prices could not be refreshed. Please retry before placing your order.', 'kiriminaja-official' ),
+                'instantUnavailable' => __( 'Instant delivery is unavailable. Choose another method or update the shipping address.', 'kiriminaja-official' ),
                 'saving' => __( 'Updating shipping totals…', 'kiriminaja-official' ),
                 'updateFailed' => __( 'Shipping totals could not be updated. Please retry.', 'kiriminaja-official' ),
                 'retry' => __( 'Retry', 'kiriminaja-official' ),

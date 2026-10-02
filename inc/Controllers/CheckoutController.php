@@ -6,6 +6,7 @@ use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
 use KiriminAjaOfficial\Services\CheckoutServiceFactory;
 use KiriminAjaOfficial\Services\BuyerDestination;
+use KiriminAjaOfficial\Services\ExpressCheckoutValidationService;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
@@ -51,6 +52,35 @@ class CheckoutController
         $this->transaction_repository = $transaction_repository;
         $this->wp_post_meta_repository = $wp_post_meta_repository;
         $this->checkout_service_factory = $checkout_service_factory;
+    }
+
+    public function kiriof_register_instant_status_schema(): void {
+        $schema = '\Automattic\WooCommerce\StoreApi\Schemas\V1\CartSchema';
+        if ( ! function_exists( 'woocommerce_store_api_register_endpoint_data' ) || ! class_exists( $schema ) ) { return; }
+        woocommerce_store_api_register_endpoint_data( array(
+            'endpoint' => $schema::IDENTIFIER,
+            'namespace' => 'kiriminaja-official-instant-checkout',
+            'schema_type' => ARRAY_A,
+            'schema_callback' => static function () {
+                return array(
+                    'eligible' => array( 'type' => 'boolean', 'readonly' => true ),
+                    'code' => array( 'type' => 'string', 'readonly' => true ),
+                    'message' => array( 'type' => 'string', 'readonly' => true ),
+                    'expires_at' => array( 'type' => 'integer', 'readonly' => true ),
+                );
+            },
+            'data_callback' => static function () { return ( new \KiriminAjaOfficial\Services\InstantCheckoutStatusService() )->data(); },
+        ) );
+    }
+
+    private function kiriof_express_transaction_error(): void {
+        $message = __( 'Express shipment could not be saved. Please retry checkout or contact the store.', 'kiriminaja-official' );
+        $exception = '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException';
+        if ( class_exists( $exception ) ) {
+            throw new $exception( 'kiriof_express_transaction_failed', $message, 503 );
+        }
+
+        throw new \RuntimeException( $message );
     }
 
     private function checkoutServiceFactory(): CheckoutServiceFactory
@@ -142,6 +172,7 @@ class CheckoutController
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_store_api_update_callback'));
             add_action('woocommerce_blocks_loaded', array($this, 'kiriof_register_destination_schema'));
             add_action( 'woocommerce_blocks_loaded', array( $this, 'kiriof_register_coverage_schema' ) );
+            add_action( 'woocommerce_blocks_loaded', array( $this, 'kiriof_register_instant_status_schema' ) );
             add_action('init', array($this, 'kiriof_register_district_checkout_block'));
             add_filter( 'render_block', array( $this, 'kiriof_identify_checkout_child' ), 9, 2 );
 
@@ -809,6 +840,20 @@ class CheckoutController
         }
         if ( $this->kiriof_order_uses_instant( $order ) ) { return; }
 
+        $has_express = false;
+        foreach ( $order->get_items( 'shipping' ) as $line ) {
+            if ( 0 === strpos( (string) $line->get_method_id(), 'kiriminaja-official' ) ) {
+                $has_express = true;
+            }
+        }
+        if ( ! $has_express ) {
+            return;
+        }
+        if ( ! is_array( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true ) ) ) {
+            // Never let a Store API order fall through to the classic repricing path.
+            throw new \InvalidArgumentException( 'Missing validated Express checkout quote.' );
+        }
+
         // Avoid duplicate inserts if Woo also fires the classic processed hook.
         $existing_transaction = $this->transaction_repository->getTransactionByWCOrderId( $order->get_id() );
         if ( $existing_transaction ) {
@@ -820,6 +865,10 @@ class CheckoutController
 
     public function afterStoreApiCheckoutUpdateOrderFromRequest( $order, $request ){
         if ( ! $order instanceof \WC_Order ) {
+            return;
+        }
+        $order->delete_meta_data( ExpressCheckoutValidationService::META_KEY );
+        if ( $this->kiriof_order_uses_instant( $order ) ) {
             return;
         }
         if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
@@ -999,6 +1048,19 @@ class CheckoutController
         if ( ! empty( $insurance ) ) {
             $order->update_meta_data( '_' . $this->field_insurance_key, '1' );
         }
+        try {
+            $validated = ( new ExpressCheckoutValidationService( $this->setting_repository, $this->checkoutServiceFactory() ) )->validate(
+                $order, (int) $destination_area, (string) $payment_method, (bool) $insurance
+            );
+        } catch ( \Throwable $error ) {
+            $message = __( 'Your shipping quote has changed or is no longer available. Please refresh checkout and select shipping again.', 'kiriminaja-official' );
+            $exception = '\\Automattic\\WooCommerce\\StoreApi\\Exceptions\\RouteException';
+            if ( class_exists( $exception ) ) {
+                throw new $exception( 'kiriof_invalid_express_quote', $message, 400 );
+            }
+            throw new \InvalidArgumentException( $message );
+        }
+        $order->update_meta_data( ExpressCheckoutValidationService::META_KEY, $validated );
     }
 
     function afterCheckoutAfterCreated( $order_id, $posted_data, $order ){
@@ -1027,6 +1089,18 @@ class CheckoutController
         $billing_insurance_meta       = $order ? $order->get_meta( '_kiriof_checkout_billing_insurance', true ) : '';
         $woo_discount_amount          = $order ? $order->get_meta( '_kiriof_checkout_woocommerce_discount_amount', true ) : '';
         $woo_discount_description     = $order ? $order->get_meta( '_kiriof_checkout_woocommerce_discount_description', true ) : '';
+        $verified_express = $order ? $order->get_meta( ExpressCheckoutValidationService::META_KEY, true ) : null;
+        $blocks_validated = is_array( $verified_express );
+        if ( $blocks_validated ) {
+            // Durable retries must not depend on metadata/session consumed by an earlier attempt.
+            $kiriof_expedition = (string) ( $verified_express['expedition'] ?? '' );
+            $kiriof_destination_area = (string) ( $verified_express['destination_id'] ?? '' );
+            $snapshot = $order->get_meta( BuyerDestination::META_KEY, true );
+            $kiriof_destination_area_name = is_array( $snapshot ) ? (string) ( $snapshot['district_label'] ?? '' ) : '';
+            $payment_method = (string) ( $verified_express['payment_method'] ?? '' );
+            $billing_insurance_meta = ! empty( $verified_express['is_insurance'] ) ? 1 : 0;
+            $force_insurance = $billing_insurance_meta;
+        }
 
         if ( '' === $kiriof_expedition ) {
             $kiriof_expedition = (string) WC()->session->get( 'kiriof_expedition', '' );
@@ -1089,12 +1163,16 @@ class CheckoutController
                 'woo_discount_amount'       => (float) $woo_discount_amount,
                 'woo_discount_description'  => (string) $woo_discount_description,
                 'destination_zipcode'       => $order ? (string) $order->get_meta( '_kiriof_checkout_postcode', true ) : '',
+                'blocks_validated'          => is_array( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true ) ),
+                'validated_calculation'     => ( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true )['validated_calculation'] ?? null ),
             ])->call();
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
             if ( ! is_object( $createTransaction ) || 200 !== ( $createTransaction->status ?? null ) ) {
+                if ( $blocks_validated ) { $this->kiriof_express_transaction_error(); }
                 return;
             }
         } catch (\Throwable $th){
+            if ( $blocks_validated ) { $this->kiriof_express_transaction_error(); }
             (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$th->getMessage()]);
             return;
         }
@@ -1111,7 +1189,7 @@ class CheckoutController
         WC()->session->set( 'kiriof_woocommerce_discount_description', null );
         WC()->session->set( 'kiriof_buyer_destination', null );
         WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
-        if ( $explicit_destination && isset( WC()->customer ) && is_object( WC()->customer ) ) {
+        if ( $explicit_destination && ! is_array( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true ) ) && isset( WC()->customer ) && is_object( WC()->customer ) ) {
             $snapshot = $order->get_meta( BuyerDestination::META_KEY, true );
             if ( is_array( $snapshot ) && ! empty( $snapshot['district_id'] ) ) {
                 ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->save(
@@ -2488,6 +2566,15 @@ class CheckoutController
             return;
         }
 
+        if ( ! empty( $data['refresh_instant'] ) && WC()->session ) {
+            // Quote refresh changes only cached amounts/context, never the chosen courier.
+            WC()->session->set( 'kiriof_instant_checkout_quotes', array() );
+            WC()->session->set( 'kiriof_instant_checkout_status', array() );
+            $packages = WC()->shipping()->get_packages();
+            foreach ( array_keys( is_array( $packages ) ? $packages : array() ) as $package_key ) {
+                WC()->session->set( 'shipping_for_package_' . $package_key, false );
+            }
+        }
         if ( isset( $data['action'] ) && 'sync_checkout' === $data['action'] && ( array_key_exists( 'destination', $data ) || ! array_key_exists( 'destination_id', $data ) ) ) {
             // A future fee-only update must not clear an existing destination.
             $this->kiriof_sync_buyer_destination( $data );

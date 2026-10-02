@@ -49,8 +49,13 @@
 	// Prefer in-address mounts over fallback order-summary mounts.
 	var controllers = new Map();
 	var owner = null;
+	var effectCleanups = new Set();
+	var refreshVersion = 0;
+	var lastRecipientKey = null;
+	var recipientRefreshVersion = -1;
+	var refreshedDeadline = 0;
 	var nextDistrictId = 0;
-	var state = { destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
+	var state = { refreshVersion: 0, destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
 	var savedPin = savedCoordinates( config.savedDestination );
 	var restorationAttempted = ! savedPin;
 	var resolveReady;
@@ -86,6 +91,8 @@
 		setShared( 'mapPin', value );
 	}
 	var queue = session.createQueue( {
+		setTimeout: function( callback, delay ) { return root.setTimeout( callback, delay ); },
+		clearTimeout: function( handle ) { root.clearTimeout( handle ); },
 		send: function( snapshot ) {
 			return blocks.extensionCartUpdate( {
 				namespace: namespace,
@@ -232,6 +239,16 @@
 		var required = Boolean( cart.needsShipping && 'ID' === country && ! data.collection );
 		var rates = ( cart.shippingRates || [] ).flatMap( function( pkg ) { return pkg.shipping_rates || []; } );
 		var selected = rates.filter( function( rate ) { return rate.selected; } );
+		var instantSelected = selected.some( function( rate ) {
+			return 'kiriminaja-instant' === rate.method_id || /^kiriminaja-instant(?:_|:)/.test( rate.rate_id || '' );
+		} );
+		var instantStatus = ( cart.extensions || {} )[ 'kiriminaja-official-instant-checkout' ] || {};
+		var expiresAt = Number( instantStatus.expires_at );
+		var recipient = { first_name: String( address.first_name || '' ), last_name: String( address.last_name || '' ), phone: String( address.phone || ( cart.billingAddress || {} ).phone || '' ) };
+		var recipientKey = JSON.stringify( recipient );
+		var recipientRef = useRef( recipient );
+		recipientRef.current = recipient;
+		var quoteVersion = state.refreshVersion;
 		var kiriminajaSelected = ! selected.length || selected.some( function( rate ) {
 			return 'kiriminaja-official' === rate.method_id || 'kiriminaja-instant' === rate.method_id || /^kiriminaja-(?:official|instant)(?:_|:)/.test( rate.rate_id || '' );
 		} );
@@ -304,14 +321,33 @@
 			if ( required && ( results.key !== addressKey || results.loading || results.error || postcode.length < 3 ) ) {
 				return;
 			}
+			if ( null !== lastRecipientKey && lastRecipientKey !== recipientKey ) { recipientRefreshVersion = quoteVersion; }
+			lastRecipientKey = recipientKey;
 			queue.update( {
 				action: 'sync_checkout',
 				destination: destinationRef.current,
 				payment_method: data.payment || '',
 				insurance: config.globalInsurance ? 1 : 0,
-				force_insurance: 0
+				force_insurance: 0,
+				recipient_context: recipientRef.current,
+				quote_refresh_version: quoteVersion,
+				refresh_instant: quoteVersion > 0 || recipientRefreshVersion === quoteVersion
 			} );
-		}, [ destinationKey, data.payment, cart.needsShipping, data.collection, required, results.key, results.loading, results.error, isOwner, awaitingSavedPin ] );
+		}, [ destinationKey, recipientKey, quoteVersion, data.payment, cart.needsShipping, data.collection, required, results.key, results.loading, results.error, isOwner, awaitingSavedPin ] );
+
+		// The server is authoritative for eligibility and quote TTL. Only a selected
+		// Instant service can initiate expiry refresh; native courier changes are inert.
+		useEffect( function() {
+			if ( ! ownsEffects() || ! instantSelected || false === instantStatus.eligible || ! cart.needsShipping || data.collection || ! Number.isFinite( expiresAt ) || expiresAt <= 0 || expiresAt * 1000 <= Date.now() || refreshedDeadline === expiresAt ) { return; }
+			var timer = root.setTimeout( function() {
+				if ( ! ownsEffects() || refreshedDeadline === expiresAt ) { return; }
+				refreshedDeadline = expiresAt;
+				setShared( 'refreshVersion', ++refreshVersion );
+			}, Math.min( 2147483647, Math.max( 0, expiresAt * 1000 - Date.now() + 1000 ) ) );
+			var cleanup = function() { root.clearTimeout( timer ); effectCleanups.delete( cleanup ); };
+			effectCleanups.add( cleanup );
+			return cleanup;
+		}, [ expiresAt, instantSelected, instantStatus.eligible, isOwner, cart.needsShipping, data.collection ] );
 
 		useEffect( function() {
 			if ( ! ownsEffects() ) { return; }
@@ -322,6 +358,7 @@
 			var generation = ++lookupGeneration.current;
 			var controller = new AbortController();
 			var timer;
+			var deadline;
 			setResults( { key: addressKey, options: [], loading: required && postcode.length >= 3, error: false } );
 			if ( required && postcode.length >= 3 ) {
 				timer = root.setTimeout( function() {
@@ -330,6 +367,11 @@
 						nonce: config.nonce,
 						term: postcode
 					} );
+					deadline = root.setTimeout( function() {
+						if ( generation !== lookupGeneration.current || controller.signal.aborted || ! ownsEffects() ) { return; }
+						controller.abort();
+						setResults( { key: addressKey, options: [], loading: false, error: true, timedOut: true } );
+					}, 10000 );
 					root.fetch( config.ajaxUrl, {
 						method: 'POST',
 						credentials: 'same-origin',
@@ -345,6 +387,7 @@
 						var options = response.data.filter( function( row ) { return /^[1-9][0-9]*$/.test( String( row.id ) ) && row.text; } ).map( function( row ) {
 							return { value: String( row.id ), label: String( row.text ) };
 						} );
+						root.clearTimeout( deadline );
 						setResults( { key: addressKey, options: options, loading: false, error: false } );
 						var saved = savedSelections[ postcode ];
 						var stored = config.savedDestination;
@@ -360,16 +403,21 @@
 							} );
 						}
 					} ).catch( function() {
+						root.clearTimeout( deadline );
 						if ( generation === lookupGeneration.current && ! controller.signal.aborted ) {
 							setResults( { key: addressKey, options: [], loading: false, error: true } );
 						}
 					} );
 				}, 250 );
 			}
-			return function() {
+			var cleanup = function() {
 				controller.abort();
 				root.clearTimeout( timer );
+				root.clearTimeout( deadline );
+				effectCleanups.delete( cleanup );
 			};
+			effectCleanups.add( cleanup );
+			return cleanup;
 		}, [ addressKey, required, retryLookup, isOwner ] );
 
 		useEffect( function() {
@@ -380,7 +428,10 @@
 		}, [ state.retryUpdate, isOwner ] );
 
 		var saving = Boolean( updateState.pending || updateState.inFlight );
-		var message = updateState.error ? strings.updateFailed : ( saving ? strings.saving : ( required && ( ! currentSelection || results.key !== addressKey || results.loading || results.error ) ? strings.districtRequired : '' ) );
+		var quoteStale = instantSelected && expiresAt > 0 && refreshedDeadline === expiresAt;
+		var quoteFailure = updateState.error && updateState.pending && updateState.pending.refresh_instant;
+		var unavailable = false === instantStatus.eligible ? ( instantStatus.message || strings.instantUnavailable ) : '';
+		var message = updateState.stalled ? strings.saveStalled : ( updateState.error ? ( quoteFailure ? strings.quoteRefreshFailed : strings.updateFailed ) : ( saving ? strings.saving : ( required && ( ! currentSelection || results.key !== addressKey || results.loading || results.error ) ? strings.districtRequired : ( quoteStale ? strings.quoteRefreshFailed : ( instantSelected ? unavailable : '' ) ) ) ) );
 		useEffect( function() {
 			if ( ownsEffects() ) { setValidation( required && kiriminajaSelected ? message : '' ); }
 		}, [ message, required, kiriminajaSelected, isOwner ] );
@@ -393,10 +444,14 @@
 			return element.createPortal( h( 'div', { className: 'kiriof-address-status', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
 				! districtReady ? addressBadge( checking ? strings.checkingDistrict : strings.districtNotSet, false ) : null,
 				addressBadge( currentPin ? strings.pinLocation : strings.needPinLocation, Boolean( currentPin ), strings.pinRequirement ),
-				updateState.error ? addressBadge( strings.updateFailed, false ) : null
+				updateState.error || quoteStale ? addressBadge( message, false ) : null,
+				unavailable ? addressBadge( unavailable, false ) : null,
+				updateState.uncertain ? h( 'button', { type: 'button', onClick: function() { root.location.reload(); } }, strings.reloadCheckout ) : ( updateState.error || quoteStale ? h( 'button', { type: 'button', onClick: function() {
+					if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); } else { setShared( 'refreshVersion', ++refreshVersion ); }
+				} }, strings.retry ) : null )
 			), presentation.cardTarget );
 		}
-		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? strings.lookupFailed : ( results.options.length ? message : strings.empty ) ) );
+		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? ( results.timedOut ? strings.lookupTimeout : strings.lookupFailed ) : ( results.options.length ? message : strings.empty ) ) );
 		return h( 'div', { className: 'kiriof-buyer-district kiriof-buyer-district--inner-block' },
 			h( 'div', { className: 'wc-blocks-components-select' },
 				h( 'div', { className: 'wc-blocks-components-select__container' },
@@ -426,11 +481,17 @@
 					h( 'svg', { className: 'wc-blocks-components-select__expand', viewBox: '0 0 24 24', width: 24, height: 24, 'aria-hidden': 'true', focusable: 'false' },
 						h( 'path', { d: 'm6 9 6 6 6-6', fill: 'none', stroke: 'currentColor', strokeWidth: 2 } ) ) ) ),
 			h( 'p', { id: inputId + '-status', role: 'status', 'aria-live': 'polite' }, status ),
-			results.error || updateState.error ? h( 'button', {
+			unavailable ? h( 'p', { role: 'status', 'aria-live': 'polite' }, unavailable ) : null,
+			updateState.uncertain ? h( 'button', {
+				type: 'button', className: 'wc-block-components-button wp-element-button',
+				onClick: function() { root.location.reload(); }
+			}, strings.reloadCheckout ) : null,
+			results.error || ( ( updateState.error || ( quoteStale && ! saving ) ) && ! updateState.uncertain ) ? h( 'button', {
 				type: 'button',
 				className: 'wc-block-components-button wp-element-button',
 				onClick: function() {
 					if ( results.error ) { setShared( 'retryLookup', function( previous ) { return previous + 1; } ); }
+					if ( quoteStale && ! updateState.error ) { setShared( 'refreshVersion', ++refreshVersion ); }
 					if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); }
 				}
 			}, strings.retry ) : null
@@ -461,6 +522,7 @@
 		root.clearTimeout( readinessTimer );
 		if ( api.pending ) { api.pending = false; resolveReady( false ); }
 		unsubscribe();
+		effectCleanups.forEach( function( cleanup ) { cleanup(); } );
 		queue.dispose();
 	} );
 } )( window, window.wp, window.wc );

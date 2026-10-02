@@ -107,4 +107,35 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 		$this->assertSame( 'GoSend Instant', $result['zero_rates'][0]['label'] );
 	}
 
+	public function test_canonical_multi_package_currency_and_virtual_guards_skip_api_without_selection_changes(): void {
+		$result = $this->run_fixture();
+		$this->assertSame( array( 'tax_status' => 'none', 'taxes' => false ), $result['money'] );
+		foreach ( array( 'multi' => 'packages_invalid', 'currency' => 'currency_unsupported' ) as $scenario => $code ) {
+			$guard = $result['guards'][ $scenario ];
+			$this->assertFalse( $guard['available'] );
+			$this->assertSame( 0, $guard['calls'] );
+			$this->assertSame( array(), $guard['rates'] );
+			$status = $guard['status']['88:' . hash( 'sha256', json_encode( array( 'item' ) ) )];
+			$this->assertSame( $code, $status['code'] );
+			$this->assertSame( 0, $status['expires'] );
+		}
+		$this->assertTrue( $result['guards']['virtual']['status_unchanged'] );
+		$this->assertSame( 0, $result['guards']['virtual']['calls'] );
+		$this->assertSame( array( 'existing:3' ), $result['chosen'] );
+		$expires = array_column( array_column( $result['earliest']['rates'], 'meta_data' ), 'kiriof_instant_quote_expires' );
+		$this->assertSame( min( $expires ), $result['earliest']['status']['expires'] );
+		$this->assertSame( 2, $result['earliest']['status']['count'] );
+	}
+
+	public function test_eligibility_reasons_use_only_fixed_safe_messages_and_codes(): void {
+		$result = $this->run_fixture();
+		foreach ( $result['reasons'] as $reason => $status ) {
+			$this->assertSame( 'secret_reason' === $reason ? 'unavailable' : $reason, $status['code'] );
+			$this->assertFalse( $status['eligible'] );
+			$this->assertSame( 0, $status['expires'] );
+			$this->assertStringNotContainsString( 'Private', $status['message'] );
+		}
+		$this->assertStringContainsString( '40 km', $result['reasons']['outside_instant_radius']['message'] );
+	}
+
 }

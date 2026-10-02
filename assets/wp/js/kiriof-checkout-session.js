@@ -61,6 +61,10 @@
 		var isBlocked = options.isBlocked || function() { return false; };
 		var schedule = options.schedule || function( callback ) { return setTimeout( callback, 0 ); };
 		var cancel = options.cancel || function( handle ) { clearTimeout( handle ); };
+		var startTimer = options.setTimeout || function( callback, delay ) { return setTimeout( callback, delay ); };
+		var clearTimer = options.clearTimeout || function( handle ) { clearTimeout( handle ); };
+		var timeout = undefined === options.timeout ? 15000 : options.timeout;
+		var stalled = false;
 		var pending = null;
 		var inFlight = null;
 		var acknowledged = null;
@@ -77,6 +81,8 @@
 				inFlight: inFlight ? inFlight.snapshot : null,
 				acknowledged: acknowledged,
 				error: error,
+				stalled: stalled,
+				uncertain: stalled && Boolean( inFlight ),
 				blocked: blocked,
 				disposed: disposed
 			} );
@@ -110,10 +116,14 @@
 		}
 
 		function complete( entry, failure, failed ) {
-			if ( disposed ) {
+			if ( disposed || inFlight !== entry ) {
 				return;
 			}
+			clearTimer( entry.timer );
 			inFlight = null;
+			// A timed-out Woo mutation may have reached the server. Never acknowledge
+			// its late result or automatically send work until an explicit retry.
+			if ( entry.timedOut ) { notify(); return; }
 			if ( failed ) {
 				settle( entry, 'error', failure );
 				if ( ! pending ) {
@@ -148,6 +158,17 @@
 			if ( disposed ) {
 				return;
 			}
+			entry.timer = startTimer( function() {
+				if ( disposed || inFlight !== entry ) { return; }
+				entry.timedOut = true;
+				stalled = true;
+				error = new Error( 'Checkout update timed out' );
+				error.code = 'checkout_update_timeout';
+				settle( entry, 'error', error );
+				if ( ! pending ) { pending = { snapshot: entry.snapshot, key: entry.key, waiters: [] }; }
+				settle( pending, 'error', error );
+				notify();
+			}, timeout );
 			try {
 				result = send( entry.snapshot );
 			} catch ( failure ) {
@@ -175,6 +196,7 @@
 				return wait( pending );
 			}
 			if ( ! pending && inFlight && inFlight.key === entry.key ) {
+				if ( stalled ) { return Promise.resolve( { status: 'error', snapshot: entry.snapshot, error: error } ); }
 				return wait( inFlight );
 			}
 			if ( ! pending && ! inFlight && acknowledgedKey === entry.key ) {
@@ -184,6 +206,10 @@
 				settle( pending, 'superseded' );
 			}
 			pending = entry;
+			if ( stalled ) {
+				notify();
+				return Promise.resolve( { status: 'error', snapshot: entry.snapshot, error: error } );
+			}
 			error = null;
 			promise = wait( entry );
 			notify();
@@ -196,7 +222,11 @@
 			if ( disposed ) {
 				return Promise.resolve( { status: 'disposed', snapshot: null, error: null } );
 			}
+			if ( inFlight && stalled ) {
+				return Promise.resolve( { status: 'error', snapshot: pending ? pending.snapshot : inFlight.snapshot, error: error } );
+			}
 			if ( pending ) {
+				stalled = false;
 				promise = wait( pending );
 				error = null;
 				notify();
@@ -226,6 +256,7 @@
 				settle( pending, 'disposed' );
 			}
 			if ( inFlight ) {
+				clearTimer( inFlight.timer );
 				settle( inFlight, 'disposed' );
 			}
 			pending = null;
