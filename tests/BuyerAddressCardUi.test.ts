@@ -32,7 +32,7 @@ function events() {
 	const handlers = new Map<string, any>();
 	return { on(name: string, callback: any) { handlers.set(name, callback); return this; }, off() { handlers.clear(); return this; }, fire(name: string, event?: any) { handlers.get(name)?.(event); } };
 }
-async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean } = {}) {
+async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean; autoLocation?: boolean } = {}) {
 	const window = new happy.Window();
 	const document = window.document;
 	const previous = new Map<string, any>();
@@ -48,6 +48,9 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	document.body.innerHTML = `<div class="wp-block-woocommerce-checkout wc-block-checkout"><div id="shipping-fields" class="wc-block-checkout__shipping-fields"><div class="wc-block-components-address-address-wrapper${options.editing ? ' is-editing' : ''}">${options.guest ? '' : '<div class="wc-block-components-address-card"><address>Main Road, Jakarta</address><button class="wc-block-components-address-card__edit" aria-controls="shipping" aria-expanded="' + !!options.editing + '">Edit</button></div>'}<div id="shipping" class="wc-block-components-address-form">Native shipping inputs</div></div><div class="wp-block-kiriminaja-official-checkout-district" id="district-mount"></div><div class="wp-block-kiriminaja-official-map-checkout" id="map-mount"></div></div><div id="billing-fields" class="wc-block-checkout__billing-fields"><div class="wc-block-components-address-address-wrapper is-editing"><div class="wc-block-components-address-card"><button class="wc-block-components-address-card__edit" aria-controls="billing" aria-expanded="true">Billing edit</button></div></div></div></div>`;
 	const model = { cart: { needsShipping: true, shippingAddress: { ...address }, shippingRates: [{ shipping_rates: [{ method_id: 'kiriminaja-official', selected: true }] }] }, payment: 'cod', busy: false, collection: false };
 	const subscribers = new Set<any>(), publications: any[] = [], validations: any[] = [], sends: any[] = [], lookups: any[] = [], maps: any[] = [], registrations: any[] = [];
+	const locations: any[] = [], tiles: any[] = [];
+	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(success: any, failure: any, options: any) { locations.push({ success, failure, options }); if (fixtureOptionsAutoLocation) success({ coords: { latitude: -6, longitude: 106 } }); } } });
+	const fixtureOptionsAutoLocation = options.autoLocation !== false;
 	const timers = new Map<number, { callback: any; delay: number }>(); let timerId = 0;
 	const stores: any = {
 		'wc/store/cart': { getCartData: () => model.cart, isShippingRateBeingSelected: () => model.busy, isCustomerDataUpdating: () => false, hasPendingItemsOperations: () => false },
@@ -62,7 +65,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 		subscribe(callback: any) { subscribers.add(callback); return () => subscribers.delete(callback); },
 	} };
 	window.wc = { blocksCheckout: { registerCheckoutBlock: (registration: any) => registrations.push(registration), extensionCartUpdate(request: any) { sends.push(request); return Promise.resolve({}); } } };
-	const strings = { district: 'District', districtRequired: 'District required', checkingDistrict: 'Checking district', districtNotSet: 'District not set', pinLocation: 'Pin location', needPinLocation: 'Need pin location', pinRequirement: 'Pin required for instant', loading: 'Loading', saving: 'Saving', selectDistrict: 'Select district', empty: 'Empty', mapTitle: 'Delivery pin', mapHelp: 'Move map', mapPlaced: 'Pin placed', mapLocate: 'Locate', mapClear: 'Clear', mapOptional: 'Optional' };
+	const strings = { district: 'District', districtRequired: 'District required', checkingDistrict: 'Checking district', districtNotSet: 'District not set', pinLocation: 'Pin location', needPinLocation: 'Need pin location', pinRequirement: 'Pin required for instant', loading: 'Loading', saving: 'Saving', selectDistrict: 'Select district', empty: 'Empty', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapHelp: 'Move map', mapPlaced: 'Pin placed', mapLocate: 'Locate', mapClear: 'Clear', mapOptional: 'Optional', mapPermission: 'Permission denied', mapUnavailable: 'Map unavailable', mapLocationFailed: 'Location failed' };
 	window.kiriofBuyerCheckoutConfig = { enabled: true, nonce: 'fixture', ajaxUrl: '/fixture-ajax', savedDestination: options.savedDestination, i18n: strings };
 	window.kiriofMapCheckoutConfig = { enabled: true, tiles: 'https://tiles.example.test/{z}/{x}/{y}.png', i18n: strings };
 	window.fetch = (url: any, init: any) => { const task = deferred(); lookups.push({ url, init, ...task }); return task.promise; };
@@ -70,7 +73,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	window.clearTimeout = (id: number) => { timers.delete(id); };
 	window.L = {
 		map(node: any) { expect(node instanceof window.HTMLElement).toBe(true); const map = Object.assign(events(), { node, removed: 0, center: { lat: 0, lng: 0 }, setView(point: any) { this.center = { lat: point[0], lng: point[1] }; this.fire('movestart'); this.fire('moveend'); return this; }, getCenter() { return this.center; }, invalidateSize() {}, remove() { this.removed++; this.off(); } }); maps.push(map); return map; },
-		tileLayer() { return Object.assign(events(), { addTo() { return this; } }); },
+		tileLayer() { const tile = Object.assign(events(), { addTo() { return this; } }); tiles.push(tile); return tile; },
 	};
 	const context = { window, document, AbortController, URLSearchParams, setTimeout: window.setTimeout.bind(window), clearTimeout: window.clearTimeout.bind(window) };
 	for (const source of scripts) runInNewContext(source, context);
@@ -85,16 +88,32 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	async function notify() { await act(async () => { for (const callback of subscribers) callback(); }); }
 	async function editing(value: boolean) { await mutation(() => { const wrapper = document.querySelector('#shipping-fields .wc-block-components-address-address-wrapper'); wrapper.classList.toggle('is-editing', value); wrapper.querySelector('button').setAttribute('aria-expanded', String(value)); }); }
 	async function cleanup() { await act(async () => { for (const { root } of roots) root.unmount(); }); expect(document.querySelector('.kiriof-address-status-host')).toBeNull(); expect(maps.every(map => map.removed === 1)).toBe(true); window.dispatchEvent(new window.Event('pagehide')); expect(subscribers.size).toBe(0); window.happyDOM.abort(); for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } }
-	return { window, document, model, maps, publications, validations, sends, lookups, timers, act, mutation, editing, notify, flush, reply, cleanup,
+	return { window, document, model, maps, locations, tiles, publications, validations, sends, lookups, timers, act, mutation, editing, notify, flush, reply, cleanup,
 		card: () => document.querySelector('#shipping-fields .wc-block-components-address-card'),
 		badges: () => [...document.querySelectorAll('#shipping-fields .kiriof-address-status__badge')],
 	};
 }
 
 describe('combined native address-card UI (real React/DOM, unchanged production VM)', () => {
+	uiTest('native edit opens permission status only; saved pin survives denial and map awaits an explicit grant on reentry', async () => {
+		const h = await fixture({ savedDestination: saved(), autoLocation: false });
+		try {
+			await h.flush(250); await h.reply(); await h.flush(0);
+			expect(h.locations).toHaveLength(0);
+			await h.editing(true);
+			expect(h.locations).toHaveLength(1); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0);
+			expect(h.document.querySelector('.kiriof-buyer-map__canvas')).toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map [role="status"]').textContent).toContain('Requesting location permission');
+			await h.act(async () => h.locations[0].failure({ code: 1 }));
+			expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.window.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress)).toMatchObject({ latitude: '0.0000000', longitude: '0.0000000' });
+			await h.editing(false); await h.editing(true); expect(h.locations).toHaveLength(2); expect(h.maps).toHaveLength(0);
+			await h.act(async () => h.locations[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(0);
+			await h.act(async () => h.locations[1].success({ coords: { latitude: -6, longitude: 106 } }));
+			expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
+		} finally { await h.cleanup(); }
+	});
 	uiTest('collapsed card does not briefly create a map when Map mounts before District', async () => {
 		const h = await fixture({ mapFirst: true });
-		try { expect(h.maps).toHaveLength(0); expect(h.document.querySelector('.kiriof-buyer-map')).toBeNull(); expect(h.badges().length).toBeGreaterThan(0); } finally { await h.cleanup(); }
+		try { expect(h.locations).toHaveLength(0); expect(h.maps).toHaveLength(0); expect(h.document.querySelector('.kiriof-buyer-map')).toBeNull(); expect(h.badges().length).toBeGreaterThan(0); } finally { await h.cleanup(); }
 	});
 	uiTest('closed native card initializes district validation/publication without controls or map; pending is not green, missing district and pin warn after lookup', async () => {
 		const h = await fixture();
@@ -109,7 +128,7 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			expect(h.sends.at(-1).data.destination.district_id).toBe(''); expect(h.window.kiriofBuyerCheckout.active).toBe(true);
 		} finally { await h.cleanup(); }
 	});
-	uiTest('matching saved zero pin is green, edit opens native controls/map automatically, close disposes only map and retains destination', async () => {
+	uiTest('matching saved zero pin is green, edit requests permission before opening native map, close disposes only map and retains destination', async () => {
 		const h = await fixture({ savedDestination: saved() });
 		try {
 			expect(h.badges().find(node => node.textContent === 'Pin location')?.classList.contains('is-complete')).toBe(true);

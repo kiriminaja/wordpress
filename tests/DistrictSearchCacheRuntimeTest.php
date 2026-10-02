@@ -49,6 +49,7 @@ final class DistrictSearchCacheRuntimeTest extends TestCase {
     #[Test]
     public function successful_postcode_lookup_is_shared_between_real_factory_instances(): void {
         $rows = array( (object) array( 'id' => 222, 'text' => 'New district' ) );
+        $GLOBALS['district_search_cache']['kiriof_district_search_v1_' . md5( '12345' )] = array( (object) array( 'id' => 111, 'text' => 'Stale parent' ) );
         $repository = $this->repository();
         $repository->expects( $this->once() )->method( 'sub_district_search' )->with( '12345' )
             ->willReturn( array( 'status' => true, 'data' => (object) array( 'result' => $rows ) ) );
@@ -60,7 +61,7 @@ final class DistrictSearchCacheRuntimeTest extends TestCase {
             $this->assertSame( 'success', $response->message );
             $this->assertSame( $rows, $response->data );
         }
-        $this->assertSame( array( array( 'kiriof_district_search_v1_' . md5( '12345' ), $rows, 300 ) ), $GLOBALS['district_search_writes'] );
+        $this->assertSame( array( array( 'kiriof_district_search_v3_' . md5( '12345' ), $rows, 300 ) ), $GLOBALS['district_search_writes'] );
     }
 
     #[Test]
@@ -108,8 +109,8 @@ final class DistrictSearchCacheRuntimeTest extends TestCase {
         $repository->expects( $this->exactly( 2 ) )->method( 'sub_district_search' )
             ->willReturn( array( 'status' => true, 'data' => (object) array( 'result' => 'malformed' ) ) );
         $factory = $this->factory( $repository );
-        $this->assertSame( 'malformed', $factory->districtSearch( '12345' )->data );
-        $this->assertSame( 'malformed', $factory->districtSearch( '12345' )->data );
+        $this->assertSame( 400, $factory->districtSearch( '12345' )->status );
+        $this->assertSame( 400, $factory->districtSearch( '12345' )->status );
         $this->assertSame( array(), $GLOBALS['district_search_writes'] );
     }
 

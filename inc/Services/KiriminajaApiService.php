@@ -22,8 +22,10 @@ class KiriminajaApiService extends BaseService{
     public function sub_district_search($search)
     {
         $repo = $this->repository->sub_district_search($search);
-        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) ) {
-            return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
+        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || false === ( $repo['data']->status ?? true ) || ! is_array( $repo['data']->result ?? null ) ) {
+            // Upstream errors can contain request details; keep this public and
+            // subsequently logged message fixed, and do not return partial data.
+            return self::error( array(), 'Could not load subdistricts.' );
         }
         return self::success($repo['data']->result);
     }

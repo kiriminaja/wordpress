@@ -6,6 +6,19 @@ use PHPUnit\Framework\TestCase;
 final class MyAccountDistrictTest extends TestCase
 {
     #[Test]
+    public function shipping_layout_styles_are_scoped_and_survive_country_locale_class_changes(): void
+    {
+        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        $this->assertStringContainsString( '.woocommerce-address-fields:has(> .kiriof-account-shipping)', $css );
+        $this->assertStringContainsString( 'grid-template-columns: repeat(2, minmax(0, 1fr))', $css );
+        foreach ( array( 'city', 'state', 'postcode', 'phone' ) as $field ) {
+            $this->assertStringContainsString( '#shipping_' . $field . '_field', $css );
+        }
+        $this->assertStringContainsString( '@media (max-width: 480px)', $css );
+        $this->assertStringContainsString( '#kiriof-account-district-retry[hidden]', $css );
+    }
+
+    #[Test]
     public function account_address_controller_registers_account_only_district_lifecycle(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/AccountAddressController.php');

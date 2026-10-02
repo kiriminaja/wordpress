@@ -6,6 +6,38 @@
 		var number = Number( value );
 		return Number.isFinite( number ) && Math.abs( number ) <= limit ? number.toFixed( 7 ) : null;
 	}
+
+	/** One authorization request per editor lifecycle; disposal ignores browser callbacks. */
+	function createLocationGate( options ) {
+		var started = false;
+		var disposed = false;
+		var sequence = 0;
+		return {
+			start: function() {
+				if ( started || disposed ) { return; }
+				started = true;
+				var request = ++sequence;
+				function fail( code ) {
+					if ( disposed || request !== sequence ) { return; }
+					sequence++;
+					if ( options.onError ) { options.onError( code ); }
+				}
+				var geolocation = options.geolocation;
+				if ( ! geolocation || 'function' !== typeof geolocation.getCurrentPosition ) { fail( 'unavailable' ); return; }
+				try {
+					geolocation.getCurrentPosition( function( position ) {
+						if ( disposed || request !== sequence ) { return; }
+						var coords = position && position.coords;
+						var point = coords && normalizePoint( coords.latitude, coords.longitude );
+						if ( ! point ) { fail( 'location' ); return; }
+						sequence++;
+						if ( options.onSuccess ) { options.onSuccess( point ); }
+					}, function( error ) { fail( error && error.code === 1 ? 'permission' : 'location' ); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } );
+				} catch { fail( 'unavailable' ); }
+			},
+			dispose: function() { disposed = true; sequence++; }
+		};
+	}
 	function normalizePoint( latitude, longitude ) {
 		var lat = coordinate( latitude, 90 );
 		var lng = coordinate( longitude, 180 );
@@ -113,7 +145,7 @@
 		};
 	}
 
-	root.kiriofMapCheckout = { createMapSession: createMapSession, normalizePoint: normalizePoint };
+	root.kiriofMapCheckout = { createMapSession: createMapSession, createLocationGate: createLocationGate, normalizePoint: normalizePoint };
 	var wp = root.wp;
 	var wc = root.wc;
 	var settings = wc && wc.wcSettings;
@@ -144,7 +176,7 @@
 		var cart = data.cart || {};
 		var address = addressSnapshot( cart.shippingAddress || {} );
 		var addressKey = JSON.stringify( address );
-		var visible = Boolean( presentation.editing && cart.needsShipping && address.country === 'ID' && ! data.collection );
+		var visible = Boolean( config.enabled && presentation.editing && cart.needsShipping && address.country === 'ID' && ! data.collection );
 		var node = useRef( null );
 		var session = useRef( null );
 		var latest = useRef( { address: address, key: addressKey } );
@@ -158,6 +190,10 @@
 		var errorState = useState( '' );
 		var error = errorState[ 0 ];
 		var setError = errorState[ 1 ];
+		var grantState = useState( null );
+		var grant = grantState[ 0 ];
+		var setGrant = grantState[ 1 ];
+		var granted = visible && grant && grant.key === addressKey;
 		var selected = point && point.key === addressKey ? point : null;
 		function apply( next, snapshot, key ) {
 			var buyer = root.kiriofBuyerCheckout;
@@ -167,12 +203,22 @@
 			return true;
 		}
 		useEffect( function() {
-			setPoint( null ); setError( '' ); setMoving( false );
-			if ( ! visible || ! node.current ) { return; }
+			setGrant( null ); setPoint( null ); setError( '' ); setMoving( false );
+			if ( ! visible ) { return; }
+			var gate = createLocationGate( {
+				geolocation: root.navigator && root.navigator.geolocation,
+				onSuccess: function( next ) { if ( latest.current.key === addressKey ) { setGrant( { key: addressKey, point: next } ); } },
+				onError: function( code ) { setError( code === 'permission' ? strings.mapPermission : ( code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable ) ); }
+			} );
+			gate.start();
+			return function() { gate.dispose(); };
+		}, [ addressKey, visible ] );
+		useEffect( function() {
+			if ( ! granted || ! node.current ) { return; }
 			var initial = root.kiriofBuyerCheckout && root.kiriofBuyerCheckout.getCoordinates( address );
 			if ( initial ) { setPoint( Object.assign( { key: addressKey }, initial ) ); }
 			var mapSession = createMapSession( {
-				leaflet: root.L, node: node.current, defaultCenter: config.defaultCenter,
+				leaflet: root.L, node: node.current, defaultCenter: [ Number( grant.point.latitude ), Number( grant.point.longitude ) ],
 				tiles: config.tiles, attribution: config.attribution, initial: initial, label: strings.mapTitle,
 				geolocation: root.navigator && root.navigator.geolocation,
 				onSelect: function( next ) { return apply( next, address, addressKey ); },
@@ -180,20 +226,21 @@
 				onError: function( code ) { setError( code === 'invalid' ? strings.mapInvalid : ( code === 'permission' ? strings.mapPermission : ( code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable ) ) ); }
 			} );
 			session.current = mapSession;
+			if ( ! initial && mapSession.isAvailable() ) { mapSession.pick( grant.point.latitude, grant.point.longitude, true ); }
 			return function() { mapSession.dispose(); if ( session.current === mapSession ) { session.current = null; } };
-		}, [ addressKey, visible ] );
+		}, [ addressKey, visible, grant ] );
 		if ( ! visible ) { return null; }
-		var status = error || ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : '' ) );
+		var status = error || ( ! granted ? strings.mapLocating : ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : '' ) ) );
 		return h( 'section', { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
 			h( 'h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle ),
 			h( 'p', null, strings.mapOptional ),
-			h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
+			granted ? h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
 				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp, 'aria-description': strings.mapKeyboard } ),
 				h( 'div', { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
 					h( 'svg', { viewBox: '0 0 32 44', width: 32, height: 44, focusable: 'false' },
 						h( 'path', { d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z', fill: 'currentColor', stroke: '#fff', strokeWidth: 2 } ),
 						h( 'circle', { cx: 16, cy: 16, r: 5, fill: '#fff' } ) ) ),
-				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', onClick: function() { if ( session.current ) { session.current.locate(); } } }, strings.mapLocate ) ),
+				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', onClick: function() { if ( session.current ) { session.current.locate(); } } }, strings.mapLocate ) ) : null,
 			status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, status ) : null );
 
 	}

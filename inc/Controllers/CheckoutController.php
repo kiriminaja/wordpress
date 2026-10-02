@@ -2386,6 +2386,12 @@ class CheckoutController
             }
             WC()->session->set( 'kiriof_checkout_postcode', $destination['postcode'] );
             WC()->session->set( 'kiriof_checkout_token', '' !== $destination['district_id'] ? '1' : '' );
+            $account_address = array();
+            foreach ( BuyerDestination::ADDRESS_FIELDS as $field ) {
+                $getter = 'get_shipping_' . $field;
+                $account_address[$field] = isset( WC()->customer ) && is_callable( array( WC()->customer, $getter ) ) ? WC()->customer->$getter() : '';
+            }
+            do_action( 'kiriof_buyer_destination_synced', $destination, $account_address );
             if ( '' !== $destination['district_id'] ) {
                 // Keep postcode restoration canonical and session-only. A clear
                 // leaves this history available for a later postcode revisit.

@@ -5390,3 +5390,15 @@ msgstr "Memperbarui tarif…"
 #: inc/Services/TransactionListRenderService.php
 msgid "Confirm & continue to payment"
 msgstr "Konfirmasi & lanjutkan ke pembayaran"
+
+#: inc/Base/Enqueue.php
+msgid "Requesting location permission…"
+msgstr "Meminta izin lokasi…"
+
+#: inc/Base/Enqueue.php
+msgid "Location permission was denied. The map picker is hidden. You can allow location access in your browser settings and reopen this editor."
+msgstr "Izin lokasi ditolak. Pemilih peta disembunyikan. Anda dapat mengizinkan akses lokasi di pengaturan peramban dan membuka kembali formulir ini."
+
+#: inc/Base/Enqueue.php
+msgid "Your location is unavailable or the request timed out. The map picker is hidden."
+msgstr "Lokasi Anda tidak tersedia atau permintaan kehabisan waktu. Pemilih peta disembunyikan."

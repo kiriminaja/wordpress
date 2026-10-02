@@ -8,11 +8,12 @@ Scope: Classic Checkout, Checkout Blocks, buyer destination, separate Instant pr
 
 - [x] Separate zone-managed `kiriminaja-instant` shipping method; Express pricing never supplies Instant rates.
 - [x] GoSend and GrabExpress only; Borzo excluded. Preserve enabled API service codes, including uppercase codes.
-- [x] Automatically render the Leaflet map near the shipping address with a fixed center indicator. Save user map movement on `moveend`; request device geolocation only from the Current location button with browser permission.
+- [x] Request browser location permission when an eligible shipping editor opens; render Leaflet only after success, with a fixed center indicator. Denied, missing, timed-out or invalid location leaves the picker hidden. Save user map movement on `moveend`; matching saved pins take precedence over the permitted device location.
 - [x] No manual latitude/longitude, Load Map, or Apply controls. Initial map center is not a selected pin.
 - [x] Collapsed native shipping-address card shows district/pin status badges. District/map controls follow Woo's edit state through an event-driven bridge and React portal, without DOM polling or rewriting native inputs. Hidden controls retain district validation and saved-pin state.
 - [x] Keep coordinates optional for Express and district required. Instant requires valid origin and address-bound destination pins.
 - [x] Version-2 destination state through session/Store API and durable order metadata; full shipping-address changes invalidate the pin. Saved version-2 pins survive reload.
+- [x] Authenticated My Account shipping-address district/pin form and status badges; validated durable user snapshots hydrate future checkout. Matching checkout updates sync without silently replacing a saved profile with a temporary delivery address. Account edits persist only after successful Save address.
 - [x] Guest and authenticated quote/order paths; no blanket logged-in-only Instant restriction.
 - [x] Dedicated bounded transport and short-lived session quote cache. Context includes cart, origin, address/pin, vehicle, timezone, payment and enabled-service policy.
 - [x] Motor only; enforce valid items/dimensions and the 40,000 gram limit. Default request timezone WIB.

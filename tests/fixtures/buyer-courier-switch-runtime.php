@@ -1,6 +1,7 @@
 <?php
 /** Real shipping method, settings, catalog, destination sync and cache; only Woo/API boundaries are faked. */
 namespace {
+	function do_action( $hook, ...$args ) {}
 	error_reporting( E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED );
 	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
 	require_once ABSPATH . 'vendor/autoload.php';

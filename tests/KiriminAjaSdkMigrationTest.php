@@ -39,6 +39,7 @@ final class KiriminAjaSdkMigrationTest extends TestCase
         foreach (
             array(
                 'KiriminAja::getDistrictByName(',
+                'KiriminAja::getSubDistrict(',
                 'KiriminAja::setCallback(',
                 'KiriminAja::getPayment(',
                 'KiriminAja::getTracking(',

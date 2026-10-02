@@ -50,7 +50,7 @@ class CheckoutServiceFactory
     {
         // Bound shared lookups to exact postcodes; free-text searches stay live.
         $cache_key = preg_match( '/^\d{5}$/D', $search ) === 1
-            ? 'kiriof_district_search_v1_' . md5( $search )
+            ? 'kiriof_district_search_v3_' . md5( $search )
             : null;
         if ( null !== $cache_key && function_exists( 'get_transient' ) ) {
             $cached = get_transient( $cache_key );

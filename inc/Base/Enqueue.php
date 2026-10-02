@@ -179,7 +179,7 @@ class Enqueue extends BaseInit{
             'globalInsurance' => $setting && 'yes' === $setting->value,
             'map' => $this->map_checkout_config(),
             'savedDistrictByPostcode' => $session ? (array) $session->get( 'kiriof_destination_postcode_map', array() ) : array(),
-            'savedDestination' => $session ? $session->get( 'kiriof_buyer_destination', null ) : null,
+            'savedDestination' => ( new \KiriminAjaOfficial\Services\CustomerShippingDestinationService() )->forCheckout( $session ),
             'district' => $district,
             'districtPostcode' => $customer ? (string) $customer->get_shipping_postcode() : '',
             'i18n' => array(
@@ -224,8 +224,9 @@ class Enqueue extends BaseInit{
                 'mapKeyboard' => __( 'Use arrow keys to move the map. Press Enter to select the center location.', 'kiriminaja-official' ),
                 'mapOptional' => __( 'Optional. A delivery pin helps the courier find your address.', 'kiriminaja-official' ),
                 'mapLocate' => __( 'Current location', 'kiriminaja-official' ),
-                'mapPermission' => __( 'Your browser will ask for location permission. Your location is used only when you choose this option.', 'kiriminaja-official' ),
-                'mapLocationFailed' => __( 'Could not access your location. Move the map to choose your delivery pin.', 'kiriminaja-official' ),
+                'mapLocating' => __( 'Requesting location permission…', 'kiriminaja-official' ),
+                'mapPermission' => __( 'Location permission was denied. The map picker is hidden. You can allow location access in your browser settings and reopen this editor.', 'kiriminaja-official' ),
+                'mapLocationFailed' => __( 'Your location is unavailable or the request timed out. The map picker is hidden.', 'kiriminaja-official' ),
                 'mapInvalid' => __( 'This map location is invalid. Please choose another location.', 'kiriminaja-official' ),
                 'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
                 'mapMoving' => __( 'Move the map to position your delivery pin…', 'kiriminaja-official' ),
@@ -317,7 +318,7 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
-        if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) ) {
+        if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) && 'shipping' !== get_query_var( 'edit-address' ) ) {
             wp_enqueue_script(
                 'kiriof-account-address',
                 KIRIOF_URL . 'assets/wp/js/account-address.js',

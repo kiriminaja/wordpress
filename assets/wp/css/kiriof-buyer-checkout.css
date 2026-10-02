@@ -5,6 +5,65 @@
 	display: none;
 }
 
+/* Native My Account fields retain theme colors, typography and validation.
+ * A marker scopes the grid to shipping only; billing/checkout stay untouched. */
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1em;
+}
+
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row {
+	grid-column: 1 / -1;
+	float: none;
+	clear: none;
+	width: auto;
+	min-width: 0;
+	margin-inline: 0;
+}
+
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row-first,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_city_field,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_postcode_field {
+	grid-column: 1;
+}
+
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row-last,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_state_field,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_phone_field {
+	grid-column: 2;
+}
+
+.kiriof-account-shipping #kiriof-account-district {
+	width: 100%;
+	font: inherit;
+	pointer-events: auto;
+}
+
+.kiriof-account-shipping #kiriof-account-district-retry[hidden] {
+	display: none !important;
+}
+
+@media (max-width: 480px) {
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_city_field,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_postcode_field,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_state_field,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_phone_field {
+		grid-column: 1 / -1;
+	}
+}
+
+/* Keep account forms hidden before JS/permission succeeds, even in themes
+ * that override the browser's default hidden-attribute stylesheet. */
+.kiriof-buyer-map__viewport[hidden] {
+	display: none !important;
+}
+
 /* Only the plugin-owned portal host is added to Woo's native address card. */
 .wc-block-components-address-card:has(> .kiriof-address-status-host) {
 	flex-wrap: wrap;

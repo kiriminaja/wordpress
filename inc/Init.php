@@ -36,6 +36,8 @@ final class Init {
             Controllers\CodAdjustmentController::class,
             Controllers\InstantDeliveryController::class,
             Controllers\InstantCheckoutController::class,
+            Controllers\AccountShippingDestinationController::class,
+            Services\CustomerShippingDestinationService::class,
             Services\InstantCheckoutDiagnosticsService::class,
             Services\InstantShippingZoneProvisioningService::class,
         ];
@@ -78,6 +80,11 @@ final class Init {
             );
         }
         $checkout_service_factory = kiriof_checkout_service_factory();
+
+        if ( Controllers\AccountShippingDestinationController::class === $class ) {
+            return new $class( new Services\CustomerShippingDestinationService(), $checkout_service_factory );
+        }
+
 
         if ( Controllers\GeneralAjaxController::class === $class ) {
             return new $class( $checkout_service_factory );
