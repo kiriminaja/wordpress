@@ -24,7 +24,7 @@ class InstantApiTransport extends Api {
 		return $this->error_response;
 	}
 
-	/** Safe metadata for the last request; never contains request or response content. */
+	/** Safe metadata and redacted explanatory messages for the last request. */
 	public function diagnostics(): array {
 		return $this->diagnostics;
 	}
@@ -84,6 +84,7 @@ class InstantApiTransport extends Api {
 				return $failure;
 			}
 			$request = $this->createRequest( $method, $endpoint, $data, $query_only );
+			$token = preg_replace( '/^Bearer\s+/i', '', $request->getHeaderLine( 'Authorization' ) ) ?? '';
 			if ( 'https' !== strtolower( $request->getUri()->getScheme() ) ) {
 				$this->diagnostics['code'] = 'insecure_url';
 				return $failure;
@@ -142,7 +143,7 @@ class InstantApiTransport extends Api {
 			$decoded = json_decode( $body, true, 512, JSON_THROW_ON_ERROR );
 			if ( $http_failure ) {
 				$this->error_response = is_array( $decoded ) && ! array_is_list( $decoded ) ? $decoded : null;
-				$this->diagnostics['error_body'] = $this->errorSummary( $decoded );
+				$this->diagnostics['error_body'] = $this->errorSummary( $decoded, is_array( $data ) ? $data : array(), $token );
 				return $failure;
 			}
 			$this->diagnostics['code'] = is_array( $decoded ) ? 'transport_success' : 'invalid_json_shape';
@@ -160,8 +161,8 @@ class InstantApiTransport extends Api {
 		}
 	}
 
-	/** Whitelisted schema facts/categories, never arbitrary upstream strings or values. */
-	private function errorSummary( $body ): array {
+	/** Whitelisted schema facts and bounded, redacted upstream explanations. */
+	private function errorSummary( $body, array $request, string $token ): array {
 		if ( ! is_array( $body ) || array_is_list( $body ) ) {
 			return array( 'format' => 'unexpected_json_shape' );
 		}
@@ -171,6 +172,7 @@ class InstantApiTransport extends Api {
 			'status' => is_bool( $body['status'] ?? null ) ? $body['status'] : null,
 			'result_type' => gettype( $body['result'] ?? $body['results'] ?? null ),
 			'message_present' => false,
+			'messages' => array(),
 			'message_categories' => array(),
 			'validation_fields' => array(),
 		);
@@ -178,7 +180,8 @@ class InstantApiTransport extends Api {
 		foreach ( array( 'message', 'text', 'statusMessage' ) as $key ) {
 			if ( is_string( $body[ $key ] ?? null ) && '' !== $body[ $key ] ) {
 				$summary['message_present'] = true;
-				$messages[] = substr( $body[ $key ], 0, 4096 );
+				$messages[] = $body[ $key ];
+				$summary['messages'][ $key ] = InstantDiagnosticRedactor::redact( $body[ $key ], $request, $token );
 			}
 		}
 		// Unknown field names can contain a phone, address, or credential: omit them.

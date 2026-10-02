@@ -2,6 +2,12 @@
 
 ## Admin “Unknown outcome” booking diagnostics
 
+### Actual explanatory messages and targeted recheck
+
+Error categories alone were not actionable when the API returned `status: false`, null/missing result, and an unrecognized root message. Diagnostics now include `transport.error_body.messages` for `message`, `text`, and `statusMessage`: actual plain-text prose with request-derived sensitive values, API token, arbitrary emails/URLs, labeled secrets, PINs, long numbers/phones, and coordinates redacted. Redaction runs on the full decoded message before the 2048-byte cap; HTML/control characters are removed. This is not a full raw-body log and is never sent to the browser. Share only the new redacted entry; old discarded messages cannot be recovered.
+
+Uncertain pending Instant bookings with no remote status, AWB, or payment identity now expose **Recheck booking** in list/detail actions, even though processing/selection remain disabled. This explicitly calls the existing nonce/capability-guarded single-order reconciliation API, using a tracking GET, not booking POST. No automatic polling or resubmission. Authenticated matching booking evidence may update local state; a not-found/unknown response does not remove duplicate protection or prove rejection. The fallback detail payload remains fail-closed. This replaces the earlier blanket removal only for recovery of uncertain bookings; it does not restore a broad remote-status action on every shipment.
+
 ### HTTP 400/422 responses
 
 Before the HTTP-error inspection fix, `http_failure` returned before reading JSON. Consequently `acknowledgement_type: NULL` and `result_type: NULL` on an HTTP 400 did **not** establish that the API body had null/missing fields. The response had been discarded. A short `elapsed_ms` rules out a 25-second timeout but does not reveal the validation error or prove a booking never happened.

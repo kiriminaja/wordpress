@@ -53,7 +53,7 @@ final class InstantStatusPresentationTest extends TestCase {
             $row = $this->row($payload + ['mode' => $mode]);
             $this->assertSame('Waiting for Shipment', $row['status']['label']);
             $this->assertSame('', $row['status']['issue']);
-            $this->assertFalse($row['actions']['reconcile']);
+            $this->assertSame($mode !== 'fallback', $row['actions']['reconcile']);
             $this->assertFalse($row['actions']['track']);
             if ($mode === 'list') {
                 $this->assertTrue($row['selection']['disabled']);

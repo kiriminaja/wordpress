@@ -513,6 +513,7 @@
                     {/if}
                     {#if row.deliveryType === 'instant' && isInstant}
                       {@const trackingUrl = safeInstantTrackingUrl(row.actions.liveTrackingUrl)}
+                      {#if row.actions.reconcile}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}>{bootstrap.i18n.instantRecheck}</Button>{/if}
                       {#if row.actions.track}
                         {#if trackingUrl}<Button variant="outline" size="sm" href={trackingUrl} target="_blank" rel="noopener noreferrer">{bootstrap.i18n.liveTracking}</Button>
                         {:else}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}>{bootstrap.i18n.liveTracking}</Button>{/if}

@@ -174,7 +174,7 @@ class TransactionListViewModelFactory {
 			),
 			'actions'         => array(
 				'track'        => $can_remote_instant && InstantTrackingPresentation::hasRoute( $row ),
-				'reconcile'    => false,
+				'reconcile'    => InstantShipmentState::canRecheck( $row ),
 				'liveTrackingUrl' => $is_express ? '' : InstantTrackingPresentation::trackingUrl( $row ),
 				'preview'      => true,
 				'process'      => (bool) $can_process_instant,

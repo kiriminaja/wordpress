@@ -5560,3 +5560,15 @@ msgstr "Tidak ada pengiriman yang dipesan untuk pesanan ini. Data awalnya telah 
 #: inc/Services/InstantDispatchService.php
 msgid "Unable to verify restoration of this shipment. Contact support before trying again."
 msgstr "Pemulihan data pengiriman ini belum dapat dipastikan. Hubungi dukungan sebelum mencoba lagi."
+
+#: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
+msgid "Recheck booking"
+msgstr "Periksa ulang pemesanan"
+
+#: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
+msgid "Check whether this uncertain booking exists. This does not create another shipment or clear the retry guard. If no shipment is found, contact support to confirm the booking was not accepted."
+msgstr "Periksa apakah pemesanan yang belum pasti ini sudah tercatat. Tindakan ini tidak membuat pengiriman baru atau menghapus pengaman percobaan ulang. Jika pengiriman tidak ditemukan, hubungi dukungan untuk memastikan pemesanan belum diterima."
+
+#: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
+msgid "Booking evidence checked"
+msgstr "Bukti pemesanan telah diperiksa"

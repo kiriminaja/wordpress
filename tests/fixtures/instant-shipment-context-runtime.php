@@ -61,7 +61,7 @@ $GLOBALS['input'] = $input;
 $GLOBALS['order'] = new ContextOrder();
 $GLOBALS['lookups'] = 0;
 $origin = array_replace(['origin_name'=>'Original Store', 'origin_phone'=>'081234567890', 'origin_address'=>'Jalan Original Pickup Number 123', 'origin_zip_code'=>'12345', 'origin_latitude'=>0, 'origin_longitude'=>0], $input['origin'] ?? []);
-$GLOBALS['live_origin'] = array_replace($origin, ['origin_address'=>'Jalan NEW Pickup Number 999', 'origin_latitude'=>0.1]);
+$GLOBALS['live_origin'] = array_replace($origin, ['origin_address'=>'Jalan NEW Pickup Number 999', 'origin_latitude'=>0.1], $input['live_origin'] ?? []);
 $snapshot = array_replace(['_shipping_address_1'=>'Jalan Sudirman Number 123', '_shipping_address_2'=>'Tower A', '_shipping_postcode'=>'12345', '_shipping_city'=>'Jakarta', '_shipping_state'=>'DKI', '_shipping_country'=>'ID'], $input['snapshot'] ?? []);
 $row = (object) array_replace(['delivery_type'=>'instant', 'service'=>'gosend', 'service_name'=>'instant', 'status'=>'new', 'order_id'=>'TEST-000123', 'wp_wc_order_stat_order_id'=>123, 'vehicle'=>'motor', 'shipping_cost'=>15000, 'shipment_location_id'=>1, 'shipment_location_snapshot'=>json_encode($origin), 'destination_latitude'=>0, 'destination_longitude'=>0, 'shipping_info'=>json_encode($snapshot)], $input['row'] ?? []);
 $service = new \KiriminAjaOfficial\Services\InstantShipmentContext(new ContextLocations(), null, new ContextSettings());

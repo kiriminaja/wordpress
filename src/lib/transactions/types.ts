@@ -106,7 +106,7 @@ export type TransactionRow = {
   };
   actions: {
     track: boolean;
-    reconcile?: false;
+    reconcile?: boolean;
     liveTrackingUrl: string;
     preview: boolean;
     process: boolean;
@@ -188,10 +188,10 @@ export interface InstantDispatchResult {
   payments: InstantPayment[];
 }
 
-export type InstantOperationMode = 'tracking' | 'cancel';
+export type InstantOperationMode = 'tracking' | 'cancel' | 'reconcile';
 export type InstantOperationRow = {
   id: string;
-  status: 'tracked' | 'not_found' | 'unknown' | 'cancel_requested' | 'canceled';
+  status: 'tracked' | 'not_found' | 'unknown' | 'cancel_requested' | 'canceled' | 'reconciled';
   tracking_url: string;
   message: string;
 };

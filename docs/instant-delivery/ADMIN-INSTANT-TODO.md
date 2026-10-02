@@ -131,6 +131,8 @@ The local engineering improvements are not a verified 9/10 production rating. Re
 
 ## Failure presentation and tracking policy
 
+- Recovery follow-up: uncertain pending Instant rows (no AWB/payment identity/remote code) expose a targeted **Recheck booking** action in list and normal detail views. It uses the existing explicit single-order reconciliation GET with nonce/capability checks; no booking retry, no automatic polling, no unlocking from not-found/unknown. Older blanket “Check Remote Status removed” notes are superseded only for this uncertain-booking recovery. Diagnostic logs now retain redacted plain-text API messages instead of categories alone, with bounded message length and request-derived secret/customer redaction before truncation. No raw payloads/messages are returned to the browser.
+
 - Order Information uses the documented `Collapsible.Trigger` child snippet with the installed ghost `Button`, not an unstyled primitive or nested buttons. A dialog-scoped native-button reset removes WordPress/browser bevels and background images, retains semantic hover/focus states, allows narrow-width wrapping, and leaves the Collapsible default closed. Compiled DOM regressions use the real Button and check forwarded expanded/control attributes and chevron composition; live WordPress visual verification remains open.
 
 ### Dispatch rollback/retry audit

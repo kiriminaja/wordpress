@@ -41,6 +41,16 @@ final class InstantOperationUiTest extends TestCase {
                             foreach (['changeOrigin', 'adjustDeficit', 'cancelDeficit'] as $action) {
                                 $this->assertFalse($row['actions'][$action]);
                             }
+        foreach (['gosend', 'grab_express'] as $service) {
+            foreach (['list', 'detail', 'fallback'] as $mode) {
+                $payload = ['delivery_type'=>'instant', 'service'=>$service, 'status'=>'pending', 'instant_status_code'=>null, 'instant_payment_id'=>'', 'awb'=>'', 'mode'=>$mode];
+                $row = $this->row($payload);
+                $this->assertSame($mode !== 'fallback', $row['actions']['reconcile']);
+                foreach (['instant_status_code'=>0, 'instant_payment_id'=>'PAY-1', 'awb'=>'AWB-1', 'status'=>'new', 'order_id'=>'bad id', 'service'=>'jne'] as $field=>$value) {
+                    $this->assertFalse($this->row(array_replace($payload, [$field=>$value]))['actions']['reconcile']);
+                }
+            }
+        }
                         }
                     }
                 }
@@ -132,10 +142,11 @@ final class InstantOperationUiTest extends TestCase {
         }
     }
 
-    public function test_remote_status_action_is_absent_from_every_admin_surface(): void {
+    public function test_recheck_is_targeted_to_uncertain_bookings_and_uses_existing_reconcile_endpoint(): void {
         foreach (['src/lib/transactions/TransactionsApp.svelte', 'src/lib/transaction-detail/TransactionDetail.svelte', 'src/lib/transactions/InstantOperationDialog.svelte'] as $path) {
             $source = $this->source($path);
-            $this->assertStringNotContainsString('reconcile', $source);
+            $this->assertStringContainsString('reconcile', $source);
+            $this->assertStringContainsString('instantRecheck', $source);
             $this->assertStringNotContainsString('Check remote status', $source);
         }
         foreach (['inc/Services/TransactionListRenderService.php', 'inc/Services/TransactionDetailPageData.php'] as $path) {

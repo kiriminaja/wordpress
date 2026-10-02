@@ -12,6 +12,7 @@ require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) );
 }
+require_once dirname( __DIR__ ) . '/inc/Infrastructure/InstantDiagnosticRedactor.php';
 
 /** Real bounded request handling with an offline PSR-18 client. */
 final class InstantApiTransportDiagnosticsTest extends TestCase {
@@ -163,5 +164,48 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 			$this->assertNull($transport->errorResponse());
 			$this->assertDiagnostics($transport, $case[1], $case[0]->getStatusCode());
 		}
+	}
+
+	public function test_real_explanations_are_preserved_without_echoed_request_values(): void {
+		$payload = array(
+			'name' => 'Nadia Kusuma',
+			'address' => 'Jalan Melati Raya Nomor Dua',
+			'phone' => '+62 (812) 3456-7890',
+			'latitude' => -7.81,
+			'longitude' => 110.32,
+			'pin' => '4532',
+			'payment_method' => 'credit',
+			'packages' => array( array( 'order_id' => 'order-echo-alpha', 'service' => 'gosend', 'description' => 'Fragile parcel violet', 'items' => array( array( 'name' => 'Ceramic violet cup', 'price' => 725 ) ) ) ),
+		);
+		$prose = 'Akun Anda belum aktif untuk layanan instant. payment_method is not available for this account. PIN is invalid.';
+		$body = array(
+			'message' => '<b>' . $prose . '</b> ' . json_encode( $payload ),
+			'text' => 'PIN: "otherpin" token labeltoken key=anotherkey Bearer unknowncredential customer@example.test https://example.test/private',
+			'statusMessage' => 'secret-token Request denied.',
+		);
+		foreach ( array( false, true ) as $query ) {
+			$transport = $this->transport( array( new Response( 422, array(), json_encode( $body ) ) ) );
+			$result = $query ? $transport->postWithQuery( 'booking', $payload ) : $transport->post( 'booking', $payload );
+			$this->assertSame( array( false, 'Instant network request failed.' ), $result );
+			$messages = $transport->diagnostics()['error_body']['messages'];
+			$this->assertStringContainsString( $prose, $messages['message'] );
+			$this->assertStringContainsString( 'gosend', $messages['message'] );
+			$this->assertStringContainsString( 'credit', $messages['message'] );
+			$this->assertSame( '[redacted] Request denied.', $messages['statusMessage'] );
+			foreach ( array( 'Nadia', 'Melati', '3456', '-7.81', '110.32', '4532', 'order-echo-alpha', 'Fragile parcel violet', 'Ceramic violet cup', '725', 'otherpin', 'labeltoken', 'anotherkey', 'unknowncredential', 'customer@example.test', 'https://example.test/private', 'secret-token' ) as $secret ) {
+				$this->assertStringNotContainsString( $secret, json_encode( $transport->diagnostics() ) );
+			}
+		}
+	}
+
+	public function test_redaction_precedes_truncation_even_for_long_overlapping_secrets(): void {
+		$secret = 'private-start-' . str_repeat( 's', 5000 ) . '-private-end';
+		$body = array( 'message' => str_repeat( 'x', 2035 ) . $secret . ' Explanation.' );
+		$transport = $this->transport( array( new Response( 400, array(), json_encode( $body ) ) ) );
+		$transport->post( 'booking', array( 'address' => $secret ) );
+		$message = $transport->diagnostics()['error_body']['messages']['message'];
+		$this->assertLessThanOrEqual( 2048, strlen( $message ) );
+		$this->assertStringNotContainsString( 'private', $message );
+		$this->assertStringContainsString( '[redacted]', $message );
 	}
 }

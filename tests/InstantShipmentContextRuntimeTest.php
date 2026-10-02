@@ -44,6 +44,91 @@ final class InstantShipmentContextRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function includes_nonempty_origin_and_destination_notes_without_changing_full_addresses(): void {
+        $result = $this->runFixture(['origin'=>['origin_address_note'=>'  Ask the pickup guard  ', 'origin_address_2'=>'Building B']]);
+        $this->assertTrue($result['ok']);
+        $context = $result['context'];
+        $this->assertSame('Ask the pickup guard', $context['origin']['address_note']);
+        $this->assertSame('Jalan Original Pickup Number 123, Building B', $context['origin']['address']);
+        $this->assertSame('Tower A', $context['package']['destination']['address_note']);
+        $this->assertSame('Jalan Sudirman Number 123, Tower A, Jakarta, DKI, 12345', $context['package']['destination']['address']);
+        $this->assertSame($context['origin']['address'], $context['pricing']['origin']['address']);
+        $this->assertSame($context['package']['destination']['address'], $context['pricing']['destination']['address']);
+    }
+
+    #[Test]
+    public function origin_note_aliases_use_the_first_nonempty_scalar_value(): void {
+        $keys = ['origin_address_note', 'address_note', 'origin_address_2', 'address_2'];
+        foreach ($keys as $index=>$key) {
+            $origin = array_fill_keys($keys, ' ');
+            $origin[$key] = '  Pickup entrance  ';
+            foreach (array_slice($keys, $index + 1) as $lower_priority) {
+                $origin[$lower_priority] = 'Other entrance';
+            }
+            $result = $this->runFixture(['origin'=>$origin]);
+            $this->assertTrue($result['ok'], $key);
+            $this->assertSame('Pickup entrance', $result['context']['origin']['address_note']);
+        }
+    }
+
+    #[Test]
+    public function empty_notes_fall_back_to_the_full_validated_addresses(): void {
+        $result = $this->runFixture([
+            'origin'=>['origin_address_note'=>' ', 'address_note'=>'', 'origin_address_2'=>'', 'address_2'=>''],
+            'address'=>['address_2'=>''],
+            'snapshot'=>['_shipping_address_2'=>''],
+        ]);
+        $this->assertTrue($result['ok']);
+        foreach ([$result['context']['origin'], $result['context']['package']['destination']] as $address) {
+            $this->assertIsString($address['address_note']);
+            $this->assertNotSame('', $address['address_note']);
+            $this->assertSame($address['address'], $address['address_note']);
+        }
+        $default = $this->runFixture()['context'];
+        $this->assertSame($default['origin']['address'], $default['origin']['address_note']);
+    }
+
+    #[Test]
+    public function historical_origin_notes_are_authoritative_and_do_not_change_pricing(): void {
+        $baseline = $this->runFixture()['context'];
+        $input = ['origin'=>['origin_address_note'=>'Historical entrance'], 'live_origin'=>['origin_address_note'=>'New entrance']];
+        $result = $this->runFixture($input);
+        $this->assertTrue($result['ok']);
+        $this->assertSame(0, $result['lookups']);
+        $this->assertSame('Historical entrance', $result['context']['origin']['address_note']);
+        $this->assertSame($baseline['pricing'], $result['context']['pricing']);
+        $this->assertNotSame($baseline['fingerprint'], $result['context']['fingerprint']);
+        $input['row'] = ['shipment_location_snapshot'=>null];
+        $this->assertSame('New entrance', $this->runFixture($input)['context']['origin']['address_note']);
+        $empty = $this->runFixture(['live_origin'=>['origin_address_note'=>'New entrance']]);
+        $this->assertSame($empty['context']['origin']['address'], $empty['context']['origin']['address_note']);
+    }
+
+    #[Test]
+    public function rejects_malformed_origin_notes_with_a_fixed_validation_message(): void {
+        foreach (['origin_address_note', 'address_note', 'origin_address_2', 'address_2'] as $key) {
+            foreach ([[], ['private'=>'Do not expose'], (object) ['private'=>'Do not expose']] as $note) {
+                $result = $this->runFixture(['origin'=>[$key=>$note]]);
+                $this->assertFalse($result['ok'], $key);
+                $this->assertSame('The shipment origin name, phone, address or postcode is invalid.', $result['error']);
+                $this->assertSame(0, $result['lookups']);
+            }
+        }
+    }
+
+    #[Test]
+    public function address_notes_do_not_relax_address_limits_or_destination_pin_binding(): void {
+        foreach ([['origin_address'=>'House of KKK', 'origin_address_note'=>'A sufficiently long pickup instruction'], ['origin_name'=>'Short', 'origin_address_note'=>'Pickup entrance']] as $origin) {
+            $result = $this->runFixture(['origin'=>$origin]);
+            $this->assertFalse($result['ok']);
+            $this->assertSame('The shipment origin name, phone, address or postcode is invalid.', $result['error']);
+        }
+        $result = $this->runFixture(['address'=>['address_2'=>'New tower']]);
+        $this->assertFalse($result['ok']);
+        $this->assertSame('The recipient address has changed. Update the destination coordinates before processing.', $result['error']);
+    }
+
+    #[Test]
     public function blocks_duplicates_and_unsupported_couriers_in_the_quick_guard(): void {
         foreach ([['service'=>'borzo'], ['service'=>'jne'], ['status'=>'shipped'], ['awb'=>'ABC'], ['payment_id'=>'pay'], ['instant_payment_id'=>'pay'], ['instant_status_code'=>0], ['instant_status_code'=>100]] as $row) {
             $result = $this->runFixture(['row'=>$row]);

@@ -17,6 +17,17 @@ final class InstantShipmentState {
 		$this->repo = $repo;
 	}
 
+	/** Query uncertain bookings without interpreting the claim as remote acceptance. */
+	public static function canRecheck( $row ): bool {
+		$row = is_object( $row ) ? get_object_vars( $row ) : $row;
+		return is_array( $row ) && 'instant' === TransactionDeliveryType::resolve( $row )
+			&& in_array( $row['service'] ?? null, array( 'gosend', 'grab_express' ), true )
+			&& 'pending' === ( $row['status'] ?? null ) && null === ( $row['instant_status_code'] ?? null )
+			&& in_array( $row['awb'] ?? null, array( null, '' ), true )
+			&& in_array( $row['instant_payment_id'] ?? null, array( null, '' ), true )
+			&& is_string( $row['order_id'] ?? null ) && 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', $row['order_id'] );
+	}
+
 	/**
 	 * Call only after authenticating the response/webhook. This does not book orders.
 	 *

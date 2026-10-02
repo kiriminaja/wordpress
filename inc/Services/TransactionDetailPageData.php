@@ -263,7 +263,7 @@ class TransactionDetailPageData
                 ],
                 "actions" => [
                     "track" => $can_remote_instant && InstantTrackingPresentation::hasRoute($transaction),
-                    "reconcile" => false,
+                    "reconcile" => InstantShipmentState::canRecheck($transaction),
                     "changeOrigin" => $is_express && "new" === $status,
                     "adjustDeficit" => $is_express && $is_deficit,
                     "cancelDeficit" => $is_express && $is_deficit,
@@ -597,6 +597,9 @@ class TransactionDetailPageData
             "paymentStatus" => __("Payment status", "kiriminaja-official"),
             "paymentId" => __("Payment ID", "kiriminaja-official"),
             "instantCancel" => __("Cancel Instant shipment", "kiriminaja-official"),
+            "instantRecheck" => __("Recheck booking", "kiriminaja-official"),
+            "instantRecheckDescription" => __("Check whether this uncertain booking exists. This does not create another shipment or clear the retry guard. If no shipment is found, contact support to confirm the booking was not accepted.", "kiriminaja-official"),
+            "instantResult_reconciled" => __("Booking evidence checked", "kiriminaja-official"),
             "instantCancelTerms" => __("Confirm cancellation of this Instant shipment only. This does not cancel the WooCommerce order or issue a WooCommerce refund. A cancellation request may still be pending.", "kiriminaja-official"),
             "instantOperationDescription" => __("Review this shipment before continuing.", "kiriminaja-official"),
             "instantOperationUnknown" => __("Unable to confirm the operation. Contact support before trying again.", "kiriminaja-official"),

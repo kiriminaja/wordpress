@@ -58,7 +58,7 @@ export type TransactionDetailBootstrap = {
     };
     actions: {
       track: boolean;
-      reconcile?: false;
+      reconcile?: boolean;
       changeOrigin: boolean;
       adjustDeficit: boolean;
       cancelDeficit: boolean;

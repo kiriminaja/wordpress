@@ -143,6 +143,7 @@
             </Button>
         {/if}
         {#if transaction.deliveryType === 'instant'}
+            {#if transaction.actions.reconcile}<Button variant="outline" onclick={() => (instantOperation = 'reconcile')}>{i18n.instantRecheck}</Button>{/if}
             {#if transaction.actions.track}
                 {#if liveTrackingUrl}<Button variant="outline" href={liveTrackingUrl} target="_blank" rel="noopener noreferrer">{i18n.liveTracking}</Button>
                 {:else}<Button variant="outline" onclick={() => (instantOperation = 'tracking')}>{i18n.liveTracking}</Button>{/if}

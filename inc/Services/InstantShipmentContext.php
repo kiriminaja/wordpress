@@ -92,6 +92,12 @@ class InstantShipmentContext {
 				}
 			}
 		}
+		$note_keys = array( 'origin_address_note', 'address_note', 'origin_address_2', 'address_2' );
+		foreach ( $note_keys as $key ) {
+			if ( isset( $source[ $key ] ) && ! is_scalar( $source[ $key ] ) ) {
+				throw new InvalidArgumentException( esc_html__( 'The shipment origin name, phone, address or postcode is invalid.', 'kiriminaja-official' ) );
+			}
+		}
 		$origin = array(
 			'name'      => $this->value( $source, array( 'origin_name', 'location_name', 'name' ) ),
 			'phone'     => $this->value( $source, array( 'origin_phone', 'phone' ) ),
@@ -108,6 +114,10 @@ class InstantShipmentContext {
 			}
 		}
 		$origin['address'] = implode( ', ', $address_parts );
+		$origin['address_note'] = $this->value( $source, $note_keys );
+		if ( '' === $origin['address_note'] ) {
+			$origin['address_note'] = $origin['address'];
+		}
 		// Bounds from the official v6.2 Instant OpenAPI, not Express limits.
 		if ( ! $this->lengthBetween( $origin['name'], 10, 40 ) || ! $this->validPhone( $origin['phone'] ) || ! $this->lengthBetween( $origin['address'], 20, 250 ) || '' === $origin['zipcode'] ) {
 			throw new InvalidArgumentException( esc_html__( 'The shipment origin name, phone, address or postcode is invalid.', 'kiriminaja-official' ) );
@@ -178,6 +188,11 @@ class InstantShipmentContext {
 			'longitude' => $this->coordinate( $transaction->destination_longitude ?? null, 180 ),
 			'address'   => implode( ', ', array_filter( array( $current['address_1'], $current['address_2'], $current['city'], $current['state'], $current['postcode'] ), static fn( $value ) => '' !== $value ) ),
 		);
+		// Use the current address line, not an order comment or a saved fallback.
+		$destination['address_note'] = $this->value( $address, array( 'address_2' ) );
+		if ( '' === $destination['address_note'] ) {
+			$destination['address_note'] = $destination['address'];
+		}
 
 		if ( ! InstantDeliveryCoverage::covers( $origin['latitude'], $origin['longitude'], $destination['latitude'], $destination['longitude'] ) ) {
 			throw new InvalidArgumentException( esc_html__( 'Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.', 'kiriminaja-official' ) );

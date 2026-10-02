@@ -13,10 +13,10 @@
   let rows = $state<InstantOperationRow[] | null>(null);
   let controller: AbortController | null = null;
   let disposed = false;
-  const title = $derived(i18n[mode === 'tracking' ? 'liveTracking' : 'instantCancel']);
+  const title = $derived(i18n[mode === 'tracking' ? 'liveTracking' : mode === 'reconcile' ? 'instantRecheck' : 'instantCancel']);
   function close(): void { if (busy) return; onClose(rows !== null); }
   async function run(): Promise<void> {
-    if (busy || rows !== null || orderIds.length !== 1 || !['tracking', 'cancel'].includes(mode)) return;
+    if (busy || rows !== null || orderIds.length !== 1 || !['tracking', 'cancel', 'reconcile'].includes(mode)) return;
     busy = true;
     controller = new AbortController();
     const values: Record<string, string> = { order_ids: JSON.stringify(orderIds) };
@@ -26,7 +26,7 @@
       if (disposed) return;
       rows = orderIds.map((id) => {
         const row = response.data?.rows?.find((item) => item.id === id);
-        return row && ['tracked', 'not_found', 'unknown', 'cancel_requested', 'canceled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
+        return row && ['tracked', 'not_found', 'unknown', 'cancel_requested', 'canceled', 'reconciled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
       });
     } catch {
       if (!disposed) rows = orderIds.map((id) => ({ id, status: 'unknown', tracking_url: '', message: '' }));
@@ -39,7 +39,7 @@
   <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content" showCloseButton={!busy} escapeKeydownBehavior={busy ? 'ignore' : 'close'} interactOutsideBehavior={busy ? 'ignore' : 'close'} aria-busy={busy}>
     <Dialog.Header>
       <Dialog.Title>{title}</Dialog.Title>
-      <Dialog.Description>{mode === 'cancel' ? i18n.instantCancelTerms : i18n.instantOperationDescription}</Dialog.Description>
+      <Dialog.Description>{mode === 'cancel' ? i18n.instantCancelTerms : mode === 'reconcile' ? i18n.instantRecheckDescription : i18n.instantOperationDescription}</Dialog.Description>
     </Dialog.Header>
     {#each orderIds as id}<p>{id}</p>{/each}
     {#if rows}

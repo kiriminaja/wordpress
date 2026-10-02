@@ -11,6 +11,7 @@ namespace {
 	function wp_json_encode( $value ) { return json_encode( $value ); }
 	function kiriof_log( ...$args ) { $GLOBALS['logs'][] = $args; }
 	require ROOT . '/vendor/autoload.php';
+	require ROOT . '/inc/Infrastructure/InstantDiagnosticRedactor.php';
 	// Give the unchanged production transport a distinct name, so the repository's
 	// literal new InstantApiTransport() resolves to its HTTP-client-only subclass.
 	$source = file_get_contents( ROOT . '/inc/Infrastructure/InstantApiTransport.php' );
@@ -31,6 +32,7 @@ namespace KiriminAjaOfficial\Infrastructure {
 			};
 		}
 	}
+
 }
 namespace {
 	\KiriminAja\Base\Config\Cache\Cache::setStore( new class() implements \KiriminAja\Contracts\CacheStoreContract {
@@ -126,5 +128,18 @@ PHP;
 			$this->assertSame( $case[0] >= 400 ? 'http_failure' : ( str_starts_with( $case[1], 'broken' ) ? 'invalid_json' : 'transport_success' ), $fixture['diagnostics']['code'] );
 			$this->assertStringNotContainsString( '123456', json_encode( $fixture['diagnostics'] ) );
 		}
+	}
+	public function test_actual_upstream_explanation_is_safe_in_runtime_diagnostics(): void {
+		$prose = 'Akun Anda belum aktif untuk layanan instant. payment_method is not available for this account. PIN is invalid.';
+		$fixture = $this->run_fixture( 422, json_encode( array(
+			'status' => false,
+			'message' => $prose . ' Private name Private address 081234567890 -7.8 110.3 PIN "123456" token labeltoken private-token',
+		) ) );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['response'] );
+		$this->assertStringContainsString( $prose, $fixture['diagnostics']['error_body']['messages']['message'] );
+		foreach ( array( 'Private name', 'Private address', '081234567890', '-7.8', '110.3', '123456', 'labeltoken', 'private-token' ) as $secret ) {
+			$this->assertStringNotContainsString( $secret, json_encode( $fixture ) );
+		}
+		$this->assertSame( array(), $fixture['logs'] );
 	}
 }
