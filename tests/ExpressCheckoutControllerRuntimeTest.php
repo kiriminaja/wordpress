@@ -43,10 +43,21 @@ final class ExpressCheckoutControllerRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function pending_transaction_is_not_overwritten_or_cleaned_up(): void {
+    public function pending_transaction_replay_is_verified_before_success_cleanup(): void {
         $result = $this->runCase( 'pending' );
         $this->assertArrayNotHasKey( 'error', $result );
-        $this->assertSame( array(), $result['transactions'] );
+        $this->assertCount( 1, $result['transactions'] );
+        $this->assertTrue( $result['transactions'][0]['blocks_validated'] );
+        $this->assertSame( 1, $result['saves'] );
+        $this->assertSame( $result['amount_before'], $result['amount_after'] );
+    }
+
+    #[Test]
+    public function pending_transaction_cannot_hide_a_verification_conflict(): void {
+        $result = $this->runCase( 'pending-conflict' );
+        $this->assertSame( 503, $result['error']['status'] );
+        $this->assertSame( 'kiriof_express_transaction_failed', $result['error']['code'] );
+        $this->assertCount( 1, $result['transactions'] );
         $this->assertSame( $result['validated_meta'], $result['meta'] );
         $this->assertSame( 0, $result['saves'] );
     }

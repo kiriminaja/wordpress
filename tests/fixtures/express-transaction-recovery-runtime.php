@@ -10,8 +10,9 @@ namespace KiriminAjaOfficial\Repositories {
     class SettingRepository { public function getSettingByKey( $key ) { throw new \RuntimeException( 'No settings needed after validation' ); } }
     class WpPostMetaRepository { public function getRequiredRowsByPostId( $id ) { throw new \RuntimeException( 'HPOS must use order getters' ); } }
     class TransactionRepository {
-        public $rows = array(); public $attempts = 0; public $fail = true; public $race;
+        public $rows = array(); public $attempts = 0; public $fail = true; public $race; public $unique_lookups = 0;
         public function getTransactionByWCOrderId( $id ) { return $this->rows[$id] ?? null; }
+        public function getUniqueTransactionByWCOrderId( $id ) { ++$this->unique_lookups; $row = $this->getTransactionByWCOrderId( $id ); return is_array( $row ) ? false : $row; }
         public function createTransaction( $payload ) {
             ++$this->attempts;
             if ( $this->race ) { $race = $this->race; $this->race = null; $race(); }
@@ -28,7 +29,7 @@ namespace KiriminAjaOfficial\Services\KiriminAja {
 }
 namespace KiriminAjaOfficial\Services {
     class CheckoutServiceFactory { public function calculation( $data ) { throw new \RuntimeException( 'No repricing' ); } }
-    class ShipmentLocationService { public function getDefaultLocation() { return array(); } public function locationToOrigin( $location ) { return array( 'location_id' => 4 ); } }
+    class ShipmentLocationService { public function getDefaultLocation() { throw new \RuntimeException( 'Validated origin must not use current default' ); } public function locationToOrigin( $location ) { return array( 'location_id' => 4 ); } }
 }
 namespace {
     define( 'ABSPATH', __DIR__ );
@@ -48,7 +49,7 @@ namespace {
     }
     class Order {
         public $meta; public $notes = array(); public $total = 110;
-        public function __construct() { $this->meta = array( '_kiriof_express_validated' => array( 'expedition' => 'jne_REG', 'destination_id' => 123, 'payment_method' => 'bacs', 'is_insurance' => false, 'validated_calculation' => array( 'calculation_result' => array( 'cart_total_amt' => 100, 'cart_total_after_discount' => 100, 'ongkir_fee_raw' => 10, 'calc_total_amt' => 110, 'insurance_amt' => 0, 'cod_amt' => 0, 'selected_expedition' => array( 'service' => 'jne', 'service_type' => 'REG', 'force_insurance' => false ) ), 'carts_attribute' => array( 'weight' => 1000, 'length' => 1, 'width' => 1, 'height' => 1 ) ) ) ); }
+        public function __construct() { $this->meta = array( '_kiriof_express_validated' => array( 'expedition' => 'jne_REG', 'destination_id' => 123, 'payment_method' => 'bacs', 'is_insurance' => false, 'origin_snapshot' => array( 'location_id' => 4, 'origin_name' => 'Validated store', 'origin_phone' => '08123456789', 'origin_address' => 'Validated address', 'origin_sub_district_id' => 456 ), 'validated_calculation' => array( 'calculation_result' => array( 'cart_total_amt' => 100, 'cart_total_after_discount' => 100, 'ongkir_fee_raw' => 10, 'calc_total_amt' => 110, 'insurance_amt' => 0, 'cod_amt' => 0, 'selected_expedition' => array( 'service' => 'jne', 'service_type' => 'REG', 'force_insurance' => false ) ), 'carts_attribute' => array( 'weight' => 1000, 'length' => 1, 'width' => 1, 'height' => 1 ) ) ) ); }
         public function get_meta( $key, $single = true ) { return $this->meta[$key] ?? ''; }
         public function update_meta_data( $key, $value ) { $this->meta[$key] = $value; }
         public function delete_meta_data( $key ) { unset( $this->meta[$key] ); }
@@ -65,6 +66,7 @@ namespace {
         public function save() { throw new \RuntimeException( 'No full order save' ); }
     }
     $GLOBALS['options'] = array(); $GLOBALS['cached'] = array(); $GLOBALS['wpdb'] = new DB(); $GLOBALS['order'] = new Order();
+    require dirname( __DIR__, 2 ) . '/inc/Services/ExpressCheckoutValidationService.php';
     require dirname( __DIR__, 2 ) . '/inc/Services/CheckoutServices/CreateTransactionService.php';
     $repo = new \KiriminAjaOfficial\Repositories\TransactionRepository(); $generator = new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId();
     $make = function () use ( $repo, $generator ) { return new \KiriminAjaOfficial\Services\CheckoutServices\CreateTransactionService( array( 'order_id' => 42, 'blocks_validated' => true, 'wc_cart_contents' => array( array( 'quantity' => 1 ) ) ), $repo, new \KiriminAjaOfficial\Repositories\SettingRepository(), new \KiriminAjaOfficial\Repositories\WpPostMetaRepository(), new \KiriminAjaOfficial\Services\CheckoutServices\CodDeficitService(), new \KiriminAjaOfficial\Services\ShipmentLocationService(), $generator, new \KiriminAjaOfficial\Services\CheckoutServiceFactory() ); };
@@ -75,6 +77,15 @@ namespace {
     $repo->race = function () use ( $make, &$race_status ) { $race_status = $make()->call()->status; };
     $assert( 200 === $make()->call()->status && 503 === $race_status, 'Concurrent worker cannot insert' );
     $assert( 200 === $make()->call()->status && 2 === $repo->attempts && 1 === $generator->calls && 1 === count( $repo->rows ), 'Retry and duplicate replay reuse one invoice and row' );
+    $assert( 3 === $repo->unique_lookups, 'Every unlocked replay uses the unique lookup' );
+    $single = $repo->rows[42]; $repo->rows[42] = array( $single, clone $single );
+    $assert( 503 === $make()->call()->status && 2 === $repo->attempts, 'Identical duplicate rows fail closed without another insert' );
+    $repo->rows[42] = $single;
+    $origin = json_decode( $repo->rows[42]->shipment_location_snapshot, true );
+    $assert( 456 === $origin['origin_sub_district_id'] && 'Validated address' === $origin['origin_address'], 'First insert and retries retain validated full origin' );
+    $repo->rows[42]->shipment_location_snapshot = '{}';
+    $assert( 503 === $make()->call()->status, 'Changed existing origin fails closed' );
+    $repo->rows[42]->shipment_location_snapshot = json_encode( $origin );
     $repo->rows[42]->shipping_cost = 99;
     $assert( 503 === $make()->call()->status && 2 === $repo->attempts, 'Inconsistent existing row fails closed' );
     $lock = '_kiriof_express_order_lock_42'; $old = array( 'owner' => 'old', 'expires' => time() - 1 ); $new = array( 'owner' => 'new', 'expires' => time() + 180 );
@@ -84,5 +95,8 @@ namespace {
     $assert( 200 === $make()->call()->status && ! isset( $GLOBALS['options'][$lock] ), 'Expired lease recovers and releases' );
     $GLOBALS['order']->total = 111;
     $assert( 503 === $make()->call()->status && 2 === $repo->attempts, 'Changed payable total rejects without insert' );
+    $GLOBALS['order']->total = 110;
+    unset( $GLOBALS['order']->meta['_kiriof_express_validated']['origin_snapshot'] );
+    $assert( 503 === $make()->call()->status && 2 === $repo->attempts, 'Legacy missing origin rejects without fallback or insert' );
     echo json_encode( array( 'ok' => true, 'attempts' => $repo->attempts, 'invoices' => $generator->calls, 'rows' => count( $repo->rows ), 'race_status' => $race_status ) );
 }

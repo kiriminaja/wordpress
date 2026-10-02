@@ -41,6 +41,28 @@ final class InstantStatusPresentationTest extends TestCase {
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
+    public function test_private_booking_claim_is_waiting_and_not_selectable_or_processable(): void {
+        $payload = [
+            'delivery_type' => 'instant', 'service' => 'gosend', 'status' => 'pending',
+            'instant_status_code' => null, 'instant_payment_id' => '', 'awb' => '',
+            'rejected_reason' => 'Check remote state before retrying',
+            'shipping_info' => json_encode(['instant_items' => [['name' => 'Saved item', 'qty' => 1]]]),
+            'wc_order' => ['status' => 'processing', 'paid' => true],
+        ];
+        foreach (['list', 'detail', 'fallback'] as $mode) {
+            $row = $this->row($payload + ['mode' => $mode]);
+            $this->assertSame('Waiting for Shipment', $row['status']['label']);
+            $this->assertSame('', $row['status']['issue']);
+            $this->assertFalse($row['actions']['reconcile']);
+            $this->assertFalse($row['actions']['track']);
+            if ($mode === 'list') {
+                $this->assertTrue($row['selection']['disabled']);
+                $this->assertFalse($row['selection']['canProcess']);
+                $this->assertFalse($row['actions']['process']);
+            }
+        }
+    }
+
     public function test_supported_booking_metadata_and_status_are_preserved_in_list_detail_and_fallback(): void {
         foreach ([100, 105, 106, 200, 300, 350] as $code) {
             $payload = [
@@ -69,10 +91,10 @@ final class InstantStatusPresentationTest extends TestCase {
                 $this->assertSame('qris', $detail['shipment']['paymentMethod']);
                 $this->assertSame('paid', $detail['shipment']['paymentStatus']);
                 $this->assertSame(12000, $detail['shipment']['costs']['actualShipping']);
-                $this->assertSame('https://tracking.example.test/KA-BOOKED', $detail['shipment']['liveTrackingUrl']);
+                $this->assertSame('', $detail['shipment']['liveTrackingUrl'], 'A URL alone is not a route');
                 $this->assertSame($mode === 'detail' && in_array($code, [100, 105], true), $detail['actions']['cancel']);
-                $this->assertSame($mode === 'detail', $detail['actions']['track']);
-                $this->assertSame($mode === 'detail', $detail['actions']['reconcile']);
+                $this->assertFalse($detail['actions']['track']);
+                $this->assertFalse($detail['actions']['reconcile']);
             }
         }
     }

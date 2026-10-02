@@ -82,6 +82,14 @@ final class InstantShipmentState {
 				$stale = true;
 			}
 			$changes = 'booking' === $mode ? $this->bookingMetadataChanges( $row, $metadata ) : array();
+			// A verified lifecycle response can resolve a lost booking acknowledgement.
+			// The reviewed price is a private request snapshot until that confirmation.
+			$snapshot = json_decode( (string) ( $row->shipping_info ?? '' ), true );
+			if ( 'apply' === $mode && null !== $code && null === ( $row->instant_status_code ?? null )
+				&& is_array( $snapshot ) && isset( $snapshot['instant_shipping_cost'] ) && is_int( $snapshot['instant_shipping_cost'] ) && $snapshot['instant_shipping_cost'] >= 0 ) {
+				$changes['shipping_cost'] = $snapshot['instant_shipping_cost'];
+			}
+
 			if ( ! $stale ) {
 				$changes['status'] = $target;
 				$changes['instant_status_code'] = $code;
@@ -246,7 +254,7 @@ final class InstantShipmentState {
 			}
 			// Once the shipping snapshot is booked, monetary/method/vehicle context is immutable.
 			$booked = json_decode( (string) ( $row->shipping_info ?? '' ), true );
-			if ( is_array( $booked ) && isset( $booked['instant_items'] ) && null !== $previous && '' !== $previous && (string) $previous !== (string) $value && ! in_array( $field, array( 'shipping_info', 'shipment_location_snapshot' ), true ) ) {
+			if ( is_array( $booked ) && isset( $booked['instant_items'] ) && ! empty( $row->request_pickup_at ) && null !== $previous && '' !== $previous && (string) $previous !== (string) $value && ! in_array( $field, array( 'shipping_info', 'shipment_location_snapshot' ), true ) ) {
 				$this->invalid();
 			}
 			$changes[ $field ] = $value;

@@ -117,10 +117,10 @@ final class InstantDeliveryStatusTest extends TestCase {
 			foreach ( array( $row, (object) $row ) as $input ) {
 				$before = serialize( $input );
 				$result = InstantDeliveryStatus::describe( $input );
-				$this->assertSame( 'unknown', $result['key'] );
-				$this->assertSame( 'Unknown', $result['label'] );
+				$this->assertSame( 'waiting_for_shipment', $result['key'] );
+				$this->assertSame( 'Waiting for Shipment', $result['label'] );
 				$this->assertSame( 'info', $result['tone'] );
-				$this->assertSame( $reason, $result['issue'] );
+				$this->assertSame( '', $result['issue'] );
 				$this->assertSame( $before, serialize( $input ) );
 			}
 		}

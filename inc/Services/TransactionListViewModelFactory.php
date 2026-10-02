@@ -173,9 +173,9 @@ class TransactionListViewModelFactory {
 				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ),
 			),
 			'actions'         => array(
-				'track'        => $can_remote_instant,
-				'reconcile'    => $can_remote_instant,
-				'liveTrackingUrl' => $is_express ? '' : InstantShipmentState::trackingUrl( $row->live_tracking_url ?? null ),
+				'track'        => $can_remote_instant && InstantTrackingPresentation::hasRoute( $row ),
+				'reconcile'    => false,
+				'liveTrackingUrl' => $is_express ? '' : InstantTrackingPresentation::trackingUrl( $row ),
 				'preview'      => true,
 				'process'      => (bool) $can_process_instant,
 				'changeOrigin' => $is_express && $is_processable,

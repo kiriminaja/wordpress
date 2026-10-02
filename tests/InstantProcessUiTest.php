@@ -45,19 +45,30 @@ final class InstantProcessUiTest extends TestCase {
     public function test_modal_never_blindly_retries_and_refreshes_list_only_on_close(): void {
         $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
         $this->assertStringContainsString('session.consume(quote.token)', $source);
-        $this->assertStringContainsString("? 'unknown' : 'skipped'", $source);
+        $this->assertStringContainsString('dispatchAttempted = true;', $source);
+        $this->assertStringContainsString('result = data;', $source);
+        $this->assertStringNotContainsString("status: 'unknown'", $source);
         $this->assertStringContainsString('if (completed) onComplete?.()', $source);
         $this->assertStringContainsString('if (dispatching) return;', $source);
         $this->assertStringContainsString("escapeKeydownBehavior={dispatching ? 'ignore' : 'close'}", $source);
         $this->assertStringContainsString('order_ids: JSON.stringify(validatedIds)', $source);
-        $this->assertStringContainsString('acknowledged', $source);
-        $this->assertStringContainsString('instantConfirm', $source);
+        $this->assertStringNotContainsString('acknowledged', $source);
+        $this->assertStringNotContainsString('Checkbox', $source);
+        $this->assertStringNotContainsString('allowSkip', $source);
+        $this->assertStringContainsString("confirmed: 'yes'", $source);
         $this->assertStringNotContainsString('i18n[key] || key', $source);
         $this->assertStringContainsString('{#if !topAccount}', $source);
         $this->assertStringContainsString('quoteClock.start(data)', $source);
         $this->assertStringContainsString('void review(true)', $source);
-        $this->assertStringContainsString('acknowledged = {}; confirmed = false;', $source);
-        $this->assertStringContainsString('reviewSelection(data, previousChecked)', $source);
+        $this->assertStringContainsString('matchesSelection(data)', $source);
+        $this->assertStringContainsString('completeAmount(row.before) && completeAmount(row.after)', $source);
+        $this->assertStringContainsString('let orderInformationOpen = $state(false)', $source);
+        $this->assertStringContainsString('<Collapsible.Root bind:open={orderInformationOpen}', $source);
+        $this->assertStringContainsString('<Alert.Root', $source);
+        $this->assertStringContainsString('{#if changedCount > 0}', $source);
+        $this->assertStringContainsString('{#if summary.gap !== 0}', $source);
+        $this->assertStringNotContainsString("text('instantQuoteValidity')", $source);
+        $this->assertStringContainsString('if (expired) pin', $source);
         preg_match_all("/text\('([^']+)'\)/", $source, $matches);
         $renderer = $this->source('inc/Services/TransactionListRenderService.php');
         foreach (array_unique($matches[1]) as $key) {

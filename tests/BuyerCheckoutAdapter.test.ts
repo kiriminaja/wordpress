@@ -15,7 +15,7 @@ type Node = { type: any; props: any; children: any[] };
 // A small commit-phase hook runner: effects run after render, changed effects clean
 // up first, setters are stable, and updates during effects cause another render.
 // Both production scripts execute unchanged in the same browser-like VM.
-function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any } = {}) {
+function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean } = {}) {
 	const timers = new Map<number, { delay: number; callback: () => void }>();
 	let nextTimer = 0;
 	const setTimeout = (callback: () => void, delay = 0) => { timers.set(++nextTimer, { callback, delay }); return nextTimer; };
@@ -51,6 +51,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	let current: Instance;
 	let effects: (() => void)[] = [];
 	const element = {
+		createPortal: (node: Node, target: any) => ({ type: 'portal', props: { target }, children: [node] }),
 		createElement: (type: any, props: any, ...children: any[]): Node => ({ type, props: props || {}, children }),
 		useState(initial: any) {
 			const index = cursor++;
@@ -86,6 +87,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	};
 	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', lookupTimeout: 'Lookup timed out', saveStalled: 'Save stalled', reloadCheckout: 'Reload checkout', quoteRefreshFailed: 'Quote refresh failed', instantUnavailable: 'Instant unavailable', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
 	const root: any = {
+		kiriofAddressPresentation: options.collapsed ? { usePresentation: () => ({ editing: false, cardTarget: {} }) } : undefined,
 		wp, wc: { blocksCheckout: blocks }, setTimeout, clearTimeout, location: { reload: () => { root.reloaded = true; } },
 		kiriofBuyerCheckoutConfig: { enabled: options.enabled !== false, nonce: 'nonce', ajaxUrl: '/ajax', globalInsurance: true, map: { enabled: true }, i18n: strings, ...options.config },
 		fetch: (url: string, init: any) => { const task = deferred(); lookups.push({ url, init, ...task }); return task.promise; },
@@ -141,7 +143,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	function find(type: string, node: any = instances.find(instance => instance.mounted)?.tree): any {
 		if (!node || typeof node !== 'object') return undefined;
 		if (node.type === type) return node;
-		for (const child of node.children || []) { const match = find(type, child); if (match) return match; }
+		for (const child of node.children || []) { if (child === undefined) continue; const match = find(type, child); if (match) return match; }
 	}
 	function findIn(index: number, type: string) { return find(type, instances[index]?.tree); }
 	async function settle() {
@@ -180,6 +182,70 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		h.retry(); await h.flush(250); await h.reply(1, [{ id: 9, text: 'Fresh' }]); await h.reply(0);
 		expect(options(h.find('select'))).toEqual([{ value: '9', label: 'Fresh' }]);
 		expect([...h.timers.values()].some(timer => timer.delay === 10000)).toBe(false);
+	});
+	test('expired-on-arrival available quote with no deadline offers manual refresh without a timer loop', async () => {
+		for (const collapsed of [false, true]) {
+			const h = harness({ collapsed, config: { districtPostcode: '12345', district: { id: 7 } } });
+			h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
+			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'available', message: 'Quote expired', expires_at: 0 };
+			h.mount();
+			expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('District required');
+			await h.flush(250); await h.reply(); await h.flush(0);
+			expect(h.sends[0].request.data.refresh_instant).toBe(false);
+			h.sends[0].resolve(); await h.settle();
+			expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Quote expired');
+			expect(h.find('button').children[0]).toBe('Retry');
+			h.model.rateBusy = true; h.retry(); await h.flush(0);
+			expect(h.sends).toHaveLength(1); expect(h.find('button')).toBeUndefined();
+			h.model.rateBusy = false; h.notify(); await h.flush(0);
+			expect(h.sends).toHaveLength(2);
+			expect(h.sends[1].request.overwriteDirtyCustomerData).toBe(false);
+			expect(h.sends[1].request.data.refresh_instant).toBe(true);
+			expect(h.sends[1].request.data.quote_refresh_version).toBe(1);
+			expect(h.sends[1].request.data.destination).toEqual(h.sends[0].request.data.destination);
+			expect(h.sends[1].request.data.shipping_method).toBeUndefined();
+			h.sends[1].resolve(); await h.settle();
+			for (let i = 0; i < 3; i++) { h.notify(); await h.flush(0); }
+			expect(h.sends).toHaveLength(2); expect(h.find('button').children[0]).toBe('Retry');
+		}
+	});
+	test('positive expired initial deadline schedules one immediate refresh and never retries failed refresh automatically', async () => {
+		const h = harness({ config: { districtPostcode: '12345', district: { id: 7 } } });
+		const expires_at = Math.floor(Date.now() / 1000) - 10;
+		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
+		h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'available', message: 'Quote expired', expires_at };
+		h.mount(); expect([...h.timers.values()].filter(timer => timer.delay === 0)).toHaveLength(1);
+		await h.flush(0); expect(h.sends).toHaveLength(0);
+		await h.flush(250); await h.reply(); await h.flush(0);
+		expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.quote_refresh_version).toBe(1);
+		expect(h.sends[0].request.data.refresh_instant).toBe(true);
+		h.sends[0].reject(new Error('offline')); await h.settle();
+		for (let i = 0; i < 3; i++) { h.notify(); await h.flush(0); }
+		expect(h.sends).toHaveLength(1); expect(h.status()).toBe('Quote refresh failed');
+		expect(h.find('button').children[0]).toBe('Retry');
+	});
+	test('permanent Instant ineligibility never schedules expiry refresh or offers quote Retry', async () => {
+		for (const code of ['outside_coverage', 'cod_not_supported', 'unsupported_items']) {
+			const h = harness({ config: { districtPostcode: '12345', district: { id: 7 } } });
+			h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
+			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code, message: 'Not available', expires_at: Math.floor(Date.now() / 1000) - 10 };
+			await ready(h); await h.flush(0); h.sends[0].resolve(); await h.settle();
+			for (let i = 0; i < 3; i++) { h.notify(); await h.flush(0); }
+			expect(h.sends).toHaveLength(1); expect(h.sends[0].request.data.refresh_instant).toBe(false);
+			expect(h.find('button')).toBeUndefined(); expect(h.status()).toBe('Not available');
+		}
+	});
+	test('failed server quotes offer manual Retry and future courier changes remain inert', async () => {
+		for (const code of ['quote_failed', 'quote_failed_or_unavailable']) {
+			const h = harness({ config: { districtPostcode: '12345', district: { id: 7 } } });
+			h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
+			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code, expires_at: 0 };
+			await ready(h); await h.flush(0); h.sends[0].resolve(); await h.settle();
+			expect(h.find('button').children[0]).toBe('Retry');
+			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: true, code: 'available', expires_at: Math.floor(Date.now() / 1000) + 120 };
+			h.model.cart.shippingRates[0].shipping_rates[0].rate_id = 'kiriminaja-instant:2'; h.notify(); await h.flush(0);
+			expect(h.sends).toHaveLength(1); expect(h.find('button')).toBeUndefined();
+		}
 	});
 	test('never-settling cart mutation requires reload or actual settle before explicit retry', async () => {
 		const h = harness(); await ready(h); h.choose('7'); await h.flush(0); await h.flush(15000);

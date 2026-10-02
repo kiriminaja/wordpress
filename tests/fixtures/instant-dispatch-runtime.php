@@ -128,6 +128,7 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
         $in = $GLOBALS['input'];
         if (!empty($in['replace_lease_during_book'])) { foreach ($GLOBALS['options'] as $key=>$value) { $GLOBALS['options'][$key] = ['owner'=>'replacement-owner','expires'=>time()+300]; } }
         if (!empty($in['timeout'])) { throw new RuntimeException('Secret upstream error 123456'); }
+        if (!empty($in['definite_rejection'])) { return ['status'=>false, 'data'=>(object)['result'=>(object)['message'=>'Secret upstream error']]]; }
         if (!empty($in['false'])) { return ['status'=>false]; }
         $packages = array_reverse(array_map(static fn($p)=>['order_id'=>$p['order_id'],'service'=>$in['remote_service'] ?? $p['service'],'service_type'=>$in['remote_service_type'] ?? $p['service_type'],'status'=>$in['remote_status'] ?? 100,'awb'=>'AWB-' . $p['order_id'],'tracking_url'=>'https://example.com/tracking'], $payload['packages']));
         if (!empty($in['remote_missing_identity'])) { foreach ($packages as &$package) { unset($package['service'], $package['service_type']); } unset($package); }

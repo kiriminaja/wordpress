@@ -854,12 +854,7 @@ class CheckoutController
             throw new \InvalidArgumentException( 'Missing validated Express checkout quote.' );
         }
 
-        // Avoid duplicate inserts if Woo also fires the classic processed hook.
-        $existing_transaction = $this->transaction_repository->getTransactionByWCOrderId( $order->get_id() );
-        if ( $existing_transaction ) {
-            return;
-        }
-
+        // The verified service checks durable snapshots and duplicate rows even on replay.
         $this->afterCheckoutAfterCreated( $order->get_id(), array(), $order );
     }
 

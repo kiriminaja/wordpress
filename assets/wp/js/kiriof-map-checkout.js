@@ -265,10 +265,12 @@
 		}, [ addressKey, visible, grant, coverageKey ] );
 		if ( ! visible ) { return null; }
 		var status = error || ( ! granted ? strings.mapLocating : ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : '' ) ) );
+		var outside = coverageResult && coverageResult.key === coverageKey ? coverageResult.status : coverageStatus( coverage, root.kiriofBuyerCheckout && root.kiriofBuyerCheckout.getCoordinates( address ) );
 		return h( 'section', { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
 			h( 'h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle ),
 			h( 'p', null, strings.mapOptional ),
-			hasCoverage ? h( 'p', { className: 'kiriof-buyer-map__coverage', role: 'note' }, strings.mapCoverage || 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.' ) : null,
+			hasCoverage ? h( 'p', { className: 'kiriof-buyer-map__coverage', role: 'note' }, strings.mapCoverage ) : null,
+			granted ? h( 'p', { className: 'kiriof-buyer-map__device-notice', role: 'note' }, strings.mapDeviceNotice ) : null,
 			granted ? h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
 				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp, 'aria-description': strings.mapKeyboard } ),
 				h( 'div', { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
@@ -277,7 +279,7 @@
 						h( 'circle', { cx: 16, cy: 16, r: 5, fill: '#fff' } ) ) ),
 				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', onClick: function() { if ( session.current ) { session.current.locate(); } } }, strings.mapLocate ) ) : null,
 			status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, status ) : null,
-			granted && coverageResult && coverageResult.key === coverageKey && coverageResult.status && ! coverageResult.status.inside ? h( 'p', { className: 'kiriof-buyer-map__coverage-warning', role: 'note', 'aria-live': 'polite' }, strings.mapOutsideRadius || 'This pin is outside Instant coverage. Express delivery may still be available.' ) : null );
+			outside && ! outside.inside ? h( 'p', { className: 'kiriof-buyer-map__coverage-warning', role: 'note', 'aria-live': 'polite' }, strings.mapOutsideRadius ) : null );
 
 	}
 	blocks.registerCheckoutBlock( {

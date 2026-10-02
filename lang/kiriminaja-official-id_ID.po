@@ -5483,3 +5483,30 @@ msgstr "ID kecamatan pengiriman KiriminAja"
 
 msgid "KiriminAja account destination metadata has been processed. Order erasure is managed separately by WooCommerce. Durable booking snapshots and shipment transaction records are not erased by this account callback and may contain recipient addresses, phone numbers and coordinates. An administrator must review fulfillment and applicable financial/legal retention requirements before removing those records. No shipment has been cancelled."
 msgstr "Metadata tujuan akun KiriminAja telah diproses. Penghapusan pesanan dikelola terpisah oleh WooCommerce. Snapshot pemesanan dan catatan transaksi pengiriman tidak dihapus oleh callback akun ini dan mungkin berisi alamat, nomor telepon, serta koordinat penerima. Administrator harus meninjau pemenuhan dan persyaratan penyimpanan keuangan/hukum sebelum menghapus catatan tersebut. Tidak ada pengiriman yang dibatalkan."
+
+msgid "Current device location may differ from the delivery address. Check the pin and move it to the intended destination."
+msgstr "Lokasi perangkat saat ini mungkin berbeda dari alamat pengiriman. Periksa pin dan pindahkan ke tujuan pengiriman yang benar."
+
+msgid "KiriminAja District"
+msgstr "Kecamatan KiriminAja"
+
+msgid "Searchable shipping destination district."
+msgstr "Kecamatan tujuan pengiriman yang dapat dicari."
+
+msgid "Review selected shipments and current courier prices."
+msgstr "Tinjau pengiriman yang dipilih dan tarif kurir saat ini."
+
+msgid "Courier prices may change before booking."
+msgstr "Tarif kurir dapat berubah sebelum pemesanan."
+
+msgid "Unable to confirm the Instant booking. Contact support before trying again."
+msgstr "Pemesanan Instant tidak dapat dikonfirmasi. Hubungi dukungan sebelum mencoba lagi."
+
+msgid "Unable to book the Instant shipment. Please try again."
+msgstr "Pengiriman Instant tidak dapat dipesan. Silakan coba lagi."
+
+msgid "Review this shipment before continuing."
+msgstr "Tinjau pengiriman ini sebelum melanjutkan."
+
+msgid "Unable to confirm the operation. Contact support before trying again."
+msgstr "Operasi tidak dapat dikonfirmasi. Hubungi dukungan sebelum mencoba lagi."

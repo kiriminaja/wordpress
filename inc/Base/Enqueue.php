@@ -125,12 +125,6 @@ class Enqueue extends BaseInit{
         if ( ! in_array( $handle, $module_handles, true ) || false !== strpos( $tag, ' type=' ) ) {
             return $tag;
         }
-        if ( function_exists( 'wp_set_script_translations' ) ) {
-            foreach ( array( 'kiriof-map-checkout-editor', 'kiriof-checkout-district-editor' ) as $editor_handle ) {
-                wp_set_script_translations( $editor_handle, 'kiriminaja-official', KIRIOF_DIR . 'lang' );
-            }
-        }
-
         return str_replace( '<script ', '<script type="module" ', $tag );
     }
 
@@ -236,6 +230,7 @@ class Enqueue extends BaseInit{
             'i18n' => array(
                 'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
                 'mapHelp' => __( 'Delivery location map', 'kiriminaja-official' ),
+                'mapDeviceNotice' => __( 'Current device location may differ from the delivery address. Check the pin and move it to the intended destination.', 'kiriminaja-official' ),
                 'mapCoverage' => __( 'Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area.', 'kiriminaja-official' ),
                 'mapOutsideRadius' => __( 'This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery.', 'kiriminaja-official' ),
                 'mapKeyboard' => __( 'Use arrow keys to move the map. Press Enter to select the center location.', 'kiriminaja-official' ),
@@ -270,6 +265,12 @@ class Enqueue extends BaseInit{
                 wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
             }
         }
+        if ( function_exists( 'wp_set_script_translations' ) ) {
+            foreach ( array( 'kiriof-map-checkout-editor', 'kiriof-checkout-district-editor' ) as $editor_handle ) {
+                wp_set_script_translations( $editor_handle, 'kiriminaja-official', KIRIOF_DIR . 'lang' );
+            }
+        }
+
         if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
             wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
         }
@@ -343,12 +344,6 @@ class Enqueue extends BaseInit{
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
-            wp_localize_script( 'kiriof-block-checkout', 'kiriofBlockCheckoutStrings', array(
-                /* translators: 1: shipping coupon code, 2: other applied coupon codes. */
-                'couponCombined' => __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
-                /* translators: %s: shipping coupon code. */
-                'couponApplied' => __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
-            ) );
             wp_localize_script(
                 'kiriof-account-address',
                 'kiriofAccountAddress',
@@ -409,10 +404,16 @@ class Enqueue extends BaseInit{
             wp_enqueue_script(
                 'kiriof-block-checkout',
                 $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
-                array( 'kiriof-script', 'kiriof-buyer-checkout', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ),
+                array( 'kiriof-script', 'kiriof-buyer-checkout', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wp-i18n', 'wc-blocks-checkout' ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
+            wp_localize_script( 'kiriof-block-checkout', 'kiriofBlockCheckoutStrings', array(
+                /* translators: 1: shipping coupon code, 2: other applied coupon codes. */
+                'couponCombined' => __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
+                /* translators: %s: shipping coupon code. */
+                'couponApplied' => __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
+            ) );
         }
     }
 

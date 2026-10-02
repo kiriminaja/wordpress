@@ -516,7 +516,6 @@
                         {#if trackingUrl}<Button variant="outline" size="sm" href={trackingUrl} target="_blank" rel="noopener noreferrer">{bootstrap.i18n.liveTracking}</Button>
                         {:else}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}>{bootstrap.i18n.liveTracking}</Button>{/if}
                       {/if}
-                      {#if row.actions.reconcile}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}>{bootstrap.i18n.instantReconcile}</Button>{/if}
                       {#if row.actions.cancel}<Button variant="destructive" size="sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })}>{bootstrap.i18n.instantCancel}</Button>{/if}
                       {#if row.actions.process}<ActionTooltip label={bootstrap.i18n.processShipment}><Button variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])} aria-label={bootstrap.i18n.processShipment}><IconTruck /></Button></ActionTooltip>{/if}
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}

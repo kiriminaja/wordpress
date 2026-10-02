@@ -244,6 +244,9 @@
 		} );
 		var instantStatus = ( cart.extensions || {} )[ 'kiriminaja-official-instant-checkout' ] || {};
 		var expiresAt = Number( instantStatus.expires_at );
+		var recoverableQuote = 'available' === instantStatus.code || 'quote_failed' === instantStatus.code || 'quote_failed_or_unavailable' === instantStatus.code;
+		var expiredQuote = Number.isFinite( expiresAt ) && expiresAt > 0 && Date.now() >= expiresAt * 1000;
+		var manualRefreshNeeded = ( 'available' === instantStatus.code && false === instantStatus.eligible ) || 'quote_failed' === instantStatus.code || 'quote_failed_or_unavailable' === instantStatus.code || ( expiredQuote && ( false !== instantStatus.eligible || recoverableQuote ) );
 		var recipient = { first_name: String( address.first_name || '' ), last_name: String( address.last_name || '' ), phone: String( address.phone || ( cart.billingAddress || {} ).phone || '' ) };
 		var recipientKey = JSON.stringify( recipient );
 		var recipientRef = useRef( recipient );
@@ -338,16 +341,16 @@
 		// The server is authoritative for eligibility and quote TTL. Only a selected
 		// Instant service can initiate expiry refresh; native courier changes are inert.
 		useEffect( function() {
-			if ( ! ownsEffects() || ! instantSelected || false === instantStatus.eligible || ! cart.needsShipping || data.collection || ! Number.isFinite( expiresAt ) || expiresAt <= 0 || expiresAt * 1000 <= Date.now() || refreshedDeadline === expiresAt ) { return; }
+			if ( ! ownsEffects() || ! instantSelected || ( false === instantStatus.eligible && ! recoverableQuote ) || ! cart.needsShipping || data.collection || ! Number.isFinite( expiresAt ) || expiresAt <= 0 || refreshedDeadline === expiresAt ) { return; }
 			var timer = root.setTimeout( function() {
 				if ( ! ownsEffects() || refreshedDeadline === expiresAt ) { return; }
 				refreshedDeadline = expiresAt;
 				setShared( 'refreshVersion', ++refreshVersion );
-			}, Math.min( 2147483647, Math.max( 0, expiresAt * 1000 - Date.now() + 1000 ) ) );
+			}, expiredQuote ? 0 : Math.min( 2147483647, Math.max( 0, expiresAt * 1000 - Date.now() + 1000 ) ) );
 			var cleanup = function() { root.clearTimeout( timer ); effectCleanups.delete( cleanup ); };
 			effectCleanups.add( cleanup );
 			return cleanup;
-		}, [ expiresAt, instantSelected, instantStatus.eligible, isOwner, cart.needsShipping, data.collection ] );
+		}, [ expiresAt, instantSelected, instantStatus.eligible, recoverableQuote, isOwner, cart.needsShipping, data.collection ] );
 
 		useEffect( function() {
 			if ( ! ownsEffects() ) { return; }
@@ -428,10 +431,11 @@
 		}, [ state.retryUpdate, isOwner ] );
 
 		var saving = Boolean( updateState.pending || updateState.inFlight );
-		var quoteStale = instantSelected && expiresAt > 0 && refreshedDeadline === expiresAt;
+		var quoteStale = instantSelected && ( manualRefreshNeeded || ( expiresAt > 0 && refreshedDeadline === expiresAt && ( false !== instantStatus.eligible || recoverableQuote ) ) );
+		var showRetry = instantSelected && quoteStale && ! saving;
 		var quoteFailure = updateState.error && updateState.pending && updateState.pending.refresh_instant;
 		var unavailable = false === instantStatus.eligible ? ( instantStatus.message || strings.instantUnavailable ) : '';
-		var message = updateState.stalled ? strings.saveStalled : ( updateState.error ? ( quoteFailure ? strings.quoteRefreshFailed : strings.updateFailed ) : ( saving ? strings.saving : ( required && ( ! currentSelection || results.key !== addressKey || results.loading || results.error ) ? strings.districtRequired : ( quoteStale ? strings.quoteRefreshFailed : ( instantSelected ? unavailable : '' ) ) ) ) );
+		var message = updateState.stalled ? strings.saveStalled : ( updateState.error ? ( quoteFailure ? strings.quoteRefreshFailed : strings.updateFailed ) : ( saving ? strings.saving : ( required && ( ! currentSelection || results.key !== addressKey || results.loading || results.error ) ? strings.districtRequired : ( quoteStale ? ( unavailable || strings.quoteRefreshFailed ) : ( instantSelected ? unavailable : '' ) ) ) ) );
 		useEffect( function() {
 			if ( ownsEffects() ) { setValidation( required && kiriminajaSelected ? message : '' ); }
 		}, [ message, required, kiriminajaSelected, isOwner ] );
@@ -446,7 +450,7 @@
 				addressBadge( currentPin ? strings.pinLocation : strings.needPinLocation, Boolean( currentPin ), strings.pinRequirement ),
 				updateState.error || quoteStale ? addressBadge( message, false ) : null,
 				unavailable ? addressBadge( unavailable, false ) : null,
-				updateState.uncertain ? h( 'button', { type: 'button', onClick: function() { root.location.reload(); } }, strings.reloadCheckout ) : ( updateState.error || quoteStale ? h( 'button', { type: 'button', onClick: function() {
+				updateState.uncertain ? h( 'button', { type: 'button', onClick: function() { root.location.reload(); } }, strings.reloadCheckout ) : ( updateState.error || showRetry ? h( 'button', { type: 'button', onClick: function() {
 					if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); } else { setShared( 'refreshVersion', ++refreshVersion ); }
 				} }, strings.retry ) : null )
 			), presentation.cardTarget );
@@ -486,12 +490,12 @@
 				type: 'button', className: 'wc-block-components-button wp-element-button',
 				onClick: function() { root.location.reload(); }
 			}, strings.reloadCheckout ) : null,
-			results.error || ( ( updateState.error || ( quoteStale && ! saving ) ) && ! updateState.uncertain ) ? h( 'button', {
+			results.error || ( ( updateState.error || showRetry ) && ! updateState.uncertain ) ? h( 'button', {
 				type: 'button',
 				className: 'wc-block-components-button wp-element-button',
 				onClick: function() {
 					if ( results.error ) { setShared( 'retryLookup', function( previous ) { return previous + 1; } ); }
-					if ( quoteStale && ! updateState.error ) { setShared( 'refreshVersion', ++refreshVersion ); }
+					if ( showRetry && ! results.error && ! updateState.error ) { setShared( 'refreshVersion', ++refreshVersion ); }
 					if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); }
 				}
 			}, strings.retry ) : null

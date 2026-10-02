@@ -149,6 +149,10 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		// Use the bounded Instant transport directly; never retry or expose errors.
 		try {
 			[ $transport, $body ] = ( new InstantApiTransport() )->post( 'api/mitra/v6.2/instant/request_pickup', $payload );
+			if ( true === $transport && $this->booking_rejected( $body ) ) {
+				// Never expose upstream text or extra fields: they can echo the PIN.
+				return array( 'status' => false, 'data' => (object) array( 'status' => false, 'result' => (object) array() ), 'operation_rejected' => true );
+			}
 			if ( ! $transport || ! is_array( $body ) || true !== ( $body['status'] ?? null ) ) {
 				return $this->failure( 'Instant booking failed.' );
 			}
@@ -156,6 +160,37 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		} catch ( \Throwable $throwable ) {
 			return $this->failure( 'Instant booking failed.' );
 		}
+	}
+
+	/** A negative status alone (including a null result) is not proof of rejection. */
+	private function booking_rejected( $body ): bool {
+		if ( ! is_array( $body ) || array_is_list( $body ) || false !== ( $body['status'] ?? null ) ) {
+			return false;
+		}
+		if ( array_key_exists( 'code', $body ) && ! is_int( $body['code'] ) && ! is_string( $body['code'] ) ) {
+			return false;
+		}
+		$has_result = false;
+		foreach ( array( 'result', 'results' ) as $field ) {
+			if ( ! array_key_exists( $field, $body ) ) {
+				continue;
+			}
+			$result = $body[ $field ];
+			if ( ( ! is_array( $result ) && ! is_object( $result ) ) || array() !== (array) $result ) {
+				return false;
+			}
+			$has_result = true;
+		}
+		// Contradictory identities or unknown nested data must remain ambiguous.
+		foreach ( $body as $field => $value ) {
+			if ( in_array( $field, array( 'status', 'result', 'results' ), true ) ) {
+				continue;
+			}
+			if ( is_array( $value ) || is_object( $value ) || ( in_array( $field, array( 'id', 'order_id', 'payment_id', 'payment', 'packages', 'awb' ), true ) && null !== $value && '' !== $value ) ) {
+				return false;
+			}
+		}
+		return $has_result;
 	}
 
 	public function payment( string $id ): array {

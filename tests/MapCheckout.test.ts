@@ -366,6 +366,18 @@ describe('shared location authorization gate', () => {
 });
 
 describe('MapControl: permission-gated actual React commit/ref runtime', () => {
+	uiTest('saved outside pin warning remains visible while permission is denied and device notice is translated', () => {
+		const h = uiHarness({ autoLocation: false, savedPoint: {latitude: 1, longitude: 0}, coverage: {origin: {latitude: 0, longitude: 0}, radiusMeters: 40000} });
+		try {
+			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).not.toBeNull();
+			React.act(() => h.initialRequests[0].failure({code: 1}));
+			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).not.toBeNull();
+			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull();
+			expect(h.writes).toHaveLength(0);
+		} finally { h.cleanup(); }
+		const granted = uiHarness();
+		try { expect(granted.container.querySelector('.kiriof-buyer-map__device-notice')).not.toBeNull(); } finally { granted.cleanup(); }
+	});
 	uiTest('Store API package coverage overrides the initial circle and explicit unknown never falls back', () => {
 		const h = uiHarness({ coverage: {origin: {latitude: 0, longitude: 0}, radiusMeters: 40000} });
 		try {

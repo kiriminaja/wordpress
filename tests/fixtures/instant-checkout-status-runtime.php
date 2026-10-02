@@ -36,6 +36,17 @@ namespace {
     function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
     function do_action( $hook, ...$args ) { $GLOBALS['actions'][] = array( $hook, $args ); }
     function WC() { return $GLOBALS['wc']; }
+    function get_woocommerce_currency() { return $GLOBALS['status_currency'] ?? 'IDR'; }
+    class WC_Shipping_Zones {
+        public static function get_zone_matching_package( $package ) {
+            return new class {
+                public function get_shipping_methods( $enabled_only = false ) {
+                    if ( ! ( $GLOBALS['status_method_configured'] ?? true ) ) { return array(); }
+                    return array( (object) array( 'id' => 'kiriminaja-instant', 'enabled' => $GLOBALS['status_method_enabled'] ?? 'yes' ) );
+                }
+            };
+        }
+    }
     function woocommerce_store_api_register_endpoint_data( $args ) { $GLOBALS['schema_registration'] = $args; }
     function woocommerce_store_api_register_update_callback( $args ) { $GLOBALS['update_registration'] = $args; }
     class StatusSession {
@@ -55,7 +66,10 @@ namespace {
         public function __construct() {
             $this->session = new StatusSession();
             $this->shipping = new StatusShipping();
-            $this->cart = new class { public function needs_shipping() { return true; } };
+            $this->cart = new class {
+                public function needs_shipping() { return true; }
+                public function get_shipping_packages() { return array_fill( 0, $GLOBALS['status_package_count'] ?? 1, array() ); }
+            };
             $this->customer = new class {
                 public function get_shipping_country() { return 'ID'; }
                 public function get_shipping_first_name() { return 'Native recipient'; }
@@ -107,6 +121,36 @@ namespace {
         new StatusRate( 'kiriminaja-instant', array_merge( $meta, array( 'kiriof_instant_quote_expires' => 'invalid' ) ) ),
     );
     $out['available'] = $service->data();
+    // Canonical cart guards must override still-valid cached native rates and diagnostics.
+    WC()->session->set( 'kiriof_instant_checkout_status', array( '11:' . $hash => $row ) );
+    $GLOBALS['status_package_count'] = 2;
+    $out['multiple_packages'] = $service->data();
+    $GLOBALS['status_package_count'] = 1;
+    $GLOBALS['status_currency'] = 'USD';
+    $out['unsupported_currency'] = $service->data();
+    $GLOBALS['status_currency'] = 'IDR';
+    $GLOBALS['status_method_enabled'] = 'no';
+    $out['disabled_method'] = $service->data();
+    $GLOBALS['status_method_enabled'] = 'yes';
+    $GLOBALS['status_method_configured'] = false;
+    $out['removed_method'] = $service->data();
+    // Even without native rates, an old lookup failure must stay suppressed.
+    $valid_rates = WC()->shipping->packages[0]['rates'];
+    WC()->shipping->packages[0]['rates'] = array();
+    $out['removed_method_diagnostic'] = $service->data();
+    $GLOBALS['status_method_configured'] = true;
+    $GLOBALS['status_method_enabled'] = 'no';
+    $out['disabled_method_diagnostic'] = $service->data();
+    $GLOBALS['status_method_enabled'] = 'yes';
+    WC()->shipping->packages[0]['rates'] = $valid_rates;
+    $saved_wc = WC();
+    $GLOBALS['wc'] = null;
+    $out['without_wc'] = $service->data();
+    $GLOBALS['wc'] = $saved_wc;
+    $session = $saved_wc->session;
+    unset( $saved_wc->session );
+    $out['without_session'] = $service->data();
+    $saved_wc->session = $session;
     $settings = new \KiriminAjaOfficial\Repositories\SettingRepository();
     $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
     $post_meta = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();

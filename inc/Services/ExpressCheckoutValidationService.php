@@ -36,7 +36,7 @@ final class ExpressCheckoutValidationService {
         if ( '' === $service || '' === $type || ! CourierServiceCatalog::isSupportedCourier( $service, array(), 'express' ) || ! $this->settings->isCourierServiceEnabled( $service, $type ) ) {
             $this->fail();
         }
-        foreach ( array( 'setup_key', 'api_key' ) as $key ) {
+        foreach ( array( 'api_key' ) as $key ) {
             $setting = $this->settings->getSettingByKey( $key );
             if ( empty( $setting->value ) ) {
                 $this->fail();
@@ -91,17 +91,29 @@ final class ExpressCheckoutValidationService {
             if ( isset( $fees[$kind] ) ) { $fees[$kind][] = (float) $fee->get_total(); }
         }
         if ( count( $fees['insurance'] ) > 1 || count( $fees['cod_fee'] ) > 1 ) { $this->fail(); }
+        // A present package origin is authoritative, including malformed values.
+        if ( array_key_exists( 'origin', $package ) ) {
+            $origin = $package['origin'];
+        } else {
+            $locations = new ShipmentLocationService( null, $this->settings );
+            $origin = $locations->locationToOrigin( $locations->getDefaultLocation() );
+        }
+        $origin = self::normalizeOriginSnapshot( $origin );
         $response = $this->factory->calculation( array(
             'destination_area_id' => $district,
             'expedition' => $expedition,
             'is_insurance' => $insurance,
             'is_cod' => 'cod' === $payment,
             'wc_cart_contents' => WC()->cart->get_cart(),
+            'blocks_quote_validation' => true,
+            'origin' => $origin,
         ) )->call();
         if ( 200 !== $response->status || empty( $response->data['calculation_result'] ) || empty( $response->data['carts_attribute'] ) ) { $this->fail(); }
         $calc = $response->data['calculation_result'];
         $selected = $calc['selected_expedition'] ?? null;
         if ( ! is_object( $selected ) || $service !== (string) ( $selected->service ?? '' ) || $type !== (string) ( $selected->service_type ?? '' ) ) { $this->fail(); }
+        if ( 'cod' === $payment && ! in_array( $selected->cod ?? null, array( true, 1, '1', 'yes', 'true' ), true ) && ! in_array( $selected->setting->cod ?? null, array( true, 1, '1', 'yes', 'true' ), true ) ) { $this->fail(); }
+        $insurance = $insurance || ! empty( $selected->force_insurance ) || (float) ( $calc['insurance_amt'] ?? 0 ) > 0;
         $adjusted = ( new ShippingDiscountCouponService() )->getAdjustedRatePricing( $selected, (float) $calc['ongkir_fee_amt'] );
         $shipping = (float) $adjusted['cost'];
         if ( ! $this->equal( $line->get_total(), $shipping ) ) { $this->fail(); }
@@ -125,7 +137,31 @@ final class ExpressCheckoutValidationService {
         // Whitelist the calculation only; cart product objects and pricing payloads are excluded.
         $data = json_decode( wp_json_encode( array( 'calculation_result' => $calc, 'carts_attribute' => $attributes ) ), true );
         if ( ! is_array( $data ) ) { $this->fail(); }
-        return array( 'version' => 1, 'rate_id' => $rate_id, 'instance_id' => (int) $rate->get_instance_id(), 'expedition' => $expedition, 'payment_method' => $payment, 'destination_id' => $district, 'is_insurance' => $insurance, 'validated_calculation' => $data );
+        return array( 'version' => 1, 'rate_id' => $rate_id, 'instance_id' => (int) $rate->get_instance_id(), 'expedition' => $expedition, 'payment_method' => $payment, 'destination_id' => $district, 'is_insurance' => $insurance, 'validated_calculation' => $data, 'origin_snapshot' => $origin );
+    }
+
+    /** Courier address/contact fields are required; Express does not require coordinates. */
+    public static function normalizeOriginSnapshot( $origin ): array {
+        if ( ! is_array( $origin ) || ! isset( $origin['origin_sub_district_id'] )
+            || ! is_scalar( $origin['origin_sub_district_id'] )
+            || ! ctype_digit( (string) $origin['origin_sub_district_id'] )
+            || (int) $origin['origin_sub_district_id'] < 1 ) {
+            throw new \InvalidArgumentException( 'Invalid Express checkout origin.' );
+        }
+        foreach ( array( 'origin_name', 'origin_phone', 'origin_address' ) as $field ) {
+            if ( ! isset( $origin[$field] ) || ! is_scalar( $origin[$field] ) || '' === trim( (string) $origin[$field] ) ) {
+                throw new \InvalidArgumentException( 'Invalid Express checkout origin.' );
+            }
+        }
+        $snapshot = array();
+        foreach ( array( 'id', 'location_id', 'location_name', 'origin_name', 'origin_phone', 'origin_address', 'origin_address_2', 'origin_sub_district', 'origin_city', 'origin_state', 'origin_country', 'origin_sub_district_id', 'origin_zip_code', 'origin_latitude', 'origin_longitude' ) as $field ) {
+            if ( isset( $origin[$field] ) && ! is_scalar( $origin[$field] ) ) {
+                throw new \InvalidArgumentException( 'Invalid Express checkout origin.' );
+            }
+            $snapshot[$field] = in_array( $field, array( 'id', 'location_id', 'origin_sub_district_id' ), true )
+                ? (int) ( $origin[$field] ?? 0 ) : (string) ( $origin[$field] ?? '' );
+        }
+        return $snapshot;
     }
 
     private function equal( $left, $right ): bool {

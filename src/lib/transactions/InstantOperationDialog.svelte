@@ -13,10 +13,10 @@
   let rows = $state<InstantOperationRow[] | null>(null);
   let controller: AbortController | null = null;
   let disposed = false;
-  const title = $derived(i18n[mode === 'tracking' ? 'liveTracking' : mode === 'reconcile' ? 'instantReconcile' : 'instantCancel']);
+  const title = $derived(i18n[mode === 'tracking' ? 'liveTracking' : 'instantCancel']);
   function close(): void { if (busy) return; onClose(rows !== null); }
   async function run(): Promise<void> {
-    if (busy || rows !== null || orderIds.length !== 1) return;
+    if (busy || rows !== null || orderIds.length !== 1 || !['tracking', 'cancel'].includes(mode)) return;
     busy = true;
     controller = new AbortController();
     const values: Record<string, string> = { order_ids: JSON.stringify(orderIds) };
@@ -26,7 +26,7 @@
       if (disposed) return;
       rows = orderIds.map((id) => {
         const row = response.data?.rows?.find((item) => item.id === id);
-        return row && ['tracked', 'not_found', 'unknown', 'reconciled', 'cancel_requested', 'canceled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
+        return row && ['tracked', 'not_found', 'unknown', 'cancel_requested', 'canceled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
       });
     } catch {
       if (!disposed) rows = orderIds.map((id) => ({ id, status: 'unknown', tracking_url: '', message: '' }));
@@ -48,7 +48,7 @@
         <div role="status">
           <strong>{i18n[`instantResult_${row.status}`] ?? i18n.instantResult_unknown}</strong>
           {#if row.status === 'unknown'}<p>{i18n.instantOperationUnknown}</p>{:else if row.message}<p>{row.message}</p>{/if}
-          {#if trackingUrl}<Button variant="outline" href={trackingUrl} target="_blank" rel="noopener noreferrer">{i18n.liveTracking}</Button>{/if}
+          {#if mode === 'tracking' && trackingUrl}<Button variant="outline" href={trackingUrl} target="_blank" rel="noopener noreferrer">{i18n.liveTracking}</Button>{/if}
         </div>
       {/each}
     {/if}

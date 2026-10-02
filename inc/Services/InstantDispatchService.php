@@ -108,6 +108,8 @@ class InstantDispatchService {
 		}
 		$locks = array();
 		$claims = array();
+		$originals = array();
+		$prepared = array();
 		$processed = false;
 		try {
 			foreach ( $rows as $id => $row ) {
@@ -148,8 +150,13 @@ class InstantDispatchService {
 				throw new InvalidArgumentException( esc_html__( 'The selected Instant payment method is unavailable. Request a new quote.', 'kiriminaja-official' ) );
 			}
 			if ( 'credit' === $method ) {
-				if ( ! preg_match( '/\A[0-9]{6}\z/', $pin ) || true !== ( $this->api->validateCredit( $pin, $total )['status'] ?? false ) ) {
-					throw new RuntimeException( esc_html__( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
+				try {
+					$valid_credit = preg_match( '/\A[0-9]{6}\z/', $pin ) && true === ( $this->api->validateCredit( $pin, $total )['status'] ?? false );
+				} catch ( \Throwable $error ) {
+					$valid_credit = false;
+				}
+				if ( ! $valid_credit ) {
+					throw new InvalidArgumentException( esc_html__( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
 				}
 			}
 			foreach ( $rows as $id => $row ) {
@@ -160,7 +167,6 @@ class InstantDispatchService {
 			}
 			// Persist the reviewed request before any outbound booking. An ambiguous
 			// response must remain recoverable without reading mutable WooCommerce data.
-			$prepared = array();
 			foreach ( $contexts as $id => $ctx ) {
 				try {
 					$current = $this->repo->getTransactionByOrderId( (string) $id );
@@ -168,6 +174,12 @@ class InstantDispatchService {
 						throw new RuntimeException();
 					}
 					$metadata = $this->bookingMetadata( $current, $ctx, $method );
+					// Pricing is public data: commit it only with a verified booking.
+					unset( $metadata['shipping_cost'] );
+					$originals[ $id ] = array();
+					foreach ( array_keys( $metadata ) as $field ) {
+						$originals[ $id ][ $field ] = $current->{$field} ?? null;
+					}
 					$expected = array( 'order_id' => (string) $id, 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_id' => $current->instant_payment_id ?? null, 'awb' => $current->awb ?? null );
 					foreach ( array_keys( $metadata ) as $field ) {
 						$expected[ $field ] = $current->{$field} ?? null;
@@ -197,12 +209,22 @@ class InstantDispatchService {
 				if ( 'credit' === $method ) {
 					$payload['pin'] = $pin;
 				}
+				$response = null;
 				try {
 					$response = $this->api->book( $payload );
 					$data = true === ( $response['status'] ?? false ) ? $this->result( $response ) : array();
 				} catch ( \Throwable $error ) {
 					$data = array();
 				}
+				if ( isset( $response ) && $this->definiteRejection( $response ) ) {
+					// Release this rejected group and groups not submitted yet, never accepted/ambiguous ones.
+					foreach ( $claims as $claim ) {
+						$this->restorePrepared( $claim, $prepared[ $claim ] ?? array(), $originals[ $claim ] ?? array() );
+					}
+					throw new InvalidArgumentException( esc_html__( 'Unable to book the Instant shipment. Please try again.', 'kiriminaja-official' ) );
+				}
+				// Once submitted, these claims must survive any untrusted/ambiguous reply.
+				$claims = array_values( array_diff( $claims, array_map( 'strval', array_keys( $group ) ) ) );
 				$payment = $this->paymentData( $data['payment'] ?? array() );
 				// Credit never needs a QR; do not expose a credential echoed in that field.
 				if ( 'credit' === $method ) {
@@ -219,7 +241,7 @@ class InstantDispatchService {
 					}
 				}
 				foreach ( $group as $id => $ctx ) {
-					$report = array( 'id' => $id, 'status' => 'unknown', 'awb' => '', 'message' => __( 'Check remote state before retrying', 'kiriminaja-official' ) );
+					$report = array( 'id' => $id, 'status' => 'unknown', 'awb' => '', 'message' => __( 'Unable to confirm the Instant booking. Contact support before trying again.', 'kiriminaja-official' ) );
 					$matched = $matches[ $id ] ?? array();
 					if ( 1 === count( $matched ) && '' !== $payment['id'] ) {
 						try {
@@ -237,17 +259,7 @@ class InstantDispatchService {
 							// Accepted remotely but unverified locally: keep the durable claim.
 						}
 					}
-					if ( 'unknown' === $report['status'] ) {
-						try {
-							// Persist only a fixed reconciliation note; never release the claim or attach payment.
-							$current = $this->repo->getTransactionByOrderId( (string) $id );
-							if ( is_object( $current ) && 'pending' === $current->status && empty( $current->instant_status_code ) && empty( $current->rejected_reason ) ) {
-								$this->repo->compareAndSwapInstant( (string) $id, array( 'order_id' => $id, 'status' => 'pending', 'instant_status_code' => $current->instant_status_code ?? null, 'rejected_reason' => $current->rejected_reason ?? null ), array( 'rejected_reason' => 'Check remote state before retrying' ) );
-							}
-						} catch ( \Throwable $error ) {
-							// A failed issue write must not turn an ambiguous booking into a success.
-						}
-					}
+
 					$result['rows'][] = $report;
 				}
 				if ( ! empty( $payment['order_ids'] ) ) {
@@ -259,13 +271,57 @@ class InstantDispatchService {
 		} finally {
 			if ( ! $processed ) {
 				foreach ( $claims as $id ) {
-					$this->repo->releaseInstantDispatch( $id );
+					$this->restorePrepared( $id, $prepared[ $id ] ?? array(), $originals[ $id ] ?? array() );
 				}
 			}
 			foreach ( $locks as $lock => $lease ) {
 				$this->deleteLease( $lock, $lease );
 			}
 		}
+	}
+
+	/** Roll back only our exact unconfirmed snapshot; callbacks must always win. */
+	private function restorePrepared( string $id, array $prepared, array $original ): void {
+		$condition = array( 'order_id' => $id, 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_id' => null, 'awb' => null ) + $prepared;
+		$row = $this->repo->getTransactionByOrderId( $id );
+		if ( ! is_object( $row ) ) {
+			return;
+		}
+		foreach ( array( 'instant_payment_id', 'awb' ) as $field ) {
+			if ( ! in_array( $row->{$field} ?? null, array( null, '' ), true ) ) {
+				return;
+			}
+			$condition[ $field ] = $row->{$field} ?? null;
+		}
+		if ( empty( $prepared ) ) {
+			$this->repo->releaseInstantDispatch( $id );
+			return;
+		}
+		$this->repo->compareAndSwapInstant( $id, $condition, array( 'status' => 'new' ) + $original );
+	}
+
+	/** Only a structured negative result without a remote identity is definitive. */
+	private function definiteRejection( array $response ): bool {
+		if ( false !== ( $response['status'] ?? null ) ) {
+			return false;
+		}
+		$data = $response['data'] ?? null;
+		if ( ! is_array( $data ) && ! is_object( $data ) ) {
+			return false;
+		}
+		$data = (array) $data;
+		$result = $data['result'] ?? $data['results'] ?? null;
+		if ( ! is_array( $result ) && ! is_object( $result ) ) {
+			return false;
+		}
+		$result = (array) $result;
+		// Unexpected nested identities/shapes may represent an accepted shipment.
+		foreach ( array( 'id', 'payment_id', 'payment', 'packages', 'awb', 'result', 'results' ) as $field ) {
+			if ( ! empty( $result[ $field ] ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public function refreshPayment( array $ids, string $payment_id ): array {
@@ -423,7 +479,7 @@ class InstantDispatchService {
 				throw new RuntimeException();
 			}
 		}
-		return $metadata + array( 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ) );
+		return array( 'shipping_cost' => $ctx['price'] ) + $metadata + array( 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ) );
 	}
 
 	/** Trusted local request metadata only: no acceptance timestamp or credentials. */
@@ -437,6 +493,7 @@ class InstantDispatchService {
 		$snapshot['destination_latitude'] = $destination['latitude'];
 		$snapshot['destination_longitude'] = $destination['longitude'];
 		$snapshot['instant_items'] = $ctx['package']['items'];
+		$snapshot['instant_shipping_cost'] = $ctx['price'];
 		$origin = $ctx['origin'];
 		$origin['timezone'] = $ctx['pricing']['timezone'];
 		$changes = array( 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_payment_method' => $method, 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );

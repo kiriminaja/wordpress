@@ -115,6 +115,31 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         );
         return $this->hasError() ? false : $query;
     }
+
+    /**
+     * Find an unambiguous transaction for verified Store API replay.
+     *
+     * @param int|string $id Positive WooCommerce order ID.
+     * @return object|null|false Single transaction, absence, or lookup/ambiguity failure.
+     */
+    public function getUniqueTransactionByWCOrderId( $id ) {
+        if ( ! ( is_int( $id ) || is_string( $id ) ) || ! preg_match( '/^[1-9][0-9]*$/D', (string) $id ) || (int) $id <= 0 || (string) (int) $id !== (string) $id ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Replay must detect duplicate rows instead of accepting the first match.
+        $rows = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE wp_wc_order_stat_order_id = %d LIMIT 2",
+                (int) $id
+            )
+        );
+        if ( $this->hasError() || ! is_array( $rows ) || count( $rows ) > 1 ) {
+            return false;
+        }
+
+        return empty( $rows ) ? null : ( is_object( $rows[0] ) ? $rows[0] : false );
+    }
     
     public function getTransactionById( int $id ) {
         $id = absint( $id );

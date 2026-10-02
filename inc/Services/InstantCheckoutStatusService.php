@@ -11,6 +11,22 @@ final class InstantCheckoutStatusService {
         if ( ! $wc || ! isset( $wc->session ) || ! $wc->session || ! is_callable( array( $wc, 'shipping' ) ) ) { return $empty; }
         $packages = $wc->shipping()->get_packages();
         if ( ! is_array( $packages ) || ! $packages ) { return $empty; }
+        if ( class_exists( '\WC_Shipping_Zones' ) ) {
+            $configured = false;
+            foreach ( $packages as $package ) {
+                $zone = \WC_Shipping_Zones::get_zone_matching_package( $package );
+                foreach ( $zone->get_shipping_methods( true ) as $method ) {
+                    if ( 'kiriminaja-instant' === $method->id && 'yes' === $method->enabled ) { $configured = true; }
+                }
+            }
+            if ( ! $configured ) { return $empty; }
+        }
+        if ( isset( $wc->cart ) && is_callable( array( $wc->cart, 'get_shipping_packages' ) ) && count( $wc->cart->get_shipping_packages() ) > 1 ) {
+            return array( 'eligible' => false, 'code' => 'packages_invalid', 'message' => __( 'Instant delivery is available only for a single shipping package. Please choose another shipping method.', 'kiriminaja-official' ), 'expires_at' => 0 );
+        }
+        if ( function_exists( 'get_woocommerce_currency' ) && 'IDR' !== get_woocommerce_currency() ) {
+            return array( 'eligible' => false, 'code' => 'currency_unsupported', 'message' => __( 'Instant delivery supports IDR checkout currency only. Please choose another shipping method.', 'kiriminaja-official' ), 'expires_at' => 0 );
+        }
         $expires = array();
         foreach ( $packages as $package ) {
             foreach ( $package['rates'] ?? array() as $rate ) {

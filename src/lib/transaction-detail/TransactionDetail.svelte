@@ -32,6 +32,7 @@
         type TransactionActionDialog,
     } from "$lib/transactions/TransactionActionDialogs.svelte";
     import type { TrackingResponse, TransactionDetailBootstrap } from "./types";
+    import InstantRouteMap from "./InstantRouteMap.svelte";
 
     let {
         bootstrap,
@@ -146,7 +147,6 @@
                 {#if liveTrackingUrl}<Button variant="outline" href={liveTrackingUrl} target="_blank" rel="noopener noreferrer">{i18n.liveTracking}</Button>
                 {:else}<Button variant="outline" onclick={() => (instantOperation = 'tracking')}>{i18n.liveTracking}</Button>{/if}
             {/if}
-            {#if transaction.actions.reconcile}<Button variant="outline" onclick={() => (instantOperation = 'reconcile')}>{i18n.instantReconcile}</Button>{/if}
         {/if}
     </Toolbar>
 
@@ -239,6 +239,10 @@
                     {/if}
                 </Card.Content>
             </KiriofCard>
+
+            {#if transaction.deliveryType === 'instant'}
+                <InstantRouteMap data={transaction.shipment.routeMap} config={bootstrap.map} {i18n} />
+            {/if}
 
             <section
                 class="!grid gap-4 md:grid-cols-2"

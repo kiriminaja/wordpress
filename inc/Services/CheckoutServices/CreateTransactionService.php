@@ -129,8 +129,9 @@ class CreateTransactionService extends BaseService{
             }
             // $expeditionParts already computed above for deficit detection.
             $shipmentLocationService = $this->shipment_location_service;
-            $checkoutOriginLocation  = $shipmentLocationService->getDefaultLocation();
-            $checkoutOriginSnapshot  = $shipmentLocationService->locationToOrigin( $checkoutOriginLocation );
+            $checkoutOriginSnapshot = ! empty( $this->payload['blocks_validated'] )
+                ? $this->payload['express_origin_snapshot']
+                : $shipmentLocationService->locationToOrigin( $shipmentLocationService->getDefaultLocation() );
             $payload = [
                 'order_id'                      => $this->payload['express_invoice'] ?? $this->order_id_generator->call(),
                 'shipping_info'                 => wp_json_encode($requiredPostMeta['data']),
@@ -177,14 +178,20 @@ class CreateTransactionService extends BaseService{
                             return self::error( array(), 'Express transaction could not be verified.' );
                         }
                     }
+                    if ( (int) ( $saved_payload['shipment_location_id'] ?? 0 ) !== (int) $payload['shipment_location_id']
+                        || json_decode( (string) ( $saved_payload['shipment_location_snapshot'] ?? '' ), true ) !== $checkoutOriginSnapshot ) {
+                        return self::error( array(), 'Express transaction could not be verified.' );
+                    }
                     $payload = $saved_payload;
                 } else {
                     $order->update_meta_data( '_kiriof_express_transaction_payload', $payload );
                     $order->save_meta_data();
                 }
-                $existing = $this->transaction_repository->getTransactionByWCOrderId( $this->payload['order_id'] );
+                $existing = is_callable( array( $this->transaction_repository, 'getUniqueTransactionByWCOrderId' ) )
+                    ? $this->transaction_repository->getUniqueTransactionByWCOrderId( $this->payload['order_id'] )
+                    : $this->transaction_repository->getTransactionByWCOrderId( $this->payload['order_id'] );
                 // A repository error is not evidence that a transaction is absent.
-                if ( false === $existing ) {
+                if ( false === $existing || ( null !== $existing && ! is_object( $existing ) ) ) {
                     return self::error( array(), 'Express transaction could not be verified.' );
                 }
                 if ( $existing ) {
@@ -194,6 +201,9 @@ class CreateTransactionService extends BaseService{
                             : (string) $existing->$field !== (string) ( $payload[$field] ?? '' ) ) ) {
                             return self::error( array(), 'Express transaction could not be verified.' );
                         }
+                    }
+                    if ( json_decode( (string) ( $existing->shipment_location_snapshot ?? '' ), true ) !== $checkoutOriginSnapshot ) {
+                        return self::error( array(), 'Express transaction could not be verified.' );
                     }
                     return self::success( array(), 'success' );
                 }
@@ -266,6 +276,8 @@ class CreateTransactionService extends BaseService{
             if ( ! is_array( $context ) || ! is_array( $calculation ) || empty( $calculation['calculation_result'] ) || empty( $calculation['carts_attribute'] ) ) {
                 return $this->expressFailure( $order );
             }
+            // Old contexts without an origin cannot safely reconstruct a shipment.
+            $this->payload['express_origin_snapshot'] = \KiriminAjaOfficial\Services\ExpressCheckoutValidationService::normalizeOriginSnapshot( $context['origin_snapshot'] ?? null );
             $calc = $calculation['calculation_result'];
             if ( ! isset( $calc['calc_total_amt'] ) || ! is_array( $calc['selected_expedition'] ?? null ) ) { return $this->expressFailure( $order ); }
             $this->payload['kiriof_expedition'] = $context['expedition'];

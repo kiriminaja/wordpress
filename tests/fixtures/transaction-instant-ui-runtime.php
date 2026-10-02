@@ -38,6 +38,8 @@ namespace {
     require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
     // Load the production static lifecycle guards; no repository instance is needed.
     require ABSPATH . 'inc/Services/InstantShipmentState.php';
+    require ABSPATH . 'inc/Services/InstantTrackingPresentation.php';
+    require ABSPATH . 'inc/Services/InstantDetailMapData.php';
     require ABSPATH . 'inc/Services/TransactionProcessServices/RecipientDataResolver.php';
     require ABSPATH . 'inc/Services/InstantShipmentContext.php';
     require ABSPATH . 'inc/Services/InstantLabelService.php';

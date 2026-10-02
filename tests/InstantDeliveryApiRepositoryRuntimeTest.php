@@ -14,6 +14,42 @@ namespace KiriminAja\Base\Api {
 			return $GLOBALS['transport'];
 		}
 
+	public function test_booking_preserves_only_proven_empty_negative_results_without_secrets(): void {
+		foreach ( array( 'array()', '(object) array()' ) as $empty ) {
+			foreach ( array( 'result', 'results' ) as $field ) {
+				$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, array( "status" => false, "code" => 400, "message" => "PIN 123456 private-token", "text" => "private address", "' . $field . '" => ' . $empty . ' ) ); $response = $repository->book( $book ); $result = array( "response" => $response, "object" => is_object( $response["data"] ), "empty_object" => is_object( $response["data"]->result ) );' );
+				$this->assertSame( array( 'status' => false, 'data' => array( 'status' => false, 'result' => array() ), 'operation_rejected' => true ), $fixture['result']['response'] );
+				$this->assertTrue( $fixture['result']['object'] );
+				$this->assertTrue( $fixture['result']['empty_object'] );
+				$this->assertCount( 1, $fixture['calls'] );
+				$this->assertSame( array(), $fixture['logs'] );
+			}
+		}
+	}
+
+	public function test_booking_ambiguous_negatives_remain_unknown_and_sanitized(): void {
+		foreach ( array(
+			'array( "status" => false )',
+			'array( "status" => false, "code" => 400, "result" => null )',
+			'array( "status" => "false", "result" => array() )',
+			'array( "status" => 0, "result" => array() )',
+			'array( "status" => false, "result" => "123456" )',
+			'array( "status" => false, "result" => array( "payment_id" => "payment-1" ) )',
+			'array( "status" => false, "result" => array( "packages" => array( array( "order_id" => "order-1" ) ) ) )',
+			'array( "status" => false, "result" => array(), "results" => null )',
+			'array( "status" => false, "result" => array(), "results" => array( "id" => "remote-id" ) )',
+			'array( "status" => false, "result" => array(), "payment_id" => "remote-id" )',
+			'array( "status" => false, "result" => array(), "extra" => array( "id" => "remote-id" ) )',
+		) as $body ) {
+			$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, ' . $body . ' ); $result = $repository->book( $book );' );
+			$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['result'] );
+			$this->assertCount( 1, $fixture['calls'] );
+			$this->assertSame( array(), $fixture['logs'] );
+		}
+		$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( false, array( "status" => false, "result" => array() ) ); $result = $repository->book( $book );' );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['result'] );
+	}
+
 	public function test_booking_accepts_cash_and_omitted_top_account_method_without_a_pin(): void {
 		foreach ( array( '$book["payment_method"] = "cash";', 'unset( $book["payment_method"] );' ) as $mutation ) {
 			$fixture = $this->run_fixture( $mutation . 'unset( $book["pin"] ); $result = $repository->book( $book );' );

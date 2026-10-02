@@ -97,7 +97,8 @@ namespace {
         $result['amount_before'] = $order->get_total();
         if ( 'failure' === $scenario || 'retry' === $scenario ) { $GLOBALS['transaction_status'] = 500; }
         if ( 'throw' === $scenario ) { $GLOBALS['transaction_throw'] = true; }
-        if ( 'pending' === $scenario ) { $GLOBALS['existing_transaction'] = (object) array( 'status' => 'pending' ); }
+        if ( in_array( $scenario, array( 'pending', 'pending-conflict' ), true ) ) { $GLOBALS['existing_transaction'] = (object) array( 'status' => 'pending' ); }
+        if ( 'pending-conflict' === $scenario ) { $GLOBALS['transaction_status'] = 503; }
         do_action( 'woocommerce_store_api_checkout_order_processed', $order );
     } catch ( \Throwable $error ) {
         $result['error'] = array( 'class' => get_class( $error ), 'code' => $error->errorCode ?? null, 'status' => $error->status ?? null, 'message' => $error->getMessage() );

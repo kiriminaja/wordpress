@@ -10,7 +10,7 @@ final class ExpressCheckoutValidationRuntimeTest extends TestCase {
 
     #[Test]
     public function rejects_invalid_selection_and_late_policy_without_calculation(): void {
-        foreach ( array( 'disabled', 'disconnected', 'unknown', 'zone', 'price', 'duplicate', 'cod', 'street', 'country', 'missing-field' ) as $mode ) {
+        foreach ( array( 'disabled', 'disconnected', 'unknown', 'zone', 'price', 'duplicate', 'cod', 'street', 'country', 'missing-field', 'malformed-origin' ) as $mode ) {
             $result = $this->runCase( $mode );
             $this->assertFalse( $result['ok'], $mode );
             $this->assertSame( 0, $result['calls'], $mode );
@@ -38,6 +38,19 @@ final class ExpressCheckoutValidationRuntimeTest extends TestCase {
             $this->assertStringNotContainsString( 'private-', json_encode( $result['snapshot'] ) );
         }
     }
+    #[Test]
+    public function pins_effective_full_origin_for_pricing_and_retries(): void {
+        foreach ( array( 'valid' => 456, 'custom-origin' => 789 ) as $mode => $district ) {
+            $result = $this->runCase( $mode );
+            $this->assertTrue( $result['ok'] );
+            $this->assertSame( $district, $result['snapshot']['origin_snapshot']['origin_sub_district_id'] );
+            $this->assertSame( $result['pricing_origin'], $result['snapshot']['origin_snapshot'] );
+            foreach ( array( 'origin_name', 'origin_phone', 'origin_address' ) as $field ) {
+                $this->assertNotEmpty( $result['snapshot']['origin_snapshot'][$field] );
+            }
+        }
+    }
+
     #[Test]
     public function leaves_tax_and_currency_to_woocommerce(): void {
         // The quote is compared in Woo's current monetary unit, not converted/repriced.

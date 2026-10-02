@@ -7,6 +7,23 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantDispatchRuntimeTest extends TestCase {
     #[Test]
+    public function definite_rejection_restores_all_unsubmitted_rows_and_public_prices(): void {
+        $r = $this->runFixture(['count'=>11, 'definite_rejection'=>true]);
+        $this->assertSame('Unable to book the Instant shipment. Please try again.', $r['error']);
+        $this->assertCount(1, $r['books']);
+        foreach ($r['rows'] as $row) {
+            $this->assertSame('new', $row['status']);
+            $this->assertSame(15000, $row['shipping_cost']);
+            $this->assertSame('{"_shipping_city":"Saved City","custom":"keep"}', $row['shipping_info']);
+            $this->assertEmpty($row['instant_payment_id'] ?? null);
+            $this->assertEmpty($row['rejected_reason'] ?? null);
+            $this->assertEmpty($row['instant_payment_method'] ?? null);
+        }
+        $this->assertSame([], $r['options']);
+        $this->assertStringNotContainsString('Secret upstream error', json_encode($r));
+    }
+
+    #[Test]
     public function saved_database_decimal_prices_are_returned_as_numeric_json(): void {
         $r = $this->runFixture( array( 'quote_only' => true, 'row' => array( 'shipping_cost' => '15000.00' ) ) );
         $this->assertSame( 15000, $r['quote']['rows'][0]['before'] );
@@ -171,20 +188,14 @@ final class InstantDispatchRuntimeTest extends TestCase {
             $r = $this->runFixture($input + ['retry'=>true,'can_select'=>true]);
             $this->assertSame('', $r['error']);
             $this->assertSame('unknown', $r['dispatch']['rows'][0]['status'], json_encode($input));
-            $this->assertSame('Check remote state before retrying', $r['dispatch']['rows'][0]['message']);
+            $this->assertSame('Unable to confirm the Instant booking. Contact support before trying again.', $r['dispatch']['rows'][0]['message']);
             $this->assertSame('pending', $r['rows'][0]['status']);
             $this->assertSame([false], $r['can_select']);
             $this->assertSame([], $r['dispatch']['payments']);
             $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
             $this->assertArrayNotHasKey('instant_status_code', $r['rows'][0]);
-            $issueWrite = $r['writes'][count($r['writes']) - 1];
-            $this->assertSame(['condition'=>['order_id'=>'KA-1','status'=>'pending','instant_status_code'=>null,'rejected_reason'=>null],'changes'=>['rejected_reason'=>'Check remote state before retrying']], $issueWrite);
-            $this->assertCount(!empty($input['write_fail']) ? 5 : 2, $r['writes']);
-            if (empty($input['write_fail'])) {
-                $this->assertSame('Check remote state before retrying', $r['rows'][0]['rejected_reason']);
-            } else {
-                $this->assertArrayNotHasKey('rejected_reason', $r['rows'][0]);
-            }
+            $this->assertSame(15000, $r['rows'][0]['shipping_cost']);
+            $this->assertArrayNotHasKey('rejected_reason', $r['rows'][0]);
             $this->assertStringNotContainsString('Secret upstream error', json_encode($r));
             $this->assertStringNotContainsString('Secret issue write error', json_encode($r));
             $this->assertSame([], $r['releases']);
@@ -195,7 +206,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $r = $this->runFixture(['count'=>2,'missing'=>true]);
         $this->assertSame(['unknown','booked'], array_column($r['dispatch']['rows'],'status'));
         $this->assertSame(['KA-2'], $r['dispatch']['payments'][0]['order_ids']);
-        $this->assertSame('Check remote state before retrying', $r['rows'][0]['rejected_reason']);
+        $this->assertArrayNotHasKey('rejected_reason', $r['rows'][0]);
         $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
         $this->assertArrayNotHasKey('rejected_reason', $r['rows'][1]);
     }
@@ -205,12 +216,12 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $r = $this->runFixture(['timeout'=>true,'issue_write_throw'=>true,'retry'=>true,'can_select'=>true]);
         $this->assertSame('', $r['error']);
         $this->assertSame('unknown', $r['dispatch']['rows'][0]['status']);
-        $this->assertSame('Check remote state before retrying', $r['dispatch']['rows'][0]['message']);
+        $this->assertSame('Unable to confirm the Instant booking. Contact support before trying again.', $r['dispatch']['rows'][0]['message']);
         $this->assertSame('pending', $r['rows'][0]['status']);
         $this->assertSame([false], $r['can_select']);
         $this->assertArrayNotHasKey('rejected_reason', $r['rows'][0]);
         $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
-        $this->assertCount(2, $r['writes']);
+        $this->assertCount(1, $r['writes']);
         $this->assertCount(1, $r['books']);
         $this->assertSame([], $r['dispatch']['payments']);
         $this->assertSame([], $r['releases']);
@@ -390,7 +401,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
                 $this->assertArrayHasKey('instant_items', json_decode($r['rows'][0]['shipping_info'], true));
                 $this->assertSame('WIB', json_decode($r['rows'][0]['shipment_location_snapshot'], true)['timezone']);
                 foreach (['shipping_info','shipment_location_snapshot','shipping_cost','vehicle','instant_payment_method'] as $field) {
-                    $this->assertSame($r['prepared_at_book'][0]['KA-1'][$field], $r['rows'][0][$field]);
+                    $this->assertSame('shipping_cost' === $field ? 18000 : $r['prepared_at_book'][0]['KA-1'][$field], $r['rows'][0][$field]);
                 }
                 $this->assertCount(1, $r['books']);
                 $this->assertSame([], $r['releases']);
@@ -463,7 +474,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $this->assertCount(11, $r['prepared_at_book'][0]);
         foreach ($r['prepared_at_book'][0] as $id=>$row) {
             $this->assertSame('pending', $row['status']);
-            $this->assertSame(18000, $row['shipping_cost']);
+            $this->assertSame(15000, $row['shipping_cost']);
             $this->assertSame('credit', $row['instant_payment_method']);
             $this->assertSame('motor', $row['vehicle']);
             $this->assertSame('WIB', json_decode($row['shipment_location_snapshot'], true)['timezone']);
@@ -484,12 +495,12 @@ final class InstantDispatchRuntimeTest extends TestCase {
             $r = $this->runFixture(['count'=>2, $failure=>'KA-2']);
             $this->assertSame('Unable to save the prepared Instant shipment.', $r['error']);
             $this->assertSame(['KA-1','KA-2'], $r['claims']);
-            $this->assertSame(['KA-1','KA-2'], $r['releases']);
+            $this->assertSame(['KA-2'], $r['releases']);
             $this->assertSame(['new','new'], array_column($r['rows'], 'status'));
             $this->assertSame([], $r['books']);
             $this->assertSame([], $r['options']);
             $this->assertNotEmpty($r['transients']);
-            $this->assertArrayHasKey('instant_items', json_decode($r['rows'][0]['shipping_info'], true));
+            $this->assertArrayNotHasKey('instant_items', json_decode($r['rows'][0]['shipping_info'], true));
             $this->assertArrayNotHasKey('instant_items', json_decode($r['rows'][1]['shipping_info'], true));
             $this->assertSame([false,false], $r['can_print']);
             $this->assertStringNotContainsString('Secret snapshot error', json_encode($r));
@@ -512,7 +523,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $this->assertSame('request_pickup', $r['rows'][0]['status']);
         $this->assertSame([true], $r['can_print']);
         foreach (['shipping_info','shipment_location_snapshot','shipping_cost','vehicle','instant_payment_method'] as $field) {
-            $this->assertSame($r['prepared_at_book'][0]['KA-1'][$field], $r['rows'][0][$field]);
+            $this->assertSame('shipping_cost' === $field ? 18000 : $r['prepared_at_book'][0]['KA-1'][$field], $r['rows'][0][$field]);
         }
         $this->assertArrayNotHasKey('instant_payment_id', $r['rows'][0]);
         $this->assertSame([], $r['releases']);

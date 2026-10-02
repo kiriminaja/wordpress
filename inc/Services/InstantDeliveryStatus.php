@@ -44,9 +44,11 @@ final class InstantDeliveryStatus {
 		$key       = null === $raw_code ? self::local_key( $row['status'] ?? null, $has_awb ) : self::remote_key( $code, $payment, $has_awb );
 		$result    = self::presentation( $key );
 
-		if ( null === $raw_code && 'pending' === ( $row['status'] ?? null ) && 'Check remote state before retrying' === ( $row['rejected_reason'] ?? null ) ) {
-			$result          = self::presentation( 'unknown' );
-			$result['issue'] = __( 'Check remote state before retrying', 'kiriminaja-official' );
+		$snapshot = json_decode( (string) ( $row['shipping_info'] ?? '' ), true );
+		// An unconfirmed durable claim is private duplicate protection, not a shipment issue.
+		if ( null === $raw_code && 'pending' === ( $row['status'] ?? null ) && empty( $row['instant_payment_id'] ) && ! $has_awb
+			&& ( ( is_array( $snapshot ) && isset( $snapshot['instant_items'] ) ) || 'Check remote state before retrying' === ( $row['rejected_reason'] ?? null ) ) ) {
+			$result = self::presentation( 'waiting_for_shipment' );
 		}
 
 		if ( null !== $raw_code ) {

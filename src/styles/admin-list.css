@@ -440,6 +440,13 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-instant-process-dialog dl dd {
   @apply !m-0;
 }
+.kiriof-instant-process-dialog h3,
+.kiriof-instant-process-dialog [data-slot='alert-description'] p {
+  @apply !m-0;
+}
+.kiriof-instant-process-dialog [data-slot='alert'] {
+  @apply !px-3 !py-2;
+}
 .kiriof-transaction-dialog-content [data-slot='field-description'] {
   @apply !text-muted-foreground !text-xs;
 }

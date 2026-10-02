@@ -1,7 +1,17 @@
 import type { ToolbarConfig } from '$lib/ui/toolbar';
 import type { InstantStatusPresentation, TransactionActionData } from '$lib/transactions/types';
 
+export type InstantRouteCoordinate = { latitude: number; longitude: number };
+export type InstantRouteMapData = {
+  origin: InstantRouteCoordinate | null;
+  destination: InstantRouteCoordinate | null;
+  points: Array<[number, number]>;
+  mode: 'recorded' | 'illustration' | 'unavailable';
+};
+export type InstantRouteMapConfig = { tiles: string; attribution: string; enabled: boolean };
+
 export type TransactionDetailBootstrap = {
+  map?: InstantRouteMapConfig;
   toolbar: ToolbarConfig;
   transaction: {
     deliveryType: 'express' | 'instant';
@@ -23,6 +33,7 @@ export type TransactionDetailBootstrap = {
     items: Array<{ name: string; quantity: number; total: number; sku: string }>;
     notes: Array<{ label: string; content: string }>;
     shipment: {
+      routeMap?: InstantRouteMapData | null;
       courier: { code: string; service: string };
       awb: string;
       paymentStatus: string;
@@ -47,7 +58,7 @@ export type TransactionDetailBootstrap = {
     };
     actions: {
       track: boolean;
-      reconcile: boolean;
+      reconcile?: false;
       changeOrigin: boolean;
       adjustDeficit: boolean;
       cancelDeficit: boolean;

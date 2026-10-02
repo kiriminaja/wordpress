@@ -11,10 +11,25 @@ final class InstantCheckoutStatusRuntimeTest extends TestCase {
         return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
     }
 
+    public function test_canonical_package_and_currency_guards_override_valid_cached_native_rates(): void {
+        $result = $this->fixture();
+        $this->assertTrue( $result['available']['eligible'] );
+        $this->assertSame( array( 'eligible' => false, 'code' => 'packages_invalid', 'message' => 'Instant delivery is available only for a single shipping package. Please choose another shipping method.', 'expires_at' => 0 ), $result['multiple_packages'] );
+        $this->assertSame( array( 'eligible' => false, 'code' => 'currency_unsupported', 'message' => 'Instant delivery supports IDR checkout currency only. Please choose another shipping method.', 'expires_at' => 0 ), $result['unsupported_currency'] );
+    }
+
+    public function test_disabled_or_removed_methods_suppress_cached_rates_and_previous_lookup_messages(): void {
+        $result = $this->fixture();
+        $empty = array( 'eligible' => false, 'code' => 'inactive', 'message' => '', 'expires_at' => 0 );
+        foreach ( array( 'disabled_method', 'removed_method', 'disabled_method_diagnostic', 'removed_method_diagnostic', 'without_wc', 'without_session' ) as $scenario ) {
+            $this->assertSame( $empty, $result[$scenario], $scenario );
+        }
+    }
+
     public function test_current_native_rates_use_earliest_valid_instant_expiry_without_private_metadata(): void {
         $result = $this->fixture();
         $this->assertSame( array( 'eligible' => true, 'code' => 'available', 'message' => '', 'expires_at' => $result['now'] + 300 ), $result['available'] );
-        foreach ( array( 'inactive', 'matching', 'stale', 'changed_contents', 'unknown_code', 'expired', 'available' ) as $scenario ) {
+        foreach ( array( 'inactive', 'matching', 'stale', 'changed_contents', 'unknown_code', 'expired', 'available', 'multiple_packages', 'unsupported_currency', 'disabled_method', 'removed_method', 'disabled_method_diagnostic', 'removed_method_diagnostic', 'without_wc', 'without_session' ) as $scenario ) {
             $this->assertSame( array( 'eligible', 'code', 'message', 'expires_at' ), array_keys( $result[$scenario] ), $scenario );
             $this->assertStringNotContainsString( 'PRIVATE', json_encode( $result[$scenario] ), $scenario );
         }

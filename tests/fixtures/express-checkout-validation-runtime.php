@@ -6,6 +6,11 @@ namespace KiriminAjaOfficial\Repositories {
     }
 }
 namespace KiriminAjaOfficial\Services {
+    class ShipmentLocationService {
+        public function __construct( ...$args ) {}
+        public function getDefaultLocation() { return (object) array(); }
+        public function locationToOrigin( $location ) { return array( 'location_id' => 4, 'origin_name' => 'Store', 'origin_phone' => '08123456789', 'origin_address' => 'Store address', 'origin_sub_district_id' => 456 ); }
+    }
     class CheckoutServiceFactory {
         public function districtSearch( $postcode ) { return (object) array( 'status' => 200, 'data' => array( array( 'id' => 123, 'text' => 'Verified district' ) ) ); }
         public function createTransaction( $data ) {
@@ -15,7 +20,7 @@ namespace KiriminAjaOfficial\Services {
                 return (object) array( 'status' => $GLOBALS['transaction_status'] ?? 200 );
             } };
         }
-        public function calculation( $payload ) { ++$GLOBALS['calls']; return new class {
+        public function calculation( $payload ) { $GLOBALS['calculation_payload'] = $payload; ++$GLOBALS['calls']; return new class {
             public function call() { return (object) array( 'status' => 200, 'data' => array( 'calculation_result' => array( 'selected_expedition' => (object) array( 'service' => 'jne', 'service_type' => 'REG', 'force_insurance' => false, 'api_key' => 'private-selected-secret' ), 'cart_total_amt' => 100, 'cart_total_after_discount' => 100, 'insurance_amt' => 2, 'cod_amt' => 0, 'ongkir_fee_amt' => 10, 'ongkir_fee_raw' => 10, 'payload' => array( 'api_key' => 'private-calc-secret' ) ), 'carts_attribute' => array( 'weight' => 1000, 'length' => 1, 'width' => 1, 'height' => 1, 'private_token' => 'private-attribute-secret' ) ) ); }
         }; }
     }
@@ -66,7 +71,10 @@ namespace {
             if ( 'street' === $GLOBALS['mode'] ) { $destination['address_1'] = 'Tampered street'; }
             if ( 'country' === $GLOBALS['mode'] ) { $destination['country'] = 'US'; }
             if ( 'missing-field' === $GLOBALS['mode'] ) { unset( $destination['address_2'] ); }
-            return array( array( 'destination' => $destination, 'rates' => array( 'kiriminaja-official_jne_REG' => new Rate() ) ) );
+            $package = array( 'destination' => $destination, 'rates' => array( 'kiriminaja-official_jne_REG' => new Rate() ) );
+            if ( 'custom-origin' === $GLOBALS['mode'] ) { $package['origin'] = array( 'location_id' => 8, 'origin_name' => 'Custom store', 'origin_phone' => '08123456789', 'origin_address' => 'Custom address', 'origin_sub_district_id' => 789 ); }
+            if ( 'malformed-origin' === $GLOBALS['mode'] ) { $package['origin'] = null; }
+            return array( $package );
         } }; }
     }
     function WC() { static $woo; return $woo ?? ( $woo = new Woo() ); }
@@ -76,6 +84,7 @@ namespace {
     try {
         $service = new \KiriminAjaOfficial\Services\ExpressCheckoutValidationService( new \KiriminAjaOfficial\Repositories\SettingRepository(), new \KiriminAjaOfficial\Services\CheckoutServiceFactory() );
         $data = $service->validate( new Order(), 123, 'cod' === $GLOBALS['mode'] ? 'cod' : 'bacs', true );
-        echo json_encode( array( 'ok' => true, 'calls' => $GLOBALS['calls'], 'snapshot' => $data ) );
+        if ( $data['origin_snapshot'] !== $GLOBALS['calculation_payload']['origin'] || ( 'custom-origin' === $GLOBALS['mode'] && 789 !== $data['origin_snapshot']['origin_sub_district_id'] ) ) { throw new \RuntimeException( 'Pricing and durable origin differ' ); }
+        echo json_encode( array( 'ok' => true, 'calls' => $GLOBALS['calls'], 'snapshot' => $data, 'pricing_origin' => $GLOBALS['calculation_payload']['origin'] ) );
     } catch ( \Throwable $e ) { echo json_encode( array( 'ok' => false, 'calls' => $GLOBALS['calls'], 'error' => $e->getMessage() ) ); }
 }
