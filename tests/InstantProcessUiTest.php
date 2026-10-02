@@ -5,11 +5,11 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantProcessUiTest extends TestCase {
-    public function test_collapsible_uses_composed_ghost_button_and_scoped_native_style_reset(): void {
+    public function test_collapsible_uses_visible_composed_button_and_scoped_native_style_reset(): void {
         $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
         $css = $this->source('src/styles/admin-list.css');
         $this->assertStringContainsString('{#snippet child({ props })}', $source);
-        $this->assertStringContainsString('<Button {...props} variant="ghost"', $source);
+        $this->assertStringContainsString('<Button {...props} variant="outline"', $source);
         $this->assertStringContainsString('<IconChevronDown data-icon="inline-end"', $source);
         $this->assertStringNotContainsString('<Collapsible.Trigger class=', $source);
         $this->assertStringContainsString(".kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']", $css);
@@ -17,6 +17,37 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertStringContainsString('![background-image:none]', $css);
         $this->assertStringContainsString("[data-slot='collapsible-trigger']:focus-visible", $css);
         $this->assertStringContainsString('@apply !ring-3 !ring-ring/50;', $css);
+        $this->assertStringContainsString('.kiriof-instant-process-dialog .kiriof-instant-order-trigger', $css);
+        $this->assertStringContainsString('!border !border-border !bg-background', $css);
+    }
+
+    public function test_instant_uses_radio_cards_and_separate_masked_pin_step(): void {
+        $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
+        $pin = $this->source('src/lib/payments/CreditPinInput.svelte');
+        $methods = $this->source('src/lib/payments/PaymentMethodSelector.svelte');
+        $this->assertStringContainsString("import CreditPinInput from '\$lib/payments/CreditPinInput.svelte'", $source);
+        $this->assertStringContainsString("import PaymentMethodSelector from '\$lib/payments/PaymentMethodSelector.svelte'", $source);
+        $this->assertStringContainsString('<PaymentMethodSelector idPrefix="instant-method" bind:value={method}', $source);
+        $this->assertStringContainsString('<CreditPinInput id="instant-credit-pin" bind:value={pin}', $source);
+        $this->assertStringContainsString('disabled={busy || expired} invalid={Boolean(error)}', $source);
+        $this->assertFileDoesNotExist(PLUGIN_DIR . '/src/lib/transactions/InstantCreditPin.svelte');
+        $this->assertStringContainsString('<RadioGroup.Root bind:value', $methods);
+        $this->assertStringContainsString('<Field.Set', $methods);
+        $this->assertStringNotContainsString('<select', $source);
+        $this->assertStringNotContainsString('<input', $source);
+        $this->assertStringContainsString("step === 'pin'", $source);
+        $this->assertStringContainsString('kiriof_instant_validate_credit', $source);
+        $this->assertStringContainsString('<InputOTP.Root', $pin);
+        $this->assertStringContainsString('maxlength={6}', $pin);
+        $this->assertStringContainsString('pattern={REGEXP_ONLY_DIGITS}', $pin);
+        $this->assertStringContainsString('type="password"', $pin);
+        $this->assertStringContainsString('<InputOTP.Slot {cell} mask', $pin);
+        $this->assertStringContainsString('cells.slice(0, 3)', $pin);
+        $this->assertStringContainsString('cells.slice(3, 6)', $pin);
+        $this->assertStringContainsString('<InputOTP.Separator />', $pin);
+        $this->assertStringContainsString('autocomplete="off" inputmode="numeric"', $pin);
+        $this->assertStringContainsString('aria-describedby={`${id}-help`}', $pin);
+        $this->assertStringContainsString('aria-invalid={invalid || undefined}', $pin);
     }
 
     public function test_instant_checkboxes_do_not_inherit_the_vertical_express_dialog_reset(): void {
@@ -82,7 +113,7 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertStringContainsString('{#if changedCount > 0}', $source);
         $this->assertStringContainsString('{#if summary.gap !== 0}', $source);
         $this->assertStringNotContainsString("text('instantQuoteValidity')", $source);
-        $this->assertStringContainsString('if (expired) pin', $source);
+        $this->assertStringContainsString("if (expired) { pin = ''; step = 'summary'; }", $source);
         preg_match_all("/text\('([^']+)'\)/", $source, $matches);
         $renderer = $this->source('inc/Services/TransactionListRenderService.php');
         foreach (array_unique($matches[1]) as $key) {

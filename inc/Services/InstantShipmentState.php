@@ -306,7 +306,7 @@ final class InstantShipmentState {
 		}
 		if ( null === $found ) {
 			// Legacy authoritative lifecycle hooks have no Instant state metadata.
-			foreach ( array( 'service', 'service_type', 'live_tracking_url', 'tracking_url', 'live_tracking' ) as $field ) {
+			foreach ( array( 'service', 'service_type', 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking' ) as $field ) {
 				if ( array_key_exists( $field, $package ) ) {
 					$this->invalid();
 				}

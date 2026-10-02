@@ -26,12 +26,16 @@ async function compiledRuntime() {
   put('dialog.ts', `export {default as Root} from './Root.svelte'; export {default as Content, default as Header, default as Title, default as Description, default as Footer} from './Container.svelte';`);
   put('field.ts', `export {default as Field} from './Container.svelte'; export {default as Label} from './Label.svelte';`);
   put('ajax.ts', `export function postWordPressAction(...args) { return globalThis.__instantDialogAjax(...args); }`);
-  put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown, default as IconLoader2} from './Icon.svelte';`);
+  put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown, default as IconLoader2, default as IconCreditCard, default as IconQrcode, default as IconMinus} from './Icon.svelte';`);
   put('qr.ts', `export function qr() { return {destroy() {}}; }`);
   let source = readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8');
   const substitutions: Record<string, string> = {
     '@tabler/icons-svelte': './icons.ts', '@svelte-put/qr/svg': './qr.ts',
-    '$lib/components/ui/dialog': './dialog.ts', '$lib/components/ui/field': './field.ts',
+    '$lib/components/ui/dialog': './dialog.ts', '$lib/components/ui/field': join(root, 'src/lib/components/ui/field/index.ts'),
+    '$lib/components/ui/radio-group': join(root, 'src/lib/components/ui/radio-group/index.ts'),
+    '$lib/utils': join(root, 'src/lib/utils.ts'),
+    '$lib/payments/CreditPinInput.svelte': join(root, 'src/lib/payments/CreditPinInput.svelte'),
+    '$lib/payments/PaymentMethodSelector.svelte': join(root, 'src/lib/payments/PaymentMethodSelector.svelte'),
     '$lib/wordpress/ajax': './ajax.ts',
     '$lib/components/ui/alert': join(root, 'src/lib/components/ui/alert/index.ts'),
     '$lib/components/ui/collapsible': join(root, 'src/lib/components/ui/collapsible/index.ts'),
@@ -46,6 +50,8 @@ async function compiledRuntime() {
   put('entry.ts', `export {mount, unmount, flushSync} from 'svelte'; export {default as Host} from './Host.svelte';`);
   const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'real-svelte-5', setup(builder) {
     builder.onResolve({ filter: /^\$lib\/utils\.js$/ }, () => ({ path: join(root, 'src/lib/utils.ts') }));
+    builder.onResolve({ filter: /^\$lib\/utils$/ }, () => ({ path: join(root, 'src/lib/utils.ts') }));
+    builder.onResolve({ filter: /^\$lib\/components\/ui\// }, (args) => ({ path: join(root, 'src/lib/components/ui', args.path.split('/')[3]!, 'index.ts') }));
     builder.onResolve({ filter: /^@tabler\/icons-svelte$/ }, () => ({ path: join(directory, 'icons.ts') }));
     builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
     builder.onLoad({ filter: /\.svelte\.[jt]s$/ }, async ({ path }) => {
@@ -71,7 +77,7 @@ async function fixture() {
   let now = 1_700_000_000_000, timerId = 0;
   const timers = new Map<number, { callback: () => void; at: number }>();
   const requests: any[] = [];
-  const globals = { window, document: window.document, navigator: window.navigator, Node: window.Node, Element: window.Element, HTMLElement: window.HTMLElement, HTMLButtonElement: window.HTMLButtonElement, SVGElement: window.SVGElement, DocumentFragment: window.DocumentFragment, HTMLInputElement: window.HTMLInputElement, HTMLSelectElement: window.HTMLSelectElement, Text: window.Text, Comment: window.Comment, Event: window.Event, CustomEvent: window.CustomEvent, MutationObserver: window.MutationObserver, getComputedStyle: window.getComputedStyle.bind(window),
+  const globals = { window, document: window.document, navigator: window.navigator, Node: window.Node, Element: window.Element, HTMLElement: window.HTMLElement, HTMLButtonElement: window.HTMLButtonElement, SVGElement: window.SVGElement, DocumentFragment: window.DocumentFragment, HTMLInputElement: window.HTMLInputElement, HTMLSelectElement: window.HTMLSelectElement, Text: window.Text, Comment: window.Comment, Event: window.Event, CustomEvent: window.CustomEvent, MutationObserver: window.MutationObserver, ResizeObserver: window.ResizeObserver, getComputedStyle: window.getComputedStyle.bind(window),
     requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
     setTimeout: (callback: () => void, delay = 0) => { timers.set(++timerId, { callback, at: now + delay }); return timerId; },
     clearTimeout: (id: number) => timers.delete(id),
@@ -90,10 +96,10 @@ async function fixture() {
   const query = (selector: string): any => target.querySelector(selector);
   const button = (label: string): any => [...target.querySelectorAll('button')].find((node: any) => node.textContent.includes(label));
   async function click(node: any) { expect(node).toBeTruthy(); node.click(); await settle(); await advance(0); }
-  async function change(selector: string, value: string) { const node = query(selector); node.value = value; node.dispatchEvent(new window.Event(selector === '#instant-pin' ? 'input' : 'change', { bubbles: true })); await settle(); }
+  async function change(selector: string, value: string) { const node = query(selector); node.value = value; node.dispatchEvent(new window.Event(selector === '#instant-credit-pin' ? 'input' : 'change', { bubbles: true })); await settle(); }
   async function reply(data: any, index = requests.length - 1) { requests[index].resolve({ data }); await settle(); }
   async function advance(ms: number) { const end = now + ms; let steps = 0; while (true) { const next = [...timers].sort((a, b) => a[1].at - b[1].at)[0]; if (!next || next[1].at > end) break; if (++steps > 1000) throw new Error('Timer loop'); now = next[1].at; timers.delete(next[0]); next[1].callback(); await settle(); } now = end; await settle(); }
-  function quote(token = 'quote-a', methods = ['top'], rows?: any[]) { return { token, expires_at: now / 1000 + 120, payment_methods: methods, batch_count: 1, rows: rows ?? Array.from({ length: 6 }, (_, i) => ({ id: String(i + 1), wc_order_number: `WC-${i + 1}`, before: 1000, after: 1000, eligible: true, changed: false, error: '' })) }; }
+  function quote(token = 'quote-a', methods = ['top'], rows?: any[]) { return { token, expires_at: now / 1000 + 120, payment_methods: methods, credit_balance: 4000724100, batch_count: 1, rows: rows ?? Array.from({ length: 6 }, (_, i) => ({ id: String(i + 1), wc_order_number: `WC-${i + 1}`, before: 1000, after: 1000, eligible: true, changed: false, error: '' })) }; }
   let destroyed = false;
   async function destroy() { if (!destroyed) { destroyed = true; await r.unmount(host); await settle(); } }
   async function cleanup() { try { await destroy(); await advance(0); expect(timers.size).toBe(0); } finally { Date.now = oldNow; window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } } }
@@ -101,6 +107,49 @@ async function fixture() {
 }
 
 describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
+  runtimeTest('payment radio cards show the 4B balance and guard genuinely insufficient or unknown credit', async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('balance', ['credit','qris']));
+      expect(h.query('select')).toBeNull(); expect(h.query('[role="radiogroup"]')).toBeTruthy();
+      expect(h.target.textContent).toContain('Rp4.000.724.100');
+      expect(h.query('#instant-credit-pin')).toBeNull();
+      await h.click(h.query('#instant-method-credit'));
+      expect(h.query('#instant-method-credit').getAttribute('aria-checked')).toBe('true');
+      expect(h.button('instantContinuePayment').disabled).toBe(false);
+      await h.click(h.button('instantContinuePayment')); await h.change('#instant-credit-pin', '123456');
+      await h.click(h.button('instantBackSummary'));
+      expect(h.query('#instant-credit-pin')).toBeNull();
+      await h.click(h.button('instantContinuePayment'));
+      expect(h.query('#instant-credit-pin').value).toBe('');
+      expect(h.requests).toHaveLength(1);
+    } finally { await h.cleanup(); }
+    for (const balance of [null, 0, 5999, '4000724100', -1, Infinity]) {
+      const h = await fixture(); try {
+        await h.reply({ ...h.quote('balance', ['credit','qris']), credit_balance: balance });
+        expect(h.query('#instant-method-credit').disabled).toBe(true);
+        expect(h.query('#instant-method-qris').disabled).toBe(false);
+        expect(h.query('#instant-method-qris').getAttribute('aria-checked')).toBe('true');
+        expect(h.query('#instant-credit-pin')).toBeNull();
+      } finally { await h.cleanup(); }
+    }
+  });
+  runtimeTest('failed PIN validation stays retryable without booking and stale validation after close cannot dispatch', async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('pin-retry', ['credit'])); await h.click(h.button('instantContinuePayment'));
+      await h.change('#instant-credit-pin','123456'); await h.click(h.button('instantValidatePin'));
+      expect(h.requests).toHaveLength(2); expect(h.button('instantBackSummary').disabled).toBe(true);
+      h.requests[1].reject(new Error('PIN validation failed')); await h.settle();
+      expect(h.query('#instant-credit-pin').value).toBe('');
+      expect(h.target.textContent).toContain('PIN validation failed');
+      expect(h.query('[data-slot="input-otp-slot"]').getAttribute('aria-invalid')).toBe('true');
+      expect(h.requests.every((request)=>request.action !== 'kiriof_instant_dispatch')).toBe(true);
+      await h.change('#instant-credit-pin','654321'); await h.click(h.button('instantValidatePin'));
+      expect(h.requests).toHaveLength(3);
+      await h.click(h.button('instantClose')); expect(h.requests[2].options.signal.aborted).toBe(true);
+      await h.reply({valid:true}); expect(h.requests).toHaveLength(3);
+      expect(h.target.textContent).toBe('');
+    } finally { await h.cleanup(); }
+  });
   runtimeTest('TOP has no payment selector or checkbox; real Collapsible starts closed and unchanged summary stays compact', async () => {
     const h = await fixture(); try {
       await h.reply(h.quote());
@@ -113,7 +162,7 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(trigger.tagName).toBe('BUTTON');
       expect(trigger.type).toBe('button');
       expect(trigger.classList.contains('kiriof-button')).toBe(true);
-      expect(trigger.getAttribute('data-variant')).toBe('ghost');
+      expect(trigger.getAttribute('data-variant')).toBe('outline');
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
       expect(trigger.querySelector('button')).toBeNull();
       expect(trigger.querySelector('h3')).toBeNull();
@@ -255,14 +304,18 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
     const h = await fixture(); try {
       await h.reply(h.quote('quote-a', ['credit']));
       expect(h.button('instantContinuePayment').textContent).toContain('(120s)');
-      await h.change('#instant-pin', '123456');
-      expect(h.button('instantContinuePayment').disabled).toBe(false);
-      await h.advance(119000); expect(h.requests).toHaveLength(1); expect(h.button('instantContinuePayment').textContent).toContain('(1s)');
+      expect(h.query('#instant-credit-pin')).toBeNull();
+      await h.click(h.button('instantContinuePayment'));
+      await h.change('#instant-credit-pin', '123456');
+      expect(h.button('instantValidatePin').disabled).toBe(false);
+      await h.advance(119000); expect(h.requests).toHaveLength(1); expect(h.button('instantValidatePin').textContent).toContain('(1s)');
       await h.advance(1000); expect(h.requests).toHaveLength(2); expect(h.requests[1].action).toBe('kiriof_instant_quote');
       await h.advance(5000); expect(h.requests).toHaveLength(2);
       await h.reply(h.quote('quote-b', ['credit']));
-      expect(h.query('#instant-pin').value).toBe('');
-      expect(h.button('instantContinuePayment').disabled).toBe(true);
+      expect(h.query('#instant-credit-pin')).toBeNull();
+      await h.click(h.button('instantContinuePayment'));
+      expect(h.query('#instant-credit-pin').value).toBe('');
+      expect(h.button('instantValidatePin').disabled).toBe(true);
       expect(h.target.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
     } finally { await h.cleanup(); }
   });
@@ -286,16 +339,26 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
   runtimeTest('credit dispatch requires six digits and explicit POST intent; results stop refresh and never retry dispatch', async () => {
     const h = await fixture(); try {
       await h.reply(h.quote('credit-token', ['credit']));
-      for (const value of ['12345', '12a456']) { await h.change('#instant-pin', value); expect(h.button('instantContinuePayment').disabled).toBe(true); }
-      expect(h.requests).toHaveLength(1);
-      await h.change('#instant-pin', '123456'); expect(h.button('instantContinuePayment').disabled).toBe(false);
-      await h.click(h.button('instantContinuePayment')); expect(h.requests).toHaveLength(2); expect(h.timers.size).toBe(0);
-      expect(h.requests[1].action).toBe('kiriof_instant_dispatch');
-      expect(h.requests[1].values).toEqual({ token: 'credit-token', order_ids: '["1","2","3","4","5","6"]', method: 'credit', pin: '123456', confirmed: 'yes' });
-      await h.advance(300000); expect(h.requests).toHaveLength(2);
+      expect(h.query('select')).toBeNull(); expect(h.query('#instant-credit-pin')).toBeNull();
+      await h.click(h.button('instantContinuePayment')); expect(h.requests).toHaveLength(1);
+      expect(h.target.querySelectorAll('[data-slot="input-otp-slot"]')).toHaveLength(6);
+      expect(h.target.querySelectorAll('[data-slot="input-otp-group"]')).toHaveLength(2);
+      expect(h.target.querySelectorAll('[data-slot="input-otp-separator"]')).toHaveLength(1);
+      for (const value of ['12345', '12a456']) { await h.change('#instant-credit-pin', value); expect(h.button('instantValidatePin').disabled).toBe(true); }
+      await h.change('#instant-credit-pin', '123456'); expect(h.button('instantValidatePin').disabled).toBe(false);
+      expect(h.query('#instant-credit-pin').type).toBe('password'); expect(h.target.textContent).not.toContain('123456');
+      expect(h.query('#instant-credit-pin').autocomplete).toBe('off');
+      expect(h.query(`#${h.query('#instant-credit-pin').getAttribute('aria-describedby')}`)).toBeTruthy();
+      await h.click(h.button('instantValidatePin')); expect(h.requests).toHaveLength(2);
+      expect(h.requests[1].action).toBe('kiriof_instant_validate_credit');
+      expect(h.requests[1].values).toEqual({ token: 'credit-token', order_ids: '["1","2","3","4","5","6"]', pin: '123456' });
+      await h.reply({ valid: true }); expect(h.requests).toHaveLength(3); expect(h.timers.size).toBe(0);
+      expect(h.requests[2].action).toBe('kiriof_instant_dispatch');
+      expect(h.requests[2].values).toEqual({ token: 'credit-token', order_ids: '["1","2","3","4","5","6"]', method: 'credit', pin: '123456', confirmed: 'yes' });
+      await h.advance(300000); expect(h.requests).toHaveLength(3);
       await h.reply({ rows: [{ id: '1', status: 'booked', awb: 'AWB-123', message: '' }], payments: [] });
-      expect(h.target.textContent).toContain('BOOKED'); expect(h.target.textContent).toContain('AWB-123'); expect(h.query('#instant-pin')).toBeNull();
-      await h.advance(600000); expect(h.requests).toHaveLength(2); expect(h.button('instantContinuePayment')).toBeUndefined();
+      expect(h.target.textContent).toContain('BOOKED'); expect(h.target.textContent).toContain('AWB-123'); expect(h.query('#instant-credit-pin')).toBeNull();
+      await h.advance(600000); expect(h.requests).toHaveLength(3); expect(h.button('instantContinuePayment')).toBeUndefined();
     } finally { await h.cleanup(); }
   });
   runtimeTest('server rejected and unknown outcomes are displayed unchanged without inventing missing rows', async () => {

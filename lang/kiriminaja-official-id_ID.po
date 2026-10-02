@@ -5572,3 +5572,59 @@ msgstr "Periksa apakah pemesanan yang belum pasti ini sudah tercatat. Tindakan i
 #: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
 msgid "Booking evidence checked"
 msgstr "Bukti pemesanan telah diperiksa"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Remaining Credit"
+msgstr "Sisa Kredit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Unable to verify credit balance."
+msgstr "Saldo kredit belum dapat diverifikasi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Insufficient credit balance for this pickup."
+msgstr "Saldo kredit tidak mencukupi untuk penjemputan ini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Set a PIN on your KiriminAja profile to pay with credit."
+msgstr "Atur PIN pada profil KiriminAja untuk membayar dengan kredit."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "KA Credit balance remaining"
+msgstr "Sisa saldo KA Credit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Unable to verify KA Credit balance. Refresh prices to check again."
+msgstr "Saldo KA Credit belum dapat diverifikasi. Perbarui tarif untuk memeriksa kembali."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Insufficient KA Credit balance for these shipments."
+msgstr "Saldo KA Credit tidak mencukupi untuk pengiriman ini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Scan the QR code after booking to pay for these shipments."
+msgstr "Pindai kode QR setelah pemesanan untuk membayar pengiriman ini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Input PIN & Validation"
+msgstr "Masukkan PIN & Validasi"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Enter your six-digit KA Credit PIN. The server checks your PIN and balance before creating a shipment."
+msgstr "Masukkan PIN KA Credit enam digit. Server memeriksa PIN dan saldo sebelum membuat pengiriman."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Unable to validate KA Credit payment. Check your PIN and try again."
+msgstr "Pembayaran KA Credit belum dapat divalidasi. Periksa PIN dan coba lagi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Validate PIN & process"
+msgstr "Validasi PIN & proses"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Validating KA Credit payment…"
+msgstr "Memvalidasi pembayaran KA Credit…"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Back to Summary"
+msgstr "Kembali ke Ringkasan"

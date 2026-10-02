@@ -50,6 +50,14 @@ class InstantDispatchService {
 	public function quote( array $ids ): array {
 		$rows = $this->selection( $ids );
 		$methods = $this->paymentMethods();
+		$credit_balance = null;
+		if ( in_array( 'credit', $methods, true ) ) {
+			try {
+				$credit_balance = \KiriminAjaOfficial\Utils\CreditBalance::parse( $this->api->creditBalance() );
+			} catch ( \Throwable $throwable ) {
+				// Optional display lookup must not prevent a quote or expose API errors.
+			}
+		}
 		$reports = array();
 		$contexts = array();
 		foreach ( $rows as $id => $row ) {
@@ -100,7 +108,53 @@ class InstantDispatchService {
 		if ( ! set_transient( $this->quoteKey( $token ), array( 'user' => get_current_user_id(), 'expires' => $expires, 'contexts' => $contexts, 'methods' => $methods ), 120 ) ) {
 			throw new RuntimeException( esc_html__( 'Unable to save the Instant quote.', 'kiriminaja-official' ) );
 		}
-		return array( 'token' => $token, 'expires_at' => $expires, 'rows' => $reports, 'payment_methods' => $methods, 'batch_count' => count( $this->groups( $contexts ) ) );
+		return array( 'token' => $token, 'expires_at' => $expires, 'rows' => $reports, 'payment_methods' => $methods, 'batch_count' => count( $this->groups( $contexts ) ), 'credit_balance' => $credit_balance );
+	}
+
+	/** Read-only PIN preflight. Dispatch must still validate credit again before claims. */
+	public function validateCredit( array $ids, string $token, string $pin ): array {
+		if ( ! preg_match( '/\A[0-9]{6}\z/', $pin ) ) {
+			throw new InvalidArgumentException( esc_html__( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
+		}
+		if ( ! preg_match( '/\A[a-f0-9]{32}\z/', $token ) ) {
+			throw new InvalidArgumentException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+		}
+		$quote = get_transient( $this->quoteKey( $token ) );
+		if ( ! is_array( $quote ) || ( $quote['user'] ?? null ) !== get_current_user_id() || ( $quote['expires'] ?? 0 ) <= time() ) {
+			throw new InvalidArgumentException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+		}
+		$rows = $this->selection( $ids );
+		$methods = $this->paymentMethods();
+		if ( $methods !== ( $quote['methods'] ?? null ) || ! in_array( 'credit', $methods, true ) ) {
+			throw new InvalidArgumentException( esc_html__( 'The selected Instant payment method is unavailable. Request a new quote.', 'kiriminaja-official' ) );
+		}
+		$total = 0;
+		foreach ( $rows as $id => $row ) {
+			if ( ! isset( $quote['contexts'][ $id ] ) ) {
+				throw new InvalidArgumentException( esc_html__( 'Select only eligible shipments from this quote.', 'kiriminaja-official' ) );
+			}
+			$ctx = $this->context->build( $row );
+			if ( ! hash_equals( $quote['contexts'][ $id ]['fingerprint'], $ctx['fingerprint'] ) ) {
+				throw new InvalidArgumentException( esc_html__( 'The shipment has changed. Request a new Instant quote.', 'kiriminaja-official' ) );
+			}
+			$price = $quote['contexts'][ $id ]['price'] ?? null;
+			if ( ! is_int( $price ) || $price < 0 || $total > PHP_INT_MAX - $price ) {
+				throw new InvalidArgumentException( esc_html__( 'The Instant total is invalid.', 'kiriminaja-official' ) );
+			}
+			$total += $price;
+		}
+		if ( $quote['expires'] <= time() ) {
+			throw new InvalidArgumentException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
+		}
+		try {
+			$valid = true === ( $this->api->validateCredit( $pin, $total )['status'] ?? false );
+		} catch ( \Throwable $error ) {
+			$valid = false;
+		}
+		if ( ! $valid ) {
+			throw new InvalidArgumentException( esc_html__( 'Unable to validate KA Credit payment.', 'kiriminaja-official' ) );
+		}
+		return array( 'valid' => true );
 	}
 
 	public function dispatch( string $token, array $ids, string $method, string $pin = '' ): array {

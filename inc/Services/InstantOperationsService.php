@@ -262,7 +262,7 @@ final class InstantOperationsService {
 	private function identity( string $id, object $row, array $package, bool $require_type ): void {
 		if ( ( $package['order_id'] ?? null ) !== $id || ( $package['service'] ?? null ) !== $row->service
 			|| ( $require_type && ! array_key_exists( 'service_type', $package ) )
-			|| ( array_key_exists( 'service_type', $package ) && $package['service_type'] !== ( $row->service_name ?? $row->service_type ?? null ) ) ) {
+			|| ( array_key_exists( 'service_type', $package ) && ! InstantShipmentState::sameServiceType( $package['service_type'], $row->service_name ?? $row->service_type ?? null ) ) ) {
 			$this->invalid();
 		}
 		foreach ( array( 'awb', 'tracking_code' ) as $field ) {

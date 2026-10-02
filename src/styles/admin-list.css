@@ -412,12 +412,33 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 /* Bits UI forwards its trigger slot onto the composed shadcn Button. Scope the
  * native-button reset to this dialog: WordPress has no Tailwind preflight and
  * otherwise supplies the grey beveled background/border seen on the trigger. */
+.kiriof-instant-process-dialog .kiriof-instant-order-trigger,
 .kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger'] {
   @apply !appearance-none !w-full !min-w-0 !h-auto !m-0 !border-0 !bg-transparent ![background-image:none] !shadow-none !whitespace-normal;
 }
+.kiriof-instant-process-dialog .kiriof-instant-order-trigger {
+  @apply !flex !items-center !gap-2 !p-2 !rounded-lg !border !border-border !bg-background !text-foreground !cursor-pointer;
+}
+.kiriof-instant-process-dialog .kiriof-instant-order-trigger > svg {
+  @apply !block !size-4 !shrink-0;
+}
+.kiriof-transaction-dialog-content .kiriof-payment-method-option[data-slot='field'] {
+  @apply !contents;
+}
+.kiriof-transaction-dialog-content .kiriof-payment-method-card__copy {
+  @apply !min-w-0 !gap-1;
+}
+.kiriof-transaction-dialog-content .kiriof-credit-pin [data-slot='input-otp'] {
+  @apply !flex !min-w-0;
+}
+.kiriof-transaction-dialog-content .kiriof-credit-pin [data-slot='input-otp-slot'] {
+  @apply !size-10 !border-input !bg-background !text-foreground;
+}
+.kiriof-instant-process-dialog .kiriof-instant-order-trigger:hover,
 .kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']:hover {
   @apply !bg-muted;
 }
+.kiriof-instant-process-dialog .kiriof-instant-order-trigger:focus-visible,
 .kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']:focus-visible {
   @apply !ring-3 !ring-ring/50;
 }

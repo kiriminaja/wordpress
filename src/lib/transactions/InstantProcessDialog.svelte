@@ -5,8 +5,10 @@
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Alert from '$lib/components/ui/alert';
   import * as Collapsible from '$lib/components/ui/collapsible';
-  import * as Field from '$lib/components/ui/field';
   import { Button } from '$lib/components/ui/button';
+  import CreditPinInput from '$lib/payments/CreditPinInput.svelte';
+  import PaymentMethodSelector from '$lib/payments/PaymentMethodSelector.svelte';
+  import type { PaymentMethodOption } from '$lib/payments/types';
   import { postWordPressAction } from '$lib/wordpress/ajax';
   import { InstantProcessSession, quoteExpired, createInstantQuoteClock, isTopAccount, quoteSummary } from './instant-process-session';
   import { createInstantPaymentPoller, paymentTerminal, type PaymentPollPhase, type PollPayment } from './instant-payment-poller';
@@ -19,6 +21,7 @@
   let result = $state<InstantDispatchResult | null>(null);
   let method = $state('');
   let pin = $state('');
+  let step = $state<'summary' | 'pin'>('summary');
   let busy = $state(false);
   let dispatching = $state(false);
   let error = $state('');
@@ -55,9 +58,49 @@
   const changedCount = $derived(quote?.rows.filter((row) => row.eligible && row.before !== row.after).length ?? 0);
   const ids = $derived(quote?.rows.map((row) => row.id) ?? []);
   const methods = $derived(quote?.payment_methods.filter((value) => ['top', 'qris', 'credit'].includes(value)) ?? []);
-  const canDispatch = $derived(Boolean(quote && !expired && !busy && !dispatchAttempted && matchesSelection(quote) && quote.rows.every((row) => row.eligible && completeAmount(row.before) && completeAmount(row.after)) && methods.includes(method) && (method !== 'credit' || /^\d{6}$/.test(pin))));
+  const creditBalance = $derived(completeAmount(quote?.credit_balance ?? null) ? quote!.credit_balance! : null);
+  const creditAvailable = $derived(creditBalance !== null && summary !== null && summary.unavailableCount === 0 && creditBalance >= summary.after);
+  const paymentOptions = $derived<PaymentMethodOption[]>(methods.filter((value) => value === 'credit' || value === 'qris').map((value) => ({
+    value: value as 'credit' | 'qris', title: text(value === 'credit' ? 'instantCredit' : 'instantQris'),
+    balance: value === 'credit' ? creditBalance : undefined,
+    disabled: value === 'credit' && !creditAvailable,
+    description: value === 'credit' ? creditBalance === null ? text('instantCreditUnavailable') : !creditAvailable ? text('instantCreditInsufficient') : '' : text('instantQrisDescription'),
+  })));
+  const canContinue = $derived(Boolean(quote && !expired && !busy && !dispatchAttempted && matchesSelection(quote) && quote.rows.every((row) => row.eligible && completeAmount(row.before) && completeAmount(row.after)) && methods.includes(method) && (method !== 'credit' || creditAvailable)));
+  const canDispatch = $derived(canContinue && (method !== 'credit' || (step === 'pin' && /^\d{6}$/.test(pin))));
   function completeAmount(value: number | null): boolean {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+  }
+  function continueSummary(): void {
+    if (!canContinue) return;
+    if (method === 'credit') { pin = ''; error = ''; step = 'pin'; }
+    else void dispatch();
+  }
+  function backToSummary(): void {
+    if (busy) return;
+    pin = ''; error = ''; step = 'summary';
+  }
+  async function validatePinAndDispatch(): Promise<void> {
+    if (!canDispatch || !quote || step !== 'pin') return;
+    const current = generation;
+    const request = new AbortController();
+    controller = request; busy = true; error = '';
+    let valid = false;
+    try {
+      const data = await call<{ valid: boolean }>('kiriof_instant_validate_credit', { token: quote.token, order_ids: JSON.stringify(ids), pin }, request.signal);
+      if (current === generation && open && !request.signal.aborted) {
+        if (data.valid !== true) throw new Error(text('instantPinInvalid'));
+        valid = true;
+      }
+    } catch (cause) {
+      if (current === generation && open && !request.signal.aborted) { pin = ''; error = cause instanceof Error ? cause.message : text('instantPinInvalid'); }
+    } finally {
+      if (current === generation) { controller = null; busy = false; }
+    }
+    if (valid && current === generation && open && quote) {
+      if (quoteExpired(quote)) { pin = ''; step = 'summary'; void review(true); }
+      else await dispatch();
+    }
   }
   function matchesSelection(value: InstantQuote): boolean {
     const requested = new Set(orderIds);
@@ -71,7 +114,7 @@
     paymentPoller.stop(); pollPhases = {};
     controller?.abort(); controller = null;
     quoteClock.stop();
-    remaining = 0; pin = ''; quote = null;
+    remaining = 0; pin = ''; step = 'summary'; quote = null;
     busy = false; dispatching = false;
   }
   function close(): void {
@@ -159,7 +202,7 @@
     else untrack(cleanup);
     return cleanup;
   });
-  $effect(() => { if (expired) pin = ''; });
+  $effect(() => { if (expired) { pin = ''; step = 'summary'; } });
   onDestroy(() => { cleanup(); quoteClock.dispose(); });
 </script>
 
@@ -172,7 +215,7 @@
     <div class="grid max-h-[60vh] gap-3 overflow-y-auto">
       {#if busy}<p class="m-0 text-sm" role="status">{dispatching ? text('processing') : text('instantRefreshingPrices')}</p>{/if}
       {#if error}<p role="alert" class="m-0 text-sm text-destructive">{error}</p>{/if}
-      {#if quote}
+      {#if quote && step === 'summary'}
         <Alert.Root class="border-warning/30 bg-warning/10 text-foreground" role="note">
           <IconAlertTriangle class="size-4 text-warning" aria-hidden="true" />
           <Alert.Title>{text('instantRatesTitle')}</Alert.Title>
@@ -184,7 +227,7 @@
         <Collapsible.Root bind:open={orderInformationOpen} class="grid gap-2 rounded-xl border p-3">
           <Collapsible.Trigger aria-label={text('instantOrderInformation')}>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" class="group w-full min-w-0 h-auto gap-2">
+              <Button {...props} variant="outline" class="kiriof-instant-order-trigger group w-full min-w-0 h-auto gap-2">
                 <span class="min-w-0 flex-1 text-left">{text('instantOrderInformation')}</span>
                 {#if changedCount > 0}<span>{changedCount} / {quote?.rows.length ?? 0} {text('instantOrdersChanged')}</span>{/if}
                 <IconChevronDown data-icon="inline-end" class="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
@@ -222,9 +265,13 @@
           </section>
         {/if}
         {#if !topAccount}
-          <Field.Field><Field.Label for="instant-payment-method">{text('paymentMethod')}</Field.Label><select id="instant-payment-method" class="w-full rounded-md border bg-background p-2 text-sm" bind:value={method} disabled={busy || expired} onchange={() => { pin = ''; }}>{#each methods as value}<option {value}>{text(value === 'credit' ? 'instantCredit' : value === 'top' ? 'instantTop' : 'instantQris')}</option>{/each}</select></Field.Field>
-          {#if method === 'credit'}<Field.Field><Field.Label for="instant-pin">{text('instantPin')}</Field.Label><input id="instant-pin" class="w-full rounded-md border bg-background p-2 text-sm" type="password" inputmode="numeric" maxlength={6} autocomplete="off" bind:value={pin} disabled={busy || expired} /></Field.Field>{/if}
+          <PaymentMethodSelector idPrefix="instant-method" bind:value={method} options={paymentOptions} label={text('paymentMethod')} balanceLabel={text('instantCreditBalance')} disabled={busy || expired} required onValueChange={() => { pin = ''; error = ''; }} />
         {/if}
+      {/if}
+      {#if quote && step === 'pin'}
+        <p class="m-0" role="status">{text('instantPinStep')}</p>
+        <p class="m-0">{text('instantTotalShipment')}: {money(summary?.after ?? null)}</p>
+        <CreditPinInput id="instant-credit-pin" bind:value={pin} disabled={busy || expired} invalid={Boolean(error)} label={text('instantPin')} description={text('instantPinDescription')} />
       {/if}
       {#if result}
         {#each result.rows as row (row.id)}<div class="rounded-md border p-3"><strong>{orderLabel(row.id)}: {text(`instantResult_${row.status}`)}</strong><p class="m-0 text-sm">{row.awb} {row.message}</p></div>{/each}
@@ -243,7 +290,12 @@
       <Button variant="ghost" disabled={dispatching} onclick={close}>{text('instantClose')}</Button>
       {#if !result}
         {#if error && !quote && !dispatchAttempted}<Button variant="outline" disabled={busy} onclick={() => void review()}>{text('instantReview')}</Button>{/if}
-        <Button disabled={!canDispatch} loading={busy} onclick={() => void dispatch()}>{dispatching ? text('processing') : busy ? text('instantRefreshingPrices') : topAccount ? text('confirmProcess') : text('instantContinuePayment')}{quote ? ` (${remaining}s)` : ''}</Button>
+        {#if step === 'pin' && !dispatchAttempted}
+          <Button variant="outline" disabled={busy} onclick={backToSummary}>{text('instantBackSummary')}</Button>
+          <Button disabled={!canDispatch} onclick={() => void validatePinAndDispatch()}>{busy ? text('instantPinValidating') : text('instantValidatePin')}{quote ? ` (${remaining}s)` : ''}</Button>
+        {:else}
+          <Button disabled={!canContinue} onclick={continueSummary}>{dispatching ? text('processing') : busy ? text('instantRefreshingPrices') : topAccount ? text('confirmProcess') : text('instantContinuePayment')}{quote ? ` (${remaining}s)` : ''}</Button>
+        {/if}
       {/if}
     </Dialog.Footer>
   </Dialog.Content>

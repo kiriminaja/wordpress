@@ -14,6 +14,34 @@ namespace KiriminAja\Base\Api {
 			return $GLOBALS['transport'];
 		}
 
+	public function test_pin_requires_boolean_envelope_success_and_honors_explicit_invalid(): void {
+		foreach ( array( 'array( "status" => "true" )', 'array( "status" => 1 )', 'array( "data" => array( "valid" => true ) )', 'array( "status" => true, "data" => array( "valid" => false ) )' ) as $body ) {
+			$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, ' . $body . ' ); $result = $repository->validateCredit( "123456", 1 );' );
+			$this->assertFalse( $fixture['result']['status'] );
+			$this->assertSame( array( 'profile', 'post' ), array_column( $fixture['calls'], 0 ) );
+			$this->assertSame( array(), $fixture['logs'] );
+		}
+	}
+
+	public function test_credit_accepts_actual_sdk_normalized_and_wrapped_four_billion_balances_once(): void {
+		foreach ( array( 'array( "balance" => 4000724100 )', 'array( "results" => array( "balance" => "4000724100" ) )', '(object) array( "data" => (object) array( "balance" => 4000724100 ) )' ) as $payload ) {
+			$fixture = $this->run_fixture( '$GLOBALS["balance_payload"] = ' . $payload . '; $result = $repository->validateCredit( "123456", 4000724100 );' );
+			$this->assertTrue( $fixture['result']['status'] );
+			$this->assertEquals( 4000724100, $fixture['result']['data']['balance'] );
+			$this->assertSame( array( 'profile', 'post', 'balance' ), array_column( $fixture['calls'], 0 ) );
+			$this->assertSame( array(), $fixture['logs'] );
+		}
+	}
+
+	public function test_credit_unknown_is_not_insufficient_and_logs_only_fixed_diagnostics(): void {
+		foreach ( array( 'array()', 'array( "balance" => -1 )', 'array( "balance" => "4,000,724,100" )', 'array( "status" => false, "balance" => 4000724100 )' ) as $payload ) {
+			$fixture = $this->run_fixture( '$GLOBALS["balance_payload"] = ' . $payload . '; $result = $repository->validateCredit( "123456", 1 );' );
+			$this->assertSame( array( 'status' => false, 'data' => 'Unable to verify credit balance.' ), $fixture['result'] );
+			$this->assertSame( array( 'profile', 'post', 'balance' ), array_column( $fixture['calls'], 0 ) );
+			$this->assertStringNotContainsString( '123456', json_encode( array( $fixture['result'], $fixture['logs'] ) ) );
+		}
+	}
+
 	public function test_booking_always_supplies_notes_preserves_explicit_notes_and_accepts_qris(): void {
 		foreach ( array( '', '$book["address_note"]="Pickup entrance"; $book["packages"][0]["destination"]["address_note"]="Gedung A Lantai 5";' ) as $notes ) {
 			$r = $this->run_fixture( '$book["payment_method"]="qris"; unset($book["pin"]); ' . $notes . '$result=$repository->book($book);' );
@@ -111,7 +139,7 @@ namespace KiriminAja\Services {
 		}
 		public static function getCreditBalance() {
 			$GLOBALS['calls'][] = array( 'balance' );
-			return new \KiriminAja\Responses\ServiceResponse( true, 'loaded', array( 'balance' => $GLOBALS['balance'] ) );
+			return new \KiriminAja\Responses\ServiceResponse( $GLOBALS['balance_status'] ?? true, 'Secret upstream error 123456', $GLOBALS['balance_payload'] ?? array( 'balance' => $GLOBALS['balance'] ) );
 		}
 		public static function requestPickupInstant( ...$args ) { throw new \RuntimeException( 'Legacy booking forbidden' ); }
 	}

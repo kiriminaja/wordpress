@@ -453,14 +453,19 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function pinValidate( $pin ) {
-        return $this->post(
-            '/api/mitra/v6.2/pin/validate',
-            array( 'pin' => $pin ),
-            array(
-                'source'    => 'kiriminaja_api',
-                'operation' => 'pin_validate',
-            )
-        );
+        // PIN errors can echo secrets. Do not use the inherited remote-error logger.
+        try {
+            [ $transport, $body ] = ( new \KiriminAjaOfficial\Infrastructure\InstantApiTransport() )->post(
+                'api/mitra/v6.2/pin/validate',
+                array( 'pin' => $pin )
+            );
+            if ( true === $transport && is_array( $body ) && is_bool( $body['status'] ?? null ) ) {
+                return array( 'status' => true, 'data' => json_decode( wp_json_encode( $body ) ) );
+            }
+        } catch ( \Throwable $throwable ) {
+            // Never retain remote exception text.
+        }
+        return array( 'status' => false, 'data' => 'PIN validation failed.' );
     }
 
     public function sendPickupRequestV2( $payload ) {

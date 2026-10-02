@@ -123,9 +123,9 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 
 	public function test_http_error_summary_is_whitelisted_bounded_and_cleared_on_reuse(): void {
 		$body = array( 'status'=>false, 'result'=>array(), 'message'=>'Invalid PIN 123456 secret-token insufficient credit balance', 'errors'=>array(
-			'packages.0.destination.phone'=>array('private 081234567890'),
-			'packages'=>array(array('items'=>array(array('weight'=>array('private value'))))),
-			'packages[0].shipping_cost'=>array('secret pricing'),
+                'packages.0.destination.phone'=>array('invalid 081234567890'),
+                'packages'=>array(array('items'=>array(array('weight'=>array('invalid value'))))),
+                'packages[0].shipping_cost'=>array('invalid pricing'),
 			'pin'=>array('secret-pin'),
 			'private-customer-address'=>array('secret-token'),
 		), 'payment_id'=>'secret-payment' );

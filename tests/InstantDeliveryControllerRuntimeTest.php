@@ -3,7 +3,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantDeliveryControllerRuntimeTest extends TestCase {
-	private const AJAX = array( 'quote', 'dispatch', 'payment', 'labelPreview', 'tracking', 'reconcile', 'cancel' );
+	private const AJAX = array( 'quote', 'validateCredit', 'dispatch', 'payment', 'labelPreview', 'tracking', 'reconcile', 'cancel' );
 	private const INVALID = 'Invalid Instant request parameters.';
 
 	private function run_controller( array $input = array() ): array {
@@ -54,6 +54,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		), $result['composition'] );
 		$this->assertSame( array(
 			array( 'wp_ajax_kiriof_instant_quote', $result['composition']['controller'], 'quote' ),
+			array( 'wp_ajax_kiriof_instant_validate_credit', $result['composition']['controller'], 'validateCredit' ),
 			array( 'wp_ajax_kiriof_instant_dispatch', $result['composition']['controller'], 'dispatch' ),
 			array( 'wp_ajax_kiriof_instant_payment', $result['composition']['controller'], 'payment' ),
 			array( 'wp_ajax_kiriof_instant_label_preview', $result['composition']['controller'], 'labelPreview' ),
@@ -164,8 +165,22 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	}
 
 	#[Test]
+	public function credit_validation_requires_exact_token_and_pin_without_dispatch_consent(): void {
+		foreach ( array( 'token', 'pin' ) as $key ) {
+			foreach ( array( null, true, 42, array( 'value' ), ' value ', '<b>value</b>' ) as $value ) {
+				$this->assert_rejected( array( 'operation' => 'validateCredit', 'fields' => array( $key => $value ) ) );
+			}
+			$this->assert_rejected( array( 'operation' => 'validateCredit', 'unset' => array( $key ) ) );
+		}
+		$this->assert_rejected( array( 'operation' => 'validateCredit', 'fields' => array( 'token' => '' ) ) );
+		$result = $this->run_controller( array( 'operation' => 'validateCredit', 'unset' => array( 'confirmed', 'method' ), 'fields' => array( 'pin' => '123456' ), 'service_result' => array( 'valid' => true ) ) );
+		$this->assertSame( array( array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '123456' ) ) ), $result['calls'] );
+		$this->assertSame( array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => array( 'valid' => true ) ) ) ), $result['responses'] );
+	}
+
+	#[Test]
 	public function valid_routes_forward_exact_arguments_and_emit_one_success_outside_the_service_try(): void {
-		foreach ( array( 'quote' => array( 'quote', array( array( 'KA-1', 2 ) ) ), 'dispatch' => array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '1234' ) ), 'payment' => array( 'refreshPayment', array( array( 'KA-1', 2 ), 'PAY-1' ) ), 'labelPreview' => array( 'prepare', array( array( 'KA-1', 2 ) ) ) ) as $operation => $call ) {
+		foreach ( array( 'quote' => array( 'quote', array( array( 'KA-1', 2 ) ) ), 'validateCredit' => array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '1234' ) ), 'dispatch' => array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '1234' ) ), 'payment' => array( 'refreshPayment', array( array( 'KA-1', 2 ), 'PAY-1' ) ), 'labelPreview' => array( 'prepare', array( array( 'KA-1', 2 ) ) ) ) as $operation => $call ) {
 			$result = $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'ignored_field' => array( 'untrusted' ) ) ) );
 			$this->assertSame( array( $call ), $result['calls'] );
 			$this->assertCount( 1, $result['responses'] );

@@ -54,6 +54,7 @@ namespace KiriminAjaOfficial\Services {
 		public array $dependencies;
 		public function __construct( \KiriminAjaOfficial\Repositories\TransactionRepository $repository, \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository $api, InstantShipmentContext $context ) { $this->dependencies = func_get_args(); }
 		public function quote( array $ids ): array { return \controller_spy( 'quote', func_get_args() ); }
+		public function validateCredit( array $ids, string $token, string $pin ): array { return \controller_spy( 'validateCredit', func_get_args() ); }
 		public function dispatch( string $token, array $ids, string $method, string $pin ): array { return \controller_spy( 'dispatch', func_get_args() ); }
 		public function refreshPayment( array $ids, string $payment_id ): array { return \controller_spy( 'refreshPayment', func_get_args() ); }
 	}

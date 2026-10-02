@@ -11,6 +11,7 @@ use KiriminAja\Models\ShippingPriceInstantData;
 use KiriminAja\Responses\ServiceResponse;
 use KiriminAja\Services\KiriminAja;
 use KiriminAjaOfficial\Base\KiriminAjaApi;
+use KiriminAjaOfficial\Utils\CreditBalance;
 
 /** Official SDK adapter for Instant delivery; never retries remote operations. */
 class InstantDeliveryApiRepository extends KiriminAjaApi {
@@ -192,7 +193,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		}
 	}
 
-	/** A negative status alone (including a null result) is not proof of rejection. */
+	/** Accept proven empty results or the observed field-validation envelope, not status alone. */
 	private function booking_rejected( $body ): bool {
 		if ( ! is_array( $body ) || array_is_list( $body ) || false !== ( $body['status'] ?? null ) ) {
 			return false;
@@ -201,6 +202,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			return false;
 		}
 		$has_result = false;
+		$has_validation = $this->validationRejected( $body );
 		foreach ( array( 'result', 'results' ) as $field ) {
 			if ( ! array_key_exists( $field, $body ) ) {
 				continue;
@@ -213,6 +215,9 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		}
 		// Contradictory identities or unknown nested data must remain ambiguous.
 		foreach ( $body as $field => $value ) {
+			if ( 'errors' === $field && $has_validation ) {
+				continue;
+			}
 			if ( in_array( $field, array( 'status', 'result', 'results' ), true ) ) {
 				continue;
 			}
@@ -220,7 +225,40 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 				return false;
 			}
 		}
-		return $has_result;
+		return $has_result || $has_validation;
+	}
+
+	/** Merchant-observed validation response: only known field paths and textual errors. */
+	private function validationRejected( array $body ): bool {
+		$errors = $body['errors'] ?? null;
+		if ( ! is_array( $errors ) || empty( $errors ) || array_is_list( $errors ) || count( $errors ) > 100 ) {
+			return false;
+		}
+		foreach ( array_keys( $body ) as $field ) {
+			if ( ! in_array( $field, array( 'status', 'message', 'text', 'code', 'errors', 'result', 'results' ), true ) ) {
+				return false;
+			}
+		}
+		foreach ( array( 'message', 'text' ) as $field ) {
+			if ( array_key_exists( $field, $body ) && ! is_string( $body[ $field ] ) ) {
+				return false;
+			}
+		}
+		foreach ( $errors as $field => $messages ) {
+			if ( ! is_string( $field ) || ! preg_match( '/\A(?:address|address_note|phone|latitude|longitude|name|zipcode|payment_method|pin|packages(?:\.[0-9]+)?(?:\.(?:order_id|shipping_cost|service|service_type|package_type_id|vehicle|destination(?:\.(?:name|phone|latitude|longitude|address|address_note))?|items(?:\.[0-9]+)?(?:\.(?:name|description|price|weight|qty|length|width|height))?))?)\z/', $field ) ) {
+				return false;
+			}
+			$messages = is_string( $messages ) ? array( $messages ) : $messages;
+			if ( ! is_array( $messages ) || ! array_is_list( $messages ) || empty( $messages ) || count( $messages ) > 20 ) {
+				return false;
+			}
+			foreach ( $messages as $message ) {
+				if ( ! is_string( $message ) || '' === trim( $message ) || strlen( $message ) > 4096 ) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	public function payment( string $id ): array {
@@ -262,7 +300,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			static function () use ( $pin ) {
 				try {
 					[ $transport, $body ] = ( new InstantApiTransport() )->post( 'api/mitra/v6.2/pin/validate', array( 'pin' => $pin ) );
-					return new ServiceResponse( $transport && is_array( $body ) && true === ( $body['status'] ?? null ), 'PIN validation failed.', is_array( $body ) ? $body : null );
+					return new ServiceResponse( true === $transport && is_array( $body ) && true === ( $body['status'] ?? null ) && true === ( $body['data']['valid'] ?? true ), 'PIN validation failed.', is_array( $body ) ? $body : null );
 				} catch ( \Throwable $throwable ) {
 					return new ServiceResponse( false, 'PIN validation failed.', null );
 				}
@@ -272,18 +310,32 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		if ( ! $validation['status'] ) {
 			return $validation;
 		}
-		$balance = $this->call_sdk(
-			static fn() => KiriminAja::getCreditBalance(),
-			static fn( $data ) => array( 'status' => true, 'results' => $data )
-		);
-		if ( ! $balance['status'] ) {
+		$balance = $this->creditBalance();
+		$available = CreditBalance::parse( $balance );
+		if ( true !== ( $balance['status'] ?? null ) || null === $available ) {
 			return $this->failure( 'Unable to verify credit balance.' );
 		}
-		$available = $balance['data']->results->balance ?? null;
-		if ( ! is_numeric( $available ) || ! is_finite( (float) $available ) || (float) $available < $amount ) {
+		if ( $available < $amount ) {
 			return $this->failure( 'Insufficient KA Credit balance.' );
 		}
 		return $balance;
+	}
+
+	/** Single SDK lookup. Never expose or log upstream error text. */
+	public function creditBalance(): array {
+		try {
+			$response = KiriminAja::getCreditBalance();
+			$balance = $response instanceof ServiceResponse && true === $response->status ? CreditBalance::parse( $response->data ) : null;
+			if ( null !== $balance ) {
+				return array( 'status' => true, 'data' => (object) array( 'balance' => $balance ) );
+			}
+		} catch ( \Throwable $throwable ) {
+			// Remote messages can contain credentials; unknown balance fails closed.
+		}
+		if ( function_exists( 'kiriof_log' ) ) {
+			kiriof_log( 'warning', 'Unable to verify credit balance.', array( 'source' => 'kiriminaja_api', 'operation' => 'credit_balance', 'reason' => 'balance_unavailable' ) );
+		}
+		return $this->failure( 'Unable to verify credit balance.' );
 	}
 
 	private function valid_location( $location, string $latitude = 'lat', string $longitude = 'long' ): bool {

@@ -56,6 +56,18 @@ class Enqueue extends BaseInit{
 	private function enqueue_kiriof_design_system(): void {
 		$var_style       = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-kiriof-var.css';
 		$component_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-kiriof-component.css';
+		$theme_script    = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-theme.js';
+
+		if ( file_exists( $theme_script ) ) {
+			wp_enqueue_script(
+				'kiriof-admin-theme',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-theme.js',
+				array(),
+				(string) filemtime( $theme_script ),
+				true
+			);
+			wp_script_add_data( 'kiriof-admin-theme', 'type', 'module' );
+		}
 
 		if ( file_exists( $var_style ) ) {
 			wp_enqueue_style(

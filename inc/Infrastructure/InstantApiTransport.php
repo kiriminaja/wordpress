@@ -147,6 +147,9 @@ class InstantApiTransport extends Api {
 				return $failure;
 			}
 			$this->diagnostics['code'] = is_array( $decoded ) ? 'transport_success' : 'invalid_json_shape';
+			if ( is_array( $decoded ) && false === ( $decoded['status'] ?? null ) ) {
+				$this->diagnostics['error_body'] = $this->errorSummary( $decoded, is_array( $data ) ? $data : array(), $token );
+			}
 			return is_array( $decoded ) ? array( true, $decoded ) : $failure;
 		} catch ( \Throwable $throwable ) {
 			// Never log or return exception text, credentials, PINs, or response bodies.
@@ -175,6 +178,7 @@ class InstantApiTransport extends Api {
 			'messages' => array(),
 			'message_categories' => array(),
 			'validation_fields' => array(),
+			'validation_messages' => array(),
 		);
 		$messages = array();
 		foreach ( array( 'message', 'text', 'statusMessage' ) as $key ) {
@@ -185,7 +189,7 @@ class InstantApiTransport extends Api {
 			}
 		}
 		// Unknown field names can contain a phone, address, or credential: omit them.
-		$allowed = array( 'address', 'name', 'phone', 'latitude', 'longitude', 'zipcode', 'payment_method', 'pin', 'packages', 'packages.order_id', 'packages.destination', 'packages.destination.name', 'packages.destination.phone', 'packages.destination.latitude', 'packages.destination.longitude', 'packages.destination.address', 'packages.shipping_cost', 'packages.service', 'packages.service_type', 'packages.package_type_id', 'packages.vehicle', 'packages.items', 'packages.items.name', 'packages.items.price', 'packages.items.weight' );
+		$allowed = array( 'address', 'address_note', 'name', 'phone', 'latitude', 'longitude', 'zipcode', 'payment_method', 'pin', 'packages', 'packages.order_id', 'packages.destination', 'packages.destination.name', 'packages.destination.phone', 'packages.destination.latitude', 'packages.destination.longitude', 'packages.destination.address', 'packages.destination.address_note', 'packages.shipping_cost', 'packages.service', 'packages.service_type', 'packages.package_type_id', 'packages.vehicle', 'packages.items', 'packages.items.name', 'packages.items.price', 'packages.items.weight', 'packages.items.description', 'packages.items.qty', 'packages.items.length', 'packages.items.width', 'packages.items.height' );
 		$stack = array( array( '', $body['errors'] ?? $body['validation_errors'] ?? array() ) );
 		$visited = 0;
 		while ( ! empty( $stack ) && ++$visited <= 200 ) {
@@ -199,6 +203,9 @@ class InstantApiTransport extends Api {
 				$path = trim( $path, '.' );
 				if ( in_array( $path, $allowed, true ) ) {
 					$summary['validation_fields'][] = $path;
+					if ( is_string( $value ) && count( $summary['validation_messages'][ $path ] ?? array() ) < 5 ) {
+						$summary['validation_messages'][ $path ][] = 'pin' === $path ? '[redacted]' : InstantDiagnosticRedactor::redact( $value, $request, $token );
+					}
 				}
 				if ( is_array( $value ) ) {
 					$stack[] = array( $path, $value );

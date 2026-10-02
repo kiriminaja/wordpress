@@ -170,6 +170,7 @@ export interface InstantQuoteRow {
   error: string;
 }
 export interface InstantQuote {
+  credit_balance?: number | null;
   token: string;
   expires_at: number;
   rows: InstantQuoteRow[];

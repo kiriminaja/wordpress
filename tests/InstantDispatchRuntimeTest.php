@@ -7,16 +7,90 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantDispatchRuntimeTest extends TestCase {
     #[Test]
+    public function quote_returns_actual_numeric_credit_balance_or_null_without_invalidating_quotes(): void {
+        foreach (array(4000724100, '4000724100', '4,000,724,100', -1) as $balance) {
+            $r = $this->runFixture(array('quote_only'=>true, 'profile'=>'CREDIT', 'credit_balance'=>$balance));
+            $this->assertTrue($r['quote']['rows'][0]['eligible']);
+            $this->assertArrayHasKey('credit_balance', $r['quote']);
+            if ($balance === 4000724100 || $balance === '4000724100') {
+                $this->assertEquals(4000724100, $r['quote']['credit_balance']);
+            } else {
+                $this->assertNull($r['quote']['credit_balance']);
+            }
+        }
+        $r = $this->runFixture(array('quote_only'=>true, 'profile'=>'TOP'));
+        $this->assertNull($r['quote']['credit_balance']);
+    }
+
+    #[Test]
+    public function dedicated_credit_validation_is_read_only_retryable_and_uses_selected_integer_total(): void {
+        foreach (array('12345', '1234567', 'abcdef', '１２３４５６', "123456\n", '') as $pin) {
+            $r = $this->runFixture(array('validate_credit'=>true, 'quote_only'=>true, 'profile'=>'CREDIT', 'pin'=>$pin, 'retry_validation'=>true));
+            $this->assertSame('Unable to validate KA Credit payment.', $r['validation_error']);
+            $this->assertSame('InvalidArgumentException', $r['validation_exception']);
+            $this->assertSame(array('valid'=>true), $r['validation_retry']);
+            $this->assertCount(1, $r['credits']);
+            $this->assertReadOnlyValidation($r);
+        }
+        foreach (array('credit_fail', 'credit_throw') as $failure) {
+            $r = $this->runFixture(array('validate_credit'=>true, 'quote_only'=>true, 'profile'=>'CREDIT', 'pin'=>'123456', $failure=>true, 'retry_validation'=>true));
+            $this->assertSame('Unable to validate KA Credit payment.', $r['validation_error']);
+            $this->assertSame('InvalidArgumentException', $r['validation_exception']);
+            $this->assertStringNotContainsString('123456', $r['validation_error']);
+            $this->assertSame(array('valid'=>true), $r['validation_retry']);
+            $this->assertReadOnlyValidation($r);
+        }
+        $r = $this->runFixture(array('validate_credit'=>true, 'quote_only'=>true, 'profile'=>'CREDIT', 'pin'=>'123456', 'count'=>2, 'price'=>2000362050, 'credit_balance'=>4000724100));
+        $this->assertSame(array('valid'=>true), $r['validation']);
+        $this->assertSame(4000724100, $r['quote']['credit_balance']);
+        $this->assertSame(array(array('amount'=>4000724100, 'valid_pin'=>true)), $r['credits']);
+        $this->assertReadOnlyValidation($r);
+        $r = $this->runFixture(array('validate_credit'=>true, 'quote_only'=>true, 'profile'=>'CREDIT', 'pin'=>'123456', 'count'=>2, 'dispatch_ids'=>array('KA-2')));
+        $this->assertSame(18000, $r['credits'][0]['amount']);
+        $this->assertReadOnlyValidation($r);
+    }
+
+    private function assertReadOnlyValidation(array $r): void {
+        $this->assertSame($r['before_validation_rows'], $r['after_validation']['rows']);
+        foreach (array('claims', 'writes', 'books', 'options') as $key) {
+            $this->assertSame(array(), $r['after_validation'][$key]);
+        }
+        $this->assertCount(1, $r['after_validation']['transients']);
+    }
+
+    #[Test]
+    public function dedicated_credit_validation_rejects_stale_quotes_and_dispatch_revalidates_credit(): void {
+        foreach (array(array('user_change'=>true), array('expire'=>true), array('stale'=>true), array('dispatch_ids'=>array('KA-2')), array('validate_token'=>'invalid'), array('profile_after'=>'TOP'), array('profile'=>'TOP'), array('quote_price'=>1.5), array('quote_price'=>'18000'), array('quote_price'=>-1), array('count'=>2, 'quote_price'=>PHP_INT_MAX)) as $input) {
+            $r = $this->runFixture($input + array('validate_credit'=>true, 'quote_only'=>true, 'profile'=>'CREDIT', 'pin'=>'123456'));
+            $this->assertNotEmpty($r['validation_error'], json_encode($input));
+            $this->assertSame(array(), $r['credits']);
+            $this->assertReadOnlyValidation($r);
+        }
+        $r = $this->runFixture(array('validate_credit'=>true, 'profile'=>'CREDIT', 'method'=>'credit', 'pin'=>'123456'));
+        $this->assertSame(array('valid'=>true), $r['validation']);
+        $this->assertReadOnlyValidation($r);
+        $this->assertCount(2, $r['credits']);
+        $this->assertSame(18000, $r['credits'][1]['amount']);
+        $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+        $r = $this->runFixture(array('validate_credit'=>true, 'profile'=>'CREDIT', 'method'=>'credit', 'pin'=>'123456', 'credit_fail_after_validation'=>true));
+        $this->assertSame(array('valid'=>true), $r['validation']);
+        $this->assertSame('Unable to validate KA Credit payment.', $r['error']);
+        $this->assertSame(array(), $r['claims']);
+        $this->assertSame(array(), $r['books']);
+        $this->assertCount(1, $r['transients']);
+    }
+
+    #[Test]
     public function working_qris_response_confirms_without_awb_handles_service_case_and_persists_valid_route(): void {
         foreach (array('', 'https://tracking.example.test/booking') as $url) {
-            $r = $this->runFixture(array('working_sample'=>true,'row'=>array('service_name'=>'instant'),'sample_url'=>$url,'retry'=>true));
+            $r = $this->runFixture(array('working_sample'=>true,'row'=>array('service_name'=>'instant'),'price_service'=>'instant','sample_url'=>$url,'retry'=>true));
             $this->assertSame('', $r['error']);
             $this->assertSame('qris', $r['books'][0]['payment_method']);
             $this->assertSame('Pickup note', $r['books'][0]['address_note']);
             $this->assertSame('Gedung A Lantai 5', $r['books'][0]['packages'][0]['destination']['address_note']);
             $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
             $this->assertSame('', $r['dispatch']['rows'][0]['awb']);
-            $this->assertSame('pending', $r['rows'][0]['status']);
+            $this->assertSame('request_pickup', $r['rows'][0]['status']);
             $this->assertSame(110, $r['rows'][0]['instant_status_code']);
             $this->assertSame('EPR-5487434915', $r['rows'][0]['instant_payment_id']);
             $this->assertSame('unpaid', $r['rows'][0]['instant_payment_status']);
@@ -36,11 +110,11 @@ final class InstantDispatchRuntimeTest extends TestCase {
             $this->assertSame(0, $r['woo'][1]['completions']);
         }
         foreach (array('INSTANT', 'Instant') as $type) {
-            $r = $this->runFixture(array('remote_service_type'=>$type,'row'=>array('service_name'=>'instant')));
+            $r = $this->runFixture(array('remote_service_type'=>$type,'row'=>array('service_name'=>'instant'),'price_service'=>'instant'));
             $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
         }
         foreach (array('sameday', ' Instant', 'instant-extra') as $type) {
-            $r = $this->runFixture(array('remote_service_type'=>$type,'row'=>array('service_name'=>'instant')));
+            $r = $this->runFixture(array('remote_service_type'=>$type,'row'=>array('service_name'=>'instant'),'price_service'=>'instant'));
             $this->assertSame('unknown', $r['dispatch']['rows'][0]['status']);
         }
     }
@@ -110,7 +184,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
 
     #[Test]
     public function safe_failures_restore_exact_data_and_permit_a_fresh_user_initiated_attempt(): void {
-        foreach (array('definite_rejection', 'not_submitted') as $failure) {
+        foreach (array('definite_rejection', 'not_submitted', 'validation_rejection') as $failure) {
             $r = $this->runFixture(array($failure=>true, 'count'=>2, 'can_select'=>true));
             $this->assertSame('', $r['error']);
             $this->assertSame($r['initial_rows'], $r['rows']);

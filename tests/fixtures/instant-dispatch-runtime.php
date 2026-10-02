@@ -43,7 +43,7 @@ class DispatchLockDb {
 }
 $GLOBALS['wpdb'] = new DispatchLockDb();
 $root = dirname(__DIR__, 2);
-foreach (['Contracts/TransactionPrintRepositoryInterface','Services/TransactionDeliveryType','Repositories/TransactionRepository','Base/KiriminAjaApi','Repositories/InstantDeliveryApiRepository','Services/InstantShipmentContext','Services/InstantShipmentState','Services/InstantTrackingPresentation','Services/InstantDispatchService','Services/TransactionProcessServices/RecipientDataResolver','Services/InstantLabelService'] as $file) { require $root . '/inc/' . $file . '.php'; }
+foreach (['Contracts/TransactionPrintRepositoryInterface','Utils/CreditBalance','Services/TransactionDeliveryType','Repositories/TransactionRepository','Base/KiriminAjaApi','Repositories/InstantDeliveryApiRepository','Services/InstantShipmentContext','Services/InstantShipmentState','Services/InstantTrackingPresentation','Services/InstantDispatchService','Services/TransactionProcessServices/RecipientDataResolver','Services/InstantLabelService'] as $file) { require $root . '/inc/' . $file . '.php'; }
 class DispatchRepo extends \KiriminAjaOfficial\Repositories\TransactionRepository {
     public array $rows = [];
     public array $claims = [];
@@ -130,13 +130,15 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
         $in = $GLOBALS['input'];
         return ['status'=>true, 'data'=>(object)['result'=>[['name'=>'gosend','costs'=>[['service_type'=>'other','price'=>['shipping_costs'=>1]],['service_type'=>$in['price_service'] ?? 'sameday','price'=>['shipping_costs'=>$in['price'] ?? 18000]]]]]]];
     }
-    public function validateCredit(string $pin, int|float $amount): array { $this->credits[] = ['amount'=>$amount,'valid_pin'=>strlen($pin) === 6]; return ['status'=>empty($GLOBALS['input']['credit_fail'])]; }
+    public function validateCredit(string $pin, int|float $amount): array { $this->credits[] = ['amount'=>$amount,'valid_pin'=>strlen($pin) === 6]; if (!empty($GLOBALS['input']['credit_throw'])) { throw new RuntimeException('Secret PIN ' . $pin); } return ['status'=>empty($GLOBALS['input']['credit_fail'])]; }
+    public function creditBalance(): array { return ['status'=>true, 'data'=>(object)['balance'=>$GLOBALS['input']['credit_balance'] ?? 4000724100]]; }
     public function book(array $payload): array {
         $this->preparedAtBook[] = array_map(static fn($row)=>get_object_vars($row), $GLOBALS['repo']->rows);
         $stored = $payload; $stored['valid_credit_pin'] = isset($payload['pin']) && 1 === preg_match('/\A[0-9]{6}\z/', $payload['pin']); unset($stored['pin']); $this->books[] = $stored;
         $in = $GLOBALS['input'];
         if (!empty($in['replace_lease_during_book'])) { foreach ($GLOBALS['options'] as $key=>$value) { $GLOBALS['options'][$key] = ['owner'=>'replacement-owner','expires'=>time()+300]; } }
         if (!empty($in['not_submitted'])) { return ['status'=>false, 'operation_not_submitted'=>true]; }
+        if (!empty($in['validation_rejection'])) { return ['status'=>false,'operation_rejected'=>true,'data'=>(object)['status'=>false,'result'=>(object)[]]]; }
         if (!empty($in['timeout'])) { throw new RuntimeException('Secret upstream error 123456'); }
         if (!empty($in['definite_rejection']) || count($this->books) === ($in['reject_group'] ?? 0)) { return ['status'=>false, 'data'=>(object)['result'=>(object)['message'=>'Secret upstream error']]]; }
         if (!empty($in['false'])) { return ['status'=>false]; }
@@ -201,6 +203,15 @@ try {
     if (!empty($in['lock'])) { $GLOBALS['options']['kiriof_instant_dispatch_' . hash('sha256','KA-1')] = 'locked'; }
     if (isset($in['lease'])) { $GLOBALS['options']['kiriof_instant_dispatch_' . hash('sha256','KA-1')] = ['owner'=>'old-owner','expires'=>time()+('expired' === $in['lease'] ? -1 : 300)]; }
     if (!empty($in['crash_pending'])) { $repo->rows['KA-1']->status = 'pending'; }
+    if (array_key_exists('quote_price', $in)) { foreach ($GLOBALS['transients']['kiriof_instant_quote_' . $quote['token']]['contexts'] as &$quoted_context) { $quoted_context['price'] = $in['quote_price']; } unset($quoted_context); }
+    if (!empty($in['validate_credit'])) {
+        $result['before_validation_rows'] = array_map(static fn($row)=>get_object_vars($row), array_values($repo->rows));
+        try { $result['validation'] = $service->validateCredit($in['dispatch_ids'] ?? $ids, $in['validate_token'] ?? $quote['token'], $in['pin'] ?? ''); }
+        catch (Throwable $error) { $result['validation_error'] = $error->getMessage(); $result['validation_exception'] = get_class($error); }
+        $result['after_validation'] = ['rows'=>array_map(static fn($row)=>get_object_vars($row), array_values($repo->rows)), 'claims'=>$repo->claims, 'writes'=>$repo->writes, 'books'=>$api->books, 'options'=>$GLOBALS['options'], 'transients'=>$GLOBALS['transients']];
+        if (!empty($in['retry_validation'])) { $GLOBALS['input']['credit_fail'] = false; $GLOBALS['input']['credit_throw'] = false; $result['validation_retry'] = $service->validateCredit($ids, $quote['token'], '654321'); }
+        if (!empty($in['credit_fail_after_validation'])) { $GLOBALS['input']['credit_fail'] = true; }
+    }
     if (empty($in['quote_only'])) {
         $dispatch_ids = $in['dispatch_ids'] ?? $ids;
         $result['dispatch'] = $service->dispatch($quote['token'], $dispatch_ids, $in['method'] ?? 'qris', $in['pin'] ?? '');
@@ -218,7 +229,7 @@ try {
     }
 } catch (Throwable $error) { $result['error'] = $error->getMessage(); }
 if (!empty($in['retry_restored'])) {
-    $GLOBALS['input']['definite_rejection'] = false; $GLOBALS['input']['not_submitted'] = false;
+    $GLOBALS['input']['definite_rejection'] = false; $GLOBALS['input']['not_submitted'] = false; $GLOBALS['input']['validation_rejection'] = false;
     try { $fresh = $service->quote(array_keys($repo->rows)); $result['restored_retry'] = $service->dispatch($fresh['token'], array_keys($repo->rows), $in['method'] ?? 'qris'); } catch (Throwable $error) { $result['restored_retry_error'] = $error->getMessage(); }
 }
 $result['initial_rows'] = $initial_rows;

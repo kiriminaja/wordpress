@@ -29,6 +29,40 @@ namespace KiriminAjaOfficial\Infrastructure {
 					return new \Nyholm\Psr7\Response( HTTP_STATUS, array(), BODY );
 				}
 
+	public function test_observed_validation_rejection_without_result_is_definitive_and_diagnostic(): void {
+		foreach ( array( 200, 400, 422 ) as $status ) {
+			$fixture = $this->run_fixture( $status, '{"message":"Terdapat kesalahan pada data yang dikirimkan","errors":{"address_note":"address_note wajib diisi"},"status":false}' );
+			$this->assertTrue( $fixture['response']['operation_rejected'] );
+			$this->assertFalse( $fixture['response']['status'] );
+			$this->assertTrue( $fixture['empty_object'] );
+			$this->assertCount( 1, $fixture['calls'] );
+			$this->assertStringNotContainsString( 'address_note wajib diisi', json_encode( $fixture['response'] ) );
+			$summary = $fixture['diagnostics']['error_body'];
+			$this->assertSame( array( 'address_note' ), $summary['validation_fields'] );
+			$this->assertSame( array( 'address_note' => array( 'address_note wajib diisi' ) ), $summary['validation_messages'] );
+			$this->assertSame( 'Terdapat kesalahan pada data yang dikirimkan', $summary['messages']['message'] );
+		}
+		$body = array( 'status'=>false, 'errors'=>array( 'packages.0.destination.address_note'=>array('address_note wajib diisi Private name Private address PIN 123456 private-token') ) );
+		$fixture = $this->run_fixture( 422, json_encode( $body ) );
+		$this->assertTrue( $fixture['response']['operation_rejected'] );
+		$this->assertContains( 'packages.destination.address_note', $fixture['diagnostics']['error_body']['validation_fields'] );
+		foreach ( array( 'Private name', 'Private address', '123456', 'private-token' ) as $secret ) {
+			$this->assertStringNotContainsString( $secret, json_encode( $fixture ) );
+		}
+		foreach ( array(
+			array('status'=>true), array('status'=>'false'), array('result'=>null), array('result'=>array('order_id'=>'remote')), array('payment_id'=>'remote'), array('packages'=>array()),
+			array('errors'=>array()), array('errors'=>array('address_note'=>'')), array('errors'=>array('address_note'=>123)), array('errors'=>array('address_note'=>array('payment_id'=>'remote'))),
+			array('errors'=>array('unknown'=> 'error')), array('extra'=>'remote'), array('message'=>array('invalid')),
+		) as $change ) {
+			$fixture = $this->run_fixture( 400, json_encode( array_replace( array('status'=>false,'errors'=>array('address_note'=>'address_note wajib diisi')), $change ) ) );
+			$this->assertArrayNotHasKey( 'operation_rejected', $fixture['response'], json_encode( $change ) );
+			$this->assertFalse( $fixture['response']['status'] );
+		}
+		foreach ( array( 401, 429, 500 ) as $status ) {
+			$this->assertArrayNotHasKey( 'operation_rejected', $this->run_fixture( $status, json_encode( $body ) )['response'] );
+		}
+	}
+
 			};
 		}
 	}
@@ -106,7 +140,6 @@ PHP;
 		foreach ( array(
 			array( 400, '{"status":false,"code":400,"result":null}' ),
 			array( 400, '{"status":false,"code":400,"result":{},"payment_id":"secret-remote"}' ),
-			array( 422, '{"status":false,"result":{},"errors":{"packages.0.destination.phone":["private 123456"]}}' ),
 			array( 400, '{"status":true,"result":{"payment":{"id":"secret-remote"}}}' ),
 			array( 400, 'broken PIN 123456' ),
 			array( 401, '{"status":false,"result":{}}' ),

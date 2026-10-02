@@ -22,8 +22,10 @@ class InstantDeliveryController {
 		$this->operations_service = $operations_service;
 	}
 
+
 	public function register(): void {
 		add_action( 'wp_ajax_kiriof_instant_quote', array( $this, 'quote' ) );
+		add_action( 'wp_ajax_kiriof_instant_validate_credit', array( $this, 'validateCredit' ) );
 		add_action( 'wp_ajax_kiriof_instant_dispatch', array( $this, 'dispatch' ) );
 		add_action( 'wp_ajax_kiriof_instant_payment', array( $this, 'payment' ) );
 		add_action( 'wp_ajax_kiriof_instant_label_preview', array( $this, 'labelPreview' ) );
@@ -60,6 +62,11 @@ class InstantDeliveryController {
 	public function cancel(): void {
 		$this->ajax( 'cancel' );
 	}
+
+	public function validateCredit(): void {
+		$this->ajax( 'validate_credit' );
+	}
+
 
 	/** Validate authorization and the complete request before invoking any service. */
 	private function ajax( string $operation ): void {
@@ -101,6 +108,11 @@ class InstantDeliveryController {
 					break;
 				case 'quote':
 					$result = $this->dispatch_service->quote( $ids );
+					break;
+				case 'validate_credit':
+					$token  = $this->field( $data, 'token' );
+					$pin    = $this->field( $data, 'pin', true );
+					$result = $this->dispatch_service->validateCredit( $ids, $token, $pin );
 					break;
 				case 'dispatch':
 					// Review is explicit; truthy values and sanitized lookalikes are not consent.
