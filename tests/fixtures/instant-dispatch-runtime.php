@@ -43,7 +43,7 @@ class DispatchLockDb {
 }
 $GLOBALS['wpdb'] = new DispatchLockDb();
 $root = dirname(__DIR__, 2);
-foreach (['Contracts/TransactionPrintRepositoryInterface','Services/TransactionDeliveryType','Repositories/TransactionRepository','Base/KiriminAjaApi','Repositories/InstantDeliveryApiRepository','Services/InstantShipmentContext','Services/InstantShipmentState','Services/InstantDispatchService','Services/TransactionProcessServices/RecipientDataResolver','Services/InstantLabelService'] as $file) { require $root . '/inc/' . $file . '.php'; }
+foreach (['Contracts/TransactionPrintRepositoryInterface','Services/TransactionDeliveryType','Repositories/TransactionRepository','Base/KiriminAjaApi','Repositories/InstantDeliveryApiRepository','Services/InstantShipmentContext','Services/InstantShipmentState','Services/InstantTrackingPresentation','Services/InstantDispatchService','Services/TransactionProcessServices/RecipientDataResolver','Services/InstantLabelService'] as $file) { require $root . '/inc/' . $file . '.php'; }
 class DispatchRepo extends \KiriminAjaOfficial\Repositories\TransactionRepository {
     public array $rows = [];
     public array $claims = [];
@@ -98,6 +98,7 @@ class DispatchContext extends \KiriminAjaOfficial\Services\InstantShipmentContex
         if (!empty($GLOBALS['input']['context_runtime'])) { throw new RuntimeException('Secret upstream error 123456'); }
         if (!self::canProcess($row) || !empty($row->ineligible)) { throw new RuntimeException('Invalid context'); }
         $ctx = ['origin'=>['name'=>'Test Sender','phone'=>'0812345678','address'=>$row->origin ?? 'Long enough original warehouse address','zipcode'=>'12345','latitude'=>-6.2,'longitude'=>106.8], 'package'=>['order_id'=>$row->order_id,'destination'=>['name'=>'Booked Full Name','phone'=>'0812345678','address'=>'Complete recipient street, City, 12345','latitude'=>-6.3,'longitude'=>106.9],'service'=>$row->service,'service_type'=>$row->service_name,'vehicle'=>'motor','shipping_cost'=>$row->shipping_cost,'items'=>[['name'=>'Item','qty'=>1]],'package_type_id'=>7], 'pricing'=>['timezone'=>'WIB','id'=>$row->order_id]];
+        if (!empty($GLOBALS['input']['working_sample'])) { $ctx['origin']['address_note'] = 'Pickup note'; $ctx['package']['destination']['address_note'] = 'Gedung A Lantai 5'; }
         foreach (['origin_name'=>['origin','name'], 'destination_name'=>['package','destination','name']] as $key=>$path) {
             if (array_key_exists($key, $GLOBALS['input'])) {
                 if (count($path) === 2) { $ctx[$path[0]][$path[1]] = $GLOBALS['input'][$key]; }
@@ -139,6 +140,13 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
         if (!empty($in['timeout'])) { throw new RuntimeException('Secret upstream error 123456'); }
         if (!empty($in['definite_rejection']) || count($this->books) === ($in['reject_group'] ?? 0)) { return ['status'=>false, 'data'=>(object)['result'=>(object)['message'=>'Secret upstream error']]]; }
         if (!empty($in['false'])) { return ['status'=>false]; }
+        if (!empty($in['working_sample'])) {
+            return ['status'=>true, 'data'=>(object)['message'=>'success', 'status'=>true, 'results'=>[
+                'payment'=>['payment_id'=>'EPR-5487434915','amount'=>31500,'status_code'=>'unpaid','qr_content'=>'some-random-qr-string','pay_time'=>null],
+                'origin'=>$payload,
+                'packages'=>array_map(static fn($p)=>['order_id'=>$p['order_id'],'service'=>'gosend','service_type'=>'Instant','status'=>110,'live_track_url'=>$in['sample_url'] ?? '', 'poly_line'=>'_p~iF~ps|U_ulLnnqC_mqNvxq`@','destination'=>$p['destination']], $payload['packages'])
+            ]]];
+        }
         $packages = array_reverse(array_map(static fn($p)=>['order_id'=>$p['order_id'],'service'=>$in['remote_service'] ?? $p['service'],'service_type'=>$in['remote_service_type'] ?? $p['service_type'],'status'=>$in['remote_status'] ?? 100,'awb'=>'AWB-' . $p['order_id'],'tracking_url'=>'https://example.com/tracking'], $payload['packages']));
         if (!empty($in['remote_missing_identity'])) { foreach ($packages as &$package) { unset($package['service'], $package['service_type']); } unset($package); }
         if (!empty($in['no_awb'])) { foreach ($packages as &$package) { unset($package['awb']); } unset($package); }

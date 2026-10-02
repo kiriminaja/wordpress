@@ -7,6 +7,45 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantDispatchRuntimeTest extends TestCase {
     #[Test]
+    public function working_qris_response_confirms_without_awb_handles_service_case_and_persists_valid_route(): void {
+        foreach (array('', 'https://tracking.example.test/booking') as $url) {
+            $r = $this->runFixture(array('working_sample'=>true,'row'=>array('service_name'=>'instant'),'sample_url'=>$url,'retry'=>true));
+            $this->assertSame('', $r['error']);
+            $this->assertSame('qris', $r['books'][0]['payment_method']);
+            $this->assertSame('Pickup note', $r['books'][0]['address_note']);
+            $this->assertSame('Gedung A Lantai 5', $r['books'][0]['packages'][0]['destination']['address_note']);
+            $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+            $this->assertSame('', $r['dispatch']['rows'][0]['awb']);
+            $this->assertSame('pending', $r['rows'][0]['status']);
+            $this->assertSame(110, $r['rows'][0]['instant_status_code']);
+            $this->assertSame('EPR-5487434915', $r['rows'][0]['instant_payment_id']);
+            $this->assertSame('unpaid', $r['rows'][0]['instant_payment_status']);
+            $this->assertSame('qris', $r['rows'][0]['instant_payment_method']);
+            $this->assertSame($url, $r['rows'][0]['live_tracking_url'] ?? '');
+            $this->assertSame(31500, $r['dispatch']['payments'][0]['amount']);
+            $this->assertSame('some-random-qr-string', $r['dispatch']['payments'][0]['qr_content']);
+            $this->assertSame(array('KA-1'), $r['dispatch']['payments'][0]['order_ids']);
+            $snapshot = json_decode($r['rows'][0]['shipping_info'], true);
+            $this->assertSame('Gedung A Lantai 5', $snapshot['_shipping_address_2']);
+            $this->assertEquals(array(array(38.5,-120.2),array(40.7,-120.95),array(43.252,-126.453)), $snapshot['instant_route_points']);
+            $this->assertArrayNotHasKey('poly_line', $snapshot);
+            $this->assertArrayNotHasKey('_kiriof_instant_prepared', $snapshot);
+            $this->assertSame('instant', $r['rows'][0]['service_name']);
+            $this->assertNotEmpty($r['retry_error']);
+            $this->assertCount(1, $r['books']);
+            $this->assertSame(0, $r['woo'][1]['completions']);
+        }
+        foreach (array('INSTANT', 'Instant') as $type) {
+            $r = $this->runFixture(array('remote_service_type'=>$type,'row'=>array('service_name'=>'instant')));
+            $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+        }
+        foreach (array('sameday', ' Instant', 'instant-extra') as $type) {
+            $r = $this->runFixture(array('remote_service_type'=>$type,'row'=>array('service_name'=>'instant')));
+            $this->assertSame('unknown', $r['dispatch']['rows'][0]['status']);
+        }
+    }
+
+    #[Test]
     public function unknown_outcomes_have_safe_correlated_diagnostics_without_weakening_claims(): void {
         foreach (array(
             array(array('timeout'=>true), 'booking_call_exception', 'response_matching'),
@@ -283,7 +322,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         foreach (['address','phone','latitude','longitude','name','packages'] as $field) {
             $this->assertArrayHasKey($field, $r['books'][0]);
         }
-        $this->assertSame('cash', $r['books'][0]['payment_method']);
+        $this->assertSame('qris', $r['books'][0]['payment_method']);
         $this->assertSame('qris', $r['rows'][0]['instant_payment_method']);
         $this->assertSame('https://example.com/tracking', $r['rows'][0]['live_tracking_url']);
         $this->assertArrayNotHasKey('pin', $r['books'][0]);

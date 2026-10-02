@@ -8,8 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class InstantTrackingPresentation {
 	/**
-	 * Accept only an explicit polyline in the normalized tracking payload or
-	 * its SDK result envelope. Origin/destination/driver coordinates and URLs
+	 * Accept an explicit tracking polyline or validated booking route points.
+	 * Origin/destination/driver coordinates and URLs
 	 * are not route evidence. Missing persisted evidence deliberately fails closed.
 	 */
 	public static function hasRoute( object $row ): bool {
@@ -18,6 +18,16 @@ final class InstantTrackingPresentation {
 
 	/** Return validated persisted points only; never fetch or predict a route. */
 	public static function routePoints( object $row ): array {
+		// A present tracking payload is authoritative, even when invalid or empty.
+		if ( ! property_exists( $row, 'instant_tracking_payload' ) ) {
+			$snapshot = $row->shipping_info ?? null;
+			if ( is_string( $snapshot ) ) {
+				$snapshot = json_decode( $snapshot, true );
+			}
+			$snapshot = is_object( $snapshot ) ? get_object_vars( $snapshot ) : $snapshot;
+			$points = is_array( $snapshot ) ? ( $snapshot['instant_route_points'] ?? null ) : null;
+			return is_array( $points ) ? self::normalizePolyline( $points ) : array();
+		}
 		$payload = $row->instant_tracking_payload ?? null;
 		if ( is_string( $payload ) ) {
 			$payload = json_decode( $payload, true );
@@ -41,7 +51,7 @@ final class InstantTrackingPresentation {
 		if ( is_string( $polyline ) ) {
 			return self::decodePolyline( trim( $polyline ) );
 		}
-		if ( ! is_array( $polyline ) || ! array_is_list( $polyline ) || count( $polyline ) < 2 ) {
+		if ( ! is_array( $polyline ) || ! array_is_list( $polyline ) || count( $polyline ) < 2 || count( $polyline ) > 10000 ) {
 			return array();
 		}
 		$points = array();
@@ -80,6 +90,9 @@ final class InstantTrackingPresentation {
 		$lng    = 0;
 		$points = array();
 		while ( $offset < $length ) {
+			if ( count( $points ) >= 10000 ) {
+				return array();
+			}
 			foreach ( array( 'lat', 'lng' ) as $axis ) {
 				$value = 0;
 				$shift = 0;

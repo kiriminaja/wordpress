@@ -126,17 +126,21 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 				return $this->notSubmittedFailure( 'Instant origin requires a name and phone.' );
 			}
 		}
-		if ( array_key_exists( 'payment_method', $payload ) && ! in_array( $payload['payment_method'], array( 'credit', 'cash' ), true ) ) {
+		if ( array_key_exists( 'payment_method', $payload ) && ! in_array( $payload['payment_method'], array( 'credit', 'qris', 'cash' ), true ) ) {
 			return $this->notSubmittedFailure( 'Unsupported Instant payment method.' );
 		}
 		if ( 'credit' === ( $payload['payment_method'] ?? null ) && ( ! is_string( $payload['pin'] ?? null ) || ! preg_match( '/\A[0-9]{6}\z/', $payload['pin'] ) ) ) {
 			return $this->notSubmittedFailure( 'A six-digit PIN is required for KA Credit.' );
 		}
 		$packages = $payload['packages'] ?? null;
+		if ( isset( $payload['address_note'] ) && ! is_string( $payload['address_note'] ) ) {
+			return $this->notSubmittedFailure( 'Instant address notes must be text.' );
+		}
+		$payload['address_note'] = '' !== trim( $payload['address_note'] ?? '' ) ? $payload['address_note'] : $payload['address'];
 		if ( ! is_array( $packages ) || ! array_is_list( $packages ) || count( $packages ) < 1 || count( $packages ) > 10 ) {
 			return $this->notSubmittedFailure( 'Instant booking requires 1 to 10 packages.' );
 		}
-		foreach ( $packages as $package ) {
+		foreach ( $packages as $index => $package ) {
 			if ( ! is_array( $package ) ) {
 				return $this->notSubmittedFailure( 'Invalid Instant package.' );
 			}
@@ -151,6 +155,10 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 					return $this->notSubmittedFailure( 'Instant destinations require a name and phone.' );
 				}
 			}
+			if ( isset( $package['destination']['address_note'] ) && ! is_string( $package['destination']['address_note'] ) ) {
+				return $this->notSubmittedFailure( 'Instant address notes must be text.' );
+			}
+			$payload['packages'][ $index ]['destination']['address_note'] = '' !== trim( $package['destination']['address_note'] ?? '' ) ? $package['destination']['address_note'] : $package['destination']['address'];
 		}
 
 		// The inherited post() logs remote errors, which may echo the PIN.

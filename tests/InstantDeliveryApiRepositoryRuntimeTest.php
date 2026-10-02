@@ -14,6 +14,25 @@ namespace KiriminAja\Base\Api {
 			return $GLOBALS['transport'];
 		}
 
+	public function test_booking_always_supplies_notes_preserves_explicit_notes_and_accepts_qris(): void {
+		foreach ( array( '', '$book["address_note"]="Pickup entrance"; $book["packages"][0]["destination"]["address_note"]="Gedung A Lantai 5";' ) as $notes ) {
+			$r = $this->run_fixture( '$book["payment_method"]="qris"; unset($book["pin"]); ' . $notes . '$result=$repository->book($book);' );
+			$this->assertTrue( $r['result']['status'] );
+			$payload = $r['calls'][0][2];
+			$this->assertSame( 'qris', $payload['payment_method'] );
+			$this->assertSame( '' === $notes ? 'Origin address' : 'Pickup entrance', $payload['address_note'] );
+			$this->assertSame( '' === $notes ? 'Destination address' : 'Gedung A Lantai 5', $payload['packages'][0]['destination']['address_note'] );
+			$this->assertArrayNotHasKey( 'insurance_type', $payload['packages'][0] );
+			$this->assertArrayNotHasKey( 'pin', $payload );
+		}
+		foreach ( array( '$book["address_note"]=array("bad");', '$book["packages"][0]["destination"]["address_note"]=42;' ) as $invalid ) {
+			$r = $this->run_fixture( $invalid . '$result=$repository->book($book);' );
+			$this->assertFalse( $r['result']['status'] );
+			$this->assertTrue( $r['result']['operation_not_submitted'] );
+			$this->assertSame( array(), $r['calls'] );
+		}
+	}
+
 	public function test_booking_requires_strict_transport_proof_of_non_submission(): void {
 		foreach ( array( 'array()', 'array( "submitted" => null )', 'array( "submitted" => 0 )', 'array( "submitted" => "false" )', 'array( "submitted" => true )', 'array( "submitted" => false )' ) as $diagnostics ) {
 			$fixture = $this->run_fixture( '$GLOBALS["diagnostics"] = ' . $diagnostics . '; $GLOBALS["transport"] = array( false, "offline" ); $result = $repository->book( $book );' );
@@ -66,7 +85,7 @@ namespace KiriminAja\Base\Api {
 	}
 
 	public function test_booking_accepts_cash_and_omitted_top_account_method_without_a_pin(): void {
-		foreach ( array( '$book["payment_method"] = "cash";', 'unset( $book["payment_method"] );' ) as $mutation ) {
+		foreach ( array( '$book["payment_method"] = "cash";', '$book["payment_method"] = "qris";', 'unset( $book["payment_method"] );' ) as $mutation ) {
 			$fixture = $this->run_fixture( $mutation . 'unset( $book["pin"] ); $result = $repository->book( $book );' );
 			$this->assertTrue( $fixture['result']['status'] );
 			$this->assertCount( 1, $fixture['calls'] );
@@ -176,7 +195,7 @@ PHP;
 			'$book["phone"] = " ";',
 			'unset( $book["packages"][0]["destination"]["name"] );',
 			'$book["packages"][0]["destination"]["phone"] = " ";',
-			'$book["payment_method"] = "qris";',
+			'$book["payment_method"] = "unknown";',
 			'$book["payment_method"] = "top";',
 			'$book["pin"] = "12345";',
 			'$book["pin"] = 123456;',

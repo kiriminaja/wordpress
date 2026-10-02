@@ -218,9 +218,9 @@ class InstantDispatchService {
 				$origin = $first['origin'];
 				$payload = $origin + array( 'packages' => array_values( array_column( $group, 'package' ) ) );
 				// TOP is account-configured: omit the API method, never infer paid.
-				// UI QRIS is merchant payment (not COD), represented by API cash.
+				// Use the verified API QRIS spelling; cash is not a QRIS alias.
 				if ( 'top' !== $method ) {
-					$payload['payment_method'] = 'qris' === $method ? 'cash' : 'credit';
+					$payload['payment_method'] = $method;
 				}
 				if ( 'credit' === $method ) {
 					$payload['pin'] = $pin;
@@ -560,8 +560,20 @@ class InstantDispatchService {
 	private function bookingChanges( array $ctx, array $remote, array $metadata ): array {
 		// Match the complete courier identity to the quoted request, not merely position/ID.
 		foreach ( array( 'order_id', 'service', 'service_type' ) as $field ) {
-			if ( ! isset( $remote[ $field ] ) || $remote[ $field ] !== $ctx['package'][ $field ] ) {
+			if ( ! isset( $remote[ $field ] ) || ( 'service_type' === $field ? ! InstantShipmentState::sameServiceType( $remote[ $field ], $ctx['package'][ $field ] ) : $remote[ $field ] !== $ctx['package'][ $field ] ) ) {
 				throw new RuntimeException();
+			}
+		}
+		// Add only validated route evidence to the reviewed durable snapshot.
+		// Never persist the raw package, encoded polyline or upstream messages.
+		if ( array_key_exists( 'poly_line', $remote ) || array_key_exists( 'polyline', $remote ) ) {
+			$route = \KiriminAjaOfficial\Services\InstantTrackingPresentation::routePoints( (object) array(
+				'instant_tracking_payload' => array( 'polyline' => $remote['poly_line'] ?? $remote['polyline'] ?? null ),
+			) );
+			$snapshot = json_decode( (string) ( $metadata['shipping_info'] ?? '' ), true );
+			if ( ! empty( $route ) && is_array( $snapshot ) ) {
+				$snapshot['instant_route_points'] = $route;
+				$metadata['shipping_info'] = wp_json_encode( $snapshot );
 			}
 		}
 		return array( 'shipping_cost' => $ctx['price'] ) + $metadata + array( 'request_pickup_at' => gmdate( 'Y-m-d H:i:s' ) );
@@ -572,7 +584,7 @@ class InstantDispatchService {
 		$destination = $ctx['package']['destination'];
 		$snapshot = json_decode( (string) ( $row->shipping_info ?? '{}' ), true );
 		$snapshot = is_array( $snapshot ) ? $snapshot : array();
-		foreach ( array( 'first_name' => $destination['name'], 'last_name' => '', 'address_1' => $destination['address'], 'address_2' => '', 'phone' => $destination['phone'], 'country' => 'ID' ) as $field => $value ) {
+		foreach ( array( 'first_name' => $destination['name'], 'last_name' => '', 'address_1' => $destination['address'], 'address_2' => $destination['address_note'] ?? '', 'phone' => $destination['phone'], 'country' => 'ID' ) as $field => $value ) {
 			$snapshot[ '_shipping_' . $field ] = $value;
 		}
 		$snapshot['destination_latitude'] = $destination['latitude'];

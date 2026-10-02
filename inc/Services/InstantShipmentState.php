@@ -17,6 +17,14 @@ final class InstantShipmentState {
 		$this->repo = $repo;
 	}
 
+	/** Verified booking responses capitalize Instant; do not broaden identity matching. */
+	public static function sameServiceType( $remote, $expected ): bool {
+		if ( ! is_string( $remote ) || ! is_string( $expected ) ) {
+			return false;
+		}
+		return $remote === $expected || ( in_array( strtolower( $expected ), array( 'instant', 'sameday' ), true ) && strtolower( $remote ) === strtolower( $expected ) );
+	}
+
 	/** Query uncertain bookings without interpreting the claim as remote acceptance. */
 	public static function canRecheck( $row ): bool {
 		$row = is_object( $row ) ? get_object_vars( $row ) : $row;
@@ -70,7 +78,7 @@ final class InstantShipmentState {
 				$this->invalid();
 			}
 			if ( 'booking' === $mode ) {
-				foreach ( array( 'live_tracking_url', 'tracking_url', 'live_tracking' ) as $field ) {
+				foreach ( array( 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking' ) as $field ) {
 					if ( isset( $package[ $field ] ) && '' !== $package[ $field ] && '' === self::trackingUrl( $package[ $field ] ) ) {
 						$this->invalid();
 					}
@@ -123,7 +131,7 @@ final class InstantShipmentState {
 			if ( isset( $package['awb'] ) && empty( $row->awb ) ) {
 				$changes['awb'] = $package['awb'];
 			}
-			$url = self::trackingUrl( $package['live_tracking_url'] ?? $package['tracking_url'] ?? $package['live_tracking'] ?? null );
+			$url = self::trackingUrl( $package['live_tracking_url'] ?? $package['live_track_url'] ?? $package['tracking_url'] ?? $package['live_tracking'] ?? null );
 			if ( '' !== $url && ( ! $stale || empty( $row->live_tracking_url ) ) ) {
 				$changes['live_tracking_url'] = $url;
 			}
@@ -193,7 +201,8 @@ final class InstantShipmentState {
 			$this->invalid();
 		}
 		foreach ( array( 'service', 'service_type', 'service_name' ) as $field ) {
-			if ( array_key_exists( $field, $package ) && ( ! is_string( $package[ $field ] ) || $package[ $field ] !== (string) ( 'service' !== $field ? ( $row->service_name ?? $row->service_type ?? '' ) : ( $row->service ?? '' ) ) ) ) {
+			$expected = (string) ( 'service' !== $field ? ( $row->service_name ?? $row->service_type ?? '' ) : ( $row->service ?? '' ) );
+			if ( array_key_exists( $field, $package ) && ( 'service' === $field ? $package[ $field ] !== $expected : ! self::sameServiceType( $package[ $field ], $expected ) ) ) {
 				$this->invalid();
 			}
 		}
