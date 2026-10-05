@@ -14,6 +14,8 @@
     IconPackage,
     IconPlane,
     IconPrinter,
+    IconRefresh,
+    IconMapPin,
     IconSearch,
     IconSwitch2,
     IconListNumbers,
@@ -513,12 +515,14 @@
                     {/if}
                     {#if row.deliveryType === 'instant' && isInstant}
                       {@const trackingUrl = safeInstantTrackingUrl(row.actions.liveTrackingUrl)}
-                      {#if row.actions.reconcile}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}>{bootstrap.i18n.instantRecheck}</Button>{/if}
+                      {#if row.actions.reconcile}<ActionTooltip label={bootstrap.i18n.instantRecheck}><Button variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })} aria-label={bootstrap.i18n.instantRecheck}><IconRefresh /></Button></ActionTooltip>{/if}
                       {#if row.actions.track}
-                        {#if trackingUrl}<Button variant="outline" size="sm" href={trackingUrl} target="_blank" rel="noopener noreferrer">{bootstrap.i18n.liveTracking}</Button>
-                        {:else}<Button variant="outline" size="sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}>{bootstrap.i18n.liveTracking}</Button>{/if}
+                        <ActionTooltip label={bootstrap.i18n.liveTracking}>
+                          {#if trackingUrl}<Button variant="outline" size="icon-sm" href={trackingUrl} target="_blank" rel="noopener noreferrer" aria-label={bootstrap.i18n.liveTracking}><IconMapPin /></Button>
+                          {:else}<Button variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })} aria-label={bootstrap.i18n.liveTracking}><IconMapPin /></Button>{/if}
+                        </ActionTooltip>
                       {/if}
-                      {#if row.actions.cancel}<Button variant="destructive" size="sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })}>{bootstrap.i18n.instantCancel}</Button>{/if}
+                      {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.instantCancel}><Button variant="destructive" size="icon-sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })} aria-label={bootstrap.i18n.instantCancel}><IconTrash /></Button></ActionTooltip>{/if}
                       {#if row.actions.process}<ActionTooltip label={bootstrap.i18n.processShipment}><Button variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])} aria-label={bootstrap.i18n.processShipment}><IconTruck /></Button></ActionTooltip>{/if}
                       {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
                     {/if}

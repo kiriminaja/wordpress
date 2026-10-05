@@ -8,6 +8,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
     function esc_html__($text, $domain) { return $text; }
     function wp_parse_url($url) { return parse_url($url); }
     function esc_url_raw($url, $protocols = []) { return $url; }
+    function wp_json_encode($value) { return json_encode($value); }
     function wc_get_order($id) { return $GLOBALS['missing_order'] ? false : $GLOBALS['order']; }
     eval('namespace KiriminAjaOfficial\\Repositories;
         class TransactionRepository {
@@ -26,6 +27,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
         }');
     require __DIR__ . '/../inc/Services/TransactionDeliveryType.php';
     require __DIR__ . '/../inc/Services/InstantShipmentState.php';
+    require __DIR__ . '/../inc/Services/InstantTrackingPresentation.php';
     require __DIR__ . '/../inc/Services/InstantWebhookService.php';
     $input = json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR);
     $repo = new KiriminAjaOfficial\Repositories\TransactionRepository();
@@ -65,6 +67,69 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantShipmentStateRuntimeTest extends TestCase {
+    #[Test]
+    public function official_instant_webhook_examples_persist_expected_lifecycle_without_raw_payloads(): void {
+        $examples=json_decode(file_get_contents(__DIR__.'/fixtures/instant-webhook-official-examples.json'),true,512,JSON_THROW_ON_ERROR);
+        $expected=array('processed_shipment'=>array(105,'request_pickup'),'shipped'=>array(106,'shipped'),'canceled'=>array(300,'canceled'),'finished'=>array(200,'finished'));
+        foreach($examples as $name=>$body) {
+            $r=$this->runFixture(array('events'=>array(),'row'=>array('awb'=>null,'instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'webhook'=>$body));
+            $this->assertSame(200,$r['webhook']['http_status'],$name);
+            $this->assertSame($expected[$name][0],$r['row']['instant_status_code']);
+            $this->assertSame($expected[$name][1],$r['row']['status']);
+            $this->assertSame('paid',$r['row']['instant_payment_status']);
+            $this->assertSame('AWB-1',$r['row']['awb']);
+            $this->assertSame('finished'===$name?'completed':'processing',$r['woo']['status']);
+            $this->assertStringNotContainsString('Fixture street',json_encode($r['row']));
+            $this->assertStringNotContainsString('some-random-qr-string',json_encode($r['row']));
+            if('shipped'===$name) $this->assertSame('2025-08-05 07:00:05',$r['row']['shipped_at']);
+            if('finished'===$name) $this->assertSame('2025-08-05 07:00:43',$r['row']['finished_at']);
+            if('processed_shipment'===$name) {
+                $snapshot=json_decode($r['row']['shipping_info'],true);
+                $this->assertCount(3,$snapshot['instant_route_points']);
+                $this->assertArrayNotHasKey('poly_line',$snapshot);
+            }
+        }
+    }
+
+    #[Test]
+    public function all_documented_methods_accept_minimal_and_nullable_payment_without_inventing_payment(): void {
+        foreach(array('processed_packages'=>105,'shipped_packages'=>106,'canceled_packages'=>300,'finished_packages'=>200) as $method=>$code) {
+            foreach(array(false,true) as $null) {
+                $body=array('method'=>$method,'data'=>array(array('order_id'=>'KA-1','date'=>'2025-08-05T07:00:05.123456Z')));
+                if($null) $body['payment']=null;
+                $r=$this->runFixture(array('events'=>array(),'row'=>array('instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'webhook'=>$body));
+                $this->assertSame(200,$r['webhook']['http_status']);
+                $this->assertSame($code,$r['row']['instant_status_code']);
+                $this->assertSame('unpaid',$r['row']['instant_payment_status']);
+            }
+        }
+        $body=array('method'=>'processed_packages','data'=>array(array('order_id'=>'KA-1')),'payment'=>array('payment_id'=>'PAY-1','status_code'=>'9'));
+        $r=$this->runFixture(array('events'=>array(),'row'=>array('instant_payment_status'=>'unpaid'),'webhook'=>$body));
+        $this->assertSame(200,$r['webhook']['http_status']);
+        $this->assertSame('unpaid',$r['row']['instant_payment_status']);
+    }
+
+    #[Test]
+    public function webhook_route_updates_are_bounded_stale_safe_and_compare_and_swap_preserves_local_snapshot(): void {
+        $event=$this->event(106,array('poly_line'=>'_p~iF~ps|U_ulLnnqC_mqNvxq`@'));
+        $event['event']='shipped_packages';
+        $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"preserved"}'),'events'=>array($event,$event)));
+        $snapshot=json_decode($r['row']['shipping_info'],true);
+        $this->assertSame('preserved',$snapshot['local']);
+        $this->assertCount(3,$snapshot['instant_route_points']);
+        $this->assertFalse($r['results'][1]['changed']);
+        $stale=$event; $stale['package']['status']=105; $stale['package']['poly_line']='~pfn@c|t`TZw@z@`@'; $stale['event']='processed_packages';
+        $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"preserved"}'),'events'=>array($event,$stale)));
+        $this->assertSame($snapshot['instant_route_points'],json_decode($r['row']['shipping_info'],true)['instant_route_points']);
+        $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"before"}'),'race'=>array('shipping_info'=>'{"local":"raced"}'),'events'=>array($event)));
+        $this->assertSame('raced',json_decode($r['row']['shipping_info'],true)['local']);
+        foreach(array(null,'bad',str_repeat('?',100001)) as $route) {
+            $event['package']['poly_line']=$route;
+            $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"preserved"}'),'events'=>array($event)));
+            $this->assertSame('shipped',$r['row']['status']);
+            $this->assertSame('{"local":"preserved"}',$r['row']['shipping_info']);
+        }
+    }
     #[Test]
     public function processed_webhook_confirms_ready_and_paid_without_completing_order_and_replays_monotonically(): void {
         $package = array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'Instant','status'=>105,'awb'=>'AWB-1','live_tracking_url'=>null);

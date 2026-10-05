@@ -5,6 +5,19 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantOperationUiTest extends TestCase {
+    public function test_instant_row_actions_are_icon_only_with_tooltips_and_accessible_names(): void {
+        $source = $this->source( 'src/lib/transactions/TransactionsApp.svelte' );
+        foreach ( array( 'instantRecheck' => 'IconRefresh', 'instantCancel' => 'IconTrash', 'liveTracking' => 'IconMapPin' ) as $label => $icon ) {
+            $this->assertStringContainsString( '<ActionTooltip label={bootstrap.i18n.' . $label . '}>', $source );
+            $this->assertMatchesRegularExpression( '/<Button(?:(?!<\/Button>)[\s\S])*?size="icon-sm"(?:(?!<\/Button>)[\s\S])*?aria-label=\{bootstrap\.i18n\.' . $label . '\}><' . $icon . ' \/><\/Button>/', $source );
+            $this->assertStringNotContainsString( '>{bootstrap.i18n.' . $label . '}</Button>', $source );
+        }
+        $this->assertStringContainsString( 'target="_blank" rel="noopener noreferrer" aria-label={bootstrap.i18n.liveTracking}', $source );
+        foreach ( array( 'reconcile', 'tracking', 'cancel' ) as $mode ) {
+            $this->assertStringContainsString( "mode: '" . $mode . "', id: row.kaOrderId", $source );
+        }
+    }
+
     private function source(string $path): string {
         return file_get_contents(PLUGIN_DIR . '/' . $path);
     }

@@ -3,6 +3,23 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantWebhookRuntimeTest extends TestCase {
+    #[Test]
+    public function every_official_example_passes_authenticated_routing_and_no_express_writes(): void {
+        $examples=json_decode(file_get_contents(__DIR__.'/fixtures/instant-webhook-official-examples.json'),true,512,JSON_THROW_ON_ERROR);
+        foreach($examples as $name=>$body) {
+            $r=$this->runFixture(array('body'=>$body,'rows'=>array(array('order_id'=>'KA-1','service'=>'gosend','instant_payment_id'=>'PAY-1'))));
+            $this->assertSame(200,$r['status'],$name);
+            $this->assertCount(1,$r['calls']);
+            $this->assertSame($body['method'],$r['calls'][0]['method']);
+            $this->assertSame(array(),$r['writes']);
+            $this->assertSame(0,$r['payment_calls']);
+        }
+        foreach(array('processed_packages','shipped_packages','canceled_packages','finished_packages') as $method) {
+            $r=$this->runFixture(array('body'=>array('method'=>$method,'data'=>array(array('order_id'=>'A')),'payment'=>null),'rows'=>array(array('order_id'=>'A','service'=>'gosend'))));
+            $this->assertSame(200,$r['status']);
+            $this->assertSame(array(),$r['calls'][0]['payment']);
+        }
+    }
     private function processedBody(): array {
         return array(
             'method'=>'processed_packages',
@@ -27,15 +44,12 @@ final class InstantWebhookRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function processed_requires_complete_noncontradictory_paid_instant_evidence_before_any_write(): void {
+    public function processed_rejects_contradictory_supplied_instant_evidence_before_any_write(): void {
         $body = $this->processedBody();
         $cases = array();
-        $case=$body; unset($case['packages']); $cases[]=$case;
-        $case=$body; unset($case['payment']); $cases[]=$case;
         $case=$body; unset($case['packages'][0]['status']); $cases[]=$case;
         $case=$body; $case['packages'][0]['status']=106; $cases[]=$case;
         $case=$body; $case['data'][0]['status']=100; $cases[]=$case;
-        $case=$body; $case['payment']['status_code']=9; $cases[]=$case;
         $case=$body; $case['packages'][0]['service_type']='sameday'; $cases[]=$case;
         $case=$body; $case['payment']['payment_id']='WRONG'; $cases[]=$case;
         $case=$body; $case['packages'][0]['awb']='OTHER'; $cases[]=$case;
@@ -104,7 +118,7 @@ final class InstantWebhookRuntimeTest extends TestCase {
             array_merge($valid, ['data'=>[['order_id'=>'A'], ['order_id'=>'B'], null]]),
             array_merge($valid, ['data'=>[['order_id'=>'A', 'awb'=>'ONE'], ['order_id'=>'B']], 'packages'=>[['order_id'=>'A', 'awb'=>'OTHER']]]),
             array_merge($valid, ['packages'=>[['order_id'=>'B', 'status'=>null]]]),
-            array_merge($valid, ['payment'=>null]),
+            array_merge($valid, ['payment'=>'invalid']),
         ];
         foreach ($cases as $body) {
             $result = $this->runFixture(['body'=>$body]);
@@ -115,7 +129,7 @@ final class InstantWebhookRuntimeTest extends TestCase {
 
     #[Test]
     public function missing_metadata_is_supported_and_unverified_state_is_retryable(): void {
-        foreach (['shipped_packages', 'canceled_packages', 'finished_packages'] as $method) {
+        foreach (['processed_packages', 'shipped_packages', 'canceled_packages', 'finished_packages'] as $method) {
             $result = $this->runFixture(['body'=>['method'=>$method, 'data'=>[['order_id'=>'A'], ['order_id'=>'B']]]]);
             $this->assertSame(200, $result['status']);
             $this->assertCount(2, $result['calls']);

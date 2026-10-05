@@ -473,9 +473,9 @@ The current callback handler is Express-oriented. Express supports `processed_pa
 
 The Instant webhook contract is different and narrower. The authoritative reference is [`POST instantShipmentEvent`](https://developer.kiriminaja.com/docs#webhook/POST/instantshipmentevent):
 
-- Allowed Instant methods are only `shipped_packages`, `canceled_packages`, and `finished_packages`.
+- The current OpenAPI contract lists `processed_packages`, `shipped_packages`, `canceled_packages`, and `finished_packages` (re-reviewed against `/docs/openapi/json`; see `INSTANT-LOGS.md` for implementation and regression coverage).
 - Instant `packages[]` entries contain `awb`, `order_id`, `service`, `service_type`, `status`, `live_tracking_url`, and `poly_line`.
-- There is no Instant `processed_packages` AWB event; persist tracking code/AWB from the Instant booking response.
+- Instant `processed_packages` precedes pickup and may supply an asynchronously assigned AWB. Booking and callback identity checks preserve the immutable AWB.
 - There is no COD/non-COD distinction in the Instant webhook payload.
 
 Relevant implementation:
@@ -487,8 +487,8 @@ Instant webhooks may provide summary data and package data in separate root prop
 Required adjustment:
 
 - Add a separate Instant webhook branch/handler instead of reusing Express lifecycle handling.
-- Accept only `shipped_packages`, `canceled_packages`, and `finished_packages` for Instant.
-- Persist the tracking code or AWB from the Instant booking response instead of waiting for an Express processed event.
+- Accept the four documented methods; payment/packages are optional, and a null payment is an omission, not a paid-state signal.
+- Persist a verified AWB from booking or an authenticated Instant event; do not route Instant processed events through Express handlers.
 - Merge webhook `data` and `packages` by `order_id` when both are available.
 - Persist live tracking URL, package status, and other useful Instant fields.
 - Do not reuse Express COD/non-COD transaction labeling for Instant. In the transaction row section that currently shows COD/non-COD, show the vehicle used to send the package instead.

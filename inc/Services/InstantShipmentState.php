@@ -119,7 +119,7 @@ final class InstantShipmentState {
 				$changes['instant_status_code'] = $code;
 				$issue = in_array( $code, array( 405, 500, 555, 701, 702, 703, 704, 303, 301, 333 ), true );
 				$changes['rejected_reason'] = $issue ? 'There is a problem with this Instant shipment.' : null;
-				if ( $target !== $old ) {
+				if ( $target !== $old || null !== $event ) {
 					$fields = array( 'request_pickup' => 'request_pickup_at', 'shipped' => 'shipped_at', 'finished' => 'finished_at', 'canceled' => 'canceled_at', 'returned' => 'return_finished_at', 'return' => 'returned_at' );
 					$field = $fields[ $target ] ?? null;
 					if ( null !== $field && empty( $row->{$field} ) && ! isset( $changes[ $field ] ) ) {
@@ -136,6 +136,19 @@ final class InstantShipmentState {
 				$changes['live_tracking_url'] = $url;
 			}
 			$changes = array_merge( $changes, $this->paymentChanges( $row, $payment ) );
+			if ( 'apply' === $mode && array_key_exists( 'poly_line', $package ) ) {
+				$route = InstantTrackingPresentation::routePoints( (object) array( 'instant_tracking_payload' => array( 'polyline' => $package['poly_line'] ) ) );
+				$snapshot = json_decode( (string) ( $changes['shipping_info'] ?? $row->shipping_info ?? '{}' ), true );
+				if ( ! empty( $route ) && is_array( $snapshot ) && ( ! $stale || empty( $snapshot['instant_route_points'] ) ) ) {
+					$snapshot['instant_route_points'] = $route;
+					$encoded = wp_json_encode( $snapshot );
+					// shipping_info is TEXT: optional route evidence must not overflow
+					// the snapshot or prevent authoritative lifecycle persistence.
+					if ( is_string( $encoded ) && strlen( $encoded ) <= 60000 ) {
+						$changes['shipping_info'] = $encoded;
+					}
+				}
+			}
 			foreach ( $changes as $field => $value ) {
 				if ( ( $row->{$field} ?? null ) === $value || ( null !== $value && isset( $row->{$field} ) && (string) $row->{$field} === (string) $value ) ) {
 					unset( $changes[ $field ] );

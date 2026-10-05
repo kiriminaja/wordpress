@@ -56,7 +56,7 @@ final class InstantWebhookService {
             }
         }
         $payment = array();
-        if ( property_exists( $body, 'payment' ) ) {
+        if ( property_exists( $body, 'payment' ) && null !== $body->payment ) {
             if ( ! is_array( $body->payment ) && ! is_object( $body->payment ) ) {
                 return $this->invalid( 'Invalid Instant payment metadata' );
             }
@@ -66,16 +66,6 @@ final class InstantWebhookService {
         foreach ( $events as $id => $event ) {
             $package = $packages[ $id ] ?? array();
             $row = $rows[ $id ];
-            // Unlike bare terminal lifecycle hooks, processed is supported only
-            // with explicit ready-for-shipment evidence from the Instant API.
-            // Never infer processing/payment success from the method name alone.
-            if ( 'processed_packages' === $method && (
-                ! isset( $package['service'], $package['service_type'] )
-                || ( ! isset( $payment['id'] ) && ! isset( $payment['payment_id'] ) )
-                || ! in_array( $payment['status_code'] ?? $payment['status'] ?? null, array( 0, '0', 'paid' ), true )
-            ) ) {
-                return $this->invalid( 'Instant processed callback requires package and paid payment evidence' );
-            }
             if ( ! in_array( $row['status'] ?? null, array( 'pending', 'request_pickup', 'shipped', 'finished', 'canceled', 'return', 'returned', 'rejected' ), true ) ) {
                 return $this->invalid( 'Invalid local Instant lifecycle' );
             }
@@ -125,18 +115,13 @@ final class InstantWebhookService {
             // Metadata is joined by exact order ID, never by payload position.
             $merged = array_merge( $event, $package );
             if ( null === $foundCode ) {
-                if ( 'processed_packages' === $method ) {
-                    return $this->invalid( 'Instant processed callback requires an explicit remote status' );
+                // Official InstantWebhookPayload requires only method + data.
+                // Validated event identity determines lifecycle, not payment.
+                // A supplied package object still requires its explicit status.
+                if ( ! empty( $package ) ) {
+                    return $this->invalid( 'Instant package metadata requires a remote status' );
                 }
-                // Only bare lifecycle events may infer a status in the state writer.
-                foreach ( array( 'service', 'service_type', 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking' ) as $field ) {
-                    if ( array_key_exists( $field, $merged ) ) {
-                        return $this->invalid( 'Instant metadata requires a remote status' );
-                    }
-                }
-                if ( ! empty( $payment ) ) {
-                    return $this->invalid( 'Instant payment requires a remote status' );
-                }
+                $merged['status'] = (int) $codes[ $method ][0];
             }
             foreach ( array( 'shipped_at', 'finished_at', 'canceled_at', 'date' ) as $timestamp ) {
                 if ( array_key_exists( $timestamp, $event ) ) {
