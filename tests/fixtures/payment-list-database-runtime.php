@@ -18,6 +18,7 @@ namespace {
     function sanitize_text_field($value) { return trim(strip_tags((string) $value)); }
     function add_query_arg($args, $url) { return $url . '&' . http_build_query($args); }
     require_once ABSPATH . 'inc/Contracts/PaymentListQueryInterface.php';
+    require_once ABSPATH . 'inc/Services/ListDateRangeFilter.php';
     require_once ABSPATH . 'inc/Queries/WordPressPaymentListQuery.php';
     require_once ABSPATH . 'inc/Services/PaymentListRenderService.php';
 

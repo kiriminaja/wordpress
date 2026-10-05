@@ -46,6 +46,11 @@ namespace {
 	foreach ( array( 'Services/TransactionDeliveryType', 'Services/ShipmentLocationService', 'Services/TransactionOriginResolver', 'Services/TransactionProcessServices/RecipientDataResolver', 'Services/InstantLabelService' ) as $file ) { require $root . '/inc/' . $file . '.php'; }
 	$defaults = array( 'order_id' => 'KA-1', 'wp_wc_order_stat_order_id' => 42, 'service' => 'gosend', 'service_name' => 'Instant', 'vehicle' => 'motor', 'status' => 'request_pickup', 'instant_status_code' => 100, 'awb' => 'AWB-123', 'weight' => 1000, 'shipping_cost' => 12000, 'instant_payment_method' => 'credit', 'instant_payment_status' => 'paid', 'shipping_info' => json_encode( array( 'instant_items' => array( array( 'name' => 'Physical item', 'qty' => 2, 'price' => 10000, 'weight' => 500 ) ), '_shipping_first_name' => 'Booked recipient', '_shipping_phone' => '0812345678', '_shipping_address_1' => 'Booked street', '_shipping_city' => 'Booked city' ) ), 'shipment_location_snapshot' => json_encode( array( 'origin_name' => 'Booked sender', 'origin_phone' => '0823456789', 'origin_address' => 'Booked origin', 'origin_city' => 'Origin city' ) ) );
 	$GLOBALS['rows'] = array_map( static fn( $row ) => (object) array_merge( $defaults, $row ), $input['rows'] ?? array( array() ) );
+	foreach ( $GLOBALS['rows'] as $index => $row ) {
+		if ( ! array_key_exists( 'awb', $input['rows'][ $index ] ?? array() ) ) {
+			$row->awb = 'AWB-' . $row->order_id;
+		}
+	}
 	if ( array_key_exists( 'snapshot_items', $input ) || ! empty( $input['missing_snapshot_items'] ) ) {
 		foreach ( $GLOBALS['rows'] as $row ) {
 			$snapshot = json_decode( $row->shipping_info, true );

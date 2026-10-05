@@ -202,15 +202,18 @@ class PaymentListRenderService {
     /**
      * Read and sanitize list filters.
      *
-     * @return array{key:string,month:string,status:string}
+     * @return array<string,mixed>
      */
     private function getFilters(): array {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only admin list filters.
-        return array(
-            'key'    => sanitize_text_field( wp_unslash( $_GET['key'] ?? '' ) ),
-            'month'  => sanitize_text_field( wp_unslash( $_GET['month'] ?? '' ) ),
-            'status' => sanitize_text_field( wp_unslash( $_GET['status'] ?? '' ) ),
-        );
+        $filters = array();
+        foreach ( array( 'key', 'month', 'status' ) as $name ) {
+            $filters[ $name ] = isset( $_GET[ $name ] ) && is_string( $_GET[ $name ] )
+                ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) )
+                : '';
+        }
+        $dates = ListDateRangeFilter::normalize( array_merge( $filters, array( 'date_from' => wp_unslash( $_GET['date_from'] ?? '' ), 'date_to' => wp_unslash( $_GET['date_to'] ?? '' ) ) ) );
+        return array_merge( $filters, $dates );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
     }
 

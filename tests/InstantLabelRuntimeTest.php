@@ -103,6 +103,20 @@ final class InstantLabelRuntimeTest extends TestCase {
 	}
 
 	#[Test]
+	public function malformed_and_duplicate_awb_identities_fail_closed(): void {
+		foreach ( array( null, array( 'AWB-1' ), 123, '<b>AWB-1</b>', ' AWB-1 ', "AWB-1\n", 'AWB/1', str_repeat( 'A', 101 ) ) as $awb ) {
+			$result = $this->run_label( array( 'rows' => array( array( 'awb' => $awb ) ) ) );
+			$this->assertNotSame( '', $result['error'] );
+			$this->assertSame( array( false ), $result['can_print'] );
+			$this->assertSame( '', $result['html'] );
+		}
+		$result = $this->run_label( array( 'ids' => array( 'KA-1', 'KA-2' ), 'rows' => array( array( 'awb' => 'AWB-SAME' ), array( 'order_id' => 'KA-2', 'awb' => 'AWB-SAME' ) ) ) );
+		$this->assertNotSame( '', $result['error'] );
+		$this->assertSame( array(), $result['labels'] );
+		$this->assertSame( '', $result['html'] );
+	}
+
+	#[Test]
 	public function maximum_batch_of_fifty_is_supported(): void {
 		$ids = array_map( static fn( $id ) => 'KA-' . $id, range( 1, 50 ) );
 		$rows = array_map( static fn( $id ) => array( 'order_id' => $id ), $ids );

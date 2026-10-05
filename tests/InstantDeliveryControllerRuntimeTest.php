@@ -190,6 +190,9 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			if ( 'labelPreview' === $operation ) {
 				$data = $result['responses'][0]['data']['data'];
 				$this->assertSame( 'html', $data['type'] );
+				$this->assertSame( 'local', $data['provider'] );
+				$this->assertFalse( $data['carrier_available'] );
+				$this->assertStringContainsString( 'not a courier-issued label', $data['fallback_reason'] );
 				parse_str( parse_url( $data['url'], PHP_URL_QUERY ), $query );
 				$this->assertSame( array( 'action' => 'kiriof_instant_labels', 'oids' => 'KA-1,2', '_wpnonce' => 'valid:kiriof_instant_labels' ), $query );
 			} else {

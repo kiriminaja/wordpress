@@ -3883,6 +3883,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
+require_once PLUGIN_DIR . '/inc/Services/ListDateRangeFilter.php';
         require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
         foreach (array('', 'invalid-status', null, array('wc-processing')) as $status) {
             $this->assertSame(

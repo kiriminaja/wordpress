@@ -14,6 +14,7 @@ namespace {
     define('ABSPATH', dirname(__DIR__, 2) . '/');
     require_once dirname(__DIR__, 2) . '/inc/Services/TransactionDeliveryType.php';
     require_once dirname(__DIR__, 2) . '/inc/Contracts/TransactionListQueryInterface.php';
+    require_once dirname(__DIR__, 2) . '/inc/Services/ListDateRangeFilter.php';
     require_once dirname(__DIR__, 2) . '/inc/Queries/WordPressTransactionListQuery.php';
 
     function sanitize_text_field($value): string { return trim(strip_tags((string) $value)); }

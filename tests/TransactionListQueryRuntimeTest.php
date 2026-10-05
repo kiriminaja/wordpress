@@ -15,6 +15,7 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 
 require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
 require_once PLUGIN_DIR . '/inc/Services/TransactionDeliveryType.php';
+require_once PLUGIN_DIR . '/inc/Services/ListDateRangeFilter.php';
 require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
 
 final class TransactionListQueryRuntimeTest extends TestCase

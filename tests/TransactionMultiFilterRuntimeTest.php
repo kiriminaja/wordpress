@@ -116,7 +116,7 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
         $this->assertSame('jne,pos', $result['courier']);
         $this->assertSame('', $result['print_status']);
         $arrays = $this->invokeFixture(['mode'=>'renderer', 'get'=>['key'=>['oops'], 'status'=>['wc-processing'], 'courier'=>['jne'], 'print_status'=>['1']]]);
-        $this->assertSame(['key'=>'', 'month'=>'', 'status'=>'all', 'cod'=>'', 'courier'=>'', 'print_status'=>'', 'delivery_type'=>'express'], $arrays);
+        $this->assertSame(['key'=>'', 'month'=>'', 'status'=>'all', 'cod'=>'', 'courier'=>'', 'print_status'=>'', 'delivery_type'=>'express', 'date_from'=>'', 'date_to'=>'', 'date_range_invalid'=>false], $arrays);
         $all = $this->invokeFixture(['mode'=>'renderer', 'get'=>['status'=>'wc-processing,wc-on-hold,wc-pending,processed,wc-cancelled', 'courier'=>' jne,jne,pos ', 'print_status'=>'1']]);
         $this->assertSame('all', $all['status']);
         $this->assertSame('jne,pos', $all['courier']);

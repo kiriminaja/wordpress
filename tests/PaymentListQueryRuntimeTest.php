@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once PLUGIN_DIR . '/inc/Contracts/PaymentListQueryInterface.php';
+require_once PLUGIN_DIR . '/inc/Services/ListDateRangeFilter.php';
 require_once PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php';
 
 final class PaymentListQueryRuntimeTest extends TestCase

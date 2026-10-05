@@ -3,6 +3,7 @@
 namespace KiriminAjaOfficial\Queries;
 
 use KiriminAjaOfficial\Contracts\PaymentListQueryInterface;
+use KiriminAjaOfficial\Services\ListDateRangeFilter;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -34,6 +35,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $wpdb = $this->wpdb;
         $page = max( 1, $page );
         $items_per_page = max( 1, $items_per_page );
+        $filters = array_merge( $filters, ListDateRangeFilter::normalize( $filters ) );
         $groups = $this->getPaymentGroupsSql();
         $status = in_array( $filters['status'], array( 'unpaid', 'paid', 'pending', 'refunded' ), true ) ? $filters['status'] : '';
         $args = array(
@@ -45,6 +47,8 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
             $status,
         );
         $where = 'WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )';
+        // Filter after aggregation so payment group membership and totals stay intact.
+        $where .= ListDateRangeFilter::sql( $wpdb, 'created_at', $filters );
         $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM ({$groups}) payment_groups {$where}", ...$args ) );
         $total_pages = (int) ceil( $total / $items_per_page );
         if ( $total_pages > 0 ) {

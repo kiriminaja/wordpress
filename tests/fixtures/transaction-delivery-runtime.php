@@ -15,7 +15,7 @@ namespace {
     function sanitize_text_field($value): string { return trim(strip_tags((string) $value)); }
     define('ABSPATH', $temp . '/');
     define('HOUR_IN_SECONDS', 3600);
-    foreach (['Base/BaseInit', 'Services/TransactionDeliveryType', 'Contracts/TransactionListQueryInterface', 'Contracts/TransactionPrintRepositoryInterface', 'Queries/WordPressTransactionListQuery', 'Repositories/TransactionRepository', 'Migration/SetupMigration'] as $file) { require_once $root . '/inc/' . $file . '.php'; }
+    foreach (['Base/BaseInit', 'Services/TransactionDeliveryType', 'Services/ListDateRangeFilter', 'Contracts/TransactionListQueryInterface', 'Contracts/TransactionPrintRepositoryInterface', 'Queries/WordPressTransactionListQuery', 'Repositories/TransactionRepository', 'Migration/SetupMigration'] as $file) { require_once $root . '/inc/' . $file . '.php'; }
     function get_option($key, $default = '') { return $GLOBALS['options'][$key] ?? $default; }
     function update_option($key, $value, $autoload = false) { $GLOBALS['options'][$key] = $value; return true; }
     function esc_sql($value) { return $value; }

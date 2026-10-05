@@ -497,7 +497,7 @@ class TransactionListRenderService
     /**
      * Read, sanitize, and normalize list filters.
      *
-     * @return array{key:string,month:string,status:string,cod:string,courier:string,print_status:string,delivery_type:string}
+     * @return array<string,mixed>
      */
     private function getFilters(): array
     {
@@ -524,7 +524,10 @@ class TransactionListRenderService
             $filters["print_status"] = "";
         }
 
-        return $filters;
+        // Validate raw endpoints before sanitizing so malformed inputs fail closed.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filters.
+        $dates = ListDateRangeFilter::normalize( array_merge( $filters, array( "date_from" => wp_unslash( $_GET["date_from"] ?? "" ), "date_to" => wp_unslash( $_GET["date_to"] ?? "" ) ) ) );
+        return array_merge( $filters, $dates );
     }
 
     private function getRequestedPage(): int

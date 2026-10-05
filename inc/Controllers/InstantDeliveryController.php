@@ -140,6 +140,10 @@ class InstantDeliveryController {
 							admin_url( 'admin-post.php' )
 						),
 						'type' => 'html',
+						// Neither the current OpenAPI nor the bundled SDK confirms Instant print support.
+						'provider'          => 'local',
+						'carrier_available' => false,
+						'fallback_reason'   => __( 'Carrier-issued Instant labels are not confirmed by the published API contract. This is a local shipment label, not a courier-issued label.', 'kiriminaja-official' ),
 					);
 			}
 		} catch ( InvalidArgumentException $error ) {

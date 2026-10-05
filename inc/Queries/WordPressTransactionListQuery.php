@@ -4,6 +4,7 @@ namespace KiriminAjaOfficial\Queries;
 
 use KiriminAjaOfficial\Contracts\TransactionListQueryInterface;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
+use KiriminAjaOfficial\Services\ListDateRangeFilter;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -60,6 +61,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $offset = ( $current_page - 1 ) * $per_page;
 
         $key          = $filters['key'];
+        $filters      = array_merge( $filters, ListDateRangeFilter::normalize( $filters ) );
         $month        = $filters['month'];
         $status       = $this->normalizeStatusFilter( $filters['status'] ?? '' );
         $cod          = $filters['cod'];
@@ -120,6 +122,8 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
          * correct table name and column aliases.
          */
         $o = $this->getOrdersTable();
+        // Preserve existing date semantics: HPOS uses GMT; legacy posts use post_date.
+        $date_clause = ListDateRangeFilter::sql( $wpdb, "orders_tbl.{$o['date']}", $filters );
         $shippable_order_clause = $this->getShippableOrderExistsSql( "orders_tbl.{$o['id']}" );
 
         $key_clause = '';
@@ -183,7 +187,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                 $status_args[] = 'wc-cancelled';
             }
             if ( $status_parts ) {
-                $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') {$regular_issue_clause} {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . ") AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
+                $base_where = "WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft') {$regular_issue_clause} {$cod_clause} {$courier_clause} {$print_status_clause} {$key_clause} {$shippable_order_clause} AND (" . implode( ' OR ', $status_parts ) . "){$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )";
                 $from = "FROM {$o['table']} as orders_tbl INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id {$payment_join}";
                 // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Status branches and their placeholders are assembled together from normalized values.
                 $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT orders_tbl.{$o['id']}) {$from} {$base_where}", ...array_merge( $status_args, array( $month, $month_like ) ) ) );
@@ -209,7 +213,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $month,
                     $month_like
                 )
@@ -233,7 +237,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
                     LIMIT %d OFFSET %d",
@@ -260,7 +264,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $month,
                     $month_like
                 )
@@ -286,7 +290,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
                     LIMIT %d OFFSET %d",
@@ -310,7 +314,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     'wc-cancelled',
                     $month,
                     $month_like
@@ -334,7 +338,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                     GROUP BY orders_tbl.{$o['id']}
                     ORDER BY orders_tbl.{$o['date']} DESC
                     LIMIT %d OFFSET %d",
@@ -359,7 +363,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $month,
                     $month_like
                 )
@@ -382,7 +386,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     {$print_status_clause}
                     {$key_clause}
                     {$shippable_order_clause}
-                    AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                    {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC
                 LIMIT %d OFFSET %d",
@@ -408,7 +412,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                         {$print_status_clause}
                         {$key_clause}
                         {$shippable_order_clause}
-                        AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
+                        {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )",
                     $status,
                     'new',
                     $month,
@@ -434,7 +438,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     {$print_status_clause}
                     {$key_clause}
                     {$shippable_order_clause}
-                    AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
+                    {$date_clause} AND ( %s = '' OR orders_tbl.{$o['date']} LIKE %s )
                 GROUP BY orders_tbl.{$o['id']}
                 ORDER BY orders_tbl.{$o['date']} DESC
                 LIMIT %d OFFSET %d",

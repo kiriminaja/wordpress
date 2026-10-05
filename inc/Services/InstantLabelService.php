@@ -33,7 +33,11 @@ class InstantLabelService {
 		if ( ! is_object( $row ) ) {
 			return false;
 		}
-		$awb = trim( (string) ( $row->awb ?? '' ) );
+		// Never treat malformed or control-character identities as printable AWBs.
+		if ( ! is_string( $row->awb ?? null ) || ! preg_match( '/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/D', $row->awb ) ) {
+			return false;
+		}
+		$awb = $row->awb;
 		$snapshot = json_decode( (string) ( $row->shipping_info ?? '' ) );
 		$origin = json_decode( (string) ( $row->shipment_location_snapshot ?? '' ), true );
 		if ( ! is_object( $snapshot ) || empty( self::booked_items( $snapshot ) ) || ! is_array( $origin )
@@ -89,8 +93,14 @@ class InstantLabelService {
 			$indexed[ $id ] = $row;
 		}
 		$labels = array();
+		$awbs   = array();
 		foreach ( $normalized as $id ) {
-			$labels[] = $this->prepare_label( $indexed[ $id ] );
+			$label = $this->prepare_label( $indexed[ $id ] );
+			if ( isset( $awbs[ $label['awb'] ] ) ) {
+				throw new InvalidArgumentException( esc_html__( 'Each requested Instant shipment must have a distinct AWB.', 'kiriminaja-official' ) );
+			}
+			$awbs[ $label['awb'] ] = true;
+			$labels[]            = $label;
 		}
 		return $labels;
 	}
@@ -115,10 +125,10 @@ class InstantLabelService {
 
 	/** @return array<string,mixed> */
 	private function prepare_label( object $row ): array {
-		$awb = trim( (string) ( $row->awb ?? '' ) );
 		if ( ! self::canPrint( $row ) ) {
 			throw new InvalidArgumentException( esc_html__( 'Local labels require a booked, non-cancelled GoSend or Grab Instant shipment with an AWB.', 'kiriminaja-official' ) );
 		}
+		$awb = $row->awb;
 		$order = function_exists( 'wc_get_order' ) ? wc_get_order( (int) ( $row->wp_wc_order_stat_order_id ?? 0 ) ) : false;
 		if ( ! $order || ! in_array( $order->get_status(), array( 'processing', 'completed' ), true ) ) {
 			throw new InvalidArgumentException( esc_html__( 'The WooCommerce order is not eligible for shipping.', 'kiriminaja-official' ) );
