@@ -6,6 +6,23 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class ListDateRangeRuntimeTest extends TestCase {
+    #[Test]
+    public function renderer_exposes_normalized_range_and_retains_fail_closed_marker(): void {
+        $filters = $this->runFixture('transaction-multi-filter-runtime', ['mode'=>'renderer', 'get'=>['month'=>'2020-01', 'date_from'=>'2024-02-29', 'date_to'=>'2024-03-01']]);
+        $this->assertSame('', $filters['month']);
+        $this->assertSame('2024-02-29', $filters['date_from']);
+        $this->assertSame('2024-03-01', $filters['date_to']);
+        $this->assertFalse($filters['date_range_invalid']);
+        $invalid = $this->runFixture('transaction-multi-filter-runtime', ['mode'=>'renderer', 'get'=>['month'=>'2020-01', 'date_from'=>['bad']]]);
+        $this->assertTrue($invalid['date_range_invalid']);
+        $this->assertSame('', $invalid['month']);
+        $this->assertSame('', $invalid['date_from']);
+        $payment = $this->runFixture('payment-list-database-runtime', ['get'=>['month'=>'2020-01', 'date_from'=>'2024-02-29', 'date_to'=>'2024-03-01']]);
+        $this->assertSame($filters['date_from'], $payment['bootstrap']['filters']['date_from']);
+        $this->assertSame($filters['date_to'], $payment['bootstrap']['filters']['date_to']);
+        $this->assertSame('', $payment['bootstrap']['filters']['month']);
+    }
+
     private function runFixture(string $name, array $input): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/' . $name . '.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);

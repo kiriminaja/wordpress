@@ -1,6 +1,25 @@
 @reference 'tailwindcss';
 @reference './kiriof-var.css';
 
+.kiriof-print-preview-dialog {
+  @apply !box-border !w-[calc(100vw-2rem)] !max-w-none !h-[calc(100dvh-2rem)] !min-h-0 !p-0 !gap-0 !overflow-hidden;
+}
+.kiriof-print-preview-dialog > .kiriof-print-preview-frame {
+  @apply !absolute !inset-0 !w-full !h-full;
+}
+.kiriof-print-preview-actions {
+  @apply !absolute !bottom-4 !left-1/2 !z-10 !-translate-x-1/2 !flex !flex-wrap !items-center !justify-center !gap-2 !p-2 !border !border-solid !border-border !rounded-lg !bg-background !shadow-lg;
+}
+.kiriof-admin-list-app .kiriof-date-range-trigger {
+  @apply !box-border !h-[34px] !min-h-[34px] !m-0 !px-3 !py-0 !border !border-solid !border-border !bg-background !text-foreground;
+}
+.kiriof-date-range-popover table {
+  @apply !border-0 !w-auto;
+}
+.kiriof-date-range-popover button {
+  @apply !m-0 !leading-none;
+}
+
 .kiriof-transaction-dialog-content .kiriof-pickup-summary {
   @apply !border-border !bg-card;
 }

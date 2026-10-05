@@ -7,8 +7,55 @@ final class InstantLabelRuntimeTest extends TestCase {
 		$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-label-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
 		$result = json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
 		$this->assertSame( 0, $result['writes'] );
-		$this->assertSame( 0, $result['calls'] );
+		$this->assertSame( ! empty( $input['preview'] ) && '' === $result['error'] ? 1 : 0, $result['calls'] );
 		return $result;
+	}
+
+	#[Test]
+	public function carrier_preview_accepts_existing_response_aliases_and_keeps_signed_url(): void {
+		$url = 'https://storage.googleapis.com/kiriminaja/label.pdf?signature=abc%2B123&expires=99';
+		foreach ( array( $url, array( 'url' => $url ), array( 'link' => $url ), array( 'data' => array( 'url' => $url ) ), array( 'data' => array( 'link' => $url ) ) ) as $data ) {
+			foreach ( array( false, true ) as $object_data ) {
+				$result = $this->run_label( array( 'preview' => true, 'print_response' => array( 'status' => true, 'data' => $data ), 'object_data' => $object_data ) );
+				$this->assertSame( array( 'url' => $url, 'provider' => 'carrier', 'type' => 'pdf', 'carrier_available' => true ), $result['preview'] );
+				$this->assertSame( array( 'AWB-KA-1' ), $result['print_awbs'] );
+				$this->assertNotEmpty( $result['html'] );
+			}
+		}
+		$result = $this->run_label( array( 'preview' => true, 'print_response' => array( 'status' => true, 'url' => $url ) ) );
+		$this->assertSame( $url, $result['preview']['url'] );
+	}
+
+	#[Test]
+	public function unavailable_malformed_or_unsafe_carrier_responses_fall_back_without_remote_errors(): void {
+		$urls = array( 'http://client.kiriminaja.com/label.pdf', 'javascript:alert(1)', '//client.kiriminaja.com/label', 'https://user:pass@client.kiriminaja.com/label', 'https://127.0.0.1/label', 'https://[::1]/label', 'https://localhost/label', 'https://printer.local/label', 'https://client.kiriminaja.com:8443/label', "https://client.kiriminaja.com/label\n", 'https://client.kiriminaja.com/label%0afoo', 'https://client.kiriminaja.com\\@evil.com/label', '' );
+		$inputs = array( array( 'print_exception' => true ), array( 'print_response' => array( 'status' => false, 'data' => 'secret remote token' ) ), array( 'print_response' => array( 'status' => false, 'url' => 'https://client.kiriminaja.com/label' ) ), array( 'print_response' => array( 'status' => true, 'data' => array( 'url' => array( 'wrong' ) ) ) ) );
+		foreach ( $urls as $url ) { $inputs[] = array( 'print_response' => array( 'status' => true, 'data' => $url ) ); }
+		foreach ( $inputs as $input ) {
+			$result = $this->run_label( array_merge( $input, array( 'preview' => true ) ) );
+			$this->assertSame( 'local', $result['preview']['provider'] );
+			$this->assertSame( 'html', $result['preview']['type'] );
+			$this->assertFalse( $result['preview']['carrier_available'] );
+			$this->assertArrayNotHasKey( 'url', $result['preview'] );
+			$this->assertStringNotContainsString( 'secret', $result['preview']['fallback_reason'] );
+			$this->assertNotEmpty( $result['html'] );
+		}
+	}
+
+	#[Test]
+	public function invalid_or_mixed_preview_batches_never_call_carrier(): void {
+		foreach ( array(
+			array( 'rows' => array() ),
+			array( 'rows' => array( array( 'awb' => '' ) ) ),
+			array( 'ids' => array( 'KA-1', 'KA-2' ), 'rows' => array( array(), array( 'order_id' => 'KA-2', 'service' => 'jne' ) ) ),
+			array( 'ids' => array( 'KA-1', 'KA-2' ), 'rows' => array( array( 'awb' => 'SAME' ), array( 'order_id' => 'KA-2', 'awb' => 'SAME' ) ) ),
+			array( 'missing_order' => true ),
+		) as $input ) {
+			$result = $this->run_label( array_merge( $input, array( 'preview' => true ) ) );
+			$this->assertNotSame( '', $result['error'] );
+			$this->assertArrayNotHasKey( 'preview', $result );
+			$this->assertSame( array(), $result['print_awbs'] );
+		}
 	}
 
 	#[Test]

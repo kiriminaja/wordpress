@@ -42,6 +42,9 @@ export type TransactionFilters = {
   delivery_type: 'express' | 'instant';
   key: string;
   month: string;
+  date_from?: string;
+  date_to?: string;
+  date_range_invalid?: boolean;
   status: string;
   cod: string;
   courier: string;

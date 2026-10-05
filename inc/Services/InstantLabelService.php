@@ -3,20 +3,24 @@ namespace KiriminAjaOfficial\Services;
 
 use InvalidArgumentException;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Read-only, local labels for already booked supported Instant shipments. */
+/** Read-only carrier preview with local labels for verified booked Instant shipments. */
 class InstantLabelService {
 	private TransactionRepository $repo;
+	/** @var callable|null */
+	private $print_client;
 	private RecipientDataResolver $recipient_resolver;
 	private TransactionOriginResolver $origin_resolver;
 
-	public function __construct( TransactionRepository $repo, ?RecipientDataResolver $recipient_resolver = null, ?TransactionOriginResolver $origin_resolver = null ) {
+	public function __construct( TransactionRepository $repo, ?RecipientDataResolver $recipient_resolver = null, ?TransactionOriginResolver $origin_resolver = null, ?callable $print_client = null ) {
 		$this->repo               = $repo;
+		$this->print_client       = $print_client;
 		$this->recipient_resolver = $recipient_resolver ?? new RecipientDataResolver();
 		// Origin display must never seed a warehouse or overlay a changed location.
 		$this->origin_resolver = $origin_resolver ?? new TransactionOriginResolver(
@@ -103,6 +107,71 @@ class InstantLabelService {
 			$labels[]            = $label;
 		}
 		return $labels;
+	}
+
+	/** Validate the entire batch before attempting the existing Express AWB print endpoint.
+	 * Preview never marks printed, books, pays, or mutates shipment state.
+	 */
+	public function preview( array $ids ): array {
+		$labels = $this->prepare( $ids );
+		try {
+			$awbs = array_column( $labels, 'awb' );
+			$response = null !== $this->print_client
+				? ( $this->print_client )( $awbs )
+				: ( new KiriminajaApiRepository() )->getPrintAwb( $awbs );
+			$url = self::resolveCarrierUrl( $response );
+			if ( '' !== $url ) {
+				return array( 'url' => $url, 'provider' => 'carrier', 'type' => 'pdf', 'carrier_available' => true );
+			}
+		} catch ( \Throwable $error ) {
+			// Remote errors can contain account secrets; never expose them to the browser.
+		}
+		return array(
+			'provider' => 'local', 'type' => 'html', 'carrier_available' => false,
+			'fallback_reason' => __( 'The carrier label is currently unavailable. This is a local shipment label, not a courier-issued label.', 'kiriminaja-official' ),
+		);
+	}
+
+	/** Public HTTPS URLs only; preserve signed query strings without rewriting them.
+	 * No fetch/proxy of the returned URL takes place on the WordPress server.
+	 */
+	public static function isSafeCarrierUrl( $url ): bool {
+		if ( ! is_string( $url ) || '' === $url || preg_match( '/[\x00-\x20\x7f\\\\]/', $url )
+			|| preg_match( '/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i', $url ) || false === filter_var( $url, FILTER_VALIDATE_URL ) ) {
+			return false;
+		}
+		$parts = parse_url( $url );
+		$host = strtolower( $parts['host'] ?? '' );
+		return is_array( $parts ) && 'https' === strtolower( $parts['scheme'] ?? '' )
+			&& ! isset( $parts['user'] ) && ! isset( $parts['pass'] )
+			&& ( ! isset( $parts['port'] ) || 443 === $parts['port'] )
+			&& ! filter_var( $host, FILTER_VALIDATE_IP )
+			&& (bool) preg_match( '/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/D', $host )
+			&& ! preg_match( '/(?:^|\.)(?:localhost|local|internal|test|invalid|example|lan|home)$/D', $host );
+	}
+
+	private static function resolveCarrierUrl( $response ): string {
+		if ( ! is_array( $response ) || ! in_array( $response['status'] ?? null, array( true, 1, '1' ), true ) ) {
+			return '';
+		}
+		$data = $response['data'] ?? null;
+		$data = is_object( $data ) ? get_object_vars( $data ) : $data;
+		$nested = is_array( $data ) ? ( $data['data'] ?? null ) : null;
+		$nested = is_object( $nested ) ? get_object_vars( $nested ) : $nested;
+		$candidates = array(
+			is_string( $data ) ? $data : null,
+			is_array( $nested ) ? ( $nested['url'] ?? null ) : null,
+			is_array( $data ) ? ( $data['url'] ?? null ) : null,
+			is_array( $nested ) ? ( $nested['link'] ?? null ) : null,
+			is_array( $data ) ? ( $data['link'] ?? null ) : null,
+			$response['url'] ?? null,
+		);
+		foreach ( $candidates as $candidate ) {
+			if ( self::isSafeCarrierUrl( $candidate ) ) {
+				return $candidate;
+			}
+		}
+		return '';
 	}
 
 	/** Validate the nonempty JSON list persisted by InstantDispatchService. */

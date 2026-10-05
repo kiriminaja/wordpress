@@ -1,9 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { IconBuildingBank, IconCalendar, IconCalendarClock, IconChevronDown, IconCircleCheck, IconClock, IconCreditCardPay, IconEye, IconQrcode, IconSearch } from '@tabler/icons-svelte';
+  import { IconBuildingBank, IconCalendarClock, IconCircleCheck, IconClock, IconCreditCardPay, IconEye, IconQrcode, IconSearch } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
-  import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
@@ -12,6 +11,7 @@
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
+  import DateRangeFilter from '$lib/ui/DateRangeFilter.svelte';
   import PaymentScheduleDialog from './PaymentScheduleDialog.svelte';
   import ScanToPayDialog from './ScanToPayDialog.svelte';
   import InstantScanToPayDialog from './InstantScanToPayDialog.svelte';
@@ -66,7 +66,6 @@
 
   const currentStatus = $derived(bootstrap.filters.status || 'all');
   const paymentTabs = $derived(bootstrap.statusTabs.map((tab) => ({ ...tab, value: tab.value || 'all' })));
-  const monthLabel = $derived(month !== 'all' ? bootstrap.monthOptions[month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
 
   function buildUrl(values: Record<string, string>): URL {
     const url = new URL(window.location.href);
@@ -93,10 +92,6 @@
     void navigate({ key: search, month: month === 'all' ? '' : month });
   }
 
-  function changeMonth(value: string): void {
-    month = value || 'all';
-    if (!refreshing) applyFilters();
-  }
 
   function changeStatus(status: string): void {
     if (!refreshing) void navigate({ status: status === 'all' ? '' : status });
@@ -140,15 +135,7 @@
               <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
             </InputGroup.Root>
           </form>
-          <Select.Root type="single" value={month} disabled={refreshing} onValueChange={changeMonth}>
-            <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
-            <Select.Content class="kiriof-shadcn">
-              <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
-              {#each Object.entries(bootstrap.monthOptions) as [value, label]}
-                <Select.Item {value}>{label}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
+          <DateRangeFilter dateFrom={bootstrap.filters.date_from} dateTo={bootstrap.filters.date_to} month={bootstrap.filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.allDates} onChange={(range) => { month = ''; void navigate({ ...range, date_range_invalid: '' }); }} />
           <AutoRefresh
             storageKey="kiriof-payments-refresh-interval"
             loading={refreshing}

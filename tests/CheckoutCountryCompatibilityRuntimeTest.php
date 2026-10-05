@@ -48,7 +48,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     #[Test]
     #[DataProvider( 'countryPairs' )]
-    public function custom_required_company_is_preserved_only_for_foreign_addresses( string $billing, string $shipping ): void {
+    public function custom_required_company_is_preserved_for_every_country( string $billing, string $shipping ): void {
         $result = $this->runFixture( array(
             'action' => 'fields',
             'post' => array( 'billing_country' => $billing, 'shipping_country' => $shipping ),
@@ -58,6 +58,27 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
             ),
         ) );
         $this->assertAddressFields( $result, $billing, $shipping );
+    }
+
+    #[Test]
+    public function city_and_province_are_adjacent_without_changing_native_theme_metadata(): void {
+        $overrides = array();
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $overrides[ $group ] = array(
+                $group . '_city' => array( 'priority' => 70, 'class' => array( 'form-row-wide', 'address-field', 'theme-city' ) ),
+                $group . '_state' => array( 'priority' => 90, 'class' => array( 'form-row-wide', 'address-field', 'theme-province' ) ),
+            );
+        }
+        $result = $this->runFixture( array(
+            'action' => 'fields',
+            'post' => array( 'billing_country' => 'ID', 'shipping_country' => 'US' ),
+            'field_overrides' => $overrides,
+        ) );
+        $this->assertAddressFields( $result, 'ID', 'US' );
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $this->assertSame( 70, $result['fields'][ $group ][ $group . '_city' ]['priority'] );
+            $this->assertSame( 71, $result['fields'][ $group ][ $group . '_state' ]['priority'] );
+        }
     }
 
     #[Test]
@@ -112,19 +133,23 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
                 $this->assertArrayHasKey( $key, $result['fields'][ $group ], $key . ' must remain a native WooCommerce field.' );
                 $original = $result['original_fields'][ $group ][ $key ];
                 $field = $result['fields'][ $group ][ $key ];
-                $this->assertSame( 'ID' === $country ? false : $original['required'], $field['required'], $key );
-                $this->assertSame( 'ID' === $country, in_array( 'kiriof-classic-address-hidden', $field['class'], true ), $key );
-                $this->assertContains( 'kiriof-native-address-field', $field['class'], $key );
-                foreach ( $original['class'] as $class ) {
-                    $this->assertContains( $class, $field['class'], $key . ' must retain locale classes.' );
+                $this->assertSame( $original['required'], $field['required'], $key );
+                $this->assertNotContains( 'kiriof-classic-address-hidden', $field['class'], $key );
+                if ( in_array( $native, array( 'city', 'state' ), true ) ) {
+                    $this->assertContains( 'kiriof-classic-' . $native, $field['class'], $key );
+                    $this->assertContains( 'form-row-' . ( 'city' === $native ? 'first' : 'last' ), $field['class'], $key );
+                    $this->assertNotContains( 'form-row-wide', $field['class'], $key );
+                    foreach ( array_diff( $original['class'], array( 'form-row-wide', 'form-row-first', 'form-row-last' ) ) as $class ) {
+                        $this->assertContains( $class, $field['class'], $key . ' must retain theme and locale classes.' );
+                    }
+                    foreach ( array( 'type', 'label', 'validate', 'custom_attributes' ) as $attribute ) {
+                        $this->assertSame( $original[ $attribute ], $field[ $attribute ], $key . ':' . $attribute );
+                    }
+                    $expected_priority = 'state' === $native ? $result['fields'][ $group ][ $group . '_city' ]['priority'] + 1 : $original['priority'];
+                    $this->assertSame( $expected_priority, $field['priority'], $key . ':priority' );
+                } else {
+                    $this->assertSame( $original, $field, $key . ' must remain completely untouched.' );
                 }
-                foreach ( array( 'type', 'label', 'validate', 'priority' ) as $attribute ) {
-                    $this->assertSame( $original[ $attribute ], $field[ $attribute ], $key . ':' . $attribute );
-                }
-                foreach ( $original['custom_attributes'] as $attribute => $value ) {
-                    $this->assertSame( $value, $field['custom_attributes'][ $attribute ], $key . ':' . $attribute );
-                }
-                $this->assertSame( $original['required'] ? '1' : '0', $field['custom_attributes']['data-kiriof-required'], $key );
             }
             $countryKey = $group . '_country';
             $this->assertSame( $result['original_fields'][ $group ][ $countryKey ], $result['fields'][ $group ][ $countryKey ], 'Country field must be untouched.' );

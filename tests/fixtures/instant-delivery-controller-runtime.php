@@ -62,6 +62,10 @@ namespace KiriminAjaOfficial\Services {
 		public array $dependencies;
 		public function __construct( \KiriminAjaOfficial\Repositories\TransactionRepository $repository ) { $this->dependencies = func_get_args(); }
 		public function prepare( array $ids ): array { return \controller_spy( 'prepare', func_get_args() ); }
+		public function preview( array $ids ): array {
+			$result = \controller_spy( 'preview', func_get_args() );
+			return isset( $GLOBALS['input']['service_result'] ) ? $result : array( 'provider' => 'local', 'type' => 'html', 'carrier_available' => false, 'fallback_reason' => 'The carrier label is currently unavailable. This is a local shipment label, not a courier-issued label.' );
+		}
 	}
 }
 namespace KiriminAjaOfficial\Controllers {

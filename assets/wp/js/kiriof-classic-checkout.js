@@ -11,21 +11,23 @@
 		var strings = Object.assign( {}, config.i18n, config.map && config.map.i18n );
 		var panel = root.document.createElement( 'section' );
 		panel.className = 'kiriof-classic-destination';
+		panel.setAttribute( 'data-priority', '999' );
 		panel.setAttribute( 'aria-label', strings.district || 'District' );
 		var label = root.document.createElement( 'label' ); label.textContent = strings.district || 'District'; label.htmlFor = 'kiriof-classic-district';
 		var select = root.document.createElement( 'select' ); select.id = 'kiriof-classic-district'; select.setAttribute( 'aria-required', 'true' );
 		var status = root.document.createElement( 'p' ); status.className = 'kiriof-classic-status'; status.setAttribute( 'role', 'status' );
-		var pinButton = button( strings.pinLocation || 'Pin Location' );
 		var retry = button( strings.retry || 'Retry' ); retry.hidden = true;
 		var mapPanel = root.document.createElement( 'div' ); mapPanel.className = 'kiriof-classic-map-editor'; mapPanel.hidden = true;
+		var mapTitle = root.document.createElement( 'h3' ); mapTitle.textContent = strings.mapTitle || 'Delivery pin';
 		var help = root.document.createElement( 'p' ); help.textContent = strings.mapDeviceNotice || 'Check that the pin matches the delivery address.';
 		var canvas = root.document.createElement( 'div' ); canvas.className = 'kiriof-classic-map'; canvas.tabIndex = 0; canvas.setAttribute( 'aria-label', strings.mapHelp || 'Delivery location map' );
-		var closeMap = button( strings.close || 'Close map' );
 		var locate = button( strings.mapLocate || 'Current location' );
-		mapPanel.append( help, canvas, locate, closeMap ); panel.append( label, select, pinButton, status, retry, mapPanel );
+		locate.classList.add( 'kiriof-classic-map-locate' );
+		var mapViewport = root.document.createElement( 'div' ); mapViewport.className = 'kiriof-classic-map-viewport'; mapViewport.append( canvas, locate );
+		mapPanel.append( mapTitle, help, mapViewport ); panel.append( label, select, retry, mapPanel, status );
 		var hidden = root.document.createElement( 'input' ); hidden.type = 'hidden'; hidden.name = 'kiriof_buyer_destination_snapshot';
 		form.append( hidden );
-		var busy = false, destroyed = false, lookupVersion = 0, lookupKey = '', lookupAbort, lookupTimer, lookupDeadline, editTimer, mapSession, gate, mapAddress, quoteTimer;
+		var busy = false, destroyed = false, lookupVersion = 0, lookupKey = '', lookupAbort, lookupTimer, lookupDeadline, editTimer, mapSession, gate, mapAddress, mapScope, quoteTimer, mapAttemptKey = '', devicePoint = null;
 		function button( text ) { var node = root.document.createElement( 'button' ); node.type = 'button'; node.className = 'button'; node.textContent = text; return node; }
 		function field( id ) { return form.querySelector( '#' + id ); }
 		function value( id ) { var node = field( id ); return node ? node.value : ''; }
@@ -55,7 +57,7 @@
 		}
 		function mount() {
 			var anchor = form.querySelector( scope() === 'shipping' ? '.woocommerce-shipping-fields__field-wrapper' : '.woocommerce-billing-fields__field-wrapper' ) || form.querySelector( '.woocommerce-billing-fields' ) || form;
-			if ( panel.parentNode !== anchor ) anchor.append( panel );
+			if ( panel.parentNode !== anchor || anchor.lastElementChild !== panel ) anchor.append( panel );
 			[ 'kiriof_destination_area', 'kiriof_shipping_destination_area' ].forEach( function( id ) { var node = field( id + '_field' ); if ( node ) node.hidden = true; } );
 		}
 		function render( state ) {
@@ -63,13 +65,13 @@
 			mount(); syncLegacy( state );
 			panel.hidden = config.needsShipping === false || state.address.country !== 'ID' || collection();
 			if ( panel.hidden ) disposeMap();
-			pinButton.disabled = ! state.selection || ! config.map || ! config.map.enabled;
 			select.value = state.selection ? state.selection.id : '';
 			var q = state.queue; retry.hidden = ! q.error;
 			if ( q.error ) status.textContent = q.stalled ? strings.saveStalled : strings.lookupFailed;
 			else if ( q.pending || q.inFlight ) status.textContent = strings.checkingDistrict || 'Updating delivery…';
 			else status.textContent = state.selection ? ( state.point ? strings.mapPlaced : strings.pinRequirement ) : strings.districtRequired;
-			if ( ( mapSession || gate ) && mapAddress && ! core.sameAddress( mapAddress, state.address ) ) disposeMap();
+			if ( ( mapSession || gate ) && mapAddress && ( mapScope !== state.scope || ! core.sameAddress( mapAddress, state.address ) ) ) disposeMap();
+			if ( ! panel.hidden ) autoMap( state );
 		}
 		function options( rows ) {
 			select.replaceChildren( new Option( strings.selectDistrict || 'Select District', '' ) );
@@ -98,25 +100,34 @@
 			}, 300 );
 		}
 		function changed() { controller.updateAddress( address(), scope() ); lookup(); }
-		select.addEventListener( 'change', function() { disposeMap(); controller.selectDistrict( select.value ? { id: select.value, label: select.options[ select.selectedIndex ].text } : null ); } );
+		select.addEventListener( 'change', function() {
+			var point = devicePoint; var expected = mapAddress;
+			controller.selectDistrict( select.value ? { id: select.value, label: select.options[ select.selectedIndex ].text } : null );
+			if ( point && expected && core.sameAddress( expected, controller.getState().address ) && select.value ) controller.selectPoint( point, expected );
+		} );
 		retry.addEventListener( 'click', function() { if ( controller.getState().queue.error ) controller.retry(); else { lookupKey = ''; lookup(); } } );
-		function disposeMap() { if ( gate ) gate.dispose(); gate = null; if ( mapSession ) mapSession.dispose(); mapSession = null; mapPanel.hidden = true; }
+		function disposeMap() { if ( gate ) gate.dispose(); gate = null; if ( mapSession ) mapSession.dispose(); mapSession = null; devicePoint = null; mapPanel.hidden = true; }
 		function showMap( device ) {
-			var state = controller.getState(); mapAddress = state.address; mapPanel.hidden = false;
+			var state = controller.getState(); mapAddress = state.address; mapScope = state.scope; mapPanel.hidden = false; canvas.hidden = false;
 			mapSession = maps.createMapSession( { node: canvas, leaflet: root.L, tiles: config.map.tiles, attribution: config.map.attribution, coverage: config.map.coverage, initial: state.point, geolocation: root.navigator.geolocation,
-				onSelect: function( point ) { return controller.selectPoint( point, mapAddress ); },
+				onSelect: function( point ) { devicePoint = point; return controller.getState().selection ? controller.selectPoint( point, mapAddress ) : true; },
 				onError: function() { status.textContent = strings.mapUnavailable; },
 				onCoverage: function( coverage ) { if ( coverage && ! coverage.inside ) status.textContent = strings.mapOutsideRadius; }
 			} );
 			if ( device && ! state.point ) mapSession.pick( device.latitude, device.longitude, true );
 		}
-		pinButton.addEventListener( 'click', function() {
-			disposeMap(); var state = controller.getState(); if ( ! state.selection ) return;
-			var expected = state.address; mapAddress = expected; status.textContent = strings.mapLocating;
-			gate = maps.createLocationGate( { geolocation: root.navigator.geolocation, onSuccess: function( point ) { if ( ! destroyed && core.sameAddress( expected, controller.getState().address ) ) showMap( point ); }, onError: function( error ) { if ( ! destroyed && core.sameAddress( expected, controller.getState().address ) ) status.textContent = error === 'permission' ? strings.mapPermission : strings.mapLocationFailed; } } ); gate.start();
-		} );
-		locate.addEventListener( 'click', function() { if ( mapSession ) mapSession.locate(); } );
-		closeMap.addEventListener( 'click', function() { disposeMap(); pinButton.focus(); } );
+		function autoMap( state ) {
+			if ( mapSession || ! config.map || ! config.map.enabled || ! state.address.address_1 || ! state.address.postcode ) return;
+			var key = state.scope + ':' + JSON.stringify( state.address );
+			if ( key === mapAttemptKey ) return;
+			mapAttemptKey = key; mapAddress = state.address; mapScope = state.scope;
+			if ( state.point ) { showMap( null ); return; }
+			var expected = state.address; status.textContent = strings.mapLocating;
+			gate = maps.createLocationGate( { geolocation: root.navigator.geolocation, onSuccess: function( point ) {
+				if ( ! destroyed && ! panel.hidden && core.sameAddress( expected, controller.getState().address ) ) { devicePoint = point; showMap( point ); }
+			}, onError: function( error ) { if ( ! destroyed && core.sameAddress( expected, controller.getState().address ) ) { status.textContent = error === 'permission' ? strings.mapPermission : strings.mapLocationFailed; mapPanel.hidden = false; canvas.hidden = true; } } } ); gate.start();
+		}
+		locate.addEventListener( 'click', function() { if ( mapSession ) mapSession.locate(); else { if ( gate ) gate.dispose(); mapAttemptKey = ''; autoMap( controller.getState() ); } } );
 		$( form ).on( 'input.kiriofClassic change.kiriofClassic', 'input, select', function( event ) {
 			if ( event.target === select || event.target === hidden ) return;
 			root.clearTimeout( editTimer ); editTimer = root.setTimeout( function() { changed(); render( controller.getState() ); controller.sync(); }, 200 );

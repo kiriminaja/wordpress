@@ -16,6 +16,7 @@ namespace {
     function admin_url($path) { return '/wp-admin/' . $path; }
     function wp_create_nonce($action) { return 'test'; }
     function sanitize_text_field($value) { return trim(strip_tags((string) $value)); }
+    function wp_unslash($value) { return is_array($value) ? array_map('wp_unslash', $value) : stripslashes((string) $value); }
     function add_query_arg($args, $url) { return $url . '&' . http_build_query($args); }
     require_once ABSPATH . 'inc/Contracts/PaymentListQueryInterface.php';
     require_once ABSPATH . 'inc/Services/ListDateRangeFilter.php';
@@ -72,7 +73,9 @@ namespace {
     }
     $counts = $query->getStatusCounts();
     $renderer = new \KiriminAjaOfficial\Services\PaymentListRenderService($query);
+    $_GET = $input['get'] ?? [];
+    $filters = (new ReflectionMethod($renderer, 'getFilters'))->invoke($renderer);
     $method = new ReflectionMethod($renderer, 'prepareSvelteBootstrap');
-    $bootstrap = $method->invoke($renderer, $pages[0]['results'], ['key'=>'', 'month'=>'', 'status'=>''], $pages[0]['page'], $pages[0]['total_pages'], $pages[0]['total'], $pages[0]['items_per_page'], [], $counts);
+    $bootstrap = $method->invoke($renderer, $pages[0]['results'], $filters, $pages[0]['page'], $pages[0]['total_pages'], $pages[0]['total'], $pages[0]['items_per_page'], [], $counts);
     echo json_encode(['pages'=>$pages, 'counts'=>$counts, 'oldest'=>$query->getOldestCreatedAt(), 'bootstrap'=>$bootstrap, 'queries'=>$db->queries], JSON_THROW_ON_ERROR);
 }

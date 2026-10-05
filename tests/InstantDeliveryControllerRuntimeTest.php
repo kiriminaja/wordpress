@@ -28,6 +28,17 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	}
 
 	#[Test]
+	public function carrier_preview_metadata_includes_a_separately_nonced_local_fallback(): void {
+		$metadata = array( 'url' => 'https://storage.googleapis.com/labels/awb.pdf?sig=123', 'type' => 'pdf', 'provider' => 'carrier', 'carrier_available' => true );
+		$result = $this->run_controller( array( 'operation' => 'labelPreview', 'service_result' => $metadata ) );
+		$this->assertSame( array( array( 'preview', array( array( 'KA-1', 2 ) ) ) ), $result['calls'] );
+		$data = $result['responses'][0]['data']['data'];
+		foreach ( $metadata as $key => $value ) { $this->assertSame( $value, $data[$key] ); }
+		parse_str( parse_url( $data['local_url'], PHP_URL_QUERY ), $query );
+		$this->assertSame( array( 'action' => 'kiriof_instant_labels', 'oids' => 'KA-1,2', '_wpnonce' => 'valid:kiriof_instant_labels' ), $query );
+	}
+
+	#[Test]
 	public function init_constructs_state_with_the_required_repository_even_as_a_direct_service(): void {
 		$result = $this->run_controller( array( 'operation' => 'state_composition' ) );
 		$this->assertSame( 'KiriminAjaOfficial\\Services\\InstantShipmentState', $result['state'] );
@@ -180,7 +191,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 
 	#[Test]
 	public function valid_routes_forward_exact_arguments_and_emit_one_success_outside_the_service_try(): void {
-		foreach ( array( 'quote' => array( 'quote', array( array( 'KA-1', 2 ) ) ), 'validateCredit' => array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '1234' ) ), 'dispatch' => array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '1234' ) ), 'payment' => array( 'refreshPayment', array( array( 'KA-1', 2 ), 'PAY-1' ) ), 'labelPreview' => array( 'prepare', array( array( 'KA-1', 2 ) ) ) ) as $operation => $call ) {
+		foreach ( array( 'quote' => array( 'quote', array( array( 'KA-1', 2 ) ) ), 'validateCredit' => array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '1234' ) ), 'dispatch' => array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '1234' ) ), 'payment' => array( 'refreshPayment', array( array( 'KA-1', 2 ), 'PAY-1' ) ), 'labelPreview' => array( 'preview', array( array( 'KA-1', 2 ) ) ) ) as $operation => $call ) {
 			$result = $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'ignored_field' => array( 'untrusted' ) ) ) );
 			$this->assertSame( array( $call ), $result['calls'] );
 			$this->assertCount( 1, $result['responses'] );

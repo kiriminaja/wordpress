@@ -1834,24 +1834,7 @@
                     }
                 }
 
-                jQuery.each(['city', 'company', 'postcode', 'state'], function(_, fieldName) {
-                    var $row = jQuery('#' + addressType + '_' + fieldName + '_field.kiriof-native-address-field');
-                    var $input = $row.find(':input');
-                    $row.toggleClass('kiriof-classic-address-hidden', isIndonesia);
-                    $input.prop('disabled', isIndonesia);
-                    if (isIndonesia) {
-                        $row.removeClass('validate-required woocommerce-invalid woocommerce-invalid-required-field');
-                        $input.prop('required', false).attr('aria-required', 'false');
-                    } else {
-                        var required = fieldName === 'company'
-                            ? $input.attr('data-kiriof-required') === '1'
-                            : $row.hasClass('validate-required');
-                        if (fieldName === 'company') {
-                            $row.toggleClass('validate-required', required);
-                        }
-                        $input.prop('required', required).attr('aria-required', String(required));
-                    }
-                });
+                // Native fields remain under WooCommerce's country/locale control.
             });
         }
 

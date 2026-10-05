@@ -4,7 +4,6 @@
     IconAdjustmentsHorizontal,
     IconAlertTriangle,
     IconArrowBackUp,
-    IconCalendar,
     IconCash,
     IconCashBanknoteEdit,
     IconCircleCheck,
@@ -38,6 +37,7 @@
   import CopyableValue from '$lib/ui/CopyableValue.svelte';
   import PrintPreviewDialog from '$lib/ui/PrintPreviewDialog.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
+  import DateRangeFilter from '$lib/ui/DateRangeFilter.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import KiriofMultiFilter from '$lib/ui/KiriofMultiFilter.svelte';
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
@@ -104,7 +104,6 @@
   const processOrderIds = $derived(selectedRows.filter((row) => row.selection.canProcess).map((row) => row.kaOrderId));
   const selectedPrintCount = $derived(selectedRows.filter((row) => row.selection.canPrint).length);
   const selectedCount = $derived(selectedRows.length);
-  const monthLabel = $derived(filters.month ? bootstrap.monthOptions[filters.month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
   const courierOptions = $derived(bootstrap.couriers);
@@ -264,6 +263,9 @@
       delivery_type: value === 'instant' ? 'instant' : 'express',
       key: '',
       month: '',
+      date_from: '',
+      date_to: '',
+      date_range_invalid: '',
       status: value === 'order-issue' ? 'order-issue' : 'all',
       cod: '',
       courier: '',
@@ -300,15 +302,7 @@
       <nav class="kiriof-admin-list-scopes kiriof-transactions-scopes" aria-label={bootstrap.i18n.transactionScope}>
         <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
         <div class="kiriof-admin-list-tools kiriof-transactions-list-tools">
-          <Select.Root type="single" bind:value={filters.month} disabled={refreshing} onValueChange={applySelectFilter}>
-            <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
-            <Select.Content class="kiriof-shadcn">
-              <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
-              {#each Object.entries(bootstrap.monthOptions) as [value, label]}
-                <Select.Item {value}>{label}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
+          <DateRangeFilter dateFrom={filters.date_from} dateTo={filters.date_to} month={filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.clearFilters} onChange={(range) => { Object.assign(filters, range); void navigate({ ...range, date_range_invalid: '' }); }} />
           <Select.Root type="single" value={String(bootstrap.pagination.perPage)} disabled={refreshing} onValueChange={(value: string) => void navigate({ per_page: value || '25' })}>
             <Select.Trigger hideIcon><IconListNumbers /><Select.Value>{bootstrap.pagination.perPage}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">

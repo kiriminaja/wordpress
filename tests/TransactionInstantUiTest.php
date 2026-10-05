@@ -176,7 +176,7 @@ final class TransactionInstantUiTest extends TestCase {
 
     public function test_workspace_navigation_and_ui_safety_contract(): void {
         $app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
-        $this->assertStringContainsString("{ value: 'instant', label: bootstrap.i18n.instantDelivery }", $app);
+        $this->assertStringContainsString("{ value: 'instant', label: bootstrap.i18n.instantDelivery, count: bootstrap.deliveryCounts?.instant ?? 0 }", $app);
         $this->assertStringContainsString("url.searchParams.set('delivery_type', values.delivery_type || (isInstant ? 'instant' : 'express'))", $app);
         $this->assertStringContainsString("delivery_type: value === 'instant' ? 'instant' : 'express'", $app);
         $this->assertStringContainsString('selected = {};', $app);

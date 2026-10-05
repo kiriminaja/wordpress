@@ -61,7 +61,16 @@ namespace {
 	$repo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
 	$result = array( 'labels' => array(), 'html' => '', 'error' => '' );
 	try {
-		$labels = ( new \KiriminAjaOfficial\Services\InstantLabelService( $repo ) )->prepare( $input['ids'] ?? array( 'KA-1' ) );
+		$service = new \KiriminAjaOfficial\Services\InstantLabelService( $repo, null, null, static function( $awbs ) use ( $input ) {
+			++$GLOBALS['calls'];
+			$GLOBALS['print_awbs'] = $awbs;
+			if ( ! empty( $input['print_exception'] ) ) { throw new \RuntimeException( 'secret remote token' ); }
+			$response = $input['print_response'] ?? array( 'status' => false );
+			if ( ! empty( $input['object_data'] ) && is_array( $response['data'] ?? null ) ) { $response['data'] = json_decode( json_encode( $response['data'] ) ); }
+			return $response;
+		} );
+		if ( ! empty( $input['preview'] ) ) { $result['preview'] = $service->preview( $input['ids'] ?? array( 'KA-1' ) ); }
+		$labels = $service->prepare( $input['ids'] ?? array( 'KA-1' ) );
 		$result['labels'] = $labels;
 		if ( ! empty( $input['poison'] ) ) {
 			$poison = '<img src=x onerror=alert(1)>';
@@ -78,5 +87,6 @@ namespace {
 	$result['ids'] = $repo->ids;
 	$result['writes'] = $GLOBALS['writes'];
 	$result['calls'] = $GLOBALS['calls'];
+	$result['print_awbs'] = $GLOBALS['print_awbs'] ?? array();
 	echo json_encode( $result, JSON_THROW_ON_ERROR );
 }

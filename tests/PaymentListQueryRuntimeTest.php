@@ -63,7 +63,7 @@ final class PaymentListQueryRuntimeTest extends TestCase
 
         $this->assertStringContainsString( 'kiriof-payments-scopes', $list );
         $this->assertStringContainsString( "<div class=\"kiriof-admin-list-tools\">\n          <form class=\"kiriof-payments-filterrow\"", $list );
-        $this->assertStringContainsString( "<Select.Root type=\"single\" value={month}", $list );
+        $this->assertStringContainsString( '<DateRangeFilter dateFrom={bootstrap.filters.date_from}', $list );
         $this->assertStringContainsString( '.kiriof-payments-scopes .kiriof-auto-refresh,', $styles );
         $this->assertStringContainsString( '@apply !h-9 !min-h-9 !box-border;', $styles );
         $this->assertStringContainsString( '@apply !h-full !min-h-0;', $styles );
@@ -118,8 +118,8 @@ final class PaymentListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( 'KiriofCard', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/KiriofCard.svelte' );
 		$this->assertStringContainsString( 'kiriof-admin-list-table', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( 'onValueChange={changeMonth}', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringNotContainsString( 'bootstrap.i18n.apply', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
+		$this->assertStringContainsString( 'date_range_invalid:', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
+		$this->assertStringContainsString( 'applyLabel={bootstrap.i18n.apply', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringNotContainsString( '<ListPagination', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
 		$this->assertStringContainsString( "'total' => \$total", $renderer );
 		$this->assertStringContainsString( 'import * as Pagination from \'$lib/components/ui/pagination\'', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );

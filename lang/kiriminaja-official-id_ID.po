@@ -5648,3 +5648,11 @@ msgstr "Reguler"
 #: inc/Services/PaymentListRenderService.php
 msgid "Instant"
 msgstr "Instant"
+
+#: inc/Services/InstantLabelService.php
+msgid "Each requested Instant shipment must have a distinct AWB."
+msgstr "Setiap pengiriman Instant yang dipilih harus memiliki AWB berbeda."
+
+#: inc/Services/InstantLabelService.php
+msgid "The carrier label is currently unavailable. This is a local shipment label, not a courier-issued label."
+msgstr "Label kurir saat ini tidak tersedia. Ini adalah label pengiriman lokal, bukan label yang diterbitkan kurir."

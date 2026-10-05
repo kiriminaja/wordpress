@@ -1927,17 +1927,21 @@ class CheckoutController
 
     private function kiriof_configure_classic_address_fields( $fields, $fields_selected ) {
         foreach ( array( 'billing', 'shipping' ) as $group ) {
-            $is_indonesia = 'ID' === $this->kiriof_get_classic_address_country( $group );
-            foreach ( $fields_selected as $field_key ) {
+            // Keep WooCommerce's native locale validation and theme classes intact.
+            // Only city/province participate in the two-column checkout layout.
+            foreach ( array( 'city' => 'first', 'state' => 'last' ) as $field_key => $position ) {
                 $key = $group . '_' . $field_key;
                 if ( ! isset( $fields[ $group ][ $key ] ) ) {
                     continue;
                 }
-                $fields[ $group ][ $key ]['class'][] = 'kiriof-native-address-field';
-                $fields[ $group ][ $key ]['custom_attributes']['data-kiriof-required'] = ! empty( $fields[ $group ][ $key ]['required'] ) ? '1' : '0';
-                if ( $is_indonesia ) {
-                    $fields[ $group ][ $key ]['required'] = false;
-                    $fields[ $group ][ $key ]['class'][] = 'kiriof-classic-address-hidden';
+                $classes = isset( $fields[ $group ][ $key ]['class'] ) ? (array) $fields[ $group ][ $key ]['class'] : array();
+                $classes = array_diff( $classes, array( 'form-row-wide', 'form-row-first', 'form-row-last' ) );
+                $classes[] = 'form-row-' . $position;
+                $classes[] = 'kiriof-classic-' . $field_key;
+                $fields[ $group ][ $key ]['class'] = array_values( array_unique( $classes ) );
+                if ( 'state' === $field_key && isset( $fields[ $group ][ $group . '_city' ] ) ) {
+                    $city_priority = $fields[ $group ][ $group . '_city' ]['priority'] ?? 70;
+                    $fields[ $group ][ $key ]['priority'] = $city_priority + 1;
                 }
             }
         }

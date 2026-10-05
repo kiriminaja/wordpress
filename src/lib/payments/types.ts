@@ -21,7 +21,14 @@ export type PaymentRow = {
 export type PaymentsBootstrap = {
   toolbar: ToolbarConfig;
   rows: PaymentRow[];
-  filters: { key: string; month: string; status: string };
+  filters: {
+    key: string;
+    month: string;
+    status: string;
+    date_from?: string;
+    date_to?: string;
+    date_range_invalid?: boolean;
+  };
   monthOptions: Record<string, string>;
   statusTabs: Array<{ value: string; label: string; count: number }>;
   pagination: { page: number; totalPages: number; total: number; perPage: number };

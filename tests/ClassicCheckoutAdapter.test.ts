@@ -140,6 +140,30 @@ describe('Classic core with real shared session queue', () => {
 });
 
 describe('Classic DOM adapter with delegated Woo events', () => {
+	test('inline district stays after native fields and map opens automatically without launch/close buttons', async () => {
+		const h = adapter({ savedDestination: saved({ version: 1 }) });
+		const panel = h.query('.kiriof-classic-destination');
+		expect(panel.parentNode.lastElementChild).toBe(panel);
+		expect(panel.getAttribute('data-priority')).toBe('999');
+		expect(panel.textContent).not.toContain('Close map');
+		expect(panel.querySelectorAll('button')).toHaveLength(2); // retry + optional current-location retry
+		expect(h.geo).toHaveLength(1);
+		h.geo[0].success({ coords: { latitude: -6.2, longitude: 106.8 } });
+		expect(h.maps).toHaveLength(1);
+		expect(h.query('.kiriof-classic-map-editor').hidden).toBe(false);
+		expect(h.hidden().destination_latitude).toBe('-6.2000000');
+		for (let i = 0; i < 3; i++) h.emit(h.window.document.body, 'updated_checkout');
+		expect(h.geo).toHaveLength(1);
+	});
+	test('device pin before district selection is kept as a suggestion until valid district selected', async () => {
+		const h = adapter();
+		h.geo[0].success({ coords: { latitude: 0, longitude: 0 } });
+		expect(h.hidden().version).toBe(1);
+		await h.advance(300); await h.respond(h.lookups()[0], [{ id: '123', text: 'Gambir' }]);
+		h.choose();
+		expect(h.hidden().version).toBe(2);
+		expect(h.hidden().destination_latitude).toBe('0.0000000');
+	});
 	test('renders postcode options and posts normalized hidden JSON through native form', async () => {
 		const h = adapter(); await h.advance(300); expect(h.lookups()[0].body.get('term')).toBe('10110'); await h.respond(h.lookups()[0], [{ id: '123', text: 'Gambir' }, { id: '0', text: 'Invalid' }]);
 		expect(h.query('#kiriof-classic-district').options.length).toBe(2); h.choose(); expect(h.hidden().district_id).toBe('123'); expect(h.query('#kiriof_destination_area').value).toBe('123'); expect(h.query('#kiriof_destination_area_name').value).toBe('Gambir');
@@ -161,12 +185,12 @@ describe('Classic DOM adapter with delegated Woo events', () => {
 		expect(h.query('#kiriof_shipping_destination_area').value).toBe('456'); const last = h.mutations().at(-1).body; expect(last.get('data[insurance]')).toBe('1'); expect(JSON.parse(last.get('data[shipping_methods]'))).toEqual(['kiriminaja-instant:gosend', 'flat_rate:2']);
 	});
 	test('permission failure keeps map closed; fresh geolocation success selects pin; stale callbacks cannot overwrite', async () => {
-		const h = adapter({ savedDestination: saved({ version: 1 }) }); await h.acknowledge(); const pin = h.query('.kiriof-classic-destination > button'); pin.click(); h.geo[0].failure({ code: 1 }); expect(h.query('.kiriof-classic-status').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
+		const h = adapter({ savedDestination: saved({ version: 1 }) }); await h.acknowledge(); expect(h.geo).toHaveLength(1); const pin = h.query('.kiriof-classic-map-locate'); h.geo[0].failure({ code: 1 }); expect(h.query('.kiriof-classic-status').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
 		pin.click(); const stale = h.geo[1]; pin.click(); stale.success({ coords: { latitude: -7, longitude: 107 } }); expect(h.maps).toHaveLength(0); h.geo[2].success({ coords: { latitude: -6.2, longitude: 106.8 } }); expect(h.maps).toHaveLength(1); expect(h.hidden().destination_latitude).toBe('-6.2000000');
 		h.change('billing_address_1', 'New street'); await h.advance(200); expect(h.maps[0].removed).toBe(true); expect(h.hidden().destination_latitude).toBeUndefined(); stale.success({ coords: { latitude: -7, longitude: 107 } }); expect(h.hidden().destination_latitude).toBeUndefined();
 	});
 	test('pagehide removes delegated handlers, disposes map and lookup, never aborts saves', async () => {
-		const h = adapter({ savedDestination: saved() }); await h.advance(300); h.query('.kiriof-classic-destination > button').click(); h.geo[0].success({ coords: { latitude: -6.2, longitude: 106.8 } }); h.window.dispatchEvent(new h.window.Event('pagehide'));
+		const h = adapter({ savedDestination: saved() }); await h.advance(300); expect(h.maps).toHaveLength(1); expect(h.geo).toHaveLength(0); h.window.dispatchEvent(new h.window.Event('pagehide'));
 		expect(h.handlers).toHaveLength(0); expect(h.maps[0].removed).toBe(true); expect(h.lookups()[0].init.signal.aborted).toBe(true); expect(h.mutations()[0].init.signal).toBeUndefined(); const before = h.hidden(); await h.respond(h.lookups()[0], [{ id: '999', text: 'Late' }]); await h.respond(h.mutations()[0]); await h.advance(200000); expect(h.hidden()).toEqual(before); expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(0);
 	});
 	test('final submit blocks while pending, then allows settled regular delivery', async () => {
@@ -174,7 +198,7 @@ describe('Classic DOM adapter with delegated Woo events', () => {
 	});
 	test('lookup failure exposes retry and a successful retry populates district options', async () => {
 		const h = adapter(); await h.advance(300); await h.respond(h.lookups()[0], null, false);
-		const retry = h.query('.kiriof-classic-destination > button:nth-of-type(2)'); expect(retry.hidden).toBe(false); retry.click(); await h.advance(300); expect(h.lookups()).toHaveLength(2); await h.respond(h.lookups()[1], [{ id: '123', text: 'Gambir' }]); expect(h.query('#kiriof-classic-district').disabled).toBe(false); h.choose(); expect(h.hidden().district_id).toBe('123');
+		const retry = h.query('.kiriof-classic-destination > button'); expect(retry.hidden).toBe(false); retry.click(); await h.advance(300); expect(h.lookups()).toHaveLength(2); await h.respond(h.lookups()[1], [{ id: '123', text: 'Gambir' }]); expect(h.query('#kiriof-classic-district').disabled).toBe(false); h.choose(); expect(h.hidden().district_id).toBe('123');
 	});
 	test('stale geolocation failure after address change does not replace the current status', async () => {
 		const h = adapter({ savedDestination: saved({ version: 1 }) }); await h.acknowledge(); h.query('.kiriof-classic-destination > button').click(); const stale = h.geo[0]; h.change('billing_address_1', 'New delivery street'); await h.advance(200); const status = h.query('.kiriof-classic-status').textContent; stale.failure({ code: 1 }); expect(h.query('.kiriof-classic-status').textContent).toBe(status);

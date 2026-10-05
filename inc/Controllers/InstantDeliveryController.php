@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Authenticated admin endpoints for Instant shipments and local labels. */
+/** Authenticated admin endpoints for Instant shipments and carrier/local label previews. */
 class InstantDeliveryController {
 	private InstantDispatchService $dispatch_service;
 	private InstantLabelService $label_service;
@@ -129,22 +129,20 @@ class InstantDeliveryController {
 					$result     = $this->dispatch_service->refreshPayment( $ids, $payment_id );
 					break;
 				default:
-					$this->label_service->prepare( $ids );
-					$result = array(
-						'url'  => add_query_arg(
-							array(
-								'action'   => 'kiriof_instant_labels',
-								'oids'     => implode( ',', $ids ),
-								'_wpnonce' => wp_create_nonce( 'kiriof_instant_labels' ),
-							),
-							admin_url( 'admin-post.php' )
+					$result = $this->label_service->preview( $ids );
+					$local_url = add_query_arg(
+						array(
+							'action' => 'kiriof_instant_labels',
+							'oids' => implode( ',', $ids ),
+							'_wpnonce' => wp_create_nonce( 'kiriof_instant_labels' ),
 						),
-						'type' => 'html',
-						// Neither the current OpenAPI nor the bundled SDK confirms Instant print support.
-						'provider'          => 'local',
-						'carrier_available' => false,
-						'fallback_reason'   => __( 'Carrier-issued Instant labels are not confirmed by the published API contract. This is a local shipment label, not a courier-issued label.', 'kiriminaja-official' ),
+						admin_url( 'admin-post.php' )
 					);
+					$result['local_url'] = $local_url;
+					if ( 'carrier' !== ( $result['provider'] ?? '' ) ) {
+						$result['url'] = $local_url;
+					}
+
 			}
 		} catch ( InvalidArgumentException $error ) {
 			// These services use fixed, translated validation messages, not remote API errors.
