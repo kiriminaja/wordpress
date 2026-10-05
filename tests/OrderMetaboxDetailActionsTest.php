@@ -14,7 +14,8 @@ final class OrderMetaboxDetailActionsTest extends TestCase {
 
         $this->assertStringContainsString( "'transaction_id'     => (int) ( \$repo->id ?? 0 )", $service );
         $this->assertStringContainsString( "admin.php?page=kiriminaja-transaction-detail", $controller );
-        $this->assertStringContainsString( "absint( \$data['transaction_id'] ?? 0 )", $controller );
+        $this->assertStringContainsString( "absint( \$order_id )", $controller );
+        $this->assertStringNotContainsString( "absint( \$data['transaction_id'] ?? 0 )", $controller );
         $this->assertStringContainsString( "add_query_arg( 'adjust_deficit', '1', \$detail_url )", $metabox );
         $this->assertStringContainsString( 'href="<?php echo esc_url( $kiriof_adjust_url ); ?>"', $metabox );
         $this->assertStringNotContainsString( 'kiriof-open-cod-adjustment', $metabox );
