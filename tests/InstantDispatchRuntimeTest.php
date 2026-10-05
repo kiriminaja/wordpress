@@ -120,6 +120,39 @@ final class InstantDispatchRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function qris_confirmation_preserves_authoritative_historical_origin_snapshot(): void {
+        $origin = json_encode(array(
+            'origin_name'=>'Historical warehouse sender', 'origin_phone'=>'0812345678',
+            'origin_address'=>'Long enough original warehouse address', 'origin_zip_code'=>'12345',
+            'origin_latitude'=>'-6.2', 'origin_longitude'=>'106.8',
+            'origin_country'=>'ID', 'origin_sub_district_id'=>123, 'origin_timezone'=>'WIB',
+        ));
+        $r = $this->runFixture(array('working_sample'=>true, 'row'=>array('service_name'=>'instant','shipment_location_snapshot'=>$origin),'price_service'=>'instant'));
+        $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+        $this->assertSame($origin, $r['rows'][0]['shipment_location_snapshot']);
+        $this->assertSame('unpaid', $r['rows'][0]['instant_payment_status']);
+        $this->assertNotEmpty($r['dispatch']['payments'][0]['qr_content']);
+        $this->assertSame('', $r['dispatch']['rows'][0]['awb']);
+    }
+
+    #[Test]
+    public function confirmation_diagnostics_explain_invalid_status_and_origin_conflict_without_values(): void {
+        foreach (array(
+            array(array('remote_status'=>999), 'package_status_unsupported'),
+            array(array('remote_status'=>110,'remote_status_alias'=>100), 'package_status_alias_conflict'),
+            array(array('origin_after_book'=>'{"name":"Changed confidential origin"}'), 'origin_snapshot_conflict'),
+        ) as [$input, $reason]) {
+            $r = $this->runFixture($input + array('new_retry'=>true));
+            $this->assertSame('unknown', $r['dispatch']['rows'][0]['status']);
+            $this->assertSame($reason, $r['logs'][1][2]['validation_reason']);
+            $this->assertSame('pending', $r['rows'][0]['status']);
+            $this->assertCount(1, $r['books']);
+            $this->assertNotEmpty($r['new_retry_error']);
+            $this->assertStringNotContainsString('Changed confidential origin', json_encode($r['logs']));
+        }
+    }
+
+    #[Test]
     public function unknown_outcomes_have_safe_correlated_diagnostics_without_weakening_claims(): void {
         foreach (array(
             array(array('timeout'=>true), 'booking_call_exception', 'response_matching'),
@@ -139,6 +172,9 @@ final class InstantDispatchRuntimeTest extends TestCase {
             $this->assertFalse($log[2]['backtrace']);
             $this->assertSame($code, $log[2]['code']);
             $this->assertSame($stage, $log[2]['stage']);
+            if (isset($input['remote_status'])) {
+                $this->assertSame('package_status_shape_invalid', $log[2]['validation_reason']);
+            }
             $this->assertMatchesRegularExpression('/\A[a-f0-9]{16}\z/', $log[2]['reference']);
             $this->assertSame($r['logs'][0][2]['reference'], $log[2]['reference']);
             $this->assertStringContainsString('Reference: ' . $log[2]['reference'], $r['dispatch']['rows'][0]['message']);

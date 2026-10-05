@@ -329,6 +329,7 @@ class InstantDispatchService {
 					$matched = $matches[ $id ] ?? array();
 					$code = 'booking_acknowledged' !== $response_code ? $response_code : ( 1 !== count( $matched ) ? 'package_match_not_unique' : 'payment_id_missing_or_invalid' );
 					$stage = 'response_matching';
+					$validation_reason = '';
 					if ( 1 === count( $matched ) && '' !== $payment['id'] ) {
 						try {
 							$stage = 'booking_identity';
@@ -347,6 +348,7 @@ class InstantDispatchService {
 						} catch ( \Throwable $error ) {
 							// Accepted remotely but unverified locally: keep the durable claim.
 							$code = 'booking_identity' === $stage ? 'booking_identity_mismatch' : ( $error instanceof InvalidArgumentException ? 'booking_response_invalid' : 'local_confirmation_failed' );
+							$validation_reason = 'confirm_booking' === $stage ? InstantShipmentState::validationReason( $error ) : '';
 						}
 					}
 					if ( 'unknown' === $report['status'] ) {
@@ -355,6 +357,7 @@ class InstantDispatchService {
 							'reference' => $reference,
 							'code' => $code,
 							'stage' => $stage,
+							'validation_reason' => $validation_reason,
 							'transaction_hash' => substr( hash( 'sha256', (string) $id ), 0, 16 ),
 							'package_count' => count( (array) ( $data['packages'] ?? array() ) ),
 							'matched_count' => count( $matched ),
@@ -647,7 +650,14 @@ class InstantDispatchService {
 		$snapshot['instant_shipping_cost'] = $ctx['price'];
 		$origin = $ctx['origin'];
 		$origin['timezone'] = $ctx['pricing']['timezone'];
-		$changes = array( 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_payment_method' => $method, 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => wp_json_encode( $origin ) );
+		// build() already validated a present historical origin as authoritative.
+		// Keep its exact stored representation: normalizing aliases, extra fields or
+		// numeric coordinate strings here would conflict with immutable origin checks
+		// only after the remote shipment has been accepted. API payloads still use the
+		// validated normalized context; only absent snapshots are filled locally.
+		$saved_origin = $row->shipment_location_snapshot ?? null;
+		$origin_snapshot = is_string( $saved_origin ) && '' !== $saved_origin ? $saved_origin : wp_json_encode( $origin );
+		$changes = array( 'vehicle' => $ctx['package']['vehicle'], 'shipping_cost' => $ctx['price'], 'instant_payment_method' => $method, 'shipping_info' => wp_json_encode( $snapshot ), 'shipment_location_snapshot' => $origin_snapshot );
 		return $changes;
 	}
 

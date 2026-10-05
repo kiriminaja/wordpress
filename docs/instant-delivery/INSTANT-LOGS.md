@@ -2,6 +2,16 @@
 
 ## Admin “Unknown outcome” booking diagnostics
 
+### Successful HTTP response rejected during confirmation
+
+`booking_response_invalid` at `confirm_booking` after `transport_success`, HTTP 200 and a positive acknowledgement is a local validation failure, not proof of API rejection. A string payment ID, integer package status and absent/null AWB are compatible with a valid unpaid QRIS booking; the old type-only log cannot identify which check failed.
+
+Confirmation logs now add a fixed `validation_reason`, such as `package_status_unsupported`, `package_status_alias_conflict`, `stored_service_identity_mismatch`, `tracking_url_invalid`, `origin_snapshot_conflict` or `booked_shipping_snapshot_conflict`. No actual status values, URLs, origin/customer data, payment IDs or exception text are included. Invalid or contradictory identities remain guarded.
+
+A reproduced origin-snapshot failure arose when an authoritative historical snapshot contained aliases (`origin_*`), extra location fields or numeric-string coordinates. Context building correctly normalized these for the API, but booking metadata attempted to replace the raw historical representation, which the immutable-origin check refused after remote acceptance. New preparation now preserves a present validated snapshot verbatim; an absent snapshot is still filled from the reviewed origin. No immutable-state checks are weakened, and a concurrently changed origin still fails confirmation.
+
+Existing unknown bookings are not reset or resubmitted by this change. Use **Recheck booking** to obtain authenticated matching remote evidence, then support if necessary. Old prepared envelopes may still contain normalized-origin metadata and cannot be safely rewritten without verifying their reviewed source; a not-found tracking response is not permission to retry. Do not create another booking merely to obtain the new diagnostic reason.
+
 ### Actual explanatory messages and targeted recheck
 
 Merchant-observed validation failures use `{ "message": "Terdapat kesalahan pada data yang dikirimkan", "errors": { "address_note": "address_note wajib diisi" }, "status": false }`, with no result container. On HTTP 2xx/400/422 this now qualifies as a definite validation rejection only when the field-error map is nonempty and bounded, keys are known booking-field paths, error values are nonempty text/text lists, and there are no unknown fields, null/nonempty result containers, or booking identities. Malformed errors, status coercions, contradictory evidence, and other HTTP statuses remain ambiguous. Verified rollback restores original transaction data and permits a new quote, never automatic rebooking or reset of older unknown rows.

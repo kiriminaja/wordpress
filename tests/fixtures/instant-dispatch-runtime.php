@@ -156,6 +156,8 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
         if (!empty($in['malformed_package'])) { $packages[] = ['order_id'=>['unexpected'],'status'=>['invalid']]; }
         if (!empty($in['duplicate'])) { $packages[] = $packages[0]; }
         if (!empty($in['position_only'])) { foreach ($packages as &$package) { unset($package['order_id']); } unset($package); }
+        if (array_key_exists('remote_status_alias', $in)) { foreach ($packages as &$package) { $package['status_code'] = $in['remote_status_alias']; } unset($package); }
+        if (isset($in['origin_after_book'])) { foreach ($payload['packages'] as $p) { $GLOBALS['repo']->rows[$p['order_id']]->shipment_location_snapshot = $in['origin_after_book']; } }
         if (isset($in['callback_code'])) {
             $state = new \KiriminAjaOfficial\Services\InstantShipmentState($GLOBALS['repo']);
             foreach ($payload['packages'] as $p) {

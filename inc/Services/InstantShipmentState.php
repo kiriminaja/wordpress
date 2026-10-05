@@ -64,7 +64,7 @@ final class InstantShipmentState {
 
 	private function merge( string $id, array $package, array $payment, ?string $event, string $mode = 'apply', array $metadata = array() ): array {
 		if ( ! self::identifier( $id ) || ! isset( $package['order_id'] ) || ! is_string( $package['order_id'] ) || $id !== $package['order_id'] ) {
-			$this->invalid();
+			$this->invalid( 1 );
 		}
 		$code = in_array( $mode, array( 'metadata', 'payment' ), true ) ? null : $this->remoteCode( $package, $payment, $event );
 		$now = gmdate( 'Y-m-d H:i:s' );
@@ -75,12 +75,12 @@ final class InstantShipmentState {
 			}
 			$this->validate( $row, $id, $package, $payment, 'booking' === $mode );
 			if ( 'payment' === $mode && ( empty( $row->instant_payment_id ) || ( $payment['id'] ?? $payment['payment_id'] ?? null ) !== $row->instant_payment_id ) ) {
-				$this->invalid();
+				$this->invalid( 2 );
 			}
 			if ( 'booking' === $mode ) {
 				foreach ( array( 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking' ) as $field ) {
 					if ( isset( $package[ $field ] ) && '' !== $package[ $field ] && '' === self::trackingUrl( $package[ $field ] ) ) {
-						$this->invalid();
+						$this->invalid( 3 );
 					}
 				}
 			}
@@ -198,24 +198,24 @@ final class InstantShipmentState {
 		if ( ! is_object( $row ) || ( $row->order_id ?? null ) !== $id || 'instant' !== TransactionDeliveryType::resolve( $row )
 			|| ! in_array( strtolower( trim( (string) ( $row->service ?? '' ) ) ), array( 'gosend', 'grab_express' ), true )
 			|| ! in_array( $row->status ?? null, array( 'pending', 'request_pickup', 'shipped', 'finished', 'canceled', 'return', 'returned', 'rejected' ), true ) ) {
-			$this->invalid();
+			$this->invalid( 4 );
 		}
 		foreach ( array( 'service', 'service_type', 'service_name' ) as $field ) {
 			$expected = (string) ( 'service' !== $field ? ( $row->service_name ?? $row->service_type ?? '' ) : ( $row->service ?? '' ) );
 			if ( array_key_exists( $field, $package ) && ( 'service' === $field ? $package[ $field ] !== $expected : ! self::sameServiceType( $package[ $field ], $expected ) ) ) {
-				$this->invalid();
+				$this->invalid( 5 );
 			}
 		}
 		if ( isset( $package['awb'] ) && ( ! self::identifier( $package['awb'] ) || ( ! empty( $row->awb ) && $row->awb !== $package['awb'] ) ) ) {
-			$this->invalid();
+			$this->invalid( 6 );
 		}
 		foreach ( array( 'id', 'payment_id' ) as $field ) {
 			if ( array_key_exists( $field, $payment ) && ( ! self::identifier( $payment[ $field ] ) || ( ! empty( $row->instant_payment_id ) && $row->instant_payment_id !== $payment[ $field ] ) || ( ! $trusted_booking && empty( $row->instant_payment_id ) && ! in_array( $row->status, array( 'pending', 'request_pickup' ), true ) ) ) ) {
-				$this->invalid();
+				$this->invalid( 7 );
 			}
 		}
 		if ( isset( $payment['id'], $payment['payment_id'] ) && $payment['id'] !== $payment['payment_id'] ) {
-			$this->invalid();
+			$this->invalid( 8 );
 		}
 	}
 
@@ -246,18 +246,18 @@ final class InstantShipmentState {
 			if ( in_array( $field, array( 'shipping_info', 'shipment_location_snapshot' ), true ) ) {
 				$decoded = is_string( $value ) ? json_decode( $value, true ) : null;
 				if ( ! is_string( $value ) || ! is_array( $decoded ) || '{' !== substr( ltrim( $value ), 0, 1 ) ) {
-					$this->invalid();
+					$this->invalid( 9 );
 				}
 				$saved = is_string( $previous ) ? json_decode( $previous, true ) : null;
 				if ( is_array( $saved ) && ! empty( $saved ) ) {
 					// Checkout shipping data may be enriched once; booked item snapshots are immutable.
 					if ( 'shipping_info' === $field && isset( $saved['instant_items'] ) && $saved !== $decoded ) {
-						$this->invalid();
+						$this->invalid( 10 );
 					}
 					if ( 'shipment_location_snapshot' === $field ) {
 						foreach ( $saved as $key => $item ) {
 							if ( ! array_key_exists( $key, $decoded ) || $decoded[ $key ] !== $item ) {
-								$this->invalid();
+								$this->invalid( 11 );
 							}
 						}
 					}
@@ -265,22 +265,22 @@ final class InstantShipmentState {
 			} elseif ( 'request_pickup_at' === $field ) {
 				$value = $this->timestamp( $value );
 				if ( null === $value ) {
-					$this->invalid();
+					$this->invalid( 12 );
 				}
 				if ( ! empty( $previous ) ) {
 					continue;
 				}
 			} elseif ( 'shipping_cost' === $field ) {
 				if ( ! is_scalar( $value ) || is_bool( $value ) || ! is_numeric( $value ) || ! is_finite( (float) $value ) || (float) $value < 0 ) {
-					$this->invalid();
+					$this->invalid( 13 );
 				}
 			} elseif ( ! is_string( $value ) || ! self::identifier( $value ) ) {
-				$this->invalid();
+				$this->invalid( 14 );
 			}
 			// Once the shipping snapshot is booked, monetary/method/vehicle context is immutable.
 			$booked = json_decode( (string) ( $row->shipping_info ?? '' ), true );
 			if ( is_array( $booked ) && isset( $booked['instant_items'] ) && ! empty( $row->request_pickup_at ) && null !== $previous && '' !== $previous && (string) $previous !== (string) $value && ! in_array( $field, array( 'shipping_info', 'shipment_location_snapshot' ), true ) ) {
-				$this->invalid();
+				$this->invalid( 15 );
 			}
 			$changes[ $field ] = $value;
 		}
@@ -296,11 +296,11 @@ final class InstantShipmentState {
 			}
 			$value = $package[ $field ];
 			if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/\A[1-9][0-9]{2}\z/', $value ) ) ) {
-				$this->invalid();
+				$this->invalid( 16 );
 			}
 			$value = (int) $value;
 			if ( ! in_array( $value, $known, true ) || ( null !== $found && $found !== $value ) ) {
-				$this->invalid();
+				$this->invalid( ! in_array( $value, $known, true ) ? 17 : 18 );
 			}
 			$found = $value;
 		}
@@ -308,19 +308,19 @@ final class InstantShipmentState {
 			// Legacy authoritative lifecycle hooks have no Instant state metadata.
 			foreach ( array( 'service', 'service_type', 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking' ) as $field ) {
 				if ( array_key_exists( $field, $package ) ) {
-					$this->invalid();
+					$this->invalid( 19 );
 				}
 			}
 			$events = array( 'shipped_packages' => 106, 'finished_packages' => 200, 'canceled_packages' => 300 );
 			if ( ! empty( $payment ) || ! isset( $events[ $event ?? '' ] ) ) {
-				$this->invalid();
+				$this->invalid( 19 );
 			}
 			$found = $events[ $event ];
 		}
 		// Validate even when called directly, not only through webhook prevalidation.
 		$events = array( 'shipped_packages' => array( 106 ), 'finished_packages' => array( 200 ), 'canceled_packages' => array( 300, 302 ) );
 		if ( null !== $event && ( ! isset( $events[ $event ] ) || ! in_array( $found, $events[ $event ], true ) ) ) {
-			$this->invalid();
+			$this->invalid( 20 );
 		}
 		return $found;
 	}
@@ -401,8 +401,35 @@ final class InstantShipmentState {
 		}
 	}
 
-	private function invalid(): void {
-		throw new InvalidArgumentException( esc_html__( 'Invalid Instant shipment state or identity.', 'kiriminaja-official' ) );
+	/** Fixed diagnostic vocabulary only. Never expose exception text or response values. */
+	public static function validationReason( \Throwable $error ): string {
+		$reasons = array(
+			1 => 'package_order_identity_invalid',
+			2 => 'existing_payment_identity_mismatch',
+			3 => 'tracking_url_invalid',
+			4 => 'local_shipment_state_invalid',
+			5 => 'stored_service_identity_mismatch',
+			6 => 'awb_identity_invalid',
+			7 => 'payment_identity_invalid',
+			8 => 'payment_alias_conflict',
+			9 => 'booking_snapshot_shape_invalid',
+			10 => 'booked_shipping_snapshot_conflict',
+			11 => 'origin_snapshot_conflict',
+			12 => 'booking_timestamp_invalid',
+			13 => 'booking_price_invalid',
+			14 => 'booking_metadata_identifier_invalid',
+			15 => 'booked_metadata_conflict',
+			16 => 'package_status_shape_invalid',
+			17 => 'package_status_unsupported',
+			18 => 'package_status_alias_conflict',
+			19 => 'package_status_missing',
+			20 => 'package_event_status_mismatch',
+		);
+		return $error instanceof InvalidArgumentException ? ( $reasons[ $error->getCode() ] ?? 'state_validation_unknown' ) : 'local_confirmation_exception';
+	}
+
+	private function invalid( int $reason ): void {
+		throw new InvalidArgumentException( esc_html__( 'Invalid Instant shipment state or identity.', 'kiriminaja-official' ), $reason );
 	}
 
 	private function failed(): void {
