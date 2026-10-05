@@ -4,6 +4,9 @@
 .kiriof-transaction-dialog-content .kiriof-pickup-summary {
   @apply !border-border !bg-card;
 }
+.kiriof-instant-process-dialog .kiriof-instant-payment-qr {
+  @apply !block !mx-auto !justify-self-center !max-w-full !h-auto !bg-white;
+}
 .kiriof-payment-methods {
   @apply !grid !gap-2.5;
 }

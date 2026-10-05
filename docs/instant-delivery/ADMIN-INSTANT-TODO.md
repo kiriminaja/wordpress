@@ -133,6 +133,8 @@ The local engineering improvements are not a verified 9/10 production rating. Re
 
 ### Payment cards, balance, and dedicated Instant PIN step
 
+- QRIS result UI: status-only refreshes preserve the original same-payment QR and known amount when the endpoint omits them (empty QR/null amount). A returned nonempty QR replaces it; paid/refunded/failed/expired responses clear it, and remote expiry still hides it. The QR is centered responsively on a white background. Manual refresh controls are adjacent to Close in the result footer, with payment IDs on multi-payment batches; no buttons inside the payment-detail card. Polling, request spacing and duplicate-booking protection remain unchanged.
+
 - Status color parity: Waiting for Shipment uses the fixed blue `info` palette in Express and Instant list/detail/fallback presentation and legacy helper badges, not the admin-theme accent. On Hold/Pending Payment use amber `warning` consistently in WC badge maps and transaction-list presentation; the WC hold state is evaluated before a local `new` shipment so an On Hold label cannot inherit the shipment color. Instant payment/issue overrides and shipment actions are unchanged.
 
 - Per-digit PIN reveal: the shared password-backed input shows only the newly typed/replaced digit. Other populated cells remain masked; keyboard navigation, pointer repositioning, blur, paste, external PIN resets and submission remask the revealed cell. Focus alone never reveals existing digits, and pasted full PINs are never displayed. Runtime coverage includes repeated digits and insertion into an earlier position. This changes presentation only, not validation or the submitted PIN.

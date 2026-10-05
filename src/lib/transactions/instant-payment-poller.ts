@@ -168,11 +168,23 @@ export function createInstantPaymentPoller(options: Options) {
       const payment = await options.request(group.payment, abort.signal);
       if (current !== epoch || abort.signal.aborted || !active) return;
       if (payment.id !== group.payment.id) throw new Error('Payment ID mismatch');
-      group.payment = payment;
+      // Status endpoints can omit booking-only display data. Keep the QR/amount
+      // for this same payment while it remains payable; never resurrect a QR
+      // for a terminal or remotely expired payment.
+      const merged: PollPayment = {
+        ...group.payment,
+        ...payment,
+        amount: payment.amount ?? group.payment.amount,
+        qr_content:
+          paymentTerminal(payment) || expiry(payment) <= now()
+            ? ''
+            : payment.qr_content || group.payment.qr_content,
+      };
+      group.payment = merged;
       group.failures = 0;
-      group.deadline = Math.min(group.deadline, expiry(payment));
-      options.onUpdate(payment);
-      if (paymentTerminal(payment)) phase(group, 'complete');
+      group.deadline = Math.min(group.deadline, expiry(merged));
+      options.onUpdate(merged);
+      if (paymentTerminal(merged)) phase(group, 'complete');
       else bound(group);
     } catch {
       if (current !== epoch || abort.signal.aborted || !active) return;

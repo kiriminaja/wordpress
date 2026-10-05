@@ -89,6 +89,41 @@ function harness(request?: (payment: PollPayment, signal: AbortSignal) => Promis
 }
 
 describe('bounded Instant payment polling', () => {
+  test('status-only automatic and manual refresh preserve same-payment QR and known amount', async () => {
+    const h = harness(async (p) => ({ ...p, status: 'unpaid', amount: null, qr_content: '' }));
+    h.session.start([payment()]);
+    await h.advance(6500);
+    expect(h.updates[0].qr_content).toBe('qr');
+    expect(h.updates[0].amount).toBe(100);
+    expect(h.session.refresh('a')).toBe(true);
+    await h.advance(6500);
+    expect(h.updates[1].qr_content).toBe('qr');
+    expect(h.updates[1].amount).toBe(100);
+    h.session.stop();
+  });
+  test('refresh replaces returned QR and honors zero amount without leaking another payment QR', async () => {
+    const h = harness(async (p) => ({ ...p, qr_content: `replacement-${p.id}`, amount: 0 }));
+    h.session.start([payment('a'), { ...payment('b'), qr_content: 'qr-b' }]);
+    await h.advance(13000);
+    expect(h.updates.map((p) => [p.id, p.qr_content, p.amount])).toEqual([
+      ['a', 'replacement-a', 0], ['b', 'replacement-b', 0],
+    ]);
+    h.session.stop();
+  });
+  test('terminal or remotely expired refresh clears the booking QR', async () => {
+    for (const status of ['paid', 'refunded', 'failed', 'expired']) {
+      const h = harness(async (p) => ({ ...p, status, qr_content: '' }));
+      h.session.start([payment()]); await h.advance(6500);
+      expect(h.updates[0].qr_content).toBe('');
+      expect(h.phases.a).toBe('complete');
+      h.session.stop();
+    }
+    const h = harness(async (p) => ({ ...p, qr_content: '', expires_at: 1_700_000_001 }));
+    h.session.start([payment()]); await h.advance(6500);
+    expect(h.updates[0].qr_content).toBe('');
+    expect(h.phases.a).toBe('expired');
+    h.session.stop();
+  });
   test('QR creation is not paid; five groups share serial sandbox-safe cadence', async () => {
     const h = harness();
     h.session.start(['a', 'b', 'c', 'd', 'e'].map(payment));

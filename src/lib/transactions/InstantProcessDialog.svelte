@@ -282,13 +282,12 @@
       {/if}
       {#if result}
         {#each result.rows as row (row.id)}<div class="rounded-md border p-3"><strong>{orderLabel(row.id)}: {text(`instantResult_${row.status}`)}</strong><p class="m-0 text-sm">{row.awb} {row.message}</p></div>{/each}
-        {#each result.payments as payment, index (index)}
-          <div class="grid gap-2 rounded-md border p-3">
+        {#each result.payments as payment (payment.id)}
+          <div class="kiriof-instant-payment-card grid gap-2 rounded-md border p-3">
             <p class="m-0 text-sm">{text('paymentId')}: {payment.id} — {text('paymentStatus')}: {text(`instantPayment_${payment.status}`)}</p><strong>{money(payment.amount)}</strong>
-            {#if payment.qr_content && !paymentTerminal(payment) && pollPhases[payment.id] !== 'expired'}<svg use:qr={{ data: payment.qr_content }} width="240" height="240" role="img" aria-label={text('instantQrLabel')}></svg>{/if}
+            {#if payment.qr_content && !paymentTerminal(payment) && pollPhases[payment.id] !== 'expired'}<svg class="kiriof-instant-payment-qr" use:qr={{ data: payment.qr_content }} width="240" height="240" role="img" aria-label={text('instantQrLabel')}></svg>{/if}
             {#if pollStopped(payment)}<p role="status" class="m-0 text-sm">{pollStopped(payment)}</p>{/if}
             {#if checkingPayments}<p role="status" class="m-0 text-sm">{text('instantPaymentChecking')}</p>{/if}
-            {#if !paymentTerminal(payment)}<Button variant="outline" disabled={busy || checkingPayments || !paymentIds(payment).length} onclick={() => void refreshPayment(payment)}>{text('instantRefreshPayment')}</Button>{/if}
           </div>
         {/each}
       {/if}
@@ -298,6 +297,13 @@
         <Button variant="outline" disabled={busy} onclick={backToSummary}>{text('instantBackSummary')}</Button>
       {:else}
         <Button variant="ghost" disabled={dispatching} onclick={close}>{text('instantClose')}</Button>
+      {/if}
+      {#if result}
+        {#each result.payments as payment (payment.id)}
+          {#if !paymentTerminal(payment)}
+            <Button variant="outline" disabled={busy || checkingPayments || !paymentIds(payment).length} onclick={() => refreshPayment(payment)}>{#if checkingPayments}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}{text('instantRefreshPayment')}{result.payments.length > 1 ? ` (${payment.id})` : ''}</Button>
+          {/if}
+        {/each}
       {/if}
       {#if !result}
         {#if step === 'pin' && !dispatchAttempted}

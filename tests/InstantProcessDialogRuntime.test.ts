@@ -28,7 +28,7 @@ async function compiledRuntime() {
   put('field.ts', `export {default as Field} from './Container.svelte'; export {default as Label} from './Label.svelte';`);
   put('ajax.ts', `export function postWordPressAction(...args) { return globalThis.__instantDialogAjax(...args); }`);
   put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown, default as IconLoader2, default as IconCreditCard, default as IconQrcode, default as IconMinus, default as IconLoader} from './Icon.svelte';`);
-  put('qr.ts', `export function qr() { return {destroy() {}}; }`);
+  put('qr.ts', `export function qr(node, options) { node.setAttribute('data-test-qr', options.data); return {update(next) { node.setAttribute('data-test-qr', next.data); }, destroy() {}}; }`);
   let source = readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8');
   const substitutions: Record<string, string> = {
     '@tabler/icons-svelte': './icons.ts', '@svelte-put/qr/svg': './qr.ts',
@@ -111,6 +111,33 @@ async function fixture() {
 }
 
 describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
+  runtimeTest('QRIS status refresh retains QR and amount, centers it and places refresh beside Close', async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('qris-only', ['qris']));
+      await h.click(h.button('instantContinuePayment'));
+      await h.reply({ rows: [{ id: '1', status: 'booked', awb: '', message: '' }], payments: [{ id: 'PAY-1', status: 'unpaid', amount: 12000, qr_content: 'booking-qr', order_ids: ['1'] }] });
+      const footer = h.query('[data-slot="dialog-footer"]');
+      expect(footer.querySelectorAll('button')).toHaveLength(2);
+      expect(footer.contains(h.button('instantClose'))).toBe(true);
+      expect(footer.contains(h.button('instantRefreshPayment'))).toBe(true);
+      expect(h.query('.kiriof-instant-payment-card').querySelector('button')).toBeNull();
+      expect(h.query('.kiriof-instant-payment-qr').getAttribute('data-test-qr')).toBe('booking-qr');
+      await h.click(h.button('instantRefreshPayment'));
+      expect(h.button('instantRefreshPayment').disabled).toBe(true);
+      await h.advance(6500);
+      expect(h.requests[2].action).toBe('kiriof_instant_payment');
+      await h.reply({ id: 'PAY-1', status: 'unpaid', amount: null, qr_content: '' });
+      expect(h.query('.kiriof-instant-payment-qr').getAttribute('data-test-qr')).toBe('booking-qr');
+      expect(h.query('.kiriof-instant-payment-card').textContent).toContain('Rp12.000');
+      expect(h.button('instantRefreshPayment').disabled).toBe(false);
+      await h.click(h.button('instantRefreshPayment')); await h.advance(6500);
+      await h.reply({ id: 'PAY-1', status: 'paid', amount: 12000, qr_content: '' });
+      expect(h.query('.kiriof-instant-payment-qr')).toBeNull();
+      expect(h.button('instantRefreshPayment')).toBeUndefined();
+      expect(footer.querySelectorAll('button')).toHaveLength(1);
+      expect(h.requests.filter((r: any) => r.action === 'kiriof_instant_dispatch')).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
   runtimeTest('loading and refresh show the actual collapsed-summary and payment-card layout before data arrives', async () => {
     const h = await fixture(); try {
       const loader = h.query('[data-loading-layout="instant"]');

@@ -5,6 +5,15 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantProcessUiTest extends TestCase {
+    public function test_payment_qr_is_centered_and_refresh_action_lives_in_the_footer(): void {
+        $source = $this->source( 'src/lib/transactions/InstantProcessDialog.svelte' );
+        $css = $this->source( 'src/styles/admin-list.css' );
+        $this->assertStringContainsString( '<svg class="kiriof-instant-payment-qr"', $source );
+        $this->assertMatchesRegularExpression( '/\.kiriof-instant-process-dialog \.kiriof-instant-payment-qr\s*\{\s*@apply !block !mx-auto !justify-self-center !max-w-full !h-auto !bg-white;/', $css );
+        $footer = substr( $source, strpos( $source, '<Dialog.Footer>' ) );
+        $this->assertStringContainsString( "text('instantRefreshPayment')", $footer );
+        $this->assertStringNotContainsString( "text('instantRefreshPayment')", substr( $source, 0, strpos( $source, '<Dialog.Footer>' ) ) );
+    }
     public function test_collapsible_uses_visible_composed_button_and_scoped_native_style_reset(): void {
         $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
         $css = $this->source('src/styles/admin-list.css');
