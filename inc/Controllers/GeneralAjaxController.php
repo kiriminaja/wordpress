@@ -124,6 +124,25 @@ class GeneralAjaxController
         $postcode = isset($_POST['postcode']) ? sanitize_text_field(wp_unslash($_POST['postcode'])) : '';
         $postcode = trim( preg_replace( '/\s+/', '', (string) $postcode ) );
 
+        // The legacy district endpoint still owns selection. Never carry a pin
+        // across districts/postcodes, including a delayed district response.
+        $pin = WC()->session->get( 'kiriof_buyer_destination', null );
+        if ( is_array( $pin ) ) {
+            try {
+                $pin = \KiriminAjaOfficial\Services\BuyerDestination::normalize( $pin );
+                $matches = 2 === $pin['version'] && (string) $destination_id === $pin['district_id']
+                    && \KiriminAjaOfficial\Services\BuyerDestination::postcode( $postcode ) === $pin['postcode'];
+            } catch ( \InvalidArgumentException $error ) {
+                $matches = false;
+            }
+            if ( ! $matches ) {
+                WC()->session->set( 'kiriof_buyer_destination', null );
+                WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
+                WC()->session->set( 'kiriof_instant_checkout_quotes', array() );
+                WC()->session->set( 'kiriof_instant_checkout_status', array() );
+            }
+        }
+
         if ($different_address) {
             WC()->session->set('shipping_destination_id', $destination_id);
             WC()->session->set('shipping_destination_name', $text);

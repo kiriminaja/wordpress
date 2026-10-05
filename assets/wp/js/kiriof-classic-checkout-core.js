@@ -42,7 +42,7 @@
 		function sync() {
 			if ( destroyed ) return Promise.resolve( { status: 'disposed' } );
 			var settings = options.settings();
-			return queue.update( { action: 'sync_checkout', destination: destination(), payment_method: settings.payment_method, insurance: settings.insurance, shipping_methods: settings.shipping_methods } );
+			return queue.update( { action: 'sync_checkout', destination: destination(), address_scope: scope, effective_address: address( current ), payment_method: settings.payment_method, insurance: settings.insurance, shipping_methods: settings.shipping_methods } );
 		}
 		return {
 			getState: state,

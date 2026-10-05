@@ -5,6 +5,8 @@ declare(strict_types=1);
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/helpers/legacy-checkout-source.php';
+
 final class CheckoutShippingPerformanceTest extends TestCase
 {
     #[Test]
@@ -203,7 +205,7 @@ final class CheckoutShippingPerformanceTest extends TestCase
     #[Test]
     public function block_district_persistence_uses_ajax_only_as_fallback(): void
     {
-        $script = file_get_contents( PLUGIN_DIR . '/assets/wp/js/form-billing-address.js' );
+        $script = kiriof_legacy_checkout_source();
         $start = strpos( $script, 'function kiriofPersistBlockDistrictSelection' );
         $end = strpos( $script, 'var kiriofLastDistrictResults', $start );
         $body = substr( $script, $start, $end - $start );

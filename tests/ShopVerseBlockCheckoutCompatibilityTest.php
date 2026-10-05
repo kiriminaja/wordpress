@@ -24,6 +24,8 @@ if (! function_exists('WC')) {
     }
 }
 
+require_once __DIR__ . '/helpers/legacy-checkout-source.php';
+
 /**
  * Regression coverage for React/block checkout themes such as ShopVerse.
  */
@@ -34,12 +36,12 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         return file_get_contents(PLUGIN_DIR . '/templates/front/form-billing-address.php')
             . file_get_contents(PLUGIN_DIR . '/templates/front/partials/form-billing-address-fields.php')
             . file_get_contents(PLUGIN_DIR . '/templates/front/partials/form-billing-address-config.php')
-            . file_get_contents(PLUGIN_DIR . '/assets/wp/js/form-billing-address.js');
+            . kiriof_legacy_checkout_source();
     }
 
     private static function billingAddressScriptContent(): string
     {
-        return file_get_contents(PLUGIN_DIR . '/assets/wp/js/form-billing-address.js');
+        return kiriof_legacy_checkout_source();
     }
 
     #[Test]
@@ -65,7 +67,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString("assets/wp/js/form-billing-address.js", $enqueue);
         $this->assertStringContainsString("array( 'kiriof-script' )", $enqueue);
         $this->assertStringContainsString("wp_enqueue_script( 'kiriof-form-billing-address' );", $template);
-        $this->assertStringContainsString("wp_localize_script(\n            'kiriof-form-billing-address'", $template);
+        $this->assertStringContainsString("wp_localize_script(\n            'kiriof-checkout-state'", $template);
         $this->assertStringContainsString("'kiriofBillingAddressConfig'", $template);
         $this->assertStringNotContainsString('wp_add_inline_script', $template);
         $this->assertStringNotContainsString('<?php', $script);
@@ -128,8 +130,8 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         foreach (array('kiriofInitBlockCheckoutCompatibility()', 'kiriofCodInsurance()') as $function) {
             $start = strpos($script, 'function ' . $function);
             $this->assertNotFalse($start, 'Legacy compatibility helper must remain for classic and fallback flows');
-            $this->assertStringContainsString(
-                "if (kiriofUsesNativeBuyerCheckout()) {\n                return;\n            }",
+            $this->assertMatchesRegularExpression(
+                '/if \(kiriofUsesNativeBuyerCheckout\(\)\)\s*\{\s*return;\s*\}/',
                 substr($script, $start, 1200),
                 'Active modern checkout must bypass legacy block initialization and fee writers to avoid duplicate requests'
             );
@@ -164,14 +166,15 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function classic_checkout_refresh_flags_must_be_available_to_updated_checkout_handlers(): void
     {
-        $content = self::billingAddressTemplateContent();
+        $content = self::billingAddressScriptContent();
         $readyStart = strpos($content, 'jQuery(document).ready(function($)');
         $handlerStart = strpos($content, "jQuery(document.body).on('updated_checkout', function()");
         $this->assertNotFalse($readyStart, 'Inline checkout/cart script must initialize document ready handler');
         $this->assertNotFalse($handlerStart, 'Classic updated_checkout handler must exist');
 
-        $upstreamScriptScope = substr($content, 0, $readyStart);
-        $readyBody = substr($content, $readyStart, $handlerStart - $readyStart);
+        $this->assertLessThan($readyStart, $handlerStart, 'Shipping handlers load before the ready entry through WordPress dependencies');
+        $upstreamScriptScope = substr($content, 0, $handlerStart);
+        $readyBody = substr($content, $readyStart);
 
         $this->assertStringContainsString(
             'var kiriofTriggeredInitialShippingUpdate = false;',
@@ -2811,7 +2814,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_cart_keeps_dropdown_but_checkout_uses_native_shipping_radios(): void
+    public function classic_cart_and_checkout_preserve_legacy_shipping_dropdown_and_radio_sync(): void
     {
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
@@ -2874,9 +2877,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '$kiriof_use_classic_shipping_select = $kiriof_is_cart_totals_shipping && 1 < count( $available_methods );',
+            '$kiriof_use_classic_shipping_select = 1 < count( $available_methods );',
             $cartShipping,
-            'Only cart totals may replace multiple shipping radios with an enhanced dropdown'
+            'Classic cart and checkout retain the enhanced dropdown for multiple rates'
         );
 
         $this->assertStringContainsString(
@@ -3035,7 +3038,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             '.kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Only cart shipment rows should collapse the radio list when the dropdown is active'
+            'Classic cart and checkout collapse the fallback radio list when the dropdown is active'
         );
 
         $this->assertStringContainsString(
@@ -3045,9 +3048,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '.kiriof-cart-shipment-row .kiriof-shipping-methods-list--enhanced',
+            '.kj-cart-total .kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Cart-only hiding should work when themes omit the woocommerce-cart body class'
+            'Cart totals hiding should work when themes omit the woocommerce-cart body class'
         );
 
         $this->assertStringContainsString(
@@ -3279,7 +3282,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         ) as $needle => $message) {
             $start = strpos($content, $needle);
             $this->assertNotFalse($start, $message);
-            $body = substr($content, $start, 700);
+            $body = substr($content, $start, 1800);
             $this->assertStringContainsString(
                 '! $this->kiriof_cart_needs_shipping()',
                 $body,

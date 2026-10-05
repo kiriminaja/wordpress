@@ -1,6 +1,6 @@
 <?php
 /**
- * Billing address fields and inline script orchestrator.
+ * Billing address fields and legacy checkout asset configuration.
  *
  * Variables provided by CheckoutController::add_custom_select_options_field_and_script().
  *
@@ -24,7 +24,7 @@ if ( is_checkout() || is_cart() ) {
     if ( is_array( $kiriof_billing_address_config ) ) {
         wp_enqueue_script( 'kiriof-form-billing-address' );
         wp_localize_script(
-            'kiriof-form-billing-address',
+            'kiriof-checkout-state',
             'kiriofBillingAddressConfig',
             $kiriof_billing_address_config
         );

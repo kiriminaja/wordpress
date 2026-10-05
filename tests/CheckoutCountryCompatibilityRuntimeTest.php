@@ -4,10 +4,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/helpers/legacy-checkout-source.php';
+
 final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     #[Test]
     #[DataProvider( 'countryPairs' )]
-    public function native_fields_and_district_follow_each_address_country( string $billing, string $shipping ): void {
+    public function native_fields_remain_unchanged_and_district_follows_each_address_country( string $billing, string $shipping ): void {
         $result = $this->runFixture( array(
             'action' => 'fields',
             'post' => array( 'billing_country' => $billing, 'shipping_country' => $shipping, 'ship_to_different_address' => '1' ),
@@ -61,7 +63,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function city_and_province_are_adjacent_without_changing_native_theme_metadata(): void {
+    public function city_and_province_preserve_native_classes_priorities_and_theme_metadata(): void {
         $overrides = array();
         foreach ( array( 'billing', 'shipping' ) as $group ) {
             $overrides[ $group ] = array(
@@ -77,7 +79,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
         $this->assertAddressFields( $result, 'ID', 'US' );
         foreach ( array( 'billing', 'shipping' ) as $group ) {
             $this->assertSame( 70, $result['fields'][ $group ][ $group . '_city' ]['priority'] );
-            $this->assertSame( 71, $result['fields'][ $group ][ $group . '_state' ]['priority'] );
+            $this->assertSame( 90, $result['fields'][ $group ][ $group . '_state' ]['priority'] );
         }
     }
 
@@ -95,7 +97,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     #[Test]
     public function classic_district_script_uses_edited_address_and_updates_label_before_calculation_guard(): void {
-        $script = file_get_contents( dirname( __DIR__ ) . '/assets/wp/js/form-billing-address.js' );
+        $script = kiriof_legacy_checkout_source();
         $change = substr( $script, strpos( $script, 'function changeDistrict(){' ) );
         $change = substr( $change, 0, strpos( $change, 'jQuery.ajax({' ) );
         $this->assertStringContainsString( "let addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';", $change );
@@ -133,23 +135,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
                 $this->assertArrayHasKey( $key, $result['fields'][ $group ], $key . ' must remain a native WooCommerce field.' );
                 $original = $result['original_fields'][ $group ][ $key ];
                 $field = $result['fields'][ $group ][ $key ];
-                $this->assertSame( $original['required'], $field['required'], $key );
-                $this->assertNotContains( 'kiriof-classic-address-hidden', $field['class'], $key );
-                if ( in_array( $native, array( 'city', 'state' ), true ) ) {
-                    $this->assertContains( 'kiriof-classic-' . $native, $field['class'], $key );
-                    $this->assertContains( 'form-row-' . ( 'city' === $native ? 'first' : 'last' ), $field['class'], $key );
-                    $this->assertNotContains( 'form-row-wide', $field['class'], $key );
-                    foreach ( array_diff( $original['class'], array( 'form-row-wide', 'form-row-first', 'form-row-last' ) ) as $class ) {
-                        $this->assertContains( $class, $field['class'], $key . ' must retain theme and locale classes.' );
-                    }
-                    foreach ( array( 'type', 'label', 'validate', 'custom_attributes' ) as $attribute ) {
-                        $this->assertSame( $original[ $attribute ], $field[ $attribute ], $key . ':' . $attribute );
-                    }
-                    $expected_priority = 'state' === $native ? $result['fields'][ $group ][ $group . '_city' ]['priority'] + 1 : $original['priority'];
-                    $this->assertSame( $expected_priority, $field['priority'], $key . ':priority' );
-                } else {
-                    $this->assertSame( $original, $field, $key . ' must remain completely untouched.' );
-                }
+                $this->assertSame( $original, $field, $key . ' must remain completely untouched, including native classes and priority.' );
             }
             $countryKey = $group . '_country';
             $this->assertSame( $result['original_fields'][ $group ][ $countryKey ], $result['fields'][ $group ][ $countryKey ], 'Country field must be untouched.' );

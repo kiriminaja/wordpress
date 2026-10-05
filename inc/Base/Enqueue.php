@@ -19,6 +19,13 @@ class Enqueue extends BaseInit{
         add_action('wp_enqueue_scripts', array($this,'enqueueWp'));
     }
 
+    private function classic_instant_enabled(): bool {
+        return ! empty( ( new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService(
+            new \KiriminAjaOfficial\Repositories\SettingRepository(),
+            new \KiriminAjaOfficial\Services\ShipmentLocationService()
+        ) )->enabledInstant() );
+    }
+
 	/**
 	 * Enqueue the single Svelte entry shared by the internal KiriminAja workspace pages.
 	 *
@@ -323,8 +330,7 @@ class Enqueue extends BaseInit{
             wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
         }
         $styles = array(
-            'kiriof-buyer-checkout' => array( 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet' ) ),
-            'kiriof-classic-checkout' => array( 'assets/wp/css/kiriof-classic-checkout.css', array( 'kiriof-buyer-checkout' ) ),
+            'kiriof-classic-checkout' => array( 'assets/wp/css/kiriof-classic-checkout.css', array( 'kiriof-leaflet' ) ),
         );
         foreach ( $styles as $handle => $asset ) {
             if ( ! wp_style_is( $handle, 'registered' ) ) {
@@ -337,7 +343,8 @@ class Enqueue extends BaseInit{
             if ( ! is_string( $data ) || false === strpos( $data, 'kiriofClassicCheckoutConfig' ) ) {
                 $config = $this->buyer_checkout_config();
                 // Classic checkout does not require Store API registration support.
-                $config['enabled'] = true;
+                $config['enabled'] = $this->classic_instant_enabled();
+                $config['ownsDistrict'] = false;
                 $config['needsShipping'] = function_exists( 'WC' ) && WC() && WC()->cart ? WC()->cart->needs_shipping() : true;
                 wp_localize_script( 'kiriof-classic-checkout', 'kiriofClassicCheckoutConfig', $config );
             }
@@ -394,11 +401,18 @@ class Enqueue extends BaseInit{
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        $legacy_dependencies = $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : ( $this->isClassicCheckoutPage() && $this->classic_instant_enabled() ? array( 'kiriof-script', 'kiriof-classic-checkout' ) : array( 'kiriof-script' ) );
+        foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module ) {
+            $handle = 'kiriof-checkout-' . $module;
+            $relative_path = 'assets/wp/js/checkout/' . $module . '.js';
+            wp_register_script( $handle, $this->plugin_url . $relative_path, $legacy_dependencies, (string) filemtime( KIRIOF_DIR . $relative_path ), array( 'in_footer' => true ) );
+            $legacy_dependencies = array( $handle );
+        }
         wp_register_script(
             'kiriof-form-billing-address',
             $this->plugin_url . 'assets/wp/js/form-billing-address.js',
-            $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : ( $this->isClassicCheckoutPage() ? array( 'kiriof-script', 'kiriof-classic-checkout' ) : array( 'kiriof-script' ) ),
-            KIRIOF_VERSION,
+            $legacy_dependencies,
+            (string) filemtime( KIRIOF_DIR . 'assets/wp/js/form-billing-address.js' ),
             array( 'in_footer' => true )
         );
         if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) && 'shipping' !== get_query_var( 'edit-address' ) ) {
@@ -461,10 +475,9 @@ class Enqueue extends BaseInit{
             );
         }
 
-        if ( $this->isClassicCheckoutPage() ) {
+        if ( $this->isClassicCheckoutPage() && $this->classic_instant_enabled() ) {
             $this->register_classic_checkout_assets( true );
             wp_enqueue_script( 'kiriof-classic-checkout' );
-            wp_enqueue_style( 'kiriof-buyer-checkout' );
             wp_enqueue_style( 'kiriof-classic-checkout' );
         }
 

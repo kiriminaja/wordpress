@@ -1926,26 +1926,8 @@ class CheckoutController
     }
 
     private function kiriof_configure_classic_address_fields( $fields, $fields_selected ) {
-        foreach ( array( 'billing', 'shipping' ) as $group ) {
-            // Keep WooCommerce's native locale validation and theme classes intact.
-            // Only city/province participate in the two-column checkout layout.
-            foreach ( array( 'city' => 'first', 'state' => 'last' ) as $field_key => $position ) {
-                $key = $group . '_' . $field_key;
-                if ( ! isset( $fields[ $group ][ $key ] ) ) {
-                    continue;
-                }
-                $classes = isset( $fields[ $group ][ $key ]['class'] ) ? (array) $fields[ $group ][ $key ]['class'] : array();
-                $classes = array_diff( $classes, array( 'form-row-wide', 'form-row-first', 'form-row-last' ) );
-                $classes[] = 'form-row-' . $position;
-                $classes[] = 'kiriof-classic-' . $field_key;
-                $fields[ $group ][ $key ]['class'] = array_values( array_unique( $classes ) );
-                if ( 'state' === $field_key && isset( $fields[ $group ][ $group . '_city' ] ) ) {
-                    $city_priority = $fields[ $group ][ $group . '_city' ]['priority'] ?? 70;
-                    $fields[ $group ][ $key ]['priority'] = $city_priority + 1;
-                }
-            }
-        }
-
+        // Classic native fields belong to WooCommerce/the theme. The plugin adds
+        // only its existing district control and the opt-in Instant pin input.
         return $fields;
     }
     private function kiriof_add_field_subdistrict( $fields ){
@@ -2473,6 +2455,60 @@ class CheckoutController
         }
     }
 
+    /** Classic pin updates never own the production district or fee state. */
+    private function kiriof_sync_classic_pin( array $data ): void {
+        $quotes = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService(
+            $this->setting_repository,
+            new \KiriminAjaOfficial\Services\ShipmentLocationService()
+        );
+        if ( empty( $quotes->enabledInstant() ) ) {
+            throw new \InvalidArgumentException( 'Instant delivery is not enabled.' );
+        }
+        if ( ! $this->kiriof_cart_needs_shipping() || ! WC()->session ) {
+            $this->kiriof_destination_error();
+        }
+        $scope = $data['address_scope'] ?? $data['scope'] ?? null;
+        if ( ! in_array( $scope, array( 'billing', 'shipping' ), true ) ) {
+            $this->kiriof_destination_error();
+        }
+        $destination = $this->kiriof_normalize_buyer_destination( $data['destination'] ?? null );
+        $address = BuyerDestination::address( $data['effective_address'] ?? null );
+        if ( $address['postcode'] !== $destination['postcode'] || $address['country'] !== $destination['country']
+            || ( 2 === $destination['version'] && $address !== $destination['shipping_address'] ) ) {
+            $this->kiriof_destination_error();
+        }
+        $key = 'shipping' === $scope ? 'shipping_destination_id' : 'destination_id';
+        if ( '' !== $destination['district_id'] && $destination['district_id'] !== (string) WC()->session->get( $key, '' ) ) {
+            $this->kiriof_destination_error();
+        }
+        if ( '' !== $destination['district_id'] ) {
+            $destination = $this->kiriof_resolve_buyer_destination( $destination );
+            // Recheck after the lookup: a delayed pin must not adopt a new district.
+            if ( $destination['district_id'] !== (string) WC()->session->get( $key, '' ) ) {
+                $this->kiriof_destination_error();
+            }
+        }
+        WC()->session->set( 'kiriof_buyer_destination', '' === $destination['district_id'] ? null : $destination );
+        WC()->session->set( 'kiriof_buyer_destination_coordinates', '' === $destination['district_id'] ? null : $this->kiriof_buyer_coordinates( $destination ) );
+        WC()->session->set( 'kiriof_instant_checkout_quotes', array() );
+        WC()->session->set( 'kiriof_instant_checkout_status', array() );
+    }
+
+    /** Legacy fee payloads lack street fields; retain only a valid matching pin. */
+    private function kiriof_preserve_classic_pin( int $district_id, string $postcode ): void {
+        try {
+            $destination = BuyerDestination::normalize( WC()->session->get( 'kiriof_buyer_destination', null ) );
+            if ( 2 === $destination['version'] && (string) $district_id === $destination['district_id']
+                && BuyerDestination::postcode( $postcode ) === $destination['postcode'] ) {
+                return;
+            }
+        } catch ( \InvalidArgumentException $error ) {
+            // Missing or malformed history is not a reusable pin.
+        }
+        WC()->session->set( 'kiriof_buyer_destination', null );
+        WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
+    }
+
     private function kiriof_global_insurance_enabled(): bool {
         $setting = $this->setting_repository->getSettingByKey( 'enable_insurance' );
         return $setting && 'yes' === $setting->value;
@@ -2736,6 +2772,12 @@ class CheckoutController
                 wp_die();
             }
 
+            if ( isset( $data['action'] ) && 'sync_classic_pin' === $data['action'] ) {
+                $this->kiriof_sync_classic_pin( $data );
+                wp_send_json_success( array( 'pin_saved' => true ) );
+                wp_die();
+            }
+
             if ( ! $this->kiriof_cart_needs_shipping() ) {
                 $this->kiriof_clear_logistics_session();
                 wp_send_json_success( array( 'destination_id' => 0 ) );
@@ -2747,8 +2789,6 @@ class CheckoutController
                 wp_send_json_success( array( 'destination_id' => WC()->session->get( 'destination_id', '' ) ) );
                 wp_die();
             }
-            WC()->session->set( 'kiriof_buyer_destination', null );
-            WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
             $shipping_method  = isset( $data['shipping_metode_id'] ) ? sanitize_text_field( $data['shipping_metode_id'] ) : '';
             $destination_id   = isset( $data['destination_id'] ) ? (int) $data['destination_id'] : 0;
             $destination_name = isset( $data['destination_name'] ) ? sanitize_text_field( $data['destination_name'] ) : '';
@@ -2757,6 +2797,7 @@ class CheckoutController
             $force_insurance  = ! empty( $data['force_insurance'] ) ? 1 : 0;
             $postcode         = isset( $data['postcode'] ) ? sanitize_text_field( $data['postcode'] ) : '';
             $postcode         = trim( preg_replace( '/\s+/', '', (string) $postcode ) );
+            $this->kiriof_preserve_classic_pin( $destination_id, $postcode );
 
             if ( 'cod' === $payment_method ) {
                 WC()->session->set( 'chosen_payment_method', $payment_method );

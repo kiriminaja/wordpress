@@ -3,6 +3,8 @@
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/helpers/legacy-checkout-source.php';
+
 final class MyAccountDistrictTest extends TestCase
 {
     #[Test]
@@ -86,7 +88,7 @@ final class MyAccountDistrictTest extends TestCase
     public function classic_checkout_restores_saved_district_after_select2_refresh(): void
     {
         $config = file_get_contents(PLUGIN_DIR . '/templates/front/partials/form-billing-address-config.php');
-        $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/form-billing-address.js');
+        $script = kiriof_legacy_checkout_source();
 
         $this->assertStringContainsString("'billingDistrict'", $config);
         $this->assertStringContainsString("'shippingDistrict'", $config);

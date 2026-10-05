@@ -52,7 +52,7 @@ function adapter(options: any = {}) {
 	for (const scope of ['billing', 'shipping']) {
 		for (const key of ['first_name', 'last_name', 'company', ...Object.keys(binding)]) { const input = document.createElement('input'); input.id = `${scope}_${key}`; input.name = input.id; input.value = (binding as any)[key] || ''; form.querySelector(`.woocommerce-${scope}-fields__field-wrapper`).append(input); }
 		const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
-		const wrapper = document.createElement('div'); wrapper.id = `${id}_field`; wrapper.innerHTML = `<select id="${id}" name="${id}"><option value=""></option></select><input id="${id}_name" name="${id}_name">`; form.append(wrapper);
+		const wrapper = document.createElement('div'); wrapper.id = `${id}_field`; wrapper.innerHTML = `<select id="${id}" name="${id}"><option value="123" selected>Gambir</option></select><input id="${id}_name" name="${id}_name" value="Gambir">`; form.append(wrapper);
 	}
 	const handlers: any[] = [], events: string[] = [];
 	const emit = (node: any, event: string, target = node) => {
@@ -70,34 +70,25 @@ function adapter(options: any = {}) {
 	const maps: any[] = [];
 	window.L = { map() { const listeners: any = {}; const map: any = { listeners, removed: false, setView() { return map; }, on(name: string, callback: any) { listeners[name] = callback; return map; }, invalidateSize() {}, getCenter() { return { lat: -6.2, lng: 106.8 }; }, remove() { map.removed = true; } }; maps.push(map); return map; }, tileLayer() { return { addTo() { return this; }, on() {} }; } };
 	window.HTMLElement.prototype.scrollIntoView = () => {};
-	window.kiriofClassicCheckoutConfig = { enabled: true, ajaxUrl: '/admin-ajax.php', nonce: 'nonce', needsShipping: true, map: { enabled: true, tiles: 'https://tiles.example/{z}/{x}/{y}.png', i18n: { mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapLocating: 'Locating' } }, ...options };
+	window.kiriofClassicCheckoutConfig = { enabled: true, ownsDistrict: false, ajaxUrl: '/admin-ajax.php', nonce: 'nonce', needsShipping: true, map: { enabled: true, tiles: 'https://tiles.example/{z}/{x}/{y}.png', i18n: { mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapLocating: 'Locating' } }, ...options };
 	h.load('kiriof-classic-checkout');
 	const query = (selector: string): any => document.querySelector(selector);
 	const hidden = () => JSON.parse(query('[name="kiriof_buyer_destination_snapshot"]').value);
 	const change = (id: string, value: any, kind = 'change') => { const input = query(`#${id}`); if (typeof value === 'boolean') input.checked = value; else input.value = value; emit(form, kind, input); };
 	const respond = async (request: any, data: any = null, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); };
 	const mutations = () => requests.filter(r => r.body.get('action') === 'kiriof-session-save');
+	const payload = (request: any) => JSON.parse(request.body.get('data'));
 	const lookups = () => requests.filter(r => r.body.get('action') === 'kiriminaja_subdistrict_search');
 	const acknowledge = async () => { for (let i = 0; i < 8; i++) { await h.advance(); const request = mutations().find(r => !r.done); if (!request) return; request.done = true; await respond(request); emit(document.body, 'updated_checkout'); } throw new Error('Checkout update cycle'); };
-	const choose = (value = '123') => { const select = query('#kiriof-classic-district'); select.value = value; select.dispatchEvent(new window.Event('change', { bubbles: true })); emit(form, 'change', select); };
+	const choose = (value = '123', label = 'Gambir', scope = 'billing') => { const id = scope === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'; const select = query(`#${id}`); select.append(new window.Option(label, value)); select.value = value; query(`#${id}_name`).value = label; emit(window.document.body, 'kiriof:classic-district-synced'); };
 	cleanups.push(() => window.dispatchEvent(new window.Event('pagehide')));
-	return { ...h, form, query, hidden, change, respond, mutations, lookups, acknowledge, choose, requests, emit, events, handlers, geo, maps };
+	return { ...h, form, query, hidden, change, respond, mutations, lookups, acknowledge, choose, requests, payload, emit, events, handlers, geo, maps };
 }
 
 describe('Classic core with real shared session queue', () => {
-	test('unchecked insurance serializes as zero and virtual/pickup checkouts do not require district', async () => {
-		const h = adapter(); await h.advance();
-		expect(h.mutations()[0].body.get('data[insurance]')).toBe('0');
-		expect(h.mutations()[0].init.signal).toBeUndefined();
-		const virtual = adapter({ needsShipping: false });
-		expect(virtual.query('.kiriof-classic-destination').hidden).toBe(true);
-		expect(virtual.emit(virtual.form, 'checkout_place_order')).toBe(true);
-		const pickup = adapter();
-		pickup.query('input.shipping_method').value = 'local_pickup:1';
-		pickup.query('input.shipping_method[type="hidden"]').value = 'local_pickup:2';
-		pickup.emit(pickup.form, 'change', pickup.query('input.shipping_method')); await pickup.advance(200);
-		expect(pickup.query('.kiriof-classic-destination').hidden).toBe(true);
-		expect(pickup.emit(pickup.form, 'checkout_place_order')).toBe(true);
+	test('serializes address context alongside native settings without changing core queue contract', async () => {
+		const h = coreHarness(); h.controller.sync(); await h.advance();
+		expect(h.sends[0].snapshot).toMatchObject({ action: 'sync_checkout', address_scope: 'billing', effective_address: binding, insurance: false, payment_method: 'bacs', shipping_methods: ['kiriminaja:regular'] });
 	});
 	test('boots against the actual session export without a compatibility alias', () => {
 		const h = runtime(); delete h.window.kiriofCheckoutSession;
@@ -139,74 +130,120 @@ describe('Classic core with real shared session queue', () => {
 	});
 });
 
-describe('Classic DOM adapter with delegated Woo events', () => {
-	test('inline district stays after native fields and map opens automatically without launch/close buttons', async () => {
-		const h = adapter({ savedDestination: saved({ version: 1 }) });
-		const panel = h.query('.kiriof-classic-destination');
+describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+	test('observes existing legacy district and label without adding lookup/select/fee requests or rewriting native fields', async () => {
+		const h = adapter();
+		const ids = ['billing_city', 'billing_state', 'billing_postcode', 'kiriof_destination_area', 'kiriof_destination_area_name', 'kiriof_shipping_destination_area'];
+		const before = ids.map(id => h.query(`#${id}`).outerHTML);
+		const panel = h.query('.kiriof-classic-pin');
 		expect(panel.parentNode.lastElementChild).toBe(panel);
 		expect(panel.getAttribute('data-priority')).toBe('999');
-		expect(panel.textContent).not.toContain('Close map');
-		expect(panel.querySelectorAll('button')).toHaveLength(2); // retry + optional current-location retry
+		expect(panel.querySelectorAll('select')).toHaveLength(0);
+		expect(h.query('#kiriof-classic-district')).toBeNull();
 		expect(h.geo).toHaveLength(1);
 		h.geo[0].success({ coords: { latitude: -6.2, longitude: 106.8 } });
-		expect(h.maps).toHaveLength(1);
-		expect(h.query('.kiriof-classic-map-editor').hidden).toBe(false);
-		expect(h.hidden().destination_latitude).toBe('-6.2000000');
-		for (let i = 0; i < 3; i++) h.emit(h.window.document.body, 'updated_checkout');
-		expect(h.geo).toHaveLength(1);
+		await h.acknowledge();
+		expect(ids.map(id => h.query(`#${id}`).outerHTML)).toEqual(before);
+		expect(ids.every(id => !h.query(`#${id}`).hidden)).toBe(true);
+		expect(h.lookups()).toHaveLength(0);
+		expect(h.requests.every(r => r.body.get('action') === 'kiriof-session-save')).toBe(true);
+		expect(h.hidden()).toMatchObject({ version: 2, district_id: '123', district_label: 'Gambir', destination_latitude: '-6.2000000' });
 	});
-	test('device pin before district selection is kept as a suggestion until valid district selected', async () => {
-		const h = adapter();
+	test('canonical pin save uses root nonce and JSON data, never district/payment/insurance/method mutations', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
+		const request = h.mutations().at(-1);
+		expect([...request.body.keys()].sort()).toEqual(['action', 'data', 'nonce']);
+		expect(request.body.get('nonce')).toBe('nonce');
+		expect(h.payload(request)).toEqual({ action: 'sync_classic_pin', address_scope: 'billing', effective_address: binding, destination: h.hidden() });
+		expect(request.init.credentials).toBe('same-origin');
+		expect(request.init.signal).toBeUndefined();
+		expect(new h.window.FormData(h.form).get('kiriof_buyer_destination_snapshot')).toBe(JSON.stringify(h.hidden()));
+	});
+	test('saved address-bound pin wins over geolocation and Woo update rounds never loop', async () => {
+		const h = adapter({ savedDestination: saved() });
+		expect(h.geo).toHaveLength(0); expect(h.maps).toHaveLength(1);
+		await h.acknowledge(); const count = h.mutations().length;
+		for (let i = 0; i < 4; i++) { h.emit(h.window.document.body, 'update_checkout'); h.emit(h.window.document.body, 'updated_checkout'); await h.advance(); }
+		expect(h.mutations()).toHaveLength(count); expect(h.maps).toHaveLength(1);
+		expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(count + 4);
+	});
+	test('existing district-synced event observes matching label and retains device suggestion until district exists', async () => {
+		const h = adapter(); h.query('#kiriof_destination_area').value = ''; h.query('#kiriof_destination_area_name').value = '';
+		h.emit(h.window.document.body, 'kiriof:classic-district-synced');
 		h.geo[0].success({ coords: { latitude: 0, longitude: 0 } });
 		expect(h.hidden().version).toBe(1);
-		await h.advance(300); await h.respond(h.lookups()[0], [{ id: '123', text: 'Gambir' }]);
-		h.choose();
-		expect(h.hidden().version).toBe(2);
-		expect(h.hidden().destination_latitude).toBe('0.0000000');
+		h.choose('456', 'Existing legacy label');
+		expect(h.hidden()).toMatchObject({ version: 2, district_id: '456', district_label: 'Existing legacy label', destination_latitude: '0.0000000' });
+		await h.acknowledge(); expect(h.lookups()).toHaveLength(0);
 	});
-	test('renders postcode options and posts normalized hidden JSON through native form', async () => {
-		const h = adapter(); await h.advance(300); expect(h.lookups()[0].body.get('term')).toBe('10110'); await h.respond(h.lookups()[0], [{ id: '123', text: 'Gambir' }, { id: '0', text: 'Invalid' }]);
-		expect(h.query('#kiriof-classic-district').options.length).toBe(2); h.choose(); expect(h.hidden().district_id).toBe('123'); expect(h.query('#kiriof_destination_area').value).toBe('123'); expect(h.query('#kiriof_destination_area_name').value).toBe('Gambir');
-		expect(new h.window.FormData(h.form).get('kiriof_buyer_destination_snapshot')).toBe(JSON.stringify(h.hidden())); await h.acknowledge();
-		const snapshot = h.mutations().at(-1).body; expect(JSON.parse(snapshot.get('data[destination]')).district_id).toBe('123'); expect(JSON.parse(snapshot.get('data[shipping_methods]'))).toEqual(['kiriminaja:regular', 'flat_rate:2']); expect(h.mutations().every(r => r.init.signal === undefined)).toBe(true);
+	test('seller-disabled map makes no geolocation or tile/map requests', async () => {
+		const h = adapter({ map: { enabled: false } }); await h.acknowledge();
+		expect(h.geo).toHaveLength(0); expect(h.maps).toHaveLength(0); expect(h.lookups()).toHaveLength(0);
+		h.query('.kiriof-classic-map-locate').click(); expect(h.geo).toHaveLength(0);
+		const disabled = adapter({ enabled: false }); await disabled.advance(1000);
+		expect(disabled.query('.kiriof-classic-pin')).toBeNull(); expect(disabled.requests).toHaveLength(0);
 	});
-	test('latest postcode response wins even when aborted fetch still resolves', async () => {
-		const h = adapter(); await h.advance(300); const stale = h.lookups()[0]; h.change('billing_postcode', '40222'); await h.advance(500); const latest = h.lookups()[1]; expect(stale.init.signal.aborted).toBe(true);
-		await h.respond(latest, [{ id: '456', text: 'Bandung' }]); await h.respond(stale, [{ id: '123', text: 'Old Jakarta' }]); expect([...h.query('#kiriof-classic-district').options].map((o: any) => o.value)).toEqual(['', '456']); expect(h.hidden().postcode).toBe('40222');
+	test('virtual, foreign and pickup checkouts hide only pin panel and do not require pin', async () => {
+		for (const options of [{ needsShipping: false }, {}]) {
+			const h = adapter(options);
+			if (options.needsShipping !== false) { h.query('input.shipping_method').value = 'local_pickup:1'; h.query('input.shipping_method[type="hidden"]').value = 'local_pickup:2'; h.emit(h.form, 'change', h.query('input.shipping_method')); await h.advance(200); }
+			expect(h.query('.kiriof-classic-pin').hidden).toBe(true);
+			expect(h.query('#billing_postcode').hidden).toBe(false);
+			expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
+		}
+		const foreign = adapter(); foreign.change('billing_country', 'US'); await foreign.advance(200);
+		expect(foreign.query('.kiriof-classic-pin').hidden).toBe(true);
 	});
-	test('Woo update/updated event round trips do not produce mutation cycles', async () => {
-		const h = adapter({ savedDestination: saved() }); await h.acknowledge(); const count = h.mutations().length;
-		for (let i = 0; i < 4; i++) { h.emit(h.window.document.body, 'update_checkout'); h.emit(h.window.document.body, 'updated_checkout'); await h.advance(); }
-		expect(h.mutations()).toHaveLength(count); expect(h.events.filter(e => e === 'update_checkout').length).toBeLessThan(10);
+	test('auto geolocation failure can retry and stale callbacks cannot overwrite changed address', async () => {
+		const h = adapter(); h.geo[0].failure({ code: 1 });
+		expect(h.query('.kiriof-classic-pin [role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
+		h.query('.kiriof-classic-map-locate').click(); const stale = h.geo[1];
+		h.change('billing_address_1', 'New street'); await h.advance(200);
+		const status = h.query('.kiriof-classic-pin [role="status"]').textContent;
+		stale.success({ coords: { latitude: -7, longitude: 107 } }); stale.failure({ code: 1 });
+		expect(h.maps).toHaveLength(0); expect(h.query('.kiriof-classic-pin [role="status"]').textContent).toBe(status);
+		h.geo.at(-1).success({ coords: { latitude: -6.2, longitude: 106.8 } });
+		expect(h.hidden().destination_latitude).toBe('-6.2000000');
 	});
-	test('shipping scope mounts correct fields and native radio/insurance settings are synchronized', async () => {
-		const h = adapter({ savedDestination: saved() }); await h.acknowledge(); h.change('ship-to-different-address-checkbox', true); await h.advance(200); expect(h.hidden().district_id).toBe(''); expect(h.query('.kiriof-classic-destination').parentNode.className).toBe('woocommerce-shipping-fields__field-wrapper');
-		h.query('#kiriof-classic-district').append(new h.window.Option('Shipping district', '456')); h.choose('456'); h.query('[value="kiriminaja-instant:gosend"]').checked = true; h.emit(h.form, 'change', h.query('[value="kiriminaja-instant:gosend"]')); h.change('kiriof_insurance', true); await h.advance(200); await h.acknowledge();
-		expect(h.query('#kiriof_shipping_destination_area').value).toBe('456'); const last = h.mutations().at(-1).body; expect(last.get('data[insurance]')).toBe('1'); expect(JSON.parse(last.get('data[shipping_methods]'))).toEqual(['kiriminaja-instant:gosend', 'flat_rate:2']);
+	test('address and scope edits invalidate pin without changing existing district fields', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
+		h.change('billing_address_2', 'Changed unit'); await h.advance(200);
+		expect(h.maps[0].removed).toBe(true); expect(h.hidden().destination_latitude).toBeUndefined();
+		expect(h.query('#kiriof_destination_area').value).toBe('123');
+		h.choose('456', 'Shipping legacy label', 'shipping');
+		h.change('ship-to-different-address-checkbox', true); await h.advance(200); await h.acknowledge();
+		expect(h.query('.kiriof-classic-pin').parentNode.className).toBe('woocommerce-shipping-fields__field-wrapper');
+		expect(h.payload(h.mutations().at(-1))).toMatchObject({ address_scope: 'shipping', destination: { district_id: '456', district_label: 'Shipping legacy label' } });
+		expect(h.hidden().destination_latitude).toBeUndefined();
 	});
-	test('permission failure keeps map closed; fresh geolocation success selects pin; stale callbacks cannot overwrite', async () => {
-		const h = adapter({ savedDestination: saved({ version: 1 }) }); await h.acknowledge(); expect(h.geo).toHaveLength(1); const pin = h.query('.kiriof-classic-map-locate'); h.geo[0].failure({ code: 1 }); expect(h.query('.kiriof-classic-status').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
-		pin.click(); const stale = h.geo[1]; pin.click(); stale.success({ coords: { latitude: -7, longitude: 107 } }); expect(h.maps).toHaveLength(0); h.geo[2].success({ coords: { latitude: -6.2, longitude: 106.8 } }); expect(h.maps).toHaveLength(1); expect(h.hidden().destination_latitude).toBe('-6.2000000');
-		h.change('billing_address_1', 'New street'); await h.advance(200); expect(h.maps[0].removed).toBe(true); expect(h.hidden().destination_latitude).toBeUndefined(); stale.success({ coords: { latitude: -7, longitude: 107 } }); expect(h.hidden().destination_latitude).toBeUndefined();
+	test('pending pin blocks ONLY Instant; regular remains unaffected, settled Instant allows submit', async () => {
+		const h = adapter({ savedDestination: saved() });
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
+		h.query('[value="kiriminaja-instant:gosend"]').checked = true;
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
+		await h.acknowledge(); expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
+		h.change('billing_address_1', 'Changed street'); await h.advance(200); await h.acknowledge();
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
+		h.query('[value="kiriminaja:regular"]').checked = true;
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
 	});
-	test('pagehide removes delegated handlers, disposes map and lookup, never aborts saves', async () => {
-		const h = adapter({ savedDestination: saved() }); await h.advance(300); expect(h.maps).toHaveLength(1); expect(h.geo).toHaveLength(0); h.window.dispatchEvent(new h.window.Event('pagehide'));
-		expect(h.handlers).toHaveLength(0); expect(h.maps[0].removed).toBe(true); expect(h.lookups()[0].init.signal.aborted).toBe(true); expect(h.mutations()[0].init.signal).toBeUndefined(); const before = h.hidden(); await h.respond(h.lookups()[0], [{ id: '999', text: 'Late' }]); await h.respond(h.mutations()[0]); await h.advance(200000); expect(h.hidden()).toEqual(before); expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(0);
+	test('failed pin saves retry without permitting Instant or aborting server mutations', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.advance();
+		await h.respond(h.mutations()[0], null, false);
+		expect(h.query('.kiriof-classic-pin > button').hidden).toBe(false);
+		h.query('[value="kiriminaja-instant:gosend"]').checked = true;
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
+		h.query('.kiriof-classic-pin > button').click(); await h.advance();
+		expect(h.mutations()).toHaveLength(2); await h.respond(h.mutations()[1]); h.emit(h.window.document.body, 'updated_checkout'); await h.advance();
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
 	});
-	test('final submit blocks while pending, then allows settled regular delivery', async () => {
-		const h = adapter({ savedDestination: saved({ version: 1 }) }); expect(h.emit(h.form, 'checkout_place_order')).toBe(false); await h.acknowledge(); expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
-	});
-	test('lookup failure exposes retry and a successful retry populates district options', async () => {
-		const h = adapter(); await h.advance(300); await h.respond(h.lookups()[0], null, false);
-		const retry = h.query('.kiriof-classic-destination > button'); expect(retry.hidden).toBe(false); retry.click(); await h.advance(300); expect(h.lookups()).toHaveLength(2); await h.respond(h.lookups()[1], [{ id: '123', text: 'Gambir' }]); expect(h.query('#kiriof-classic-district').disabled).toBe(false); h.choose(); expect(h.hidden().district_id).toBe('123');
-	});
-	test('stale geolocation failure after address change does not replace the current status', async () => {
-		const h = adapter({ savedDestination: saved({ version: 1 }) }); await h.acknowledge(); h.query('.kiriof-classic-destination > button').click(); const stale = h.geo[0]; h.change('billing_address_1', 'New delivery street'); await h.advance(200); const status = h.query('.kiriof-classic-status').textContent; stale.failure({ code: 1 }); expect(h.query('.kiriof-classic-status').textContent).toBe(status);
-	});
-	test('final submit allows settled Instant pin then blocks after binding-address edit', async () => {
-		const h = adapter({ savedDestination: saved() }); h.query('[value="kiriminaja-instant:gosend"]').checked = true; await h.acknowledge(); expect(h.emit(h.form, 'checkout_place_order')).toBe(true); h.change('billing_address_2', 'Changed unit'); await h.advance(200); await h.acknowledge(); expect(h.hidden().destination_latitude).toBeUndefined(); expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
-	});
-	test('final submit blocks Instant without a valid address-bound pin', async () => {
-		const h = adapter({ savedDestination: saved({ version: 1 }) }); h.query('[value="kiriminaja-instant:gosend"]').checked = true; await h.acknowledge(); expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
+	test('pagehide removes pin namespace handlers and map, leaves in-flight save un-aborted', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.advance();
+		expect(h.handlers.every(entry => entry.event.endsWith('.kiriofClassicPin'))).toBe(true);
+		h.window.dispatchEvent(new h.window.Event('pagehide'));
+		expect(h.handlers).toHaveLength(0); expect(h.maps[0].removed).toBe(true);
+		expect(h.mutations()[0].init.signal).toBeUndefined(); const before = h.hidden();
+		await h.respond(h.mutations()[0]); await h.advance(200000);
+		expect(h.hidden()).toEqual(before); expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(0);
 	});
 });

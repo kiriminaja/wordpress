@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { happy } from './helpers/ui-runtime';
+import { legacyCheckoutSlice } from './helpers/legacy-checkout-source';
 
-const source = readFileSync(new URL('../assets/wp/js/form-billing-address.js', import.meta.url), 'utf8');
-const start = source.indexOf('function kiriofGetClassicAddressCountry(addressType)');
-const end = source.indexOf('function kiriofRestoreClassicDistrictSelections()', start);
+const source = legacyCheckoutSlice(
+	'assets/wp/js/checkout/classic-district.js',
+	'function kiriofGetClassicAddressCountry(addressType)',
+	'function kiriofRestoreClassicDistrictSelections()',
+);
 
 function runtime(classic = false) {
 	const window = new happy.Window();
@@ -45,7 +47,7 @@ function runtime(classic = false) {
 	const config = { isCheckout: true };
 	let blocks = false;
 	const context: any = { document, jQuery, kiriofBillingAddressConfig: config, kiriofIsBlockCheckoutContext: () => blocks, kiriofUsesClassicCheckout: () => classic };
-	runInNewContext(source.slice(start, end), context);
+	runInNewContext(source, context);
 	return { document, handlers, config, setBlocks: (value: boolean) => { blocks = value; }, sync: context.kiriofSyncClassicAddressFields, close: () => window.happyDOM.abort() };
 }
 

@@ -135,30 +135,9 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 					$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-note">' . esc_html( $kiriof_notice ) . '</span>';
 				}
 
-				// Share the Blocks presentation meta, with native WooCommerce getter fallbacks.
-				$kiriof_description = method_exists( $kiriof_method, 'get_meta' ) ? (string) $kiriof_method->get_meta( 'kiriof_rate_description', true ) : '';
-				$kiriof_eta         = method_exists( $kiriof_method, 'get_meta' ) ? (string) $kiriof_method->get_meta( 'kiriof_rate_eta', true ) : '';
-				if ( '' === $kiriof_description && method_exists( $kiriof_method, 'get_description' ) ) {
-					$kiriof_description = (string) $kiriof_method->get_description();
-				}
-				if ( '' === $kiriof_eta && method_exists( $kiriof_method, 'get_delivery_time' ) ) {
-					$kiriof_eta = (string) $kiriof_method->get_delivery_time();
-				}
-				$kiriof_description = trim( wp_strip_all_tags( $kiriof_description ) );
-				$kiriof_eta         = trim( wp_strip_all_tags( $kiriof_eta ) );
-				$kiriof_plain_label = wp_strip_all_tags( (string) $kiriof_method->get_label() );
-
-				// Legacy rates may include ETA already. Preserve instant hours verbatim.
-				if ( '' !== $kiriof_eta && false === stripos( $kiriof_plain_label, $kiriof_eta ) && false === stripos( $kiriof_description, $kiriof_eta ) ) {
-					$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-eta">' . esc_html( $kiriof_eta ) . '</span>';
-				}
-				if ( '' !== $kiriof_description && false === stripos( $kiriof_plain_label, $kiriof_description ) ) {
-					$kiriof_method_label_html .= '<span class="kiriof-shipping-rate-description">' . esc_html( $kiriof_description ) . '</span>';
-				}
-
 				return wp_kses_post( $kiriof_method_label_html );
 			};
-			$kiriof_use_classic_shipping_select = $kiriof_is_cart_totals_shipping && 1 < count( $available_methods );
+			$kiriof_use_classic_shipping_select = 1 < count( $available_methods );
 		?>
 			<?php if ( $kiriof_use_classic_shipping_select ) : ?>
 				<div class="kiriof-classic-shipping-method-select-wrap">
@@ -173,7 +152,7 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 						<?php endif; ?>
 							<?php foreach ( $available_methods as $kiriof_shipping_method ) : ?>
 								<?php
-								$kiriof_option_label = html_entity_decode( wp_strip_all_tags( str_replace( '<span', ' <span', $kiriof_get_shipping_method_label_html( $kiriof_shipping_method ) ) ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+								$kiriof_option_label = html_entity_decode( wp_strip_all_tags( $kiriof_get_shipping_method_label_html( $kiriof_shipping_method ) ), ENT_QUOTES, get_bloginfo( 'charset' ) );
 								?>
 								<option value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>" <?php selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method ); ?>>
 									<?php echo esc_html( trim( preg_replace( '/\s+/', ' ', $kiriof_option_label ) ) ); ?>
@@ -189,7 +168,13 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 						<?php
 						$kiriof_method_label_html = $kiriof_get_shipping_method_label_html( $kiriof_method );
 
-						printf( '<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="shipping_method_%1$d_%2$s" value="%3$s" class="shipping_method kiriof-shipping-method-input" %4$s />', absint( $index ), esc_attr( sanitize_title( $kiriof_method->id ) ), esc_attr( $kiriof_method->id ), checked( $kiriof_method->id, $kiriof_display_chosen_method, false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						if ( 1 < count( $available_methods ) ) {
+							printf( '<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="shipping_method_%1$d_%2$s" value="%3$s" class="shipping_method kiriof-shipping-method-input" %4$s />', absint( $index ), esc_attr( sanitize_title( $kiriof_method->id ) ), esc_attr( $kiriof_method->id ), checked( $kiriof_method->id, $kiriof_display_chosen_method, false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							// WPCS: XSS ok.
+						} else {
+							printf( '<input type="radio" name="shipping_method[%1$d]" data-index="%1$d" id="shipping_method_%1$d_%2$s" value="%3$s" class="shipping_method kiriof-shipping-method-input" %4$s />', absint( $index ), esc_attr( sanitize_title( $kiriof_method->id ) ), esc_attr( $kiriof_method->id ), checked( $kiriof_method->id, $kiriof_display_chosen_method, false ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+							// WPCS: XSS ok.
+						}
 						printf( '<label class="kiriof-shipping-method-label" for="shipping_method_%1$s_%2$s">%3$s</label>', absint( $index ), esc_attr( sanitize_title( $kiriof_method->id ) ), $kiriof_method_label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above via wp_kses_post.
 						do_action( 'woocommerce_after_shipping_rate', $kiriof_method, $index );
 						?>
