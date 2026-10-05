@@ -205,7 +205,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/radio-group/index.ts' );
-		$this->assertStringContainsString( "import * as RadioGroup from '\$lib/components/ui/radio-group'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
+		$this->assertStringContainsString( "import PaymentMethodSelector from '\$lib/payments/PaymentMethodSelector.svelte'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
+		$this->assertStringContainsString( "import * as RadioGroup from '\$lib/components/ui/radio-group'", file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentMethodSelector.svelte' ) );
 		$this->assertStringContainsString( 'paymentOptions.length >= 1', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
 		$this->assertStringNotContainsString( '<Select.Item value="qris">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
 		$this->assertStringContainsString( 'variant="ghost" disabled={submitting} onclick={close}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );

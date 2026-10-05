@@ -21,6 +21,51 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertStringContainsString('!border !border-border !bg-background', $css);
     }
 
+    public function test_pin_cells_are_visible_without_preflight_and_native_input_does_not_cover_them(): void {
+        $css = $this->source( 'src/styles/admin-list.css' );
+        $this->assertStringContainsString( ".kiriof-transaction-dialog-content input:not([data-pin-input-input])", $css );
+        $this->assertStringNotContainsString( ".kiriof-transaction-dialog-content input {", $css );
+        $this->assertMatchesRegularExpression( "/input\\[data-pin-input-input\\]\\s*\\{[^}]*!border-0[^}]*!bg-transparent[^}]*!text-transparent[^}]*!shadow-none[^}]*!outline-none[^}]*;/", $css );
+        $this->assertMatchesRegularExpression( "/\\[data-slot='input-otp-slot'\\]\\s*\\{[^}]*!w-full[^}]*!border !border-solid[^}]*!rounded-lg/", $css );
+        $this->assertStringContainsString( "[data-slot='input-otp-slot'][data-active]", $css );
+        $this->assertStringContainsString( "[data-slot='input-otp-slot'][aria-invalid='true']", $css );
+        $this->assertMatchesRegularExpression( '/\[data-pin-input-root\]\s*\{[^}]*!grid !grid-cols-6 !w-full[^}]*!gap-2/', $css );
+        $this->assertMatchesRegularExpression( "/\[data-slot='input-otp-slot'\]\s*\{[^}]*!border-solid[^}]*!border-muted-foreground[^}]*!bg-background/", $css );
+        $this->assertDoesNotMatchRegularExpression( "/\[data-slot='input-otp-slot'\]\s*\{[^}]*!border-input/", $css );
+    }
+
+    public function test_collapsed_order_information_is_not_rendered_and_hidden_content_cannot_be_displayed_by_grid_styles(): void {
+        $source = $this->source( 'src/lib/transactions/InstantProcessDialog.svelte' );
+        $css = $this->source( 'src/styles/admin-list.css' );
+        $this->assertStringContainsString( 'let orderInformationOpen = $state(false)', $source );
+        $this->assertStringContainsString( 'if (!refresh) { orderInformationOpen = false;', $source );
+        $this->assertMatchesRegularExpression( '/<Collapsible\.Content[^>]*>\s*\{#if orderInformationOpen\}[\s\S]*?\{\/if\}\s*<\/Collapsible\.Content>/', $source );
+        $this->assertMatchesRegularExpression( "/\\.kiriof-instant-process-dialog \\[data-slot='collapsible-content'\\]\\[hidden\\],[^{}]*\\[data-state='closed'\\]\\s*\\{\\s*@apply !hidden;/", $css );
+    }
+
+    public function test_both_shipment_dialogs_use_shared_loading_and_submission_feedback(): void {
+        foreach ( array( 'InstantProcessDialog', 'RequestPickupDialog' ) as $name ) {
+            $source = $this->source( 'src/lib/transactions/' . $name . '.svelte' );
+            $this->assertStringContainsString( "import ShipmentSummarySkeleton from '\$lib/payments/ShipmentSummarySkeleton.svelte'", $source );
+            $this->assertStringContainsString( "import ShipmentOperationProgress from '\$lib/payments/ShipmentOperationProgress.svelte'", $source );
+            $this->assertStringContainsString( "import { Spinner } from '\$lib/components/ui/spinner'", $source );
+            $this->assertStringContainsString( '<ShipmentSummarySkeleton variant="' . ( 'InstantProcessDialog' === $name ? 'instant' : 'express' ) . '"', $source );
+            $this->assertStringContainsString( '<ShipmentOperationProgress label=', $source );
+            $this->assertStringContainsString( '<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />', $source );
+            $this->assertStringNotContainsString( 'IconLoader2', $source );
+            $this->assertStringNotContainsString( 'loading={', $source );
+        }
+        $progress = $this->source( 'src/lib/payments/ShipmentOperationProgress.svelte' );
+        $this->assertStringContainsString( "import * as Alert from '\$lib/components/ui/alert'", $progress );
+        $this->assertStringContainsString( 'role="status" aria-live="polite" aria-busy="true"', $progress );
+        $this->assertStringContainsString( '<Spinner aria-hidden="true" role="presentation" />', $progress );
+        $this->assertStringContainsString( '<Alert.Description>{label}</Alert.Description>', $progress );
+        $skeleton = $this->source( 'src/lib/payments/ShipmentSummarySkeleton.svelte' );
+        $this->assertStringContainsString( "import { Skeleton } from '\$lib/components/ui/skeleton'", $skeleton );
+        $this->assertStringContainsString( 'aria-busy="true" role="status" aria-label={label}', $skeleton );
+        $this->assertStringContainsString( 'aria-hidden="true"', $skeleton );
+    }
+
     public function test_instant_uses_radio_cards_and_separate_masked_pin_step(): void {
         $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
         $pin = $this->source('src/lib/payments/CreditPinInput.svelte');
@@ -41,10 +86,12 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertStringContainsString('maxlength={6}', $pin);
         $this->assertStringContainsString('pattern={REGEXP_ONLY_DIGITS}', $pin);
         $this->assertStringContainsString('type="password"', $pin);
-        $this->assertStringContainsString('<InputOTP.Slot {cell} mask', $pin);
-        $this->assertStringContainsString('cells.slice(0, 3)', $pin);
-        $this->assertStringContainsString('cells.slice(3, 6)', $pin);
-        $this->assertStringContainsString('<InputOTP.Separator />', $pin);
+        $this->assertStringContainsString('<InputOTP.Slot {cell} mask={!focused || disabled || revealedIndex !== index}', $pin);
+        $this->assertStringContainsString('{#each cells as cell, index (cell)}', $pin);
+        $this->assertStringNotContainsString( '<InputOTP.Group', $pin );
+        $this->assertStringContainsString( '<Field.Label for={id} class="sr-only">', $pin );
+        $this->assertStringContainsString( '<Field.Description id={`${id}-help`} class="sr-only m-0">', $pin );
+        $this->assertStringNotContainsString('<InputOTP.Separator', $pin);
         $this->assertStringContainsString('autocomplete="off" inputmode="numeric"', $pin);
         $this->assertStringContainsString('aria-describedby={`${id}-help`}', $pin);
         $this->assertStringContainsString('aria-invalid={invalid || undefined}', $pin);

@@ -5,6 +5,57 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class InstantStatusPresentationTest extends TestCase {
+    public function test_express_and_instant_waiting_shipment_labels_match_without_changing_status_or_actions(): void {
+        foreach ( array( 'express', 'instant' ) as $delivery_type ) {
+            $payload = array(
+                'delivery_type' => $delivery_type,
+                'status'        => 'new',
+                'service'       => 'express' === $delivery_type ? 'jne' : 'gosend',
+                'awb'           => '',
+                'order_id'      => '',
+                'wc_order'      => array( 'status' => 'processing', 'paid' => true ),
+            );
+            foreach ( array( 'list', 'detail', 'fallback' ) as $mode ) {
+                $row = $this->row( $payload + array( 'mode' => $mode ) );
+                $this->assertSame( 'Waiting for Shipment', $row['status']['label'], $delivery_type . '/' . $mode );
+                $this->assertSame( 'info', $row['status']['tone'], $delivery_type . '/' . $mode );
+                if ( 'list' === $mode ) {
+                    $this->assertSame( 'instant' === $delivery_type, $row['selection']['canProcess'] );
+                    $this->assertSame( 'instant' === $delivery_type, $row['actions']['process'] );
+                    $this->assertFalse( $row['selection']['disabled'] );
+                    $this->assertSame( 'express' === $delivery_type, $row['actions']['changeOrigin'] );
+                }
+            }
+        }
+        $helper = file_get_contents( PLUGIN_DIR . '/inc/Base/Helper.php' );
+        $this->assertMatchesRegularExpression( '/case "new":\s*return __\( \'Waiting for Shipment\'/', $helper );
+        $render = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php' );
+        $this->assertMatchesRegularExpression( '/"value" => "wc-processing",\s*"label" => __\(\s*"Waiting for Shipment"/', $render );
+        $this->assertStringNotContainsString( 'New / Waiting for Shipment', $render );
+    }
+
+    public function test_on_hold_uses_warning_in_both_delivery_lists_even_with_a_new_shipment(): void {
+        foreach ( array( 'express', 'instant' ) as $delivery_type ) {
+            $row = $this->row( array(
+                'delivery_type' => $delivery_type,
+                'status'        => 'new',
+                'post_status'   => 'wc-on-hold',
+                'wc_order'      => array( 'status' => 'on-hold', 'paid' => false ),
+            ) );
+            $this->assertSame( 'warning', $row['status']['tone'] );
+            $this->assertSame( 'On Hold', $row['status']['label'] );
+        }
+        $helper = file_get_contents( PLUGIN_DIR . '/inc/Base/Helper.php' );
+        $this->assertMatchesRegularExpression( "/'new'\\s*=> 'info'/", $helper );
+        $this->assertMatchesRegularExpression( "/case 'on-hold':\\s*case 'pending':\\s*return 'warning';/", $helper );
+        $badge = file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/StatusBadge.svelte' );
+        $this->assertStringContainsString( "new: 'info'", $badge );
+        $this->assertStringContainsString( "'wc-on-hold': 'warning'", $badge );
+        $css = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
+        $this->assertMatchesRegularExpression( '/\.kiriof-transaction-status\.is-info\s*\{\s*@apply bg-info-background border-info-border text-info-foreground;/', $css );
+        $this->assertMatchesRegularExpression( '/\.kiriof-transaction-status\.is-warning\s*\{\s*@apply bg-warning-background border-warning-border text-warning-foreground;/', $css );
+    }
+
     public function test_instant_list_keeps_live_woocommerce_on_hold_without_changing_shipment_actions(): void {
         foreach (['wc-processing', 'wc-on-hold'] as $query_status) {
             foreach (['new', 'request_pickup', 'shipped'] as $shipment_status) {

@@ -8,6 +8,9 @@
   import { Button } from '$lib/components/ui/button';
   import CreditPinInput from '$lib/payments/CreditPinInput.svelte';
   import PaymentMethodSelector from '$lib/payments/PaymentMethodSelector.svelte';
+  import ShipmentSummarySkeleton from '$lib/payments/ShipmentSummarySkeleton.svelte';
+  import ShipmentOperationProgress from '$lib/payments/ShipmentOperationProgress.svelte';
+  import { Spinner } from '$lib/components/ui/spinner';
   import type { PaymentMethodOption } from '$lib/payments/types';
   import { postWordPressAction } from '$lib/wordpress/ajax';
   import { InstantProcessSession, quoteExpired, createInstantQuoteClock, isTopAccount, quoteSummary } from './instant-process-session';
@@ -146,7 +149,8 @@
       if (!data.token || data.token === previousToken || !Array.isArray(data.rows) || !Array.isArray(data.payment_methods) || typeof data.expires_at !== 'number' || !Number.isFinite(data.expires_at) || quoteExpired(data) || !matchesSelection(data)) throw new Error(text('instantQuoteRefreshFailed'));
       previousToken = data.token;
       quote = data; displayRows = data.rows;
-      method = isTopAccount(data) ? 'top' : data.payment_methods.includes(previousMethod) ? previousMethod : data.payment_methods.includes('qris') ? 'qris' : data.payment_methods.includes('credit') ? 'credit' : '';
+      const usableCredit = typeof data.credit_balance === 'number' && Number.isFinite(data.credit_balance) && data.credit_balance >= 0 && data.rows.every((row) => row.eligible && completeAmount(row.after)) && data.credit_balance >= data.rows.reduce((total, row) => total + row.after!, 0);
+      method = isTopAccount(data) ? 'top' : data.payment_methods.includes(previousMethod) && (previousMethod !== 'credit' || usableCredit) ? previousMethod : data.payment_methods.includes('credit') && usableCredit ? 'credit' : data.payment_methods.includes('qris') ? 'qris' : '';
       quoteClock.start(data);
     } catch (cause) {
       if (current === generation && open && !request.signal.aborted) error = cause instanceof Error ? cause.message : text('instantQuoteRefreshFailed');
@@ -210,10 +214,11 @@
   <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content kiriof-instant-process-dialog sm:max-w-3xl" showCloseButton={!dispatching} escapeKeydownBehavior={dispatching ? 'ignore' : 'close'} interactOutsideBehavior={dispatching ? 'ignore' : 'close'} aria-busy={busy}>
     <Dialog.Header>
       <Dialog.Title>{text('processShipment')}</Dialog.Title>
-      <Dialog.Description>{text('instantReviewDescription')}</Dialog.Description>
+      <Dialog.Description class="m-0">{text('instantReviewDescription')}</Dialog.Description>
     </Dialog.Header>
     <div class="grid max-h-[60vh] gap-3 overflow-y-auto">
-      {#if busy}<p class="m-0 text-sm" role="status">{dispatching ? text('processing') : text('instantRefreshingPrices')}</p>{/if}
+      {#if busy && !quote && !dispatching}<ShipmentSummarySkeleton variant="instant" label={text('instantRefreshingPrices')} />{/if}
+      {#if busy && (quote || dispatching)}<ShipmentOperationProgress label={dispatching ? text('processing') : step === 'pin' ? text('instantPinValidating') : text('instantRefreshingPrices')} />{/if}
       {#if error}<p role="alert" class="m-0 text-sm text-destructive">{error}</p>{/if}
       {#if quote && step === 'summary'}
         <Alert.Root class="border-warning/30 bg-warning/10 text-foreground" role="note">
@@ -235,6 +240,7 @@
             {/snippet}
           </Collapsible.Trigger>
           <Collapsible.Content class="grid gap-2">
+            {#if orderInformationOpen}
             {#each quote.rows as row (row.id)}
               <div class="grid gap-2 rounded-lg border p-3 text-sm" data-order-id={row.id}>
                 <div class="flex items-center justify-between gap-2">
@@ -249,6 +255,7 @@
                 {#if !row.eligible}<span class="text-xs text-destructive">{text('instantUnavailable')}</span>{:else if row.before !== row.after}<span class="text-xs text-warning">{text('instantChanged')}</span>{/if}
               </div>
             {/each}
+            {/if}
           </Collapsible.Content>
         </Collapsible.Root>
         {#if summary}
@@ -265,7 +272,7 @@
           </section>
         {/if}
         {#if !topAccount}
-          <PaymentMethodSelector idPrefix="instant-method" bind:value={method} options={paymentOptions} label={text('paymentMethod')} balanceLabel={text('instantCreditBalance')} disabled={busy || expired} required onValueChange={() => { pin = ''; error = ''; }} />
+          <PaymentMethodSelector idPrefix="instant-method" bind:value={method} options={paymentOptions} label={text('paymentMethod')} balanceLabel={text('creditDescription')} disabled={busy || expired} required onValueChange={() => { pin = ''; error = ''; }} />
         {/if}
       {/if}
       {#if quote && step === 'pin'}
@@ -287,14 +294,17 @@
       {/if}
     </div>
     <Dialog.Footer>
-      <Button variant="ghost" disabled={dispatching} onclick={close}>{text('instantClose')}</Button>
+      {#if !result && step === 'pin' && !dispatchAttempted}
+        <Button variant="outline" disabled={busy} onclick={backToSummary}>{text('instantBackSummary')}</Button>
+      {:else}
+        <Button variant="ghost" disabled={dispatching} onclick={close}>{text('instantClose')}</Button>
+      {/if}
       {#if !result}
-        {#if error && !quote && !dispatchAttempted}<Button variant="outline" disabled={busy} onclick={() => void review()}>{text('instantReview')}</Button>{/if}
         {#if step === 'pin' && !dispatchAttempted}
-          <Button variant="outline" disabled={busy} onclick={backToSummary}>{text('instantBackSummary')}</Button>
-          <Button disabled={!canDispatch} onclick={() => void validatePinAndDispatch()}>{busy ? text('instantPinValidating') : text('instantValidatePin')}{quote ? ` (${remaining}s)` : ''}</Button>
+          <Button disabled={!canDispatch} onclick={() => void validatePinAndDispatch()}>{#if busy}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}{busy ? text('instantPinValidating') : text('instantValidatePin')}{quote ? ` (${remaining}s)` : ''}</Button>
         {:else}
-          <Button disabled={!canContinue} onclick={continueSummary}>{dispatching ? text('processing') : busy ? text('instantRefreshingPrices') : topAccount ? text('confirmProcess') : text('instantContinuePayment')}{quote ? ` (${remaining}s)` : ''}</Button>
+          {#if error && !quote && !dispatchAttempted}<Button variant="outline" disabled={busy} onclick={() => void review()}>{text('instantReview')}</Button>{/if}
+          <Button disabled={!canContinue} onclick={continueSummary}>{#if busy}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}{dispatching ? text('processing') : busy ? text('instantRefreshingPrices') : topAccount ? text('confirmProcess') : text('instantContinuePayment')}{quote ? ` (${remaining}s)` : ''}</Button>
         {/if}
       {/if}
     </Dialog.Footer>

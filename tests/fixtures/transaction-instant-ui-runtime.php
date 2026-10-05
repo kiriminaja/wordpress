@@ -28,12 +28,13 @@ namespace {
     function wp_create_nonce($action): string { return 'nonce'; }
     function wp_date($format, $timestamp, $timezone = null): string { return date($format, $timestamp); }
     function kiriof_helper() {
-        return new class {
-            public function transactionStatusLabel($status): string { return (string) $status; }
-            public function wcStatusLabel($status): string { return (string) $status; }
+        return new class extends \KiriminAjaOfficial\Base\Helper {
+            public function __construct() {}
             public function formatServiceName($service, $name): string { return (string) $service; }
         };
     }
+    require ABSPATH . 'inc/Base/BaseInit.php';
+    require ABSPATH . 'inc/Base/Helper.php';
     require ABSPATH . 'inc/Services/TransactionDeliveryType.php';
     require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
     // Load the production static lifecycle guards; no repository instance is needed.

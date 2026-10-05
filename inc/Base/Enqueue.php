@@ -130,6 +130,7 @@ class Enqueue extends BaseInit{
         $module_handles = array(
 			'kiriof-coupon-panels',
 			'kiriof-admin-workspace',
+			'kiriof-admin-theme',
 			'kiriof-onboarding-progress',
 			'kiriof-order-metabox',
         );

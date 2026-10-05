@@ -8,16 +8,32 @@
   @apply !grid !gap-2.5;
 }
 .kiriof-payment-method-card {
-  @apply grid [grid-template-columns:42px_minmax(0,1fr)_18px] items-center gap-3 [padding:11px_12px] border border-border rounded-lg bg-background text-foreground cursor-pointer [transition:border-color_120ms_ease,background-color_120ms_ease,box-shadow_120ms_ease];
+  @apply !grid !w-full !box-border [grid-template-columns:42px_minmax(0,1fr)_18px] !items-center !gap-3 ![padding:11px_12px] !border !border-solid !border-border !rounded-lg !bg-background !text-foreground !cursor-pointer !ring-0 !shadow-none [transition:border-color_120ms_ease,background-color_120ms_ease,box-shadow_120ms_ease];
 }
 .kiriof-payment-method-card:hover {
-  @apply border-ring bg-accent;
+  @apply !border-ring !bg-accent;
 }
 .kiriof-payment-method-card.is-disabled {
   @apply cursor-not-allowed opacity-60;
 }
 .kiriof-payment-method-card.is-selected {
-  @apply border-primary [box-shadow:0_0_0_1px_var(--primary)];
+  @apply !border-primary ![box-shadow:inset_0_0_0_1px_var(--primary)];
+}
+.kiriof-payment-method-card:has(:focus-visible) {
+  @apply !outline-2 !outline-solid !outline-ring !outline-offset-2;
+}
+.kiriof-payment-method-card > .kiriof-payment-method-option[data-slot='field'] {
+  @apply !contents !p-0;
+}
+.kiriof-instant-process-dialog [data-slot='collapsible-content'][hidden],
+.kiriof-instant-process-dialog [data-slot='collapsible-content'][data-state='closed'] {
+  @apply !hidden;
+}
+.kiriof-transaction-dialog-content .kiriof-shipment-operation-progress[role='status'] {
+  @apply !text-foreground;
+}
+.kiriof-transaction-dialog-content [data-slot='skeleton'] {
+  @apply !bg-muted motion-reduce:animate-none;
 }
 .kiriof-payment-method-card__icon {
   @apply grid [width:40px] [height:40px] place-items-center border border-border rounded-lg bg-muted text-primary;
@@ -428,11 +444,29 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-transaction-dialog-content .kiriof-payment-method-card__copy {
   @apply !min-w-0 !gap-1;
 }
-.kiriof-transaction-dialog-content .kiriof-credit-pin [data-slot='input-otp'] {
-  @apply !flex !min-w-0;
+.kiriof-transaction-dialog-content .kiriof-credit-pin [data-pin-input-root] {
+  @apply !grid !grid-cols-6 !w-full !max-w-full !min-w-0 !gap-2 sm:!gap-3;
 }
 .kiriof-transaction-dialog-content .kiriof-credit-pin [data-slot='input-otp-slot'] {
-  @apply !size-10 !border-input !bg-background !text-foreground;
+  @apply !box-border !relative !flex !w-full !min-w-0 !h-12 sm:!h-14 !items-center !justify-center !border !border-solid !border-muted-foreground !rounded-lg !bg-background !text-foreground !text-lg !shadow-xs;
+}
+.kiriof-transaction-dialog-content .kiriof-credit-pin [data-slot='input-otp-slot'][data-active] {
+  @apply !z-10 !border-ring !ring-3 !ring-ring/50;
+}
+.kiriof-transaction-dialog-content
+  .kiriof-credit-pin
+  [data-slot='input-otp-slot'][aria-invalid='true'] {
+  @apply !border-destructive;
+}
+.kiriof-transaction-dialog-content
+  .kiriof-credit-pin
+  [data-slot='input-otp-slot'][data-active][aria-invalid='true'] {
+  @apply !ring-destructive/20;
+}
+/* The accessible Bits UI input overlays the cells. Native WordPress input and
+ * dialog form resets must not paint a second control over the masked slots. */
+.kiriof-transaction-dialog-content .kiriof-credit-pin input[data-pin-input-input] {
+  @apply !min-h-0 !m-0 !p-0 !border-0 !rounded-none !bg-transparent !text-transparent ![caret-color:transparent] ![-webkit-text-fill-color:transparent] !shadow-none !outline-none !appearance-none;
 }
 .kiriof-instant-process-dialog .kiriof-instant-order-trigger:hover,
 .kiriof-instant-process-dialog .kiriof-button[data-slot='collapsible-trigger']:hover {
@@ -472,7 +506,7 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   @apply !text-muted-foreground !text-xs;
 }
 .kiriof-transaction-dialog-content [data-slot='select-trigger'],
-.kiriof-transaction-dialog-content input {
+.kiriof-transaction-dialog-content input:not([data-pin-input-input]) {
   @apply ![min-height:38px] !box-border border! border-border! bg-input! text-foreground!;
 }
 .kiriof-transactions-table .is-actions {
@@ -614,7 +648,7 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   @apply inline-flex items-center gap-1 [min-height:20px] [padding:1px_6px] border border-transparent rounded-md bg-muted border-border text-xs font-semibold [line-height:1.45] whitespace-nowrap;
 }
 .kiriof-transaction-status.is-info {
-  @apply bg-info/20 border-info/60 text-info;
+  @apply bg-info-background border-info-border text-info-foreground;
 }
 .kiriof-transaction-status.is-primary {
   @apply bg-primary/20 border-primary/60 text-primary;
@@ -627,7 +661,7 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   @apply bg-orange-600/20 border-orange-600/60 text-orange-600;
 }
 .kiriof-transaction-status.is-warning {
-  @apply bg-warning/20 border-warning/60 text-warning;
+  @apply bg-warning-background border-warning-border text-warning-foreground;
 }
 .kiriof-transaction-status.is-danger,
 .kiriof-transaction-status.is-critical {

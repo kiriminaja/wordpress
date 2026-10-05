@@ -3,12 +3,14 @@
   import * as Field from '$lib/components/ui/field';
   import CreditPinInput from '$lib/payments/CreditPinInput.svelte';
   import PaymentMethodSelector from '$lib/payments/PaymentMethodSelector.svelte';
+  import ShipmentSummarySkeleton from '$lib/payments/ShipmentSummarySkeleton.svelte';
+  import ShipmentOperationProgress from '$lib/payments/ShipmentOperationProgress.svelte';
+  import { Spinner } from '$lib/components/ui/spinner';
   import type { PaymentMethodOption } from '$lib/payments/types';
   import { onDestroy, untrack } from 'svelte';
   import { createPickupDates, pickupFlag, requiresPickupPayment, type PickupDate } from './pickup-schedule';
   import KiriofSelect from '$lib/ui/KiriofSelect.svelte';
   import { Button } from '$lib/components/ui/button';
-  import { IconLoader2 } from '@tabler/icons-svelte';
 
   type Summary = { count_non_cod?: number | string; sum_fee_cod?: number | string; sum_fee_non_cod?: number | string };
   type ApiResult = { status?: number; message?: string; data?: Record<string, any> };
@@ -243,6 +245,13 @@
     if (!submitting) open = false;
   }
 
+  function backToSummary(): void {
+    if (submitting) return;
+    pin = '';
+    errorMessage = '';
+    phase = 'schedule';
+  }
+
   $effect(() => {
     const identity = open ? orderIds.join('|') : '';
     if (identity) untrack(() => void load());
@@ -255,24 +264,22 @@
   <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content max-w-xl" showCloseButton={!submitting} escapeKeydownBehavior={submitting ? 'ignore' : 'close'} interactOutsideBehavior={submitting ? 'ignore' : 'close'} aria-busy={submitting}>
     <Dialog.Header>
       <Dialog.Title>{label('schedulePickupTitle', 'Schedule for Pickup')}</Dialog.Title>
-      <Dialog.Description>
+      <Dialog.Description class="m-0">
         {label('schedulePickupDescription', 'Choose a pickup date and time for the selected transactions.')}
       </Dialog.Description>
     </Dialog.Header>
 
+    {#if submitting}<ShipmentOperationProgress label={label('processing', 'Processing…')} />{/if}
     {#if phase === 'loading'}
-      <div class="flex min-h-32 items-center justify-center text-sm text-muted-foreground" aria-live="polite">
-        <IconLoader2 class="size-5 animate-spin" aria-hidden="true" />
-        {label('loading', 'Loading…')}
-      </div>
+      <ShipmentSummarySkeleton variant="express" label={label('loading', 'Loading…')} />
     {:else if phase === 'error'}
       <div class="flex flex-col gap-3" role="alert">
-        <p class="text-sm text-destructive">{errorMessage}</p>
+        <p class="m-0 text-sm text-destructive">{errorMessage}</p>
         <Button class="kiriof-dialog-secondary" variant="outline" onclick={load}>{label('retry', 'Retry')}</Button>
       </div>
     {:else if phase === 'pin'}
       <CreditPinInput id="kiriof-pickup-pin" bind:value={pin} disabled={submitting} invalid={Boolean(errorMessage)} label={label('enterPin', 'Enter PIN')} description={label('pinDescription', 'Enter the 6-digit PIN configured on your profile.')} />
-      {#if errorMessage}<p class="text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
+      {#if errorMessage}<p class="m-0 text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
     {:else}
       <Field.FieldGroup>
         <div class="kiriof-pickup-summary grid gap-2 rounded-lg border p-3 text-sm">
@@ -296,18 +303,23 @@
         {#if paymentRequired && paymentOptions.length >= 1}
           <PaymentMethodSelector idPrefix="pickup-method" bind:value={paymentMethod} options={paymentOptions} label={label('paymentMethod', 'Choose Payment Method')} balanceLabel={label('creditDescription', 'Remaining Credit')} disabled={submitting} required />
         {:else}
-          {#if !paymentRequired}<p class="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{label('noPaymentRequired', 'No payment method is required for this pickup.')}</p>{/if}
+          {#if !paymentRequired}<p class="m-0 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{label('noPaymentRequired', 'No payment method is required for this pickup.')}</p>{/if}
         {/if}
       </Field.FieldGroup>
-      {#if errorMessage}<p class="text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
+      {#if errorMessage}<p class="m-0 text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
     {/if}
 
     <Dialog.Footer>
-      <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={close}>{label('close', 'Close')}</Button>
       {#if phase === 'pin'}
-        <Button class="kiriof-dialog-primary" onclick={submit} loading={submitting} disabled={!canSubmitPin}>{submitting ? label('processing', 'Processing…') : label('confirmPickup', 'Confirm & Process')}</Button>
+        <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={backToSummary}>{label('instantBackSummary', 'Back to Summary')}</Button>
+      {:else}
+        <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={close}>{label('close', 'Close')}</Button>
+      {/if}
+      {#if phase === 'pin'}
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={submitting || !canSubmitPin}>{#if submitting}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}{submitting ? label('processing', 'Processing…') : label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}
-        <Button class="kiriof-dialog-primary" onclick={submit} loading={submitting} disabled={!canContinue || !pickupDates.length}>
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={submitting || !canContinue || !pickupDates.length}>
+          {#if submitting}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}
           {submitting ? label('processing', 'Processing…') : label('continueToPayment', 'Continue to Payment')}
         </Button>
       {/if}

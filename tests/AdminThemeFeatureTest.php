@@ -16,4 +16,11 @@ final class AdminThemeFeatureTest extends TestCase {
 		$config = file_get_contents( PLUGIN_DIR . '/vite.config.ts' );
 		$this->assertStringContainsString( "'admin-theme': 'src/entries/admin-theme.ts'", $config );
 	}
+
+	public function test_module_tag_fallback_includes_the_theme_entry(): void {
+		$source = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
+		$start = strpos( $source, '$module_handles = array(' );
+		$end = strpos( $source, ');', $start );
+		$this->assertStringContainsString( "'kiriof-admin-theme'", substr( $source, $start, $end - $start ) );
+	}
 }

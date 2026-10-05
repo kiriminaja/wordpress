@@ -5,9 +5,11 @@ function parseColor(value: string): Rgb | null {
   if (hex) {
     const digits =
       hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join('') : hex[1];
-    return [0, 2, 4].map(
-      (index) => parseInt(digits.slice(index, index + 2), 16) / 255,
-    ) as unknown as Rgb;
+    return [
+      parseInt(digits.slice(0, 2), 16) / 255,
+      parseInt(digits.slice(2, 4), 16) / 255,
+      parseInt(digits.slice(4, 6), 16) / 255,
+    ];
   }
   const rgb =
     /^rgb\(\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)\s*[, ]\s*(\d+(?:\.\d+)?)\s*\)$/i.exec(
@@ -16,7 +18,7 @@ function parseColor(value: string): Rgb | null {
   if (!rgb) return null;
   const channels = rgb.slice(1).map(Number);
   return channels.every((channel) => channel >= 0 && channel <= 255)
-    ? (channels.map((channel) => channel / 255) as unknown as Rgb)
+    ? [channels[0] / 255, channels[1] / 255, channels[2] / 255]
     : null;
 }
 

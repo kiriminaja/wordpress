@@ -158,7 +158,7 @@ class TransactionListRenderService
                 [
                     "value" => "wc-processing",
                     "label" => __(
-                        "New / Waiting for Shipment",
+                        "Waiting for Shipment",
                         "kiriminaja-official",
                     ),
                     "count" =>

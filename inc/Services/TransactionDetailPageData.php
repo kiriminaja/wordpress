@@ -536,7 +536,7 @@ class TransactionDetailPageData
     private function status_label(string $status): string
     {
         $labels = [
-            "new" => __("New", "kiriminaja-official"),
+            "new" => __("Waiting for Shipment", "kiriminaja-official"),
             "request_pickup" => __("Request Pickup", "kiriminaja-official"),
             "pending" => __("Pending", "kiriminaja-official"),
             "shipped" => __("Shipped", "kiriminaja-official"),
@@ -550,6 +550,9 @@ class TransactionDetailPageData
     }
     private function status_tone(string $status): string
     {
+        if ("new" === $status) {
+            return "info";
+        }
         if ("finished" === $status) {
             return "success";
         }

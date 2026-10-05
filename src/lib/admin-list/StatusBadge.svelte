@@ -11,9 +11,9 @@
   export type StatusTone = 'auto' | 'neutral' | 'info' | 'success' | 'caution' | 'warning' | 'critical' | 'primary' | 'teal';
   export type BadgeColor = 'base' | 'strong';
 
-  /** Package status → badge tone. Every package status owns its color: New = primary, In Transit = teal. */
+   /** Semantic colors: Waiting for Shipment = blue, On Hold = amber, In Transit = teal. */
   export const packageStatusToneMap: Record<string, StatusTone> = {
-    new: 'primary',
+    new: 'info',
     request_pickup: 'info',
     pending: 'caution',
     finished: 'success',
@@ -27,8 +27,8 @@
   /** WC order status → badge tone. */
   export const wcStatusToneMap: Record<string, StatusTone> = {
     'wc-processing': 'info',
-    'wc-on-hold': 'caution',
-    'wc-pending': 'caution',
+    'wc-on-hold': 'warning',
+    'wc-pending': 'warning',
     'wc-completed': 'success',
     'wc-cancelled': 'critical',
     'wc-refunded': 'critical',

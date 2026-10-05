@@ -17,6 +17,7 @@ export type InstantStatusPresentation = {
 
 /** Identical informational Instant status icons in list and detail. */
 export function instantStatusIcon(status: InstantStatusPresentation) {
+  if (status.key === 'waiting_for_shipment') return IconPackage;
   if (status.key === 'on_delivery') return IconTruck;
   if (status.key === 'shipment_problem' || status.key === 'need_confirmation')
     return IconAlertTriangle;

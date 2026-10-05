@@ -23,10 +23,11 @@ async function compiledRuntime() {
   put('Button.svelte', `<script>let {children, loading, variant, ...rest} = $props();</script><button {...rest}>{@render children?.()}</button>`);
   put('Checkbox.svelte', `<script>let {checked = $bindable(false), onCheckedChange, ...rest} = $props();</script><input type="checkbox" {...rest} {checked} onchange={(event) => {checked = event.currentTarget.checked; onCheckedChange?.(checked);}} />`);
   put('Icon.svelte', `<script>let {...rest} = $props();</script><svg {...rest}></svg>`);
-  put('dialog.ts', `export {default as Root} from './Root.svelte'; export {default as Content, default as Header, default as Title, default as Description, default as Footer} from './Container.svelte';`);
+  put('Footer.svelte', `<script>let {children} = $props();</script><div data-slot="dialog-footer">{@render children?.()}</div>`);
+  put('dialog.ts', `export {default as Root} from './Root.svelte'; export {default as Content, default as Header, default as Title, default as Description} from './Container.svelte'; export {default as Footer} from './Footer.svelte';`);
   put('field.ts', `export {default as Field} from './Container.svelte'; export {default as Label} from './Label.svelte';`);
   put('ajax.ts', `export function postWordPressAction(...args) { return globalThis.__instantDialogAjax(...args); }`);
-  put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown, default as IconLoader2, default as IconCreditCard, default as IconQrcode, default as IconMinus} from './Icon.svelte';`);
+  put('icons.ts', `export {default as IconAlertTriangle, default as IconChevronDown, default as IconArrowUp, default as IconArrowDown, default as IconLoader2, default as IconCreditCard, default as IconQrcode, default as IconMinus, default as IconLoader} from './Icon.svelte';`);
   put('qr.ts', `export function qr() { return {destroy() {}}; }`);
   let source = readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8');
   const substitutions: Record<string, string> = {
@@ -39,6 +40,9 @@ async function compiledRuntime() {
     '$lib/wordpress/ajax': './ajax.ts',
     '$lib/components/ui/alert': join(root, 'src/lib/components/ui/alert/index.ts'),
     '$lib/components/ui/collapsible': join(root, 'src/lib/components/ui/collapsible/index.ts'),
+    '$lib/components/ui/spinner': join(root, 'src/lib/components/ui/spinner/index.ts'),
+    '$lib/payments/ShipmentSummarySkeleton.svelte': join(root, 'src/lib/payments/ShipmentSummarySkeleton.svelte'),
+    '$lib/payments/ShipmentOperationProgress.svelte': join(root, 'src/lib/payments/ShipmentOperationProgress.svelte'),
     '$lib/components/ui/button': join(root, 'src/lib/components/ui/button/index.ts'),
     './instant-process-session': join(root, 'src/lib/transactions/instant-process-session.ts'),
     './instant-payment-poller': join(root, 'src/lib/transactions/instant-payment-poller.ts'),
@@ -88,7 +92,7 @@ async function fixture() {
   const r = await compiledRuntime();
   const keys = [...readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8').matchAll(/text\('([^']+)'\)/g)].map(match => match[1]);
   const i18n = Object.fromEntries(keys.map(key => [key, key]));
-  Object.assign(i18n, { instantResult_booked: 'BOOKED', instantResult_failed: 'FAILED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
+  Object.assign(i18n, { creditDescription: 'Remaining Credit', instantResult_booked: 'BOOKED', instantResult_failed: 'FAILED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
   const target = window.document.createElement('main'); window.document.body.append(target);
   const host = r.mount(r.Host, { target, props: { props: { orderIds: ['1', '2', '3', '4', '5', '6'], ajaxUrl: '/ajax', nonce: 'nonce', i18n } } });
   async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); r.flushSync(); } }
@@ -107,9 +111,35 @@ async function fixture() {
 }
 
 describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
+  runtimeTest('loading and refresh show the actual collapsed-summary and payment-card layout before data arrives', async () => {
+    const h = await fixture(); try {
+      const loader = h.query('[data-loading-layout="instant"]');
+      expect(loader).toBeTruthy(); expect(loader.getAttribute('aria-busy')).toBe('true');
+      expect(loader.getAttribute('aria-label')).toBe('instantRefreshingPrices');
+      expect(loader.querySelector('[data-loading-section="notice"]')).toBeTruthy();
+      expect(loader.querySelector('[data-loading-section="order-trigger"]')).toBeTruthy();
+      expect(loader.querySelector('[data-loading-section="totals"]')).toBeTruthy();
+      expect(loader.querySelector('[data-loading-section="payment-methods"]')).toBeTruthy();
+      expect(loader.querySelector('[data-loading-section="schedule"]')).toBeNull();
+      expect(loader.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(10);
+      expect(h.target.querySelectorAll('[role="radio"]')).toHaveLength(0);
+      expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(0);
+      await h.reply(h.quote()); expect(h.query('[data-loading-layout]')).toBeNull();
+      await h.click(h.query('[data-slot="collapsible-trigger"]')); expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(6);
+      await h.advance(120000); expect(h.query('[data-loading-layout="instant"]')).toBeTruthy();
+      expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(0);
+      await h.reply(h.quote('refresh')); expect(h.query('[data-loading-layout]')).toBeNull();
+      expect(h.query('[data-slot="collapsible-trigger"]').getAttribute('aria-expanded')).toBe('true');
+      expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(6);
+      await h.close(); expect(h.target.textContent).toBe('');
+    } finally { await h.cleanup(); }
+  });
   runtimeTest('payment radio cards show the 4B balance and guard genuinely insufficient or unknown credit', async () => {
     const h = await fixture(); try {
-      await h.reply(h.quote('balance', ['credit','qris']));
+      await h.reply(h.quote('balance', ['qris','credit']));
+      expect([...h.target.querySelectorAll('[role="radio"]')].map((radio: any)=>radio.id)).toEqual(['instant-method-credit','instant-method-qris']);
+      expect(h.query('#instant-method-credit').getAttribute('aria-checked')).toBe('true');
+      expect(h.target.textContent).toContain('Remaining Credit Rp4.000.724.100');
       expect(h.query('select')).toBeNull(); expect(h.query('[role="radiogroup"]')).toBeTruthy();
       expect(h.target.textContent).toContain('Rp4.000.724.100');
       expect(h.query('#instant-credit-pin')).toBeNull();
@@ -121,6 +151,7 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.query('#instant-credit-pin')).toBeNull();
       await h.click(h.button('instantContinuePayment'));
       expect(h.query('#instant-credit-pin').value).toBe('');
+      expect(h.query('.kiriof-shipment-operation-progress')).toBeNull();
       expect(h.requests).toHaveLength(1);
     } finally { await h.cleanup(); }
     for (const balance of [null, 0, 5999, '4000724100', -1, Infinity]) {
@@ -138,6 +169,12 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       await h.reply(h.quote('pin-retry', ['credit'])); await h.click(h.button('instantContinuePayment'));
       await h.change('#instant-credit-pin','123456'); await h.click(h.button('instantValidatePin'));
       expect(h.requests).toHaveLength(2); expect(h.button('instantBackSummary').disabled).toBe(true);
+      expect(h.query('.kiriof-shipment-operation-progress').getAttribute('role')).toBe('status');
+      expect(h.query('.kiriof-shipment-operation-progress').textContent).toContain('instantPinValidating');
+      expect(h.query('.kiriof-shipment-operation-progress svg')).toBeTruthy();
+      expect(h.query('[data-loading-layout]')).toBeNull();
+      expect(h.target.querySelectorAll('[data-slot="input-otp-slot"]')).toHaveLength(6);
+      expect(h.button('instantPinValidating').querySelector('svg').getAttribute('data-icon')).toBe('inline-start');
       h.requests[1].reject(new Error('PIN validation failed')); await h.settle();
       expect(h.query('#instant-credit-pin').value).toBe('');
       expect(h.target.textContent).toContain('PIN validation failed');
@@ -145,7 +182,7 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.requests.every((request)=>request.action !== 'kiriof_instant_dispatch')).toBe(true);
       await h.change('#instant-credit-pin','654321'); await h.click(h.button('instantValidatePin'));
       expect(h.requests).toHaveLength(3);
-      await h.click(h.button('instantClose')); expect(h.requests[2].options.signal.aborted).toBe(true);
+       await h.close(); expect(h.requests[2].options.signal.aborted).toBe(true);
       await h.reply({valid:true}); expect(h.requests).toHaveLength(3);
       expect(h.target.textContent).toBe('');
     } finally { await h.cleanup(); }
@@ -170,6 +207,7 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(trigger.querySelector('svg').classList.contains('size-4')).toBe(false);
       expect(h.query('[data-slot="collapsible-content"]').getAttribute('data-state')).toBe('closed');
       expect(h.query('[data-slot="collapsible-content"]').hidden).toBe(true);
+      expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(0);
       const totals = h.query('section[aria-label="instantShippingInformation"]');
       expect([...totals.querySelectorAll('dd')].map((node: any) => node.textContent)).toEqual(['Rp6.000']);
       expect(h.target.textContent).not.toContain('instantOrdersChanged');
@@ -184,6 +222,7 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.target.textContent).not.toContain('→');
       await h.click(h.query('[data-slot="collapsible-trigger"]'));
       expect(h.query('[data-slot="collapsible-trigger"]').getAttribute('data-state')).toBe('closed');
+      expect(h.target.querySelectorAll('[data-order-id]')).toHaveLength(0);
       expect(totals.textContent).toContain('Rp6.000');
       expect(h.requests).toHaveLength(1);
     } finally { await h.cleanup(); }
@@ -342,8 +381,14 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       expect(h.query('select')).toBeNull(); expect(h.query('#instant-credit-pin')).toBeNull();
       await h.click(h.button('instantContinuePayment')); expect(h.requests).toHaveLength(1);
       expect(h.target.querySelectorAll('[data-slot="input-otp-slot"]')).toHaveLength(6);
-      expect(h.target.querySelectorAll('[data-slot="input-otp-group"]')).toHaveLength(2);
-      expect(h.target.querySelectorAll('[data-slot="input-otp-separator"]')).toHaveLength(1);
+      expect(h.target.querySelectorAll('[data-slot="input-otp-group"]')).toHaveLength(0);
+      expect(h.query('label[for="instant-credit-pin"]').classList.contains('sr-only')).toBe(true);
+      expect(h.query('#instant-credit-pin-help').classList.contains('sr-only')).toBe(true);
+      expect(h.target.querySelectorAll('[data-slot="input-otp-separator"]')).toHaveLength(0);
+      expect(h.query('#instant-credit-pin').hasAttribute('data-pin-input-input')).toBe(true);
+      expect(h.query('[data-slot="dialog-footer"]').querySelectorAll('button')).toHaveLength(2);
+      expect(h.button('instantClose')).toBeUndefined();
+      expect(h.button('instantBackSummary')).toBeTruthy();
       for (const value of ['12345', '12a456']) { await h.change('#instant-credit-pin', value); expect(h.button('instantValidatePin').disabled).toBe(true); }
       await h.change('#instant-credit-pin', '123456'); expect(h.button('instantValidatePin').disabled).toBe(false);
       expect(h.query('#instant-credit-pin').type).toBe('password'); expect(h.target.textContent).not.toContain('123456');
