@@ -92,6 +92,10 @@ class TransactionListViewModelFactory {
 			&& ! in_array( $wc_order->get_status(), array( 'cancelled', 'completed', 'refunded', 'failed', 'trash' ), true )
 			&& ( $wc_order->is_paid() || 'processing' === $wc_order->get_status() );
 		$can_print             = $is_express ? $can_print : InstantLabelService::canPrint( $row );
+		$instant_payment_id    = (string) ( $row->instant_payment_id ?? '' );
+		$can_pay_instant       = ! $is_express && 'qris' === ( $row->instant_payment_method ?? '' )
+			&& in_array( $row->instant_payment_status ?? '', array( 'pending', 'unpaid' ), true )
+			&& 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', $instant_payment_id );
 		$checkbox_disabled     = ! $can_print && ! $can_request_pickup && ! $can_process_instant;
 		$origin                = $this->origin_resolver->resolve( $row );
 		$origin_name           = $origin['name'];
@@ -173,6 +177,7 @@ class TransactionListViewModelFactory {
 				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ),
 			),
 			'actions'         => array(
+				'paymentUrl'   => $can_pay_instant ? add_query_arg( array( 'key' => $instant_payment_id, 'instant_payment_id' => $instant_payment_id, 'open_payment' => '1' ), admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ) : '',
 				'track'        => $can_remote_instant && InstantTrackingPresentation::hasRoute( $row ),
 				'reconcile'    => InstantShipmentState::canRecheck( $row ),
 				'liveTrackingUrl' => $is_express ? '' : InstantTrackingPresentation::trackingUrl( $row ),

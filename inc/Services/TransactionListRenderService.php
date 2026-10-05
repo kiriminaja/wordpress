@@ -276,6 +276,7 @@ class TransactionListRenderService
                 "instantBackSummary" => __("Back to Summary", "kiriminaja-official"),
                 "instantTop" => __("TOP", "kiriminaja-official"),
                 "instantQris" => __("QRIS", "kiriminaja-official"),
+                "scanToPay" => __("Scan to Pay", "kiriminaja-official"),
                 "instantQrLabel" => __("Scan this QRIS code to pay", "kiriminaja-official"),
                 "instantResult_booked" => __("Booked", "kiriminaja-official"),
                 "instantResult_failed" => __("Failed", "kiriminaja-official"),

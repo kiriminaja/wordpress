@@ -34,7 +34,7 @@ namespace {
                 $this->db->createFunction('CONCAT', static fn($a, $b) => $a . $b, 2);
             } else { $this->db->sqliteCreateFunction('CONCAT', static fn($a, $b) => $a . $b, 2); }
             $this->db->exec('CREATE TABLE wp_kiriminaja_payments (pickup_number TEXT, created_at TEXT, pickup_schedule TEXT, order_amt INT, method TEXT, status TEXT)');
-            $this->db->exec('CREATE TABLE wp_kiriminaja_transactions (pickup_number TEXT, created_at TEXT, cod_fee REAL, shipping_cost REAL, discount_amount REAL, insurance_cost REAL, delivery_type TEXT, instant_payment_id TEXT, request_pickup_at TEXT, instant_payment_method TEXT, instant_payment_status TEXT)');
+            $this->db->exec('CREATE TABLE wp_kiriminaja_transactions (order_id TEXT, pickup_number TEXT, created_at TEXT, cod_fee REAL, shipping_cost REAL, discount_amount REAL, insurance_cost REAL, delivery_type TEXT, instant_payment_id TEXT, request_pickup_at TEXT, instant_payment_method TEXT, instant_payment_status TEXT)');
         }
         public function esc_like($value) { return addcslashes((string) $value, '_%\\'); }
         public function prepare($sql, ...$args) {

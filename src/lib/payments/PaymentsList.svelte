@@ -14,6 +14,8 @@
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import PaymentScheduleDialog from './PaymentScheduleDialog.svelte';
   import ScanToPayDialog from './ScanToPayDialog.svelte';
+  import InstantScanToPayDialog from './InstantScanToPayDialog.svelte';
+  import { paymentDeepLink } from './payment-deep-link';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -40,19 +42,26 @@
   let schedulePickupNumber = $state('');
   let paymentDialogOpen = $state(false);
   let paymentPickupNumber = $state('');
+  let instantPaymentDialogOpen = $state(false);
+  let instantPaymentId = $state('');
+  let instantOrderIds = $state<string[]>([]);
+
+  function openPayment(row: PaymentRow): void {
+    if (row.deliveryType === 'instant') {
+      instantPaymentId = row.identity; instantOrderIds = [...row.orderIds]; instantPaymentDialogOpen = true;
+    } else { paymentPickupNumber = row.pickupNumber; paymentDialogOpen = true; }
+  }
 
   $effect(() => {
     const params = new URLSearchParams(window.location.search);
-    const number = params.get('pickup_number');
     const open = params.get('open_payment');
-    if (!number || (open !== '1' && open !== 'true')) return;
+    if (open !== '1' && open !== 'true') return;
+    const row = paymentDeepLink(params, bootstrap.rows);
     params.delete('pickup_number');
+    params.delete('instant_payment_id');
     params.delete('open_payment');
     window.history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
-    if (bootstrap.rows.some((row) => row.pickupNumber === number && row.actions.some((action) => action.type === 'pay'))) {
-      paymentPickupNumber = number;
-      paymentDialogOpen = true;
-    }
+    if (row) openPayment(row);
   });
 
   const currentStatus = $derived(bootstrap.filters.status || 'all');
@@ -158,6 +167,7 @@
             <Table.Head>{bootstrap.i18n.no}</Table.Head>
             <Table.Head>{bootstrap.i18n.pickupNumber}</Table.Head>
             <Table.Head>{bootstrap.i18n.schedule}</Table.Head>
+            <Table.Head>{bootstrap.i18n.deliveryType}</Table.Head>
             <Table.Head>{bootstrap.i18n.fees}</Table.Head>
             <Table.Head>{bootstrap.i18n.orders}</Table.Head>
             <Table.Head>{bootstrap.i18n.paymentMethod}</Table.Head>
@@ -167,13 +177,14 @@
         </Table.Header>
         <Table.Body>
           {#if bootstrap.rows.length === 0}
-            <Table.Row><Table.Cell colspan={8} class="kiriof-empty-cell">{bootstrap.i18n.empty}</Table.Cell></Table.Row>
+            <Table.Row><Table.Cell colspan={9} class="kiriof-empty-cell">{bootstrap.i18n.empty}</Table.Cell></Table.Row>
           {:else}
             {#each bootstrap.rows as row (row.rowKey)}
               <Table.Row>
                 <Table.Cell><strong>{row.number}</strong></Table.Cell>
-                <Table.Cell><strong>{row.identity}</strong>{#if row.deliveryType === 'instant'}<small>{bootstrap.i18n.instantPaymentId}</small>{/if}<small>{bootstrap.i18n.requested}: {row.requestedAt}</small></Table.Cell>
+                <Table.Cell><strong>{row.identity}</strong><small>{bootstrap.i18n.requested}: {row.requestedAt}</small></Table.Cell>
                 <Table.Cell>{row.schedule}</Table.Cell>
+                <Table.Cell>{row.deliveryType === 'instant' ? bootstrap.i18n.instant : bootstrap.i18n.regular}</Table.Cell>
                 <Table.Cell><strong>{row.fees}</strong></Table.Cell>
                 <Table.Cell>{row.orders} {bootstrap.i18n.order}</Table.Cell>
                 <Table.Cell><StatusBadge label={row.method} tone={row.method === 'QRIS' ? 'info' : 'neutral'} icon={row.method === 'QRIS' ? IconQrcode : IconBuildingBank} /></Table.Cell>
@@ -186,8 +197,8 @@
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" href={action.href} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {:else if row.deliveryType === 'express' && action.type === 'reschedule'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { schedulePickupNumber = row.pickupNumber; scheduleDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
-                      {:else if row.deliveryType === 'express' && action.type === 'pay'}
-                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { paymentPickupNumber = row.pickupNumber; paymentDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
+                      {:else if action.type === 'pay'}
+                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => openPayment(row)} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {/if}
                     {/each}
                   </div>
@@ -210,4 +221,5 @@
   </KiriofCard>
   <PaymentScheduleDialog bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
   <ScanToPayDialog bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+  <InstantScanToPayDialog bind:open={instantPaymentDialogOpen} paymentId={instantPaymentId} orderIds={instantOrderIds} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
 </div>

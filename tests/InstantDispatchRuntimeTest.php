@@ -420,7 +420,8 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $this->assertSame(1, $r['prices']);
         $this->assertCount(1, $r['books']);
         $this->assertNotEmpty($r['retry_error']);
-        $this->assertSame([], $r['transients']);
+        $this->assertSame(['kiriof_instant_payment_qr_' . hash('sha256', 'PAY-1')], array_keys($r['transients']));
+        $this->assertSame('000201-QR', reset($r['transients'])['qr_content']);
         $this->assertSame([], $r['options']);
         $snapshot = json_decode($r['rows'][0]['shipping_info'], true);
         $this->assertSame('keep', $snapshot['custom']);

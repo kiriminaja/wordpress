@@ -20,6 +20,7 @@ namespace {
     define('KIRIOF_MAX_COD_AMOUNT', 1000000);
     function __($text, $domain): string { return $text; }
     function admin_url($url): string { return $url; }
+    function add_query_arg($args, $url): string { return $url . '&' . http_build_query($args); }
     function absint($value): int { return abs((int) $value); }
     function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
     function esc_url_raw($url, $protocols = null): string {

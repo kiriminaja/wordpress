@@ -54,6 +54,23 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
             "SELECT * FROM ({$groups}) payment_groups {$where} ORDER BY created_at DESC, row_key ASC LIMIT %d, %d",
             ...array_merge( $args, array( ( $page - 1 ) * $items_per_page, $items_per_page ) )
         ) );
+        // Fetch complete membership separately: GROUP_CONCAT is length limited and
+        // can silently omit orders from the authorized payment refresh request.
+        foreach ( $results as $row ) {
+            $row->order_ids = array();
+            if ( 'instant' !== $row->delivery_type ) {
+                continue;
+            }
+            $members = $wpdb->get_results( $wpdb->prepare(
+                'SELECT order_id FROM %i WHERE delivery_type = %s AND instant_payment_id = %s ORDER BY order_id ASC',
+                $wpdb->prefix . 'kiriminaja_transactions',
+                'instant',
+                $row->instant_payment_id
+            ) );
+            foreach ( $members as $member ) {
+                $row->order_ids[] = (string) $member->order_id;
+            }
+        }
         $this->logDatabaseError();
         return array( 'results' => $results, 'page' => $page, 'items_per_page' => $items_per_page, 'total_pages' => $total_pages, 'total' => $total );
     }

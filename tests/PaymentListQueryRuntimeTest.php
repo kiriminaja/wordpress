@@ -149,7 +149,7 @@ final class PaymentListQueryWpdbFake
 
     public function __construct()
     {
-        $this->list_results = array( (object) array( 'pickup_number' => 'PU-20', 'cost' => '12500' ) );
+        $this->list_results = array( (object) array( 'delivery_type' => 'express', 'pickup_number' => 'PU-20', 'cost' => '12500' ) );
     }
 
     public function esc_like( $value ): string

@@ -47,7 +47,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
 
         $this->assertStringContainsString(
             "row.actions.some((action) => action.type === 'pay')",
-            $content,
+            file_get_contents( PLUGIN_DIR . '/src/lib/payments/payment-deep-link.ts' ),
             'Request pickup page should auto-open payment only through an available payment action'
         );
 

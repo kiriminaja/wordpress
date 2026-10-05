@@ -185,7 +185,11 @@ export function createInstantPaymentPoller(options: Options) {
       group.deadline = Math.min(group.deadline, expiry(merged));
       options.onUpdate(merged);
       if (paymentTerminal(merged)) phase(group, 'complete');
-      else bound(group);
+      else {
+        if (group.phase === 'idle' && merged.qr_content && now() < group.deadline)
+          phase(group, 'polling');
+        bound(group);
+      }
     } catch {
       if (current !== epoch || abort.signal.aborted || !active) return;
       failure();

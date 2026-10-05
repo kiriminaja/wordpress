@@ -178,6 +178,7 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
         $in = $GLOBALS['input'];
         foreach (($in['before_refresh_statuses'] ?? []) as $index=>$status) { $GLOBALS['repo']->rows['KA-' . ($index + 1)]->instant_payment_status = $status; }
         $data = ['payment_id'=>$in['response_pid'] ?? $id,'status_code'=>$in['refresh_status'] ?? 0,'amount'=>18000,'qr_content'=>'QR'];
+        if (array_key_exists('refresh_data', $in)) { $data = $in['refresh_data']; }
         if (array_key_exists('refresh_legacy_status', $in)) { $data['status'] = $in['refresh_legacy_status']; }
         if (!empty($in['nested_payment'])) { $data = ['result'=>$data]; }
         return ['status'=>$in['refresh_response_status'] ?? true,'data'=>(object)['result'=>$data]];
@@ -227,7 +228,21 @@ try {
             $result['metadata_recovery_row'] = get_object_vars($repo->rows['KA-1']);
             $state->apply('KA-1', $package + ['status'=>100]);
         }
-        if (!empty($in['refresh'])) { $result['refresh'] = $service->refreshPayment($dispatch_ids,$in['refresh_pid'] ?? 'PAY-1'); }
+        $result['booking_transients'] = $GLOBALS['transients'];
+        if (!empty($in['clear_payment_cache']) || !empty($in['expire_payment_cache'])) {
+            foreach ($GLOBALS['transients'] as $key=>&$value) {
+                if (str_starts_with($key, 'kiriof_instant_payment_qr_')) {
+                    if (!empty($in['clear_payment_cache'])) { unset($GLOBALS['transients'][$key]); }
+                    else { $value['expires'] = time()-1; }
+                }
+            }
+            unset($value);
+        }
+        if (!empty($in['refresh'])) { $result['refresh'] = $service->refreshPayment($in['refresh_ids'] ?? $dispatch_ids,$in['refresh_pid'] ?? 'PAY-1'); }
+        foreach (($in['refresh_sequence'] ?? []) as $refresh_data) {
+            $GLOBALS['input']['refresh_data'] = $refresh_data;
+            $result['refreshes'][] = $service->refreshPayment($in['refresh_ids'] ?? $dispatch_ids, $in['refresh_pid'] ?? 'PAY-1');
+        }
     }
 } catch (Throwable $error) { $result['error'] = $error->getMessage(); }
 if (!empty($in['retry_restored'])) {

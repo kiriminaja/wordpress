@@ -10,6 +10,7 @@
     IconCircleCheck,
     IconClock,
     IconCreditCard,
+    IconQrcode,
     IconEye,
     IconPackage,
     IconPlane,
@@ -447,6 +448,7 @@
                     <div class="kiriof-courier-summary__content">
                       <strong class="kiriof-row-title">{row.courier.service}</strong>
                       {#if row.deliveryType === 'instant'}
+                      {#if row.actions.paymentUrl}<ActionTooltip label={bootstrap.i18n.scanToPay}><Button variant="outline" size="icon-sm" href={row.actions.paymentUrl} aria-label={bootstrap.i18n.scanToPay}><IconQrcode /></Button></ActionTooltip>{/if}
                         <span class="kiriof-row-muted">{bootstrap.i18n.vehicle}: {row.vehicle || bootstrap.i18n.vehicleUnavailable}</span>
                       {:else}
                       <span class="kiriof-payment-type {row.courier.paymentLabel === 'COD' ? 'is-cod' : 'is-non-cod'}">
@@ -480,11 +482,6 @@
                 <Table.Cell>
                   <CopyableValue label={bootstrap.i18n.awb} value={row.awb} copyLabel={bootstrap.i18n.copyAwb} copiedLabel={bootstrap.i18n.copied} />
                   <CopyableValue label={bootstrap.i18n.kaOrderId} value={row.kaOrderId} copyLabel={bootstrap.i18n.copyKaOrderId} copiedLabel={bootstrap.i18n.copied} />
-                  {#if row.deliveryType === 'instant'}
-                    {#if row.instantPayment.method}<span class="kiriof-row-muted">{bootstrap.i18n.paymentMethod}: {row.instantPayment.method}</span>{/if}
-                    {#if row.instantPayment.status}<span class="kiriof-row-muted">{bootstrap.i18n.paymentStatus}: {row.instantPayment.status}</span>{/if}
-                    {#if row.instantPayment.id}<span class="kiriof-row-muted">{bootstrap.i18n.paymentId}: {row.instantPayment.id}</span>{/if}
-                  {/if}
                 </Table.Cell>
                 <Table.Cell>
                   <strong class="kiriof-row-title">{row.route.origin}</strong>

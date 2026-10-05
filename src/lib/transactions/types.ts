@@ -109,6 +109,7 @@ export type TransactionRow = {
     track: boolean;
     reconcile?: boolean;
     liveTrackingUrl: string;
+    paymentUrl?: string;
     preview: boolean;
     process: boolean;
     changeOrigin: boolean;

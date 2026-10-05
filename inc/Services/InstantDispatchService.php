@@ -376,6 +376,11 @@ class InstantDispatchService {
 				}
 				if ( ! empty( $payment['order_ids'] ) ) {
 					$payment['status'] = $this->effectivePaymentStatus( $payment_statuses );
+					if ( 'qris' === $method && in_array( $payment['status'], array( 'unpaid', 'pending' ), true ) ) {
+						$this->cachePaymentQr( $payment );
+					} elseif ( in_array( $payment['status'], array( 'paid', 'refunded' ), true ) ) {
+						$this->clearPaymentQr( $payment['id'] );
+					}
 					$result['payments'][] = $payment;
 				}
 			}
@@ -482,14 +487,18 @@ class InstantDispatchService {
 		}
 		$data = $this->result( $response );
 		$payment = $this->paymentData( $data['payment'] ?? $data );
-		if ( '' !== $payment['id'] && $payment_id !== $payment['id'] ) {
+		$has_remote_qr = '' !== $payment['qr_content'];
+		$raw = (array) ( $data['payment'] ?? $data );
+		if ( $payment_id !== $payment['id'] || ( array_key_exists( 'id', $raw ) && $payment_id !== $raw['id'] ) || ( array_key_exists( 'payment_id', $raw ) && $payment_id !== $raw['payment_id'] ) ) {
 			throw new RuntimeException( esc_html__( 'The Instant payment response is invalid.', 'kiriminaja-official' ) );
 		}
-		$payment['id'] = $payment_id;
 		// Unknown remote values must not invent pending or overwrite persisted payment state.
-		$raw = (array) ( $data['payment'] ?? $data );
 		$known = $this->paymentStatus( $raw['status_code'] ?? $raw['status'] ?? null );
+		if ( in_array( $known, array( 'paid', 'refunded' ), true ) ) {
+			$this->clearPaymentQr( $payment_id );
+		}
 		$statuses = array();
+		$can_resume = true;
 		foreach ( $rows as $id => $row ) {
 			$merge = array( 'id' => $payment_id );
 			if ( null !== $known ) {
@@ -497,9 +506,68 @@ class InstantDispatchService {
 			}
 			$effective = $this->state->mergePayment( (string) $id, $merge );
 			$statuses[] = $effective['status'];
+			$saved = $this->repo->getTransactionByOrderId( (string) $id );
+			$can_resume = $can_resume && is_object( $saved ) && $payment_id === ( $saved->instant_payment_id ?? null ) && 'qris' === ( $saved->instant_payment_method ?? null ) && in_array( $saved->instant_payment_status ?? null, array( 'unpaid', 'pending' ), true );
 		}
 		$payment['status'] = $this->effectivePaymentStatus( $statuses );
+		if ( in_array( $payment['status'], array( 'paid', 'refunded' ), true ) ) {
+			$this->clearPaymentQr( $payment_id );
+			$payment['qr_content'] = '';
+		} elseif ( $can_resume && in_array( $payment['status'], array( 'unpaid', 'pending' ), true ) ) {
+			$cached = $this->cachedPaymentQr( $payment_id );
+			if ( '' === $payment['qr_content'] ) {
+				$payment['qr_content'] = $cached['qr_content'];
+			}
+			// Null means unavailable; zero is a valid current remote amount.
+			if ( null === $payment['amount'] ) {
+				$payment['amount'] = $cached['amount'];
+			}
+			if ( $has_remote_qr ) {
+				$this->cachePaymentQr( $payment );
+			}
+		} else {
+			$payment['qr_content'] = '';
+		}
 		return $payment;
+	}
+
+	/** Private, bounded display retention only; never evidence that a QR remains valid. */
+	private function paymentQrKey( string $id ): string {
+		return 'kiriof_instant_payment_qr_' . hash( 'sha256', $id );
+	}
+
+	private function cachePaymentQr( array $payment ): void {
+		$payment = $this->paymentData( $payment );
+		if ( '' === $payment['id'] || '' === $payment['qr_content'] ) {
+			return;
+		}
+		try {
+			set_transient( $this->paymentQrKey( $payment['id'] ), array( 'qr_content' => $payment['qr_content'], 'amount' => $payment['amount'], 'expires' => time() + 86400 ), 86400 );
+		} catch ( \Throwable $error ) {
+			// Optional private display storage cannot change a confirmed booking.
+		}
+	}
+
+	private function cachedPaymentQr( string $id ): array {
+		$empty = array( 'qr_content' => '', 'amount' => null );
+		try {
+			$cached = get_transient( $this->paymentQrKey( $id ) );
+			if ( ! is_array( $cached ) || ! is_int( $cached['expires'] ?? null ) || $cached['expires'] <= time() || $cached['expires'] > time() + 86400 ) {
+				return $empty;
+			}
+			$validated = $this->paymentData( array( 'id' => $id, 'qr_content' => $cached['qr_content'] ?? '', 'amount' => $cached['amount'] ?? null ) );
+			return array( 'qr_content' => $validated['qr_content'], 'amount' => $validated['amount'] );
+		} catch ( \Throwable $error ) {
+			return $empty;
+		}
+	}
+
+	private function clearPaymentQr( string $id ): void {
+		try {
+			delete_transient( $this->paymentQrKey( $id ) );
+		} catch ( \Throwable $error ) {
+			// A failed cache deletion must not prevent terminal-state reconciliation.
+		}
 	}
 
 	private function selection( array $ids ): array {

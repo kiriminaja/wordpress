@@ -5636,3 +5636,15 @@ msgstr "ID Pickup / Pembayaran"
 #: inc/Services/PaymentListRenderService.php
 msgid "Instant Payment ID"
 msgstr "ID Pembayaran Instant"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Delivery Type"
+msgstr "Jenis Pengiriman"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Regular"
+msgstr "Reguler"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Instant"
+msgstr "Instant"

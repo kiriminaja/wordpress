@@ -38,6 +38,12 @@ class PaymentListRenderService {
 			$payment_id = (string) ( $row->instant_payment_id ?? '' );
 			$identity = $is_instant ? $payment_id : $pickup_number;
 			$actions = array();
+			$order_ids = $is_instant ? array_values( (array) ( $row->order_ids ?? array() ) ) : array();
+			if ( $is_instant && 'qris' === $method && in_array( $status, array( 'pending', 'unpaid' ), true )
+				&& 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', $payment_id )
+				&& count( $order_ids ) > 0 && count( $order_ids ) <= 50 && count( $order_ids ) === (int) ( $row->order_amt ?? 0 ) ) {
+				$actions[] = array( 'type' => 'pay', 'label' => __( 'Pay', 'kiriminaja-official' ) );
+			}
 			if ( ! $is_instant && 'paid' !== $status && 'top' !== $method ) {
 				$actions[] = array(
 					'type'  => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? 'pay' : 'reschedule',
@@ -55,6 +61,7 @@ class PaymentListRenderService {
 				'rowKey'       => ( $is_instant ? 'instant:' : 'express:' ) . $identity,
 				'deliveryType' => $is_instant ? 'instant' : 'express',
 				'identity'     => $identity,
+				'orderIds'     => $order_ids,
 				'pickupNumber' => $pickup_number,
 				'requestedAt'  => wp_date( 'Y/m/d H:i', strtotime( (string) ( $row->created_at ?? '' ) ) ),
 				'schedule'     => $is_instant ? '—' : gmdate( 'Y/m/d H:i', strtotime( (string) ( $row->pickup_schedule ?? '' ) ) ) . ' WIB',
@@ -115,7 +122,9 @@ class PaymentListRenderService {
 				'paymentMethod' => __( 'Payment Method', 'kiriminaja-official' ),
 				'paymentStatus' => __( 'Payment Status', 'kiriminaja-official' ),
 				'action'        => __( 'Action', 'kiriminaja-official' ),
-				'instantPaymentId' => __( 'Instant Payment ID', 'kiriminaja-official' ),
+				'deliveryType' => __( 'Delivery Type', 'kiriminaja-official' ),
+				'regular'      => __( 'Regular', 'kiriminaja-official' ),
+				'instant'      => __( 'Instant', 'kiriminaja-official' ),
 				'requested'     => __( 'Requested', 'kiriminaja-official' ),
 				'order'         => __( 'Order', 'kiriminaja-official' ),
 				'no'            => __( 'No', 'kiriminaja-official' ),

@@ -9,6 +9,7 @@ export type PaymentRow = {
   deliveryType: 'express' | 'instant';
   identity: string;
   pickupNumber: string;
+  orderIds: string[];
   requestedAt: string;
   schedule: string;
   fees: string;
