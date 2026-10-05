@@ -207,13 +207,13 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $content = file_get_contents(PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php');
 
         $this->assertStringContainsString(
-            "if ( 'paid' !== \$status && 'top' !== \$method )",
+            "if ( ! \$is_instant && 'paid' !== \$status && 'top' !== \$method )",
             $content,
             'Request pickup list should classify TOP rows before deciding payment actions'
         );
 
         $this->assertStringContainsString(
-            "if ( 'paid' !== \$status && 'top' !== \$method )",
+            "if ( ! \$is_instant && 'paid' !== \$status && 'top' !== \$method )",
             $content,
             'TOP rows should not enter the unpaid action branch that renders Scan to Pay'
         );
@@ -349,7 +349,7 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "'method'       => '' !== \$method ? strtoupper( \$method ) : 'QRIS'",
+            "'method'       => '' !== \$method ? strtoupper( \$method ) : ( \$is_instant ? '—' : 'QRIS' )",
             $requestPickupTemplate,
             'Request pickup list should not display COD-only payment rows as QRIS'
         );

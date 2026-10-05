@@ -3,7 +3,7 @@ error_reporting(E_ALL & ~E_DEPRECATED);
 // Isolated production routing with a recording state boundary (no SDK or WordPress writes).
 define('ABSPATH', dirname(__DIR__, 2) . '/');
 $root = dirname(__DIR__, 2);
-foreach (['Utils/ServiceResponse', 'Base/BaseService', 'Services/TransactionDeliveryType', 'Services/InstantWebhookService', 'Services/CallbackHandlerService'] as $file) {
+foreach (['Utils/ServiceResponse', 'Base/BaseService', 'Services/TransactionDeliveryType', 'Services/InstantShipmentState', 'Services/InstantWebhookService', 'Services/CallbackHandlerService'] as $file) {
     require_once $root . '/inc/' . $file . '.php';
 }
 function kiriof_log($level, $message, $context = []) { $GLOBALS['logs'][] = $context; }

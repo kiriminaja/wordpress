@@ -4240,7 +4240,8 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $start = strpos($content, 'public function kiriof_order_shipment_details');
         $this->assertNotFalse($start, 'Shipment details renderer must exist');
-        $methodBody = substr($content, $start, 1800);
+        $end = strpos($content, 'private function kiriof_order_has_fee_item', $start);
+        $methodBody = substr($content, $start, $end - $start);
 
         $this->assertStringContainsString(
             '! $this->kiriof_order_needs_shipping( $order )',

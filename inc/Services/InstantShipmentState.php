@@ -318,7 +318,7 @@ final class InstantShipmentState {
 			$found = $events[ $event ];
 		}
 		// Validate even when called directly, not only through webhook prevalidation.
-		$events = array( 'shipped_packages' => array( 106 ), 'finished_packages' => array( 200 ), 'canceled_packages' => array( 300, 302 ) );
+		$events = array( 'processed_packages' => array( 105 ), 'shipped_packages' => array( 106 ), 'finished_packages' => array( 200 ), 'canceled_packages' => array( 300, 302 ) );
 		if ( null !== $event && ( ! isset( $events[ $event ] ) || ! in_array( $found, $events[ $event ], true ) ) ) {
 			$this->invalid( 20 );
 		}

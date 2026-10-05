@@ -169,24 +169,24 @@
           {#if bootstrap.rows.length === 0}
             <Table.Row><Table.Cell colspan={8} class="kiriof-empty-cell">{bootstrap.i18n.empty}</Table.Cell></Table.Row>
           {:else}
-            {#each bootstrap.rows as row (row.pickupNumber)}
+            {#each bootstrap.rows as row (row.rowKey)}
               <Table.Row>
                 <Table.Cell><strong>{row.number}</strong></Table.Cell>
-                <Table.Cell><strong>{row.pickupNumber}</strong><small>{bootstrap.i18n.requested}: {row.requestedAt}</small></Table.Cell>
+                <Table.Cell><strong>{row.identity}</strong>{#if row.deliveryType === 'instant'}<small>{bootstrap.i18n.instantPaymentId}</small>{/if}<small>{bootstrap.i18n.requested}: {row.requestedAt}</small></Table.Cell>
                 <Table.Cell>{row.schedule}</Table.Cell>
                 <Table.Cell><strong>{row.fees}</strong></Table.Cell>
                 <Table.Cell>{row.orders} {bootstrap.i18n.order}</Table.Cell>
                 <Table.Cell><StatusBadge label={row.method} tone={row.method === 'QRIS' ? 'info' : 'neutral'} icon={row.method === 'QRIS' ? IconQrcode : IconBuildingBank} /></Table.Cell>
-                <Table.Cell><StatusBadge label={row.status === 'paid' ? bootstrap.statusTabs[2].label : bootstrap.statusTabs[1].label} tone={row.status === 'paid' ? 'success' : 'warning'} icon={row.status === 'paid' ? IconCircleCheck : IconClock} /></Table.Cell>
+                <Table.Cell><StatusBadge label={bootstrap.statusTabs.find((tab) => tab.value === row.status)?.label ?? row.status} tone={row.status === 'paid' ? 'success' : 'warning'} icon={row.status === 'paid' ? IconCircleCheck : IconClock} /></Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="kiriof-row-actions">
                     {#each row.actions as action}
                       {@const ActionIcon = actionIcon(action.type)}
                       {#if action.type === 'details'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" href={action.href} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
-                      {:else if action.type === 'reschedule'}
+                      {:else if row.deliveryType === 'express' && action.type === 'reschedule'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { schedulePickupNumber = row.pickupNumber; scheduleDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
-                      {:else}
+                      {:else if row.deliveryType === 'express' && action.type === 'pay'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { paymentPickupNumber = row.pickupNumber; paymentDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {/if}
                     {/each}

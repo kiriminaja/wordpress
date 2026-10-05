@@ -1571,15 +1571,46 @@ class CheckoutController
         if ( ! $this->kiriof_order_needs_shipping( $order ) ) {
             return false;
         }
-        $shipping_methods = $order->get_shipping_methods();
-        $shipping_method = array_shift( $shipping_methods );
-        $shipping_method_id = $shipping_method ? $shipping_method['method_id'] : '';
-        if( $shipping_method_id != 'kiriminaja-official' ){
+        $shipping_labels = array();
+        $has_express = false;
+        foreach ( $order->get_shipping_methods() as $item ) {
+            if ( ! is_object( $item ) || ! is_callable( array( $item, 'get_method_id' ) ) ) {
+                continue;
+            }
+            $method = (string) $item->get_method_id();
+            $instant = 'kiriminaja-instant' === $method || 0 === strpos( $method, 'kiriminaja-instant:' );
+            $express = 'kiriminaja-official' === $method || 0 === strpos( $method, 'kiriminaja-official_' ) || 0 === strpos( $method, 'kiriminaja-official:' );
+            if ( ! $instant && ! $express ) {
+                continue;
+            }
+            // Use only the durable buyer-facing shipping title. Legacy generic
+            // titles can be completed from the two public courier/service keys;
+            // never serialize quote tokens, origin snapshots or merchant payments.
+            $label = is_callable( array( $item, 'get_name' ) ) ? trim( (string) $item->get_name() ) : '';
+            if ( in_array( strtolower( $label ), array( '', 'kiriminaja', 'kiriminaja official', 'kiriminaja instant', 'kiriminaja-official', 'kiriminaja-instant' ), true ) && is_callable( array( $item, 'get_meta' ) ) ) {
+                $courier = $item->get_meta( $instant ? 'kiriof_instant_courier' : 'kiriof_rate_service', true );
+                $service = $item->get_meta( $instant ? 'kiriof_instant_service' : 'kiriof_rate_service_type', true );
+                if ( is_string( $courier ) && '' !== trim( $courier ) && is_string( $service ) && '' !== trim( $service ) ) {
+                    $label = kiriof_helper()->formatServiceName( $courier, $service );
+                }
+            }
+            if ( '' !== $label ) {
+                $shipping_labels[] = $label;
+                $has_express = $has_express || $express;
+            }
+        }
+        if ( empty( $shipping_labels ) ) {
             return false;
         }
 
-        $shipping_label = $order->get_shipping_method();
-        $tracking_url = kiriof_get_tracking_page_url( array( 'order_id' => $order->get_id() ) );
+        $shipping_label = implode( ', ', array_unique( $shipping_labels ) );
+        // The public tracking page is Express-only. Do not send Instant buyers
+        // to an incompatible endpoint or expose the merchant's private actions.
+        $tracking_row = '';
+        if ( $has_express ) {
+            $tracking_url = kiriof_get_tracking_page_url( array( 'order_id' => $order->get_id() ) );
+            $tracking_row = '<tr><th scope="row">' . esc_html__( 'Tracking', 'kiriminaja-official' ) . ':</th><td><a class="kj-button" href="' . esc_url( $tracking_url ) . '">' . esc_html__( 'Track Shipment', 'kiriminaja-official' ) . '</a></td></tr>';
+        }
 
         $html = '
             <section class="kiriof-order-shipment-details" style="margin:1.5rem 0 0;">
@@ -1590,10 +1621,7 @@ class CheckoutController
                             <th scope="row">'.esc_html__('Shipping Method','kiriminaja-official').':</th>
                             <td>'.esc_html($shipping_label).'</td>
                         </tr>
-                        <tr>
-                            <th scope="row">'.esc_html__('Tracking','kiriminaja-official').':</th>
-                            <td><a class="kj-button" href="'.esc_url( $tracking_url ).'">'.esc_html__('Track Shipment','kiriminaja-official').'</a></td>
-                        </tr>
+                        ' . $tracking_row . '
                     </tbody>
                 </table>
             </section>';

@@ -5628,3 +5628,11 @@ msgstr "Memvalidasi pembayaran KA Credit…"
 #: inc/Services/TransactionListRenderService.php
 msgid "Back to Summary"
 msgstr "Kembali ke Ringkasan"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Pickup / Payment ID"
+msgstr "ID Pickup / Pembayaran"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Instant Payment ID"
+msgstr "ID Pembayaran Instant"

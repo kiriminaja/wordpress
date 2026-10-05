@@ -34,8 +34,11 @@ class PaymentListRenderService {
 			$method = strtolower( trim( (string) ( $row->method ?? '' ) ) );
 			$status = (string) ( $row->status ?? '' );
 			$pickup_number = (string) ( $row->pickup_number ?? '' );
+			$is_instant = 'instant' === ( $row->delivery_type ?? 'express' );
+			$payment_id = (string) ( $row->instant_payment_id ?? '' );
+			$identity = $is_instant ? $payment_id : $pickup_number;
 			$actions = array();
-			if ( 'paid' !== $status && 'top' !== $method ) {
+			if ( ! $is_instant && 'paid' !== $status && 'top' !== $method ) {
 				$actions[] = array(
 					'type'  => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? 'pay' : 'reschedule',
 					'label' => strtotime( (string) ( $row->pickup_schedule ?? '' ) ) > time() ? __( 'Pay', 'kiriminaja-official' ) : __( 'Reschedule', 'kiriminaja-official' ),
@@ -44,18 +47,21 @@ class PaymentListRenderService {
 			$actions[] = array(
 				'type'  => 'details',
 				'label' => __( 'Details', 'kiriminaja-official' ),
-				'href'  => add_query_arg( 'key', 'pid:' . $pickup_number, admin_url( 'admin.php?page=kiriminaja-transaction' ) ),
+				'href'  => add_query_arg( $is_instant ? array( 'key' => 'ipid:' . $payment_id, 'delivery_type' => 'instant', 'status' => 'all' ) : array( 'key' => 'pid:' . $pickup_number ), admin_url( 'admin.php?page=kiriminaja-transaction' ) ),
 			);
 
 			$rows[] = array(
 				'number'       => $index + ( ( $page - 1 ) * $items_per_page ) + 1,
+				'rowKey'       => ( $is_instant ? 'instant:' : 'express:' ) . $identity,
+				'deliveryType' => $is_instant ? 'instant' : 'express',
+				'identity'     => $identity,
 				'pickupNumber' => $pickup_number,
 				'requestedAt'  => wp_date( 'Y/m/d H:i', strtotime( (string) ( $row->created_at ?? '' ) ) ),
-				'schedule'     => gmdate( 'Y/m/d H:i', strtotime( (string) ( $row->pickup_schedule ?? '' ) ) ) . ' WIB',
+				'schedule'     => $is_instant ? '—' : gmdate( 'Y/m/d H:i', strtotime( (string) ( $row->pickup_schedule ?? '' ) ) ) . ' WIB',
 				'fees'         => 'Rp. ' . kiriof_money_format( $row->cost ?? 0 ),
 				'orders'       => (int) ( $row->order_amt ?? 0 ),
-				'method'       => '' !== $method ? strtoupper( $method ) : 'QRIS',
-				'status'       => 'paid' === $status || 'top' === $method ? 'paid' : 'unpaid',
+				'method'       => '' !== $method ? strtoupper( $method ) : ( $is_instant ? '—' : 'QRIS' ),
+				'status'       => $is_instant ? ( in_array( $status, array( 'paid', 'unpaid', 'pending', 'refunded' ), true ) ? $status : 'pending' ) : ( 'paid' === $status || 'top' === $method ? 'paid' : 'unpaid' ),
 				'actions'      => $actions,
 			);
 		}
@@ -93,6 +99,8 @@ class PaymentListRenderService {
 				array( 'value' => '', 'label' => __( 'All', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['all'] ?? 0 ) ),
 				array( 'value' => 'unpaid', 'label' => __( 'Waiting for Payment', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['unpaid'] ?? 0 ) ),
 				array( 'value' => 'paid', 'label' => __( 'Paid', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['paid'] ?? 0 ) ),
+				array( 'value' => 'pending', 'label' => __( 'Pending', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['pending'] ?? 0 ) ),
+				array( 'value' => 'refunded', 'label' => __( 'Refunded', 'kiriminaja-official' ), 'count' => (int) ( $status_counts['refunded'] ?? 0 ) ),
 			),
 			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages, 'total' => $total, 'perPage' => $items_per_page ),
 			'ajax'         => array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( KIRIOF_NONCE ) ),
@@ -100,13 +108,14 @@ class PaymentListRenderService {
 				'search'        => __( 'Search payment…', 'kiriminaja-official' ),
 				'allDates'      => __( 'All Dates', 'kiriminaja-official' ),
 				'apply'         => __( 'Apply', 'kiriminaja-official' ),
-				'pickupNumber'  => __( 'Pickup Number', 'kiriminaja-official' ),
+				'pickupNumber'  => __( 'Pickup / Payment ID', 'kiriminaja-official' ),
 				'schedule'      => __( 'Schedule', 'kiriminaja-official' ),
 				'fees'          => __( 'Fees', 'kiriminaja-official' ),
 				'orders'        => __( 'Orders', 'kiriminaja-official' ),
 				'paymentMethod' => __( 'Payment Method', 'kiriminaja-official' ),
 				'paymentStatus' => __( 'Payment Status', 'kiriminaja-official' ),
 				'action'        => __( 'Action', 'kiriminaja-official' ),
+				'instantPaymentId' => __( 'Instant Payment ID', 'kiriminaja-official' ),
 				'requested'     => __( 'Requested', 'kiriminaja-official' ),
 				'order'         => __( 'Order', 'kiriminaja-official' ),
 				'no'            => __( 'No', 'kiriminaja-official' ),

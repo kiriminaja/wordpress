@@ -65,6 +65,25 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantShipmentStateRuntimeTest extends TestCase {
+    #[Test]
+    public function processed_webhook_confirms_ready_and_paid_without_completing_order_and_replays_monotonically(): void {
+        $package = array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'Instant','status'=>105,'awb'=>'AWB-1','live_tracking_url'=>null);
+        $payment = array('payment_id'=>'PAY-1','status_code'=>0,'amount'=>12000,'pay_time'=>'2026-10-05T03:12:23.446201Z');
+        $body = array('method'=>'processed_packages','data'=>array(array('order_id'=>'KA-1','awb'=>'AWB-1','date'=>'2026-10-05T03:12:22Z')),'payment'=>$payment,'packages'=>array($package));
+        $r = $this->runFixture(array('row'=>array('awb'=>null,'instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'events'=>array(),'webhook'=>$body));
+        $this->assertSame(200,$r['webhook']['http_status']);
+        $this->assertSame('request_pickup',$r['row']['status']);
+        $this->assertSame(105,$r['row']['instant_status_code']);
+        $this->assertSame('paid',$r['row']['instant_payment_status']);
+        $this->assertSame('AWB-1',$r['row']['awb']);
+        $this->assertSame('processing',$r['woo']['status']);
+        $event = array('package'=>$package,'payment'=>$payment,'event'=>'processed_packages');
+        $r = $this->runFixture(array('row'=>array('instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'events'=>array($event,$event)));
+        $this->assertFalse($r['results'][1]['changed']);
+        $r = $this->runFixture(array('row'=>array('status'=>'shipped','instant_status_code'=>106),'events'=>array($event)));
+        $this->assertSame('shipped',$r['row']['status']);
+        $this->assertSame(106,$r['row']['instant_status_code']);
+    }
     private function runFixture(array $input = []): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' --fixture ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);

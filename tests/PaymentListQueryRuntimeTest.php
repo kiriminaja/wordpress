@@ -36,21 +36,21 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertSame( 2, $page['total_pages'] );
         $this->assertSame( 35, $page['total'] );
         $this->assertSame( $wpdb->list_results, $page['results'] );
-        $this->assertCount( 2, $wpdb->result_queries );
+        $this->assertCount( 1, $wpdb->result_queries );
 
-        $count_sql = $wpdb->result_queries[0];
-        $list_sql  = $wpdb->result_queries[1];
+        $count_sql = $wpdb->var_queries[0];
+        $list_sql  = $wpdb->result_queries[0];
 
         $this->assertStringContainsString( 'INNER JOIN wp_kiriminaja_transactions', $count_sql );
-        $this->assertStringContainsString( "pickup_number LIKE '%PU-10%'", $count_sql );
-        $this->assertStringContainsString( "created_at LIKE '%2025-02%'", $count_sql );
+        $this->assertStringContainsString( "payment_identity LIKE '%PU-10%'", $count_sql );
+        $this->assertStringContainsString( "created_at LIKE '2025-02%'", $count_sql );
         $this->assertStringContainsString( "status = 'unpaid'", $count_sql );
         $this->assertStringContainsString( 'GROUP BY kiriminaja_payments.pickup_number', $count_sql );
         $this->assertStringContainsString(
             'shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost',
             $list_sql
         );
-        $this->assertStringContainsString( 'ORDER BY kiriminaja_payments.created_at DESC', $list_sql );
+        $this->assertStringContainsString( 'ORDER BY created_at DESC, row_key ASC', $list_sql );
         $this->assertStringContainsString( 'LIMIT 20, 20', $list_sql );
     }
 
@@ -76,14 +76,14 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $query = new WordPressPaymentListQuery( $wpdb );
 
         $this->assertSame(
-            array( 'all' => 7, 'unpaid' => 4, 'paid' => 3 ),
+            array( 'all' => 7, 'unpaid' => 4, 'paid' => 3, 'pending' => 2, 'refunded' => 1 ),
             $query->getStatusCounts()
         );
         $this->assertSame( '2024-03-12 08:00:00', $query->getOldestCreatedAt() );
-        $this->assertStringContainsString( 'COUNT(DISTINCT pickup_number)', $wpdb->var_queries[0] );
+        $this->assertStringContainsString( 'SELECT COUNT(*) FROM (', $wpdb->var_queries[0] );
         $this->assertStringContainsString( "status = 'unpaid'", $wpdb->var_queries[1] );
         $this->assertStringContainsString( "status = 'paid'", $wpdb->var_queries[2] );
-        $this->assertStringContainsString( 'ORDER BY created_at ASC LIMIT 1', $wpdb->var_queries[3] );
+        $this->assertStringContainsString( 'ORDER BY created_at ASC LIMIT 1', $wpdb->var_queries[5] );
     }
 
     #[Test]
@@ -193,6 +193,9 @@ final class PaymentListQueryWpdbFake
         if ( false !== strpos( $sql, 'ORDER BY created_at ASC' ) ) {
             return '2024-03-12 08:00:00';
         }
+        if ( str_contains( $sql, 'payment_identity LIKE' ) ) { return '35'; }
+        if ( false !== strpos( $sql, "status = 'pending'" ) ) { return '2'; }
+        if ( false !== strpos( $sql, "status = 'refunded'" ) ) { return '1'; }
         if ( false !== strpos( $sql, "status = 'unpaid'" ) ) {
             return '4';
         }

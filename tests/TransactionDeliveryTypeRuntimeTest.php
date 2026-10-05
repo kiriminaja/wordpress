@@ -63,6 +63,17 @@ final class TransactionDeliveryTypeRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function instant_payment_identity_filter_is_exact_and_stays_in_instant_partition(): void {
+        foreach ([false, true] as $hpos) {
+            $result = $this->runFixture(['hpos'=>$hpos, 'filters'=>['delivery_type'=>'instant', 'status'=>'all', 'key'=>"ipid:pay'100%_id"]]);
+            $sql = implode("\n", $result['queries']);
+            $this->assertStringContainsString("kiriminaja_transactions.instant_payment_id = 'pay''100%_id'", $sql);
+            $this->assertStringContainsString("delivery_type = 'instant'", $sql);
+            $this->assertStringNotContainsString('pickup_number =', $sql);
+        }
+    }
+
+    #[Test]
     public function invalid_partition_defaults_express_and_instance_scope_and_caches_reset(): void {
         foreach ([null, [], 'Instant', "instant' OR 1=1"] as $value) {
             $result = $this->runFixture(['filters'=>['delivery_type'=>$value]]);

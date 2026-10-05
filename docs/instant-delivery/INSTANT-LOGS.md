@@ -1,5 +1,13 @@
 # Instant checkout logs
 
+## Authenticated processed/payment callbacks and Payments list
+
+The observed `processed_packages` envelope is supported for Instant only with explicit package state `105`, matching courier/service/order/AWB identities, and a valid matching payment ID with paid status (`0`, `"0"`, or `"paid"`). It does not infer readiness from the method name. Known service casing (`Instant`/`instant`) is normalized consistently with booking validation. Whole-batch prevalidation and bearer authentication remain mandatory; unsupported methods, missing metadata and contradictory identities cause no writes. Duplicate/late processed events do not regress shipped or terminal lifecycle state and do not complete the WooCommerce order.
+
+After installing the fix, the provider may retry a previously rejected callback through its normal authenticated mechanism; do not rebook the order. Never paste bearer headers into support logs; rotate any exposed token. Payment QR/private customer payload fields are not included in diagnostics.
+
+The Payments workspace (`kiriminaja-request-pickup`) now reads Instant payment groups directly from persisted transaction `instant_payment_id` metadata alongside legacy Express payments. Instant payment IDs are not Express pickup numbers. Instant rows show durable paid/unpaid/pending/refunded state and a Details link scoped to the Instant partition; they cannot launch Express payment, schedule, print or cancellation flows. Booking success alone never implies paid status. Filters/counts/months/pagination include both sources and use namespaced row identities.
+
 ## Admin “Unknown outcome” booking diagnostics
 
 ### Successful HTTP response rejected during confirmation

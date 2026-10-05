@@ -5,13 +5,16 @@ export type PaymentAction = {
 };
 export type PaymentRow = {
   number: number;
+  rowKey: string;
+  deliveryType: 'express' | 'instant';
+  identity: string;
   pickupNumber: string;
   requestedAt: string;
   schedule: string;
   fees: string;
   orders: number;
   method: string;
-  status: 'paid' | 'unpaid';
+  status: 'paid' | 'unpaid' | 'pending' | 'refunded';
   actions: PaymentAction[];
 };
 export type PaymentsBootstrap = {

@@ -16,6 +16,7 @@ final class InstantWebhookService {
     public function handle( object $body, array $transactions ): array {
         $method = $body->method ?? null;
         $codes = array(
+            'processed_packages' => array( '105' ),
             'shipped_packages' => array( '106' ),
             'finished_packages' => array( '200' ),
             'canceled_packages' => array( '300', '302' ),
@@ -65,6 +66,16 @@ final class InstantWebhookService {
         foreach ( $events as $id => $event ) {
             $package = $packages[ $id ] ?? array();
             $row = $rows[ $id ];
+            // Unlike bare terminal lifecycle hooks, processed is supported only
+            // with explicit ready-for-shipment evidence from the Instant API.
+            // Never infer processing/payment success from the method name alone.
+            if ( 'processed_packages' === $method && (
+                ! isset( $package['service'], $package['service_type'] )
+                || ( ! isset( $payment['id'] ) && ! isset( $payment['payment_id'] ) )
+                || ! in_array( $payment['status_code'] ?? $payment['status'] ?? null, array( 0, '0', 'paid' ), true )
+            ) ) {
+                return $this->invalid( 'Instant processed callback requires package and paid payment evidence' );
+            }
             if ( ! in_array( $row['status'] ?? null, array( 'pending', 'request_pickup', 'shipped', 'finished', 'canceled', 'return', 'returned', 'rejected' ), true ) ) {
                 return $this->invalid( 'Invalid local Instant lifecycle' );
             }
@@ -87,7 +98,8 @@ final class InstantWebhookService {
                     return $this->invalid( 'Invalid Instant AWB' );
                 }
                 foreach ( array( 'service', 'service_type' ) as $field ) {
-                    if ( array_key_exists( $field, $source ) && ( ! is_string( $source[ $field ] ) || trim( $source[ $field ] ) !== trim( (string) ( 'service_type' === $field ? ( $row['service_name'] ?? $row['service_type'] ?? '' ) : ( $row['service'] ?? '' ) ) ) ) ) {
+                    $expected = (string) ( 'service_type' === $field ? ( $row['service_name'] ?? $row['service_type'] ?? '' ) : ( $row['service'] ?? '' ) );
+                    if ( array_key_exists( $field, $source ) && ( 'service_type' === $field ? ! InstantShipmentState::sameServiceType( $source[ $field ], $expected ) : ! is_string( $source[ $field ] ) || trim( $source[ $field ] ) !== trim( $expected ) ) ) {
                         return $this->invalid( 'Instant courier metadata does not match local order' );
                     }
                 }
@@ -113,8 +125,11 @@ final class InstantWebhookService {
             // Metadata is joined by exact order ID, never by payload position.
             $merged = array_merge( $event, $package );
             if ( null === $foundCode ) {
+                if ( 'processed_packages' === $method ) {
+                    return $this->invalid( 'Instant processed callback requires an explicit remote status' );
+                }
                 // Only bare lifecycle events may infer a status in the state writer.
-                foreach ( array( 'service', 'service_type', 'live_tracking_url', 'tracking_url', 'live_tracking' ) as $field ) {
+                foreach ( array( 'service', 'service_type', 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking' ) as $field ) {
                     if ( array_key_exists( $field, $merged ) ) {
                         return $this->invalid( 'Instant metadata requires a remote status' );
                     }

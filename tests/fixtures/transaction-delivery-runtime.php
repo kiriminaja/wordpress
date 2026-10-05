@@ -12,6 +12,7 @@ namespace {
     $temp = sys_get_temp_dir() . '/kiriof-delivery-' . getmypid();
     mkdir($temp . '/wp-admin/includes', 0777, true);
     file_put_contents($temp . '/wp-admin/includes/upgrade.php', '<?php');
+    function sanitize_text_field($value): string { return trim(strip_tags((string) $value)); }
     define('ABSPATH', $temp . '/');
     define('HOUR_IN_SECONDS', 3600);
     foreach (['Base/BaseInit', 'Services/TransactionDeliveryType', 'Contracts/TransactionListQueryInterface', 'Contracts/TransactionPrintRepositoryInterface', 'Queries/WordPressTransactionListQuery', 'Repositories/TransactionRepository', 'Migration/SetupMigration'] as $file) { require_once $root . '/inc/' . $file . '.php'; }

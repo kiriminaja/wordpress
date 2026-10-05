@@ -3,6 +3,49 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantWebhookRuntimeTest extends TestCase {
+    private function processedBody(): array {
+        return array(
+            'method'=>'processed_packages',
+            'data'=>array(array('order_id'=>'A','awb'=>'A-AWB','date'=>'2026-10-05T03:12:22Z')),
+            'payment'=>array('payment_id'=>'PAY-1','status_code'=>0,'amount'=>12000,'qr_content'=>'fixture-qr','pay_time'=>'2026-10-05T03:12:23.446201Z'),
+            'packages'=>array(array('order_id'=>'A','awb'=>'A-AWB','service'=>'gosend','service_type'=>'Instant','status'=>105,'live_tracking_url'=>null,'poly_line'=>'~pfn@c|t`TZw@z@`@')),
+        );
+    }
+
+    #[Test]
+    public function observed_processed_envelope_routes_to_instant_not_express_and_matches_service_casing(): void {
+        $body = $this->processedBody();
+        $r = $this->runFixture(array('body'=>$body,'rows'=>array(array('order_id'=>'A','service'=>'gosend','instant_payment_id'=>'PAY-1'))));
+        $this->assertSame(200, $r['status']);
+        $this->assertCount(1, $r['calls']);
+        $this->assertSame('processed_packages', $r['calls'][0]['method']);
+        $this->assertSame(105, $r['calls'][0]['package']['status']);
+        $this->assertSame(0, $r['calls'][0]['payment']['status_code']);
+        $this->assertSame(array(), $r['writes']);
+        $this->assertSame(0, $r['payment_calls']);
+        $this->assertSame(401, $this->runFixture(array('body'=>$body,'token'=>'bad'))['status']);
+    }
+
+    #[Test]
+    public function processed_requires_complete_noncontradictory_paid_instant_evidence_before_any_write(): void {
+        $body = $this->processedBody();
+        $cases = array();
+        $case=$body; unset($case['packages']); $cases[]=$case;
+        $case=$body; unset($case['payment']); $cases[]=$case;
+        $case=$body; unset($case['packages'][0]['status']); $cases[]=$case;
+        $case=$body; $case['packages'][0]['status']=106; $cases[]=$case;
+        $case=$body; $case['data'][0]['status']=100; $cases[]=$case;
+        $case=$body; $case['payment']['status_code']=9; $cases[]=$case;
+        $case=$body; $case['packages'][0]['service_type']='sameday'; $cases[]=$case;
+        $case=$body; $case['payment']['payment_id']='WRONG'; $cases[]=$case;
+        $case=$body; $case['packages'][0]['awb']='OTHER'; $cases[]=$case;
+        foreach($cases as $case) {
+            $r=$this->runFixture(array('body'=>$case,'rows'=>array(array('order_id'=>'A','service'=>'gosend','instant_payment_id'=>'PAY-1'))));
+            $this->assertSame(400,$r['status']);
+            $this->assertSame(array(),$r['calls']);
+            $this->assertSame(0,$r['payment_calls']);
+        }
+    }
     private function runFixture(array $input = []): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-webhook-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string)$output, true, 512, JSON_THROW_ON_ERROR);
@@ -41,7 +84,7 @@ final class InstantWebhookRuntimeTest extends TestCase {
 
     #[Test]
     public function unsupported_express_methods_are_rejected_for_instant(): void {
-        foreach (['processed_packages', 'validated_packages', 'returned_packages', 'rejected_packages', 'return_finished_packages'] as $method) {
+        foreach (['validated_packages', 'returned_packages', 'rejected_packages', 'return_finished_packages'] as $method) {
             $result = $this->runFixture(['body'=>['method'=>$method, 'data'=>[['order_id'=>'A'], ['order_id'=>'B']]]]);
             $this->assertSame(400, $result['status']);
             $this->assertSame([], $result['calls']);

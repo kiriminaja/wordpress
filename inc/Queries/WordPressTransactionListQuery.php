@@ -124,7 +124,12 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
         $key_clause = '';
         if ('' !== $key) {
-            if (0 === strpos($key, 'pid:')) {
+            if ( 'instant' === $this->delivery_type && 0 === strpos( $key, 'ipid:' ) ) {
+                $key_clause = $wpdb->prepare(
+                    'AND kiriminaja_transactions.instant_payment_id = %s',
+                    sanitize_text_field( substr( $key, 5 ) )
+                );
+            } elseif (0 === strpos($key, 'pid:')) {
                 $pickup_number = sanitize_text_field(substr($key, 4));
                 $key_clause = $wpdb->prepare(
                     'AND kiriminaja_transactions.pickup_number = %s',
