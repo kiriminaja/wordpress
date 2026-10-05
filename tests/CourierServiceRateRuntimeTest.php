@@ -26,7 +26,7 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		}
 		// A pre-policy cache must be recalculated, even when the pair remains enabled.
 		$this->assertSame( array(), $result['allowed_legacy_context']['fees'] );
-		$this->assertSame( array( 'jne' => array( 'REG' ) ), $result['allowed_legacy_context']['context']['courier_services'] );
+		$this->assertArrayNotHasKey( 'courier_services', $result['allowed_legacy_context']['context'] );
 		$this->assertSame( 0, $result['network_calls'] );
 	}
 
@@ -62,9 +62,8 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 			$this->assertSame( array(), $result[ $key ]['data'] );
 		}
 		$this->assertSame( 0, $result['guard_coupon_reads'] );
-		$this->assertSame( 200, $result['allowed']['status'] );
-		$this->assertSame( 0, $result['allowed']['data']['calculation_result']['ongkir_fee_amt'] );
-		$this->assertSame( 'REG23', $result['allowed']['data']['calculation_result']['selected_expedition']['service_type'] );
+		// A coupon cannot synthesize an enabled quote when the carrier has none.
+		$this->assertSame( 400, $result['allowed']['status'] );
 	}
 
 	public function test_package_rate_cache_changes_for_different_service_on_same_courier_without_network(): void {

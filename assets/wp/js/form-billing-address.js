@@ -27,7 +27,16 @@
         var kiriofPendingShippingMethod = '';
         var kiriofPendingShippingMethodAt = 0;
 
+        // Yield only on an enabled Classic checkout, never on cart/account/Blocks.
+        function kiriofUsesClassicCheckout() {
+            return !!(window.kiriofClassicCheckoutConfig && window.kiriofClassicCheckoutConfig.enabled && document.querySelector('form.checkout'));
+        }
+
         jQuery(document).ready(function($) {
+            if (kiriofUsesClassicCheckout()) {
+                kiriofSyncClassicAddressFields();
+                return;
+            }
             if (kiriofBillingAddressConfig.globalInsurance) {
             // Global insurance forced — check and disable the checkbox
             var $ins = jQuery('#kiriof_insurance, #kiriof_shipping_insurance');
@@ -90,6 +99,9 @@
         }); 
 
         function kiriofInitBlockCheckoutCompatibility() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             if (window.kiriofBuyerCheckout && window.kiriofBuyerCheckout.pending) {
                 window.kiriofBuyerCheckout.ready.then(function(active) {
                     if (!active) { kiriofInitBlockCheckoutCompatibility(); }
@@ -1809,15 +1821,17 @@
 
             jQuery.each(['billing', 'shipping'], function(_, addressType) {
                 var isIndonesia = kiriofGetClassicAddressCountry(addressType) === 'ID';
-                var districtId = addressType === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
-                var $district = jQuery('#' + districtId);
-                $district.prop('disabled', !isIndonesia).prop('required', isIndonesia).attr('aria-required', String(isIndonesia));
-                var $districtRow = $district.closest('.form-row');
-                $districtRow.toggleClass('kiriof-classic-address-hidden', !isIndonesia).toggleClass('validate-required', isIndonesia);
-                $districtRow.find('label .optional').toggle(!isIndonesia);
-                $districtRow.find('label .required').toggle(isIndonesia);
-                if (isIndonesia && !$districtRow.find('label .required').length) {
-                    $districtRow.find('label').append('&nbsp;<span class="required" aria-hidden="true">*</span>');
+                if (!kiriofUsesClassicCheckout()) {
+                    var districtId = addressType === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+                    var $district = jQuery('#' + districtId);
+                    $district.prop('disabled', !isIndonesia).prop('required', isIndonesia).attr('aria-required', String(isIndonesia));
+                    var $districtRow = $district.closest('.form-row');
+                    $districtRow.toggleClass('kiriof-classic-address-hidden', !isIndonesia).toggleClass('validate-required', isIndonesia);
+                    $districtRow.find('label .optional').toggle(!isIndonesia);
+                    $districtRow.find('label .required').toggle(isIndonesia);
+                    if (isIndonesia && !$districtRow.find('label .required').length) {
+                        $districtRow.find('label').append('&nbsp;<span class="required" aria-hidden="true">*</span>');
+                    }
                 }
 
                 jQuery.each(['city', 'company', 'postcode', 'state'], function(_, fieldName) {
@@ -1845,6 +1859,9 @@
         jQuery(document).on('change.kiriofClassicAddress', '#billing_country, #shipping_country', kiriofSyncClassicAddressFields);
 
         function kiriofRestoreClassicDistrictSelections() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             kiriofRestoreClassicDistrictSelection(
                 jQuery('#kiriof_destination_area'),
                 kiriofBillingAddressConfig.billingDistrict || {},
@@ -1858,6 +1875,9 @@
         }
 
         function kiriofRestoreClassicDistrictSelection($select, district, $nameField) {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             var addressType = $select.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
             if (kiriofBillingAddressConfig.isCheckout && kiriofGetClassicAddressCountry(addressType) !== 'ID') {
                 return;
@@ -1888,6 +1908,9 @@
         }
 
         function changeDistrict(){
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             
             let kelurahanArea = "select#" + (kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area') + ",select#kiriof_shipping_destination_area";
             
@@ -2011,6 +2034,9 @@
          * Get Kelurahan by search key up New
          */
         function getSearchAreaKelurahan(){
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             let subDistrictSelectElem = jQuery(`[name="${kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area'}"],[name=kiriof_shipping_destination_area]`); 
             let ajaxurl = (typeof kiriofAjax !== 'undefined' && kiriofAjax.ajaxurl)
                 ? kiriofAjax.ajaxurl
@@ -2122,6 +2148,9 @@
         }
 
         jQuery(document.body).on('updated_checkout', function() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             if ( kiriofTriggeredInitialShippingUpdate ) {
                 return false;
             }
@@ -2139,6 +2168,9 @@
         }); 
 
         jQuery(document.body).one('updated_checkout', function() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             /**
              * set chosen shipping method from local storage
              * remove local storage
@@ -2156,6 +2188,9 @@
 
 
         function kiriofChangeCodPayment(){
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             jQuery(document)
                 .off('change.kiriofPaymentRefresh', '[name="payment_method"], #kiriof_insurance, #kiriof_shipping_insurance')
                 .on('change.kiriofPaymentRefresh', '[name="payment_method"], #kiriof_insurance, #kiriof_shipping_insurance', function() {
@@ -2167,6 +2202,9 @@
         }
 
         function kiriofChangeDifferentAddress(){
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             jQuery(document)
                 .off('change.kiriofDifferentAddress', '[name="ship_to_different_address"]')
                 .on('change.kiriofDifferentAddress', '[name="ship_to_different_address"]', function() {
@@ -2183,6 +2221,9 @@
         }
 
         function kiriofInitClassicShippingMethodSelect() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             var select2 = jQuery.fn.selectWoo || jQuery.fn.select2;
 
             jQuery('.kiriof-classic-shipping-method-select').each(function() {
@@ -2212,6 +2253,9 @@
         }
 
         function kiriofScheduleClassicShippingMethodSelectInit() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             kiriofInitClassicShippingMethodSelect();
 
             jQuery.each([50, 250, 750], function(_, delay) {
@@ -2228,6 +2272,9 @@
         jQuery(document)
             .off('change.kiriofClassicShippingMethodSelect', '.kiriof-classic-shipping-method-select')
             .on('change.kiriofClassicShippingMethodSelect', '.kiriof-classic-shipping-method-select', function() {
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
                 var $select = jQuery(this);
                 var selectedMethod = String($select.val() || '');
                 var index = String($select.data('index') || '0');
@@ -2256,6 +2303,9 @@
         }
 
         function kiriofHandleCodInsurance(){
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             if ( kiriofUpdatingCheckoutLock ) {
                 kiriofPendingFeeRefresh = true;
                 return;
@@ -2670,6 +2720,9 @@
         }
 
         function kiriofCodInsurance(){
+            if (kiriofUsesClassicCheckout()) {
+                return;
+            }
             if (window.kiriofBuyerCheckout && window.kiriofBuyerCheckout.pending) {
                 return;
             }

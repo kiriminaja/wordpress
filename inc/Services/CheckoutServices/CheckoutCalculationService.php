@@ -86,35 +86,7 @@ class CheckoutCalculationService extends BaseService{
             return self::error([],'Terjadi Kesalahan!');
         }
 
-        // Classic checkout retains its historical free-shipping shortcut. Blocks
-        // final validation must obtain the real enabled carrier quote first: a
-        // coupon waives delivery, not the carrier's insurance or COD charges.
-        // Buyer coupon pricing is applied later by the Blocks validator only.
-        if ( empty( $this->payload['blocks_quote_validation'] ) && $this->hasActiveFreeShippingCoupon() ) {
-            $this->selectedExpedition = (object) [
-                'cost' => 0,
-                'discount_amount' => 0,
-                'discount_percentage' => 0,
-                'service' => $this->expeditionParts[0] ?? '',
-                'service_type' => $this->expeditionParts[1] ?? '',
-                'setting' => (object) [
-                    'cod_fee_amount' => 0,
-                    'minimum_cod_fee' => 0,
-                ],
-            ];
-
-            $checkoutCalculation = $this->checkoutCalculation();
-
-            return self::success([
-                'cart'                  => $this->carts,
-                'pricing'               => null,
-                'payload'               => $this->payload,
-                'calculation_result'    => $checkoutCalculation,
-                'carts_attribute'       => $cartAttributes->data,
-                'pricing_payload'       => [],
-            ]);
-        }
-        
+        // Coupons waive buyer delivery only; always obtain real carrier fees.
         $courier = $this->expeditionParts[0];
         $pricingPayload = [
             'subdistrict_origin'        => $originDistrict,

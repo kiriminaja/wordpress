@@ -250,7 +250,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 /* Auto-refresh is one segmented control: the button owns the left edge and
    the popover trigger owns the adjoining chevron edge. */
 .kiriof-auto-refresh {
-  @apply !shrink-0 !gap-0 !m-0 !border !border-border !rounded-[var(--radius)] !bg-white !p-0 !shadow-none !overflow-hidden;
+  @apply !box-border !h-[34px] !min-h-[34px] !items-stretch !shrink-0 !gap-0 !m-0 !border !border-solid !border-border !rounded-[var(--radius)] !bg-white !p-0 !shadow-none !overflow-hidden;
 }
 /* Child borders belong to the group, not to each segment. */
 .kiriof-auto-refresh > [data-slot='button']:first-child {
@@ -262,7 +262,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
 }
 .kiriof-auto-refresh > [data-slot='button'],
 .kiriof-auto-refresh > .kiriof-auto-refresh__chevron {
-  @apply !inline-flex !items-center !justify-center ![vertical-align:middle] !leading-none !text-center !box-border !min-h-8 ![height:34px] !m-0 !bg-white !text-foreground ![font-size:13px] !shadow-none;
+  @apply !inline-flex !items-center !justify-center ![vertical-align:middle] !leading-none !text-center !box-border !min-h-0 !h-full !m-0 !bg-white !text-foreground ![font-size:13px] !shadow-none;
 }
 .kiriof-auto-refresh > [data-slot='button']:hover:not(:disabled),
 .kiriof-auto-refresh > .kiriof-auto-refresh__chevron:hover:not(:disabled) {

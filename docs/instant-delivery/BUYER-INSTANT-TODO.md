@@ -2,6 +2,15 @@
 
 Status: Buyer quote/order implementation and local regression coverage implemented; live release gates remain open.
 
+## Classic checkout parity and safe reactivation
+
+- Classic shortcode checkout uses native theme address fields and visible WooCommerce courier radios, with service descriptions and supplied ETA/hour wording. Cart-only dropdown behavior remains separate.
+- A Classic adapter shares the serialized session queue and bundled Leaflet map primitives with Blocks. Districts are resolved by postcode; canonical v1/v2 destination JSON is posted natively as `kiriof_buyer_destination_snapshot`. Pins bind to exactly six effective shipping-address fields. Billing/separate-shipping changes, country/postcode changes and stale geolocation/lookup responses cannot reuse an invalid pin.
+- Explicit insurance off is sent as `0` (not truthy `"false"`); payment/insurance/rate changes serialize, mutation requests are not canceled, and Woo update events do not create loops. Pending/failed saves block submission; Instant additionally requires a valid pin. Virtual/local-pickup checkouts do not require district/map controls.
+- Classic final Express validation uses the same exact rate/fees/total guard and durable verified transaction persistence as Blocks, rather than repricing after order creation. Posted Instant clear/tampering cannot silently revive an older session pin. Real carrier fee calculation remains in force even with shipping coupons.
+- Activation no longer switches `woocommerce_custom_orders_table_enabled` or replaces existing cart/checkout content. HPOS/legacy storage and configured Classic/Blocks pages remain merchant-owned, including when orders are out of sync. Existing pages are not restored automatically if an older activation already overwrote them; restore those from revisions/backups.
+- Offline regression coverage includes actual Classic adapter scripts, serialized mutations, stale callbacks, fee/order persistence, native radios, and activation under a simulated WooCommerce out-of-sync guard. Installed classic-theme/browser, real quotes/payments/bookings, and gateway compatibility remain release gates; no live readiness is implied.
+
 Scope: Classic Checkout, Checkout Blocks, buyer destination, separate Instant pricing, and order/transaction persistence.
 
 ## Implemented

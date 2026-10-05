@@ -25,21 +25,22 @@ class AdminPost
             return;
         }
         if( kiriof_check_woocommerce() ){
-            if( empty(self::checkPageExist('checkout')) ){
+            if ( $this->hasConfiguredPage( 'woocommerce_checkout_page_id' ) ) {
+                // Preserve the merchant's chosen page and Classic/Blocks content.
+            } elseif( empty(self::checkPageExist('checkout')) ){
                 self::createPageKiriminaja();
             }else{
-                self::updatePage(self::checkPageExist('checkout')->ID,'[woocommerce_checkout]');
                 self::setPageCheckoutWoocommerce(self::checkPageExist('checkout')->ID);
             }
             $this->ensureTrackingPage();
-            if( empty(self::checkPageExist('cart')) ){
+            if ( $this->hasConfiguredPage( 'woocommerce_cart_page_id' ) ) {
+                // Existing page selection is not owned by plugin activation.
+            } elseif( empty(self::checkPageExist('cart')) ){
                 self::createPageCartKiriminaja();
             }else{
-                self::updatePage(self::checkPageExist('cart')->ID,'[woocommerce_cart]');
                 self::setPageCartWoocommerce(self::checkPageExist('cart')->ID);
             }
             
-            self::setLegacyWoocommerceKiriminaja();
             self::setShippingCalculateCartWoocommerce();
             self::setShippingCodEnabled();            
         }
@@ -117,6 +118,10 @@ class AdminPost
     private function checkPageExist($slug){
         return get_page_by_path($slug);
     }
+    private function hasConfiguredPage( string $option ): bool {
+        $page = get_post( absint( get_option( $option, 0 ) ) );
+        return $page && 'page' === $page->post_type && ! in_array( $page->post_status, array( 'trash', 'auto-draft' ), true );
+    }
     private function getTrackingPageByShortcode(){
         return $this->tracking_page_repository->findPreferredTrackingShortcodePage();
     }
@@ -143,10 +148,6 @@ class AdminPost
         );
       
         wp_update_post( $args );
-    }
-    /** set Legacy Woocommerce Kiriminaja */
-    private function setLegacyWoocommerceKiriminaja(){
-        update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
     }
     /** Set Shipping Woocommerce Calculate Shipping Cart */
     private function setShippingCalculateCartWoocommerce(){

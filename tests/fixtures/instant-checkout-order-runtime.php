@@ -14,6 +14,7 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
     class RouteException extends \RuntimeException { public int $status; public function __construct($code, $message, $status) { parent::__construct($message); $this->status = $status; } }
 }
 namespace {
+    function wp_unslash($value) { return $value; }
     // Reuse the isolated live quote doubles, with output buffered, not production APIs.
     $argv[1] = json_encode(['scenario' => in_array($argv[2] ?? '', ['example_total', 'zero_admin', 'zero_price'], true) ? $argv[2] : '']);
     ob_start();
@@ -151,7 +152,12 @@ namespace {
     $controller->addAdminFee($cartFees);
     $controller->addAdminFee($cartFees);
     $wc->packages[0]['rates'] = $savedRates;
-    try { if ($scenario === 'classic') { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
+    if (strpos($scenario,'classic_') === 0) {
+        $_POST['kiriof_buyer_destination_snapshot'] = json_encode($destination);
+        if ($scenario === 'classic_clear') $_POST['kiriof_buyer_destination_snapshot'] = json_encode(array('version'=>1,'district_id'=>'','district_label'=>'','country'=>'ID','postcode'=>'12345','address_type'=>'shipping'));
+        if ($scenario === 'classic_tamper') { $changed=$destination; $changed['destination_latitude']='-6.4'; $_POST['kiriof_buyer_destination_snapshot']=json_encode($changed); }
+    }
+    try { if ($scenario === 'classic' || strpos($scenario,'classic_') === 0) { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
     if ($error === '') {
         if ($scenario === 'processed_currency') { $order->currency = 'USD'; }
         if ($scenario === 'processed_shipping_tax') { $line->tax = 100; }

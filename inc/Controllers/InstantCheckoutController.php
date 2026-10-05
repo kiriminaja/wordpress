@@ -138,6 +138,17 @@ class InstantCheckoutController {
 			}
 			if ( $classic ) {
 				$raw = $wc->session->get( 'kiriof_buyer_destination', null );
+				// Native WooCommerce checkout verifies its nonce before this hook.
+				// A posted clear/edit must not silently reuse an older session pin.
+				if ( isset( $_POST['kiriof_buyer_destination_snapshot'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+					if ( ! is_string( $_POST['kiriof_buyer_destination_snapshot'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+						throw new \InvalidArgumentException( 'destination_invalid' );
+					}
+					$posted = json_decode( wp_unslash( $_POST['kiriof_buyer_destination_snapshot'] ), true ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated immediately by the strict destination schema.
+					if ( BuyerDestination::normalize( $posted ) !== BuyerDestination::normalize( $raw ) ) {
+						throw new \InvalidArgumentException( 'destination_changed' );
+					}
+				}
 			} else {
 				$extensions = $request->get_param( 'extensions' );
 				$raw = $extensions['kiriminaja-official']['destination'] ?? null;

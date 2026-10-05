@@ -21,20 +21,22 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
 }
 namespace {
     define( 'EXPRESS_CONTROLLER_INTEGRATION', true );
-    define( 'REST_REQUEST', true );
+    define( 'REST_REQUEST', ! defined( 'CLASSIC_CONTROLLER_INTEGRATION' ) );
     $scenario = $argv[1] ?? 'success';
     require __DIR__ . '/express-checkout-validation-runtime.php';
     $GLOBALS['mode'] = 'valid';
     $GLOBALS['customer_saves'] = 0;
     $GLOBALS['transactions'] = array();
     $GLOBALS['wp'] = (object) array( 'query_vars' => array( 'rest_route' => '/wc/store/v1/checkout' ) );
+    function wp_unslash( $value ) { return $value; }
     function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
     function add_action( $hook, $callback, $priority = 10, $accepted = 1 ) { $GLOBALS['hooks'][$hook][] = array( $callback, $accepted ); }
     function do_action( $hook, ...$args ) {
         foreach ( $GLOBALS['hooks'][$hook] ?? array() as [$callback, $accepted] ) { $callback( ...array_slice( $args, 0, $accepted ) ); }
     }
     class WP_REST_Request {
-        public function __construct( private array $params ) {}
+        public function __construct( private array $params = array() ) {}
+        public function set_param( $key, $value ) { $this->params[$key] = $value; }
         public function get_params() { return $this->params; }
         public function get_param( $key ) { return $this->params[$key] ?? null; }
     }
@@ -91,15 +93,50 @@ namespace {
         'district_id' => '123', 'district_label' => 'Buyer supplied label', 'postcode' => '12345', 'country' => 'ID', 'address_type' => 'shipping', 'version' => 1,
     ) ) ) ) );
     $result = array();
+    if ( defined( 'CLASSIC_CONTROLLER_INTEGRATION' ) ) {
+        $destination = $request->get_param( 'extensions' )['kiriminaja-official']['destination'];
+        if ( 'clear' === $scenario ) { $destination['district_id'] = ''; $destination['district_label'] = ''; }
+        if ( 'tamper' === $scenario ) { $destination['postcode'] = '99999'; }
+        if ( in_array( $scenario, array( 'pin', 'pin-tamper', 'session-pin' ), true ) ) {
+            $destination['version'] = 2;
+            $destination['destination_latitude'] = '-6.2';
+            $destination['destination_longitude'] = '106.8';
+            foreach ( \KiriminAjaOfficial\Services\BuyerDestination::ADDRESS_FIELDS as $field ) {
+                $getter = 'get_shipping_' . $field;
+                $destination['shipping_address'][$field] = $order->$getter();
+            }
+            if ( 'pin-tamper' === $scenario ) { $destination['shipping_address']['address_1'] = 'Different street'; }
+        }
+        $_POST = array( 'kiriof_insurance' => 'unchecked' === $scenario ? '0' : '1' );
+        if ( in_array( $scenario, array( 'billing', 'shipping', 'session-pin' ), true ) ) {
+            $shipping = 'shipping' === $scenario;
+            $_POST['ship_to_different_address'] = $shipping ? '1' : '0';
+            $_POST[$shipping ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'] = '123';
+            $_POST[$shipping ? 'kiriof_shipping_destination_area_name' : 'kiriof_destination_area_name'] = 'Buyer label';
+            // Opposite address is stale and must not win.
+            $_POST[$shipping ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area'] = '999';
+            if ( 'session-pin' === $scenario ) { WC()->session->set( 'kiriof_buyer_destination', $destination ); }
+        } else {
+            $_POST['kiriof_buyer_destination_snapshot'] = json_encode( $destination );
+        }
+        if ( 'fee' === $scenario ) { $GLOBALS['mode'] = 'fee'; }
+        add_action( 'woocommerce_checkout_create_order', array( $controller, 'afterCheckoutBeforeCreated' ), 10, 2 );
+        add_action( 'woocommerce_checkout_order_processed', array( $controller, 'afterCheckoutAfterCreated' ), 10, 3 );
+    }
     try {
-        do_action( 'woocommerce_store_api_checkout_update_order_from_request', $order, $request );
+        if ( defined( 'CLASSIC_CONTROLLER_INTEGRATION' ) ) {
+            do_action( 'woocommerce_checkout_create_order', $order, array() );
+        } else {
+            do_action( 'woocommerce_store_api_checkout_update_order_from_request', $order, $request );
+        }
         $result['validated_meta'] = $order->meta;
         $result['amount_before'] = $order->get_total();
         if ( 'failure' === $scenario || 'retry' === $scenario ) { $GLOBALS['transaction_status'] = 500; }
         if ( 'throw' === $scenario ) { $GLOBALS['transaction_throw'] = true; }
         if ( in_array( $scenario, array( 'pending', 'pending-conflict' ), true ) ) { $GLOBALS['existing_transaction'] = (object) array( 'status' => 'pending' ); }
         if ( 'pending-conflict' === $scenario ) { $GLOBALS['transaction_status'] = 503; }
-        do_action( 'woocommerce_store_api_checkout_order_processed', $order );
+        if ( defined( 'CLASSIC_CONTROLLER_INTEGRATION' ) ) { do_action( 'woocommerce_checkout_order_processed', 42, array(), $order ); }
+        else { do_action( 'woocommerce_store_api_checkout_order_processed', $order ); }
     } catch ( \Throwable $error ) {
         $result['error'] = array( 'class' => get_class( $error ), 'code' => $error->errorCode ?? null, 'status' => $error->status ?? null, 'message' => $error->getMessage() );
         $result['failure_meta'] = $order->meta;

@@ -322,7 +322,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $changeBody = substr($script, $changeStart, 6200);
         $feeRefreshStart = strpos($script, 'function kiriofCodInsurance()');
         $this->assertNotFalse($feeRefreshStart, 'Classic fee refresh handler must exist');
-        $feeRefreshBody = substr($script, $feeRefreshStart, 7600);
+        $feeRefreshBody = substr($script, $feeRefreshStart);
 
         $this->assertStringContainsString(
             'function kiriofExtractJsonResponseText(raw)',
@@ -869,7 +869,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = self::billingAddressTemplateContent();
         $start = strpos($content, 'function kiriofCodInsurance()');
         $this->assertNotFalse($start, 'Block checkout COD/insurance recalculation function must exist');
-        $functionBody = substr($content, $start, 5200);
+        $functionBody = substr($content, $start);
 
         $extensionPosition = strpos($functionBody, 'kiriofBlockExtensionCartUpdate(data);');
         $ajaxPosition = strpos($functionBody, 'jQuery.ajax({');
@@ -2390,12 +2390,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $normalizerBody = substr($controller, $normalizerStart, strpos($controller, 'private function kiriof_get_checkout_posted_address', $normalizerStart) - $normalizerStart);
 
         foreach (array(
-            "kiriof_get_session_text_field( 'kiriof_destination_area' )" => 'Normalizer must read the plugin checkout district session value',
-            "kiriof_get_session_text_field( 'destination_id' )" => 'Normalizer must fall back to the classic destination session value',
-            "kiriof_get_session_text_field( 'shipping_destination_id' )" => 'Normalizer must fall back to the shipping destination session value',
-            "kiriof_set_posted_text_field_if_empty( \$this->field_destination_key, \$destination )" => 'Normalizer must refill the billing District POST key',
-            "kiriof_set_posted_text_field_if_empty( \$this->field_shipping_destination_key, \$destination )" => 'Normalizer must refill the shipping District POST key when shipping to a different address',
-            "\$_POST['kiriof_checkout_token'] = '1';" => 'Normalizer must avoid a stale empty checkout token when a district is already saved',
+            "array_key_exists( \$field, \$_POST )" => 'Explicit district clears must win',
+            "kiriof_buyer_destination_snapshot" => 'Canonical posted snapshots must win',
+            "'kiriof_buyer_destination'" => 'Only canonical session history may restore omitted fields',
+            "shipping_address" => 'Pins must be bound to the effective address',
         ) as $needle => $message) {
             $this->assertStringContainsString($needle, $normalizerBody, $message);
         }
@@ -2766,7 +2764,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'echo \'<input type="hidden" name="\' . esc_attr( $this->field_insurance_key ) . \'" value="1">\';',
+            "( \$force_insurance ? '1' : '0' )",
             $controller,
             'Forced insurance should keep posting a hidden kiriof_insurance value while the visible checkbox is disabled'
         );
@@ -2813,7 +2811,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     }
 
     #[Test]
-    public function classic_cart_and_checkout_shipping_methods_use_generic_select2_dropdown(): void
+    public function classic_cart_keeps_dropdown_but_checkout_uses_native_shipping_radios(): void
     {
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
@@ -2876,9 +2874,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '$kiriof_use_classic_shipping_select = 1 < count( $available_methods );',
+            '$kiriof_use_classic_shipping_select = $kiriof_is_cart_totals_shipping && 1 < count( $available_methods );',
             $cartShipping,
-            'Classic shipping template should render the enhanced carrier dropdown whenever multiple rates are available'
+            'Only cart totals may replace multiple shipping radios with an enhanced dropdown'
         );
 
         $this->assertStringContainsString(
@@ -2908,7 +2906,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             'class="wc-enhanced-select kiriof-classic-shipping-method-select"',
             $cartShipping,
-            'Classic checkout should render a WooCommerce enhanced Select2-compatible shipping method select'
+            'Classic cart should retain its WooCommerce enhanced shipping method select'
         );
 
         $this->assertStringContainsString(
@@ -3037,7 +3035,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertStringContainsString(
             '.kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Classic cart and checkout should visually collapse the original radio list when the dropdown is active'
+            'Only cart shipment rows should collapse the radio list when the dropdown is active'
         );
 
         $this->assertStringContainsString(
@@ -3047,9 +3045,9 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '.kj-cart-total .kiriof-shipping-methods-list--enhanced',
+            '.kiriof-cart-shipment-row .kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Classic cart should visually collapse the original radio list even when themes omit the woocommerce-cart body class'
+            'Cart-only hiding should work when themes omit the woocommerce-cart body class'
         );
 
         $this->assertStringContainsString(

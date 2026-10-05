@@ -170,7 +170,8 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     #[DataProvider( 'normalizationCases' )]
     public function normalization_only_populates_indonesian_destinations( array $post, array $session, array $checkout, array $expected ): void {
         $result = $this->runFixture( array( 'action' => 'normalize', 'post' => $post, 'session' => $session, 'checkout_values' => $checkout ) );
-        $this->assertSame( $expected, $result['post'] );
+        // Legacy session history must not populate final posted fields or revive clears.
+        $this->assertSame( $post, $result['post'] );
     }
 
     public static function normalizationCases(): array {

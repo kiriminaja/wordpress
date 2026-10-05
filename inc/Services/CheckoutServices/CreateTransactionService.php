@@ -65,6 +65,14 @@ class CreateTransactionService extends BaseService{
     
     
     public function call(){
+        // Classic and Store API share the durable quote. A replay must never
+        // fall back to historical repricing merely because a caller lost its flag.
+        if ( empty( $this->payload['blocks_validated'] ) && function_exists( 'wc_get_order' ) && ! empty( $this->payload['order_id'] ) ) {
+            $order = wc_get_order( $this->payload['order_id'] );
+            if ( $order && is_array( $order->get_meta( '_kiriof_express_validated', true ) ) ) {
+                $this->payload['blocks_validated'] = true;
+            }
+        }
         if ( ! empty( $this->payload['blocks_validated'] ) ) {
             return $this->callVerifiedExpress();
         }

@@ -492,6 +492,21 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         return array_values( array_unique( $codes ) );
     }
 
+    /** Global delivery-tab totals, using the same shippable/order scope as All. */
+    public function getDeliveryCounts(): array {
+        $active_delivery = $this->delivery_type;
+        try {
+            $this->delivery_type = 'express';
+            $regular_count = $this->getCountByPostStatus( null );
+            $this->delivery_type = 'instant';
+            $instant_count = $this->getCountByPostStatus( null );
+        } finally {
+            // Counting the other tab must not change later queries or filters.
+            $this->delivery_type = $active_delivery;
+        }
+        return array( 'regular' => $regular_count, 'instant' => $instant_count );
+    }
+
     public function getStatusCounts(): array {
         return array(
             'all'           => $this->getCountByPostStatus( null ),

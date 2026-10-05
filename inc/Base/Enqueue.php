@@ -303,6 +303,58 @@ class Enqueue extends BaseInit{
         }
     }
 
+    /** Register Classic checkout without a dependency on WooCommerce Blocks APIs. */
+    public function register_classic_checkout_assets( bool $localize = false ): void {
+        $scripts = array(
+            'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
+            'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
+            'kiriof-classic-checkout-core' => array( 'assets/wp/js/kiriof-classic-checkout-core.js', array( 'kiriof-checkout-session' ) ),
+            'kiriof-map-checkout-classic' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-checkout-session', 'kiriof-leaflet' ) ),
+            'kiriof-classic-checkout' => array( 'assets/wp/js/kiriof-classic-checkout.js', array( 'jquery', 'kiriof-classic-checkout-core', 'kiriof-map-checkout-classic' ) ),
+        );
+        foreach ( $scripts as $handle => $asset ) {
+            if ( ! wp_script_is( $handle, 'registered' ) ) {
+                $asset_path = KIRIOF_DIR . $asset[0];
+                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
+            }
+        }
+        if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
+            wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+        }
+        $styles = array(
+            'kiriof-buyer-checkout' => array( 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet' ) ),
+            'kiriof-classic-checkout' => array( 'assets/wp/css/kiriof-classic-checkout.css', array( 'kiriof-buyer-checkout' ) ),
+        );
+        foreach ( $styles as $handle => $asset ) {
+            if ( ! wp_style_is( $handle, 'registered' ) ) {
+                $asset_path = KIRIOF_DIR . $asset[0];
+                wp_register_style( $handle, $this->plugin_url . $asset[0], $asset[1], file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+            }
+        }
+        if ( $localize ) {
+            $data = wp_scripts()->get_data( 'kiriof-classic-checkout', 'data' );
+            if ( ! is_string( $data ) || false === strpos( $data, 'kiriofClassicCheckoutConfig' ) ) {
+                $config = $this->buyer_checkout_config();
+                // Classic checkout does not require Store API registration support.
+                $config['enabled'] = true;
+                $config['needsShipping'] = function_exists( 'WC' ) && WC() && WC()->cart ? WC()->cart->needs_shipping() : true;
+                wp_localize_script( 'kiriof-classic-checkout', 'kiriofClassicCheckoutConfig', $config );
+            }
+            $map_data = wp_scripts()->get_data( 'kiriof-map-checkout-classic', 'data' );
+            if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
+                wp_localize_script( 'kiriof-map-checkout-classic', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+            }
+        }
+    }
+
+    /** Only the editable shortcode checkout is owned by the Classic adapter. */
+    private function isClassicCheckoutPage(): bool {
+        return function_exists( 'is_checkout' ) && is_checkout()
+            && ! $this->isBlockCartOrCheckoutPage()
+            && ! ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-received' ) );
+    }
+
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
         // Only load on pages where the plugin's UI actually runs: cart, checkout,
@@ -345,7 +397,7 @@ class Enqueue extends BaseInit{
         wp_register_script(
             'kiriof-form-billing-address',
             $this->plugin_url . 'assets/wp/js/form-billing-address.js',
-            $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : array( 'kiriof-script' ),
+            $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : ( $this->isClassicCheckoutPage() ? array( 'kiriof-script', 'kiriof-classic-checkout' ) : array( 'kiriof-script' ) ),
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
@@ -407,6 +459,13 @@ class Enqueue extends BaseInit{
                     ),
                 )
             );
+        }
+
+        if ( $this->isClassicCheckoutPage() ) {
+            $this->register_classic_checkout_assets( true );
+            wp_enqueue_script( 'kiriof-classic-checkout' );
+            wp_enqueue_style( 'kiriof-buyer-checkout' );
+            wp_enqueue_style( 'kiriof-classic-checkout' );
         }
 
         if ( $this->isBlockCartOrCheckoutPage() ) {

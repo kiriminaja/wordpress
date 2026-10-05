@@ -39,19 +39,16 @@ final class CheckoutFreeShippingCalculationRuntimeTest extends TestCase {
         $this->assertSame( 18000, $result['adjusted']['discount_amount'] );
     }
 
-    public function test_classic_free_shipping_keeps_existing_synthetic_shortcut_by_default(): void {
+    public function test_classic_free_shipping_uses_real_carrier_quote(): void {
         foreach ( array( array(), array( 'blocks' => false ) ) as $input ) {
             $result = $this->calculate( $input );
             $this->assertSame( 200, $result['status'] );
-            $this->assertSame( 0, $result['api_calls'] );
-            $this->assertNull( $result['data']['pricing'] );
-            $this->assertSame( array(), $result['data']['pricing_payload'] );
+            $this->assertSame( 1, $result['api_calls'] );
             $calc = $result['data']['calculation_result'];
-            $this->assertSame( 0, $calc['ongkir_fee_raw'] );
-            $this->assertSame( 0, $calc['ongkir_fee_amt'] );
-            $this->assertSame( 0, $calc['insurance_amt'] );
-            $this->assertSame( 0, $calc['cod_amt'] );
-            $this->assertSame( 100000, $calc['calc_total_amt'] );
+            $this->assertSame( 20000, $calc['ongkir_fee_raw'] );
+            $this->assertSame( 1250, $calc['insurance_amt'] );
+            $this->assertSame( 3251, $calc['cod_amt'] );
+            $this->assertSame( 0, $result['adjusted']['cost'] );
         }
     }
 

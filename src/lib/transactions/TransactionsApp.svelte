@@ -122,8 +122,8 @@
   );
   const scopeValue = $derived(isOrderIssue ? 'order-issue' : isInstant ? 'instant' : 'regular');
   const scopeTabs = $derived([
-    { value: 'regular', label: bootstrap.i18n.regularDelivery },
-    { value: 'instant', label: bootstrap.i18n.instantDelivery },
+    { value: 'regular', label: bootstrap.i18n.regularDelivery, count: bootstrap.deliveryCounts?.regular ?? 0 },
+    { value: 'instant', label: bootstrap.i18n.instantDelivery, count: bootstrap.deliveryCounts?.instant ?? 0 },
     // Order Issue remains an Express-only local status workspace.
     { value: 'order-issue', label: bootstrap.i18n.orderIssue, count: orderIssueOption?.count ?? 0 },
   ]);

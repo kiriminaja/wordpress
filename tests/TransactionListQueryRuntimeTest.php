@@ -20,6 +20,34 @@ require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
 final class TransactionListQueryRuntimeTest extends TestCase
 {
     #[Test]
+    public function delivery_tab_counts_share_all_order_scope_and_restore_active_partition(): void {
+        $wpdb = new TransactionListQueryWpdbFake();
+        $query = new WordPressTransactionListQuery( $wpdb );
+        $query->getPage( $this->filters('all') + array( 'delivery_type' => 'instant' ), 1, 25 );
+        $before = count( $wpdb->queries );
+        $this->assertSame( array( 'regular' => 55, 'instant' => 55 ), $query->getDeliveryCounts() );
+        $sql = array_slice( $wpdb->queries, $before );
+        $this->assertStringContainsString( "delivery_type = 'express'", $sql[0] );
+        $this->assertStringContainsString( "delivery_type = 'instant'", $sql[1] );
+        foreach ( $sql as $statement ) {
+            $this->assertStringContainsString( 'COUNT(DISTINCT', $statement );
+            $this->assertStringContainsString( "NOT IN ('trash','auto-draft')", $statement );
+        }
+        $query->getStatusCounts();
+        $this->assertStringContainsString( "delivery_type = 'instant'", $wpdb->queries[$before + 2] );
+    }
+
+    #[Test]
+    public function delivery_counts_are_wired_and_refresh_control_includes_its_border_in_shared_height(): void {
+        $source = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
+        $this->assertStringContainsString( 'count: bootstrap.deliveryCounts?.regular ?? 0', $source );
+        $this->assertStringContainsString( 'count: bootstrap.deliveryCounts?.instant ?? 0', $source );
+        $css = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
+        $this->assertMatchesRegularExpression( '/\.kiriof-auto-refresh\s*\{[^}]*!box-border !h-\[34px\] !min-h-\[34px\]/', $css );
+        $this->assertMatchesRegularExpression( '/\.kiriof-auto-refresh > \.kiriof-auto-refresh__chevron\s*\{[^}]*!min-h-0 !h-full/', $css );
+    }
+
+    #[Test]
     public function all_filter_preserves_filters_legacy_storage_and_page_clamping(): void
     {
         $wpdb = new TransactionListQueryWpdbFake();

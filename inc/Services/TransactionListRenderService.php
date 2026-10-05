@@ -83,6 +83,7 @@ class TransactionListRenderService
         $kiriof_per_page = $page_data["items_per_page"];
         $kiriof_total_pages = $page_data["total_pages"];
         $kiriof_statusCounts = $this->query->getStatusCounts();
+        $kiriof_deliveryCounts = method_exists( $this->query, 'getDeliveryCounts' ) ? $this->query->getDeliveryCounts() : array();
         $kiriof_monthOptions = $this->getMonthOptions();
         $kiriof_status_filter = $filters["status"];
         $kiriof_cod_filter = $filters["cod"];
@@ -149,6 +150,10 @@ class TransactionListRenderService
         $kiriof_transactions_bootstrap = [
             "toolbar" => $toolbar,
             "filters" => $filters,
+            "deliveryCounts" => array(
+                "regular" => (int) ($kiriof_deliveryCounts["regular"] ?? 0),
+                "instant" => (int) ($kiriof_deliveryCounts["instant"] ?? 0),
+            ),
             "statusOptions" => [
                 [
                     "value" => "all",

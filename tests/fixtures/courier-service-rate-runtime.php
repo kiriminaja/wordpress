@@ -57,6 +57,10 @@ function __( $text, $domain = '' ) { return $text; }
 function add_action( ...$args ) {}
 function add_filter( ...$args ) {}
 function kiriof_log( ...$args ) {}
+function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
+function plugin_dir_url( $path ) { return ''; }
+function plugin_basename( $path ) { return basename( $path ); }
+function home_url() { return 'https://example.test'; }
 function set_transient( ...$args ) { return true; }
 function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
 function wc_price( $amount ) { return (string) $amount; }
@@ -93,7 +97,7 @@ $repo = new SettingRepository();
 // Inject an explicit fail-fast API boundary rather than silently allowing network calls.
 $GLOBALS['rate_api'] = new class extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
     public function __construct() {}
-    public function get_pricing( $payload ) { throw new RuntimeException( 'Unexpected pricing request' ); }
+    public function get_pricing( $payload ) { return (object) array( 'status' => false, 'results' => array() ); }
 };
 $GLOBALS['rate_meta'] = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();
 function rate_service( string $class, array $payload ) {

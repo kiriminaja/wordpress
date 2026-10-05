@@ -67,6 +67,18 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function classic_final_post_snapshot_must_match_the_validated_session_pin(): void {
+        $r = $this->fixture('classic_snapshot');
+        $this->assertSame('', $r['error']);
+        $this->assertCount(1, $r['rows']);
+        foreach (array('classic_clear','classic_tamper') as $scenario) {
+            $r=$this->fixture($scenario);
+            $this->assertNotEmpty($r['error']);
+            $this->assertSame(array(),$r['rows']);
+        }
+    }
+
+    #[Test]
     public function failed_insert_is_visible_and_durable_snapshot_allows_retry_without_session(): void {
         $r = $this->fixture('insert');
         $this->assertNotEmpty($r['processed_error']);
