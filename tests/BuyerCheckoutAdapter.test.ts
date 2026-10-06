@@ -85,7 +85,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		registerCheckoutBlock: options.inner === false ? undefined : (registration: any) => { registeredBlocks.push(registration); },
 		extensionCartUpdate: (request: any) => { const task = deferred(); sends.push({ request, ...task }); return task.promise; },
 	};
-	const strings = { district: 'District', districtRequired: 'District required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', lookupTimeout: 'Lookup timed out', saveStalled: 'Save stalled', reloadCheckout: 'Reload checkout', quoteRefreshFailed: 'Quote refresh failed', instantUnavailable: 'Instant unavailable', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select district', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
+	const strings = { district: 'Subdistrict', districtRequired: 'Subdistrict required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', lookupTimeout: 'Lookup timed out', saveStalled: 'Save stalled', reloadCheckout: 'Reload checkout', quoteRefreshFailed: 'Quote refresh failed', instantUnavailable: 'Instant unavailable', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select subdistrict', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
 	const root: any = {
 		kiriofAddressPresentation: options.collapsed ? { usePresentation: () => ({ editing: false, cardTarget: {} }) } : undefined,
 		wp, wc: { blocksCheckout: blocks }, setTimeout, clearTimeout, location: { reload: () => { root.reloaded = true; } },
@@ -189,7 +189,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 			h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
 			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'available', message: 'Quote expired', expires_at: 0 };
 			h.mount();
-			expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('District required');
+			expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Subdistrict required');
 			await h.flush(250); await h.reply(); await h.flush(0);
 			expect(h.sends[0].request.data.refresh_instant).toBe(false);
 			h.sends[0].resolve(); await h.settle();
@@ -556,7 +556,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:7:gosend:instant', method_id: 'kiriminaja-instant', selected: true };
 		await ready(h);
 		await h.flush(0); h.sends[0].resolve(); await h.settle();
-		expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('District required');
+		expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Subdistrict required');
 		h.choose('7'); await h.flush(0); h.sends[1].resolve(); await h.settle();
 		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
 		expect(h.sends[0].request.data.shipping_method).toBeUndefined();
@@ -624,7 +624,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2);
 		expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
 		await h.flush(0); expect(h.sends).toHaveLength(1); h.sends[0].resolve(); await h.settle();
-		expect(h.validations.at(-1)).toEqual({ 'kiriof-buyer-destination': { message: 'District required', hidden: false } });
+		expect(h.validations.at(-1)).toEqual({ 'kiriof-buyer-destination': { message: 'Subdistrict required', hidden: false } });
 		expect(h.find('select').props.value).toBe('');
 	});
 	test('changing address_1 invalidates a pin without losing district and rejects stale coordinate callbacks', async () => {

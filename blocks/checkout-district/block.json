@@ -2,8 +2,8 @@
   "$schema": "https://schemas.wp.org/trunk/block.json",
   "apiVersion": 3,
   "name": "kiriminaja-official/checkout-district",
-  "title": "KiriminAja District",
-  "description": "Searchable shipping destination district.",
+  "title": "KiriminAja Subdistrict",
+  "description": "Searchable shipping destination subdistrict.",
   "category": "woocommerce",
   "parent": [
     "woocommerce/checkout-shipping-address-block"

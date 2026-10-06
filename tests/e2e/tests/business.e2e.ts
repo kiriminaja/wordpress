@@ -26,7 +26,7 @@ const district = { id: '4567', text: 'Sleman, Sleman, DI Yogyakarta, 55581' };
 
 function php(name: string, input: unknown) {
   return JSON.parse(
-    execFileSync('php', [root + '/tests/fixtures/' + name, JSON.stringify(input)], {
+    execFileSync('php', ['-d', 'error_reporting=24575', root + '/tests/fixtures/' + name, JSON.stringify(input)], {
       encoding: 'utf8',
     }),
   );
@@ -85,14 +85,14 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
         ([key, value], index) => `
 		<p class="form-row form-row-wide" id="${scope}_${key}_field" data-priority="${70 + index * 10}">
 			<label for="${scope}_${key}">${scope} ${key}</label>
-			<input id="${scope}_${key}" name="${scope}_${key}" value="${value}">
+			${key === 'country' ? `<select class="country_to_state country_select" id="${scope}_${key}" name="${scope}_${key}"><option value="ID" selected>Indonesia</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="AQ">Antarctica</option></select>` : key === 'state' ? `<select class="state_select" required aria-required="true" id="${scope}_${key}" name="${scope}_${key}"><option value="">Select a state</option><option value="YO" selected>DI Yogyakarta</option><option value="JT">Jawa Tengah</option></select>` : `<input id="${scope}_${key}" name="${scope}_${key}" value="${value}">`}
 		</p>`,
       )
       .join('');
   const districtFields = (scope: string) => {
     const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
     return `<p class="form-row form-row-wide" id="${id}_field" data-priority="60">
-			<label for="${id}">${scope === 'billing' ? 'District' : 'Shipping district'}</label>
+			<label for="${id}">${scope === 'billing' ? 'Subdistrict' : 'Shipping subdistrict'}</label>
 			<select id="${id}" name="${id}"><option value=""></option><option value="123" selected>Fixture district</option></select>
 			<input type="hidden" id="${id}_name" name="${id}_name" value="Fixture district">
 		</p>`;
@@ -101,6 +101,10 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     ...(geometry ? [readFileSync(root + '/assets/lib/leaflet/leaflet.js', 'utf8')] : []),
     dependency('jquery/dist/jquery.min.js'),
     dependency('select2/dist/js/select2.full.min.js'),
+    readFileSync(root + '/assets/lib/choices/choices.min.js', 'utf8'),
+    `jQuery.fn.selectWoo = jQuery.fn.select2;
+    window.wc_country_select_params = { countries: JSON.stringify({ ID: { YO: 'DI Yogyakarta', JT: 'Jawa Tengah' }, US: { CA: 'California', NY: 'New York' }, AQ: {} }), i18n_select_state_text: 'Select a state', i18n_searching: 'Searching…', i18n_no_matches: 'No matches found' };`,
+    readFileSync(new URL('../fixtures/country-select.js', import.meta.url), 'utf8'),
     `window.__geoCalls = 0; window.__maps = 0; window.__checkoutUpdates = 0; window.__allowGeo = true;
 		window.kiriofClassicCheckoutConfig = ${JSON.stringify({
       enabled,
@@ -149,6 +153,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
 		});`,
     src('checkout/state.js'),
     src('checkout/classic-district.js'),
+    src('checkout/choices-controls.js'),
     'getSearchAreaKelurahan();',
     src('kiriof-checkout-session.js'),
     src('kiriof-map-checkout.js'),
@@ -174,7 +179,10 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
   ];
   return `<!DOCTYPE html><html><head>
 		<style>${dependency('select2/dist/css/select2.min.css')}
-			body { font-family: sans-serif; } form { max-width: 600px; margin: 24px; }
+			${readFileSync(root + '/assets/lib/choices/choices.min.css', 'utf8')}
+      ${readFileSync(root + '/assets/wp/css/kiriof-classic-choices.css', 'utf8')}
+      body { font-family: sans-serif; } form { max-width: 600px; margin: 24px; }
+      .woocommerce form.checkout input { font: 700 21px Georgia; padding: 25px; border: 5px solid purple; background: pink; }
 			.form-row { margin: 12px 0; } label { display: block; }
 			.kiriof-classic-map { height: 100px; } [hidden] { display: none !important; }
 		</style>
@@ -194,7 +202,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
         : ''
     }
     ${shipping ? `<style>${readFileSync(root + '/assets/wp/css/kj-wp-style.css', 'utf8')}</style>` : ''}
-    </head><body${geometry ? ' class="woocommerce wc-booster-checkout-customization"' : ''}><main class="woocommerce-checkout"><form class="checkout woocommerce-checkout">
+    </head><body class="woocommerce${geometry ? ' wc-booster-checkout-customization' : ''}"><main class="woocommerce-checkout"><form class="checkout woocommerce-checkout">
 		<div class="woocommerce-billing-fields">
 			<h3>Billing details</h3>
 			<div class="woocommerce-billing-fields__field-wrapper">
@@ -266,7 +274,7 @@ async function checkout(
         await route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify(
-            body.action === 'kiriminaja_subdistrict_search' ? searchResponse : { success: true },
+            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : { success: true },
           ),
         });
         return;
@@ -329,7 +337,7 @@ test('seller-disabled Instant does not alter Classic district or ask for locatio
   screen,
 }) => {
   const fixture = await checkout(app, browser, false);
-  await expect(browser.locator('#kiriof_destination_area_field .select2-container')).toBeVisible();
+  await expect(browser.locator('#kiriof_destination_area_field .choices')).toBeVisible();
   await expect(screen.getByLabel('Email address')).toHaveValue('buyer@example.test');
   expect(
     await browser.evaluate(() => ({
@@ -362,7 +370,7 @@ test('Classic pin saves only coordinates context and an address edit invalidates
       ),
     )
     .toBe(true);
-  await expect(browser.locator('#kiriof_destination_area_field .select2-container')).toBeVisible();
+  await expect(browser.locator('#kiriof_destination_area_field .choices')).toBeVisible();
 
   const request = fixture.saves().at(-1);
   expect(request.body.action).toBe('kiriof-session-save');
@@ -670,14 +678,14 @@ for (const [envelope, response] of [
   ['legacy root array', rows],
   ['nested data.results', { success: true, data: { results: rows } }],
 ] as const) {
-  test(`Classic Select2 searches and selects backend district from ${envelope}`, async ({
+  test(`Classic Choices searches and selects backend district from ${envelope}`, async ({
     app,
     browser,
     screen,
   }) => {
     const fixture = await checkout(app, browser, true, response);
-    await browser.locator('#kiriof_destination_area_field .select2-selection').tap();
-    const search = browser.locator('.select2-container--open .select2-search__field');
+    await browser.locator('#kiriof_destination_area_field .choices').tap();
+    const search = browser.locator('.choices.is-open .choices__input--cloned');
     await search.fill('Sl');
     await browser.evaluate(
       () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 350)),
@@ -699,7 +707,7 @@ for (const [envelope, response] of [
     });
     expect(
       await browser.evaluate(
-        () => document.querySelectorAll('.select2-results__option[aria-selected]').length,
+        () => document.querySelectorAll('#kiriof_destination_area_field .choices__list--dropdown [data-choice-selectable]:not([data-value=""]):not([data-value="123"])').length,
       ),
     ).toBe(1);
     await screen.getByRole('option', district.text).tap();
@@ -727,20 +735,21 @@ for (const [envelope, response] of [
 for (const [envelope, response] of [
   ['malformed data object', { success: true, data: { message: 'No rows' } }],
   ['explicit failure with misleading rows', { success: false, data: [district] }],
+  ['over-depth envelope', { data: { data: { data: { data: { data: { data: [district] } } } } } }],
 ] as const) {
-  test(`Classic Select2 rejects ${envelope} without fabricating a district`, async ({
+  test(`Classic Choices rejects ${envelope} without fabricating a district`, async ({
     app,
     browser,
   }) => {
     const fixture = await checkout(app, browser, true, response);
-    await browser.locator('#kiriof_destination_area_field .select2-selection').tap();
-    await browser.locator('.select2-container--open .select2-search__field').fill('Sleman');
-    await expect(browser.locator('.select2-results__message')).toContainText('No results found');
+    await browser.locator('#kiriof_destination_area_field .choices').tap();
+    await browser.locator('.choices.is-open .choices__input--cloned').fill('Sleman');
+    await expect(browser.locator('#kiriof_destination_area_field .kiriof-choices-status')).toContainText('Could not search subdistricts');
     expect(fixture.searches()).toHaveLength(1);
     expect(fixture.searches()[0].body.term).toBe('Sleman');
     expect(
       await browser.evaluate(() => ({
-        options: document.querySelectorAll('.select2-results__option[aria-selected]').length,
+        options: document.querySelectorAll('#kiriof_destination_area_field .choices__list--dropdown [data-choice-selectable]:not([data-value=""]):not([data-value="123"])').length,
         value: (document.querySelector('#kiriof_destination_area') as HTMLSelectElement).value,
         fabricated: !!document.querySelector('#kiriof_destination_area option[value="4567"]'),
       })),
@@ -812,21 +821,20 @@ for (const width of [1200, 390]) {
       for (const scope of ['billing', 'shipping']) {
         if (scope === 'shipping') await screen.getByLabel('Ship to a different address?').tap();
         const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
-        await browser.locator(`#${id}_field .select2-selection`).tap();
-        await expect(browser.locator('.kiriof-classic-district-dropdown')).toBeVisible();
+        await browser.locator(`#${id}_field .choices`).tap();
+        await expect(browser.locator('.choices.is-open .choices__list--dropdown')).toBeVisible();
         expect(await browser.evaluate(() => {
           const $ = (window as any).jQuery;
-          const select = $('.select2-hidden-accessible').filter(function() { return $(this).data('select2')?.isOpen(); }).first();
-          const instance = select.data('select2');
-          const dropdown = document.querySelector('.kiriof-classic-district-dropdown');
+          const outer = document.querySelector('.choices.is-open');
+          const dropdown = outer.querySelector('.choices__list--dropdown');
           $(document.body).trigger('updated_checkout');
           (window as any).getSearchAreaKelurahan();
-          return dropdown.parentElement.parentElement === document.body && instance === select.data('select2') && dropdown === document.querySelector('.kiriof-classic-district-dropdown');
+          return outer.isConnected && dropdown === outer.querySelector('.choices__list--dropdown') && document.querySelectorAll('.choices.is-open').length === 1;
         })).toBe(true);
-        await browser.locator('.select2-container--open .select2-search__field').fill('Sleman');
+        await browser.locator('.choices.is-open .choices__input--cloned').fill('Sleman');
         await expect(screen.getByRole('option', district.text)).toBeVisible();
         expect(await browser.evaluate(() => {
-          const option = document.querySelector('.select2-results__option[aria-selected]');
+          const option = document.querySelector('.choices.is-open .choices__list--dropdown [data-choice-selectable]');
           const r = option.getBoundingClientRect();
           return r.width > 100 && r.left >= 0 && r.right <= innerWidth && option.contains(document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2));
         })).toBe(true);
@@ -850,7 +858,8 @@ for (const width of [1200, 390]) {
       return { mutations, updates: window.__checkoutUpdates - updates, maps: window.__maps - maps };
     });
     expect(idle).toEqual({ mutations: 0, updates: 0, maps: 0 });
-    expect(fixture.searches()).toHaveLength(6);
+    expect(fixture.searches().length).toBeGreaterThanOrEqual(2);
+    expect(fixture.searches().length).toBeLessThanOrEqual(6); // Cached native rows can satisfy an open before its debounce fires.
     expect(fixture.unexpected).toEqual([]);
   });
 }
@@ -868,3 +877,133 @@ test('Classic courier radios remain selectable when Select2 is unavailable', asy
   }))).toEqual({ ready: false, chosen: fixtureRates[1].id, events: [{ id: fixtureRates[1].id, name: 'shipping_method[0]', checked: true }] });
   expect(fixture.unexpected).toEqual([]);
 });
+
+test('Classic Choices uses PHP unified Sariharjo results, cancels stale searches and clears one native change', async ({ app, browser, screen }) => {
+  const unified = php('subdistrict-sdk-runtime.php', {});
+  const result = unified.sari.response.data[0];
+  let release: (() => void) | undefined;
+  const fixture = await checkout(app, browser, false, async (body: Record<string, string>) => {
+    if (body.term === 'old query') {
+      await new Promise<void>(resolve => { release = resolve; });
+      return { success: true, data: [{ id: '9876', text: 'Stale district' }] };
+    }
+    return { success: true, data: unified.sari.response };
+  });
+  const outer = browser.locator('#kiriof_destination_area_field .choices');
+  await outer.tap();
+  const search = browser.locator('#kiriof_destination_area_field .choices__input--cloned');
+  await search.fill('old query');
+  await expect.poll(() => fixture.searches().length).toBe(1);
+  // Instrument the real fetch cancellation signal, not a mocked Choices instance.
+  await browser.evaluate(() => {
+    (window as any).__aborted = 0;
+    (window as any).__changes = [];
+    const abort = AbortController.prototype.abort;
+    AbortController.prototype.abort = function() { (window as any).__aborted++; return abort.call(this); };
+    document.getElementById('kiriof_destination_area').addEventListener('change', () => {
+      (window as any).__changes.push({ id: (document.getElementById('kiriof_destination_area') as HTMLSelectElement).value, label: (document.getElementById('kiriof_destination_area_name') as HTMLInputElement).value });
+    });
+    return true;
+  });
+  await search.fill('sari harjo');
+  await expect(screen.getByRole('option', result.text)).toBeVisible();
+  release?.();
+  await browser.evaluate(() => new Promise(resolve => setTimeout(() => resolve(true), 350)));
+  expect(await browser.evaluate(() => ({ aborted: (window as any).__aborted, stale: !!document.querySelector('option[value="9876"]') }))).toEqual({ aborted: 1, stale: false });
+  expect(fixture.searches()[1].body).toEqual({ action: 'kiriminaja_subdistrict_search', nonce: 'fixture-search-nonce', term: 'sari harjo', 'data[term]': 'sari harjo', 'data[search]': 'sari harjo' });
+  await screen.getByRole('option', result.text).tap();
+  await expect(browser.locator('#kiriof_destination_area')).toHaveValue(String(result.id));
+  await expect(browser.locator('#kiriof_destination_area_name')).toHaveValue(result.text);
+  await browser.locator('#kiriof_destination_area_field .choices__button').tap();
+  await expect(browser.locator('#kiriof_destination_area')).toHaveValue('');
+  await expect(browser.locator('#kiriof_destination_area_name')).toHaveValue('');
+  expect(await browser.evaluate(() => (window as any).__changes)).toEqual([{ id: String(result.id), label: result.text }, { id: '', label: '' }]);
+  expect(fixture.unexpected).toEqual([]);
+});
+
+test('Classic Choices pending, lookup failure and empty results have distinct accessible statuses', async ({ app, browser }) => {
+  let release: (() => void) | undefined;
+  const fixture = await checkout(app, browser, false, async (body: Record<string, string>) => {
+    if (body.term === 'pending') {
+      await new Promise<void>(resolve => { release = resolve; });
+      return { success: false, data: [] };
+    }
+    return { success: true, data: [] };
+  });
+  await browser.locator('#kiriof_destination_area_field .choices').tap();
+  const search = browser.locator('#kiriof_destination_area_field .choices__input--cloned');
+  const status = browser.locator('#kiriof_destination_area_field .kiriof-choices-status');
+  await search.fill('pending');
+  await expect.poll(() => fixture.searches().length).toBe(1);
+  await expect(status).toContainText('Searching');
+  release?.();
+  await expect(status).toContainText('Could not search subdistricts');
+  await search.fill('empty');
+  await expect(status).toContainText('No results found');
+  await expect(browser.locator('#kiriof_destination_area')).toHaveValue('123');
+  expect(fixture.unexpected).toEqual([]);
+});
+
+test('Woo country-select owns native state options and select/text/hidden transitions without duplicate Choices', async ({ app, browser, screen }) => {
+  const fixture = await checkout(app, browser, false);
+  await expect(browser.locator('#billing_country_field .select2-container')).toBeVisible();
+  await expect(browser.locator('#billing_state_field .choices')).toBeVisible();
+  expect(await browser.evaluate(() => {
+    const outer = document.querySelector('#billing_state_field .choices');
+    const select = document.getElementById('billing_state') as HTMLSelectElement;
+    return { required: select.required, aria: outer.getAttribute('aria-required'), labelled: outer.getAttribute('aria-labelledby'), label: document.querySelector('label[for="billing_state"]').id };
+  })).toEqual({ required: true, aria: 'true', labelled: 'billing_state-choices-label', label: 'billing_state-choices-label' });
+  // Native authoritative options change before Woo's published integration event.
+  await browser.evaluate(() => {
+    const $ = (window as any).jQuery;
+    $('#billing_state').html('<option value="JT" selected>Jawa Tengah updated</option>');
+    $(document.body).trigger('country_to_state_changed', ['ID']);
+    return true;
+  });
+  await expect(browser.locator('#billing_state_field .choices__list--single')).toContainText('Jawa Tengah updated');
+  for (const country of ['US', 'GB', 'ID', 'AQ', 'ID', 'US', 'ID']) {
+    await browser.evaluate((value: string) => { (window as any).jQuery('#billing_country').val(value).trigger('change'); return true; }, country);
+    const kind = country === 'GB' ? 'text' : country === 'AQ' ? 'hidden' : 'select-one';
+    await expect.poll(() => browser.evaluate(() => ({ type: (document.getElementById('billing_state') as HTMLInputElement).type, wrappers: document.querySelectorAll('#billing_state_field .choices').length, nested: document.querySelectorAll('.choices .choices').length }))).toEqual({ type: kind, wrappers: kind === 'select-one' ? 1 : 0, nested: 0 });
+    if (country === 'US') {
+      await browser.locator('#billing_state_field .choices').tap();
+      await browser.locator('#billing_state_field .choices__input--cloned').fill('New');
+      await screen.getByRole('option', 'New York').tap();
+      await expect(browser.locator('#billing_state')).toHaveValue('NY');
+    }
+    if (country === 'GB') await screen.getByLabel('billing state').fill('London');
+  }
+  expect(await browser.evaluate(() => Array.from((document.getElementById('billing_state') as HTMLSelectElement).options).map(option => option.value))).toEqual(['', 'YO', 'JT']);
+  await expect(browser.locator('#billing_country_field .select2-container')).toBeVisible();
+  expect(fixture.unexpected).toEqual([]);
+});
+
+for (const width of [1200, 390]) {
+  test(`Classic Choices district and province have identical typography and keyboard search at ${width}px`, async ({ app, browser, screen }) => {
+    await browser.setViewport({ width, height: 1000 });
+    const fixture = await checkout(app, browser, false);
+    expect(await browser.evaluate(() => {
+      const style = (selector: string) => {
+        const node = document.querySelector(selector);
+        const css = getComputedStyle(node);
+        return { height: node.getBoundingClientRect().height, font: css.font, padding: css.padding, border: css.border, background: css.backgroundColor };
+      };
+      return { district: style('#kiriof_destination_area_field .choices__inner'), province: style('#billing_state_field .choices__inner') };
+    })).toEqual(await browser.evaluate(() => {
+      const node = document.querySelector('#billing_state_field .choices__inner');
+      const css = getComputedStyle(node);
+      const style = { height: node.getBoundingClientRect().height, font: css.font, padding: css.padding, border: css.border, background: css.backgroundColor };
+      return { district: style, province: style };
+    }));
+    await browser.locator('#billing_state_field .choices').tap();
+    await expect(browser.locator('#billing_state_field .choices__list--dropdown')).toBeVisible();
+    await browser.keyboard.press('Escape');
+    await browser.keyboard.press('Enter');
+    await expect(browser.locator('#billing_state_field .choices__list--dropdown')).toBeVisible();
+    await browser.locator('#billing_state_field .choices__input--cloned').fill('Jawa');
+    await screen.getByRole('option', 'Jawa Tengah').tap();
+    await expect(browser.locator('#billing_state')).toHaveValue('JT');
+    await app.screenshot(`classic-choices-identity-${width}`);
+    expect(fixture.unexpected).toEqual([]);
+  });
+}

@@ -56,9 +56,13 @@ return array(
     'updateCheckoutNonce'     => wp_create_nonce( 'kiriof-update-checkout' ),
     'fieldKey'                => (string) $field_key,
     'i18n'                    => array(
-        'district'        => __( 'District', 'kiriminaja-official' ),
-        'selectDistrict'  => __( 'Select District', 'kiriminaja-official' ),
-        'districtWarning' => __( 'Please select your District to view shipping options.', 'kiriminaja-official' ),
+        'district'        => __( 'Subdistrict', 'kiriminaja-official' ),
+        'selectDistrict'  => __( 'Select Subdistrict', 'kiriminaja-official' ),
+        'districtWarning' => __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ),
         'selectOption'    => __( 'Select Option', 'kiriminaja-official' ),
+        'searchMinChars'  => __( 'Enter at least 3 characters', 'kiriminaja-official' ),
+        'searching'       => __( 'Searching…', 'kiriminaja-official' ),
+        'noResults'       => __( 'No results found', 'kiriminaja-official' ),
+        'searchError'     => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
     ),
 );

@@ -1820,7 +1820,7 @@ msgstr "Subtotal"
 #: inc/Controllers/EditOrderController.php:328
 #: inc/Controllers/EditOrderController.php:368
 msgid "Subdistrict"
-msgstr "Kelurahan"
+msgstr "Desa / Kelurahan"
 
 #: templates/woocommerce/cart/cart-totals.php:34
 #: templates/woocommerce/cart/cart-totals.php:35
@@ -5653,6 +5653,18 @@ msgstr "Instant"
 msgid "Contact Information"
 msgstr "Informasi Kontak"
 
+#: templates/front/partials/form-billing-address-config.php
+msgid "Enter at least 3 characters"
+msgstr "Masukkan minimal 3 karakter"
+
+#: templates/front/partials/form-billing-address-config.php
+msgid "Searching…"
+msgstr "Mencari…"
+
+#: templates/front/partials/form-billing-address-config.php
+msgid "No results found"
+msgstr "Tidak ada hasil ditemukan"
+
 #: inc/Services/InstantLabelService.php
 msgid "Each requested Instant shipment must have a distinct AWB."
 msgstr "Setiap pengiriman Instant yang dipilih harus memiliki AWB berbeda."
@@ -5660,3 +5672,63 @@ msgstr "Setiap pengiriman Instant yang dipilih harus memiliki AWB berbeda."
 #: inc/Services/InstantLabelService.php
 msgid "The carrier label is currently unavailable. This is a local shipment label, not a courier-issued label."
 msgstr "Label kurir saat ini tidak tersedia. Ini adalah label pengiriman lokal, bukan label yang diterbitkan kurir."
+
+#: inc/Base/Enqueue.php inc/Controllers/AccountShippingDestinationController.php
+msgid "Subdistrict Not Set"
+msgstr "Desa / Kelurahan belum dipilih"
+
+#: inc/Base/Enqueue.php
+msgid "Checking Subdistrict…"
+msgstr "Memeriksa Desa / Kelurahan…"
+
+#: inc/Base/Enqueue.php templates/front/partials/form-billing-address-config.php assets/wp/js/checkout/blocks-compatibility.js blocks/checkout-district/edit.js
+msgid "Select Subdistrict"
+msgstr "Pilih Desa / Kelurahan"
+
+#: inc/Base/Enqueue.php
+msgid "Enter your shipping postcode to find your subdistrict."
+msgstr "Masukkan kode pos pengiriman untuk mencari Desa / Kelurahan Anda."
+
+#: inc/Base/Enqueue.php inc/Controllers/AccountShippingDestinationController.php templates/front/partials/form-billing-address-config.php assets/wp/js/checkout/blocks-compatibility.js
+msgid "Please select your Subdistrict to view shipping options."
+msgstr "Silakan pilih Desa / Kelurahan Anda untuk melihat opsi pengiriman."
+
+#: inc/Base/Enqueue.php
+msgid "Loading subdistricts…"
+msgstr "Memuat Desa / Kelurahan…"
+
+#: inc/Base/Enqueue.php
+msgid "No subdistricts found. Check your shipping postcode."
+msgstr "Desa / Kelurahan tidak ditemukan. Periksa kode pos pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Subdistricts could not be loaded. Please retry."
+msgstr "Desa / Kelurahan tidak dapat dimuat. Silakan coba lagi."
+
+#: inc/Base/Enqueue.php
+msgid "Subdistrict lookup timed out. Please retry."
+msgstr "Pencarian Desa / Kelurahan kehabisan waktu. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Controllers/AccountShippingDestinationController.php
+msgid "Could not verify your shipping subdistrict. Please try again."
+msgstr "Tidak dapat memverifikasi Desa / Kelurahan pengiriman Anda. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php
+msgid "Please select a valid shipping subdistrict matching your shipping address."
+msgstr "Silakan pilih Desa / Kelurahan yang valid dan sesuai dengan alamat pengiriman Anda."
+
+#: inc/Controllers/AccountAddressController.php
+msgid "Please select a Subdistrict."
+msgstr "Silakan pilih Desa / Kelurahan."
+
+#: inc/Controllers/CheckoutController.php
+msgid "<strong>Subdistrict</strong> is a required field"
+msgstr "<strong>Desa / Kelurahan</strong> wajib diisi"
+
+#: blocks/checkout-district/edit.js blocks/checkout-district/block.json
+msgid "KiriminAja Subdistrict"
+msgstr "Desa / Kelurahan KiriminAja"
+
+#: blocks/checkout-district/edit.js blocks/checkout-district/block.json
+msgid "Searchable shipping destination subdistrict."
+msgstr "Desa / Kelurahan tujuan pengiriman yang dapat dicari."

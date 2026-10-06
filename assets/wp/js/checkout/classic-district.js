@@ -133,6 +133,10 @@ function kiriofRestoreClassicDistrictSelections() {
     if (kiriofUsesClassicCheckout()) {
         return;
     }
+    if (window.kiriofClassicChoices && window.kiriofClassicChoices.active()) {
+        window.kiriofClassicChoices.refresh();
+        return;
+    }
     kiriofRestoreClassicDistrictSelection(
         jQuery('#kiriof_destination_area'),
         kiriofBillingAddressConfig.billingDistrict || {},
@@ -293,6 +297,10 @@ function changeDistrict(){
  */
 function getSearchAreaKelurahan(){
     if (kiriofUsesClassicCheckout()) {
+        return;
+    }
+    if (window.kiriofClassicChoices && window.kiriofClassicChoices.active()) {
+        window.kiriofClassicChoices.refresh();
         return;
     }
     let subDistrictSelectElem = jQuery(`[name="${kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area'}"],[name=kiriof_shipping_destination_area]`);

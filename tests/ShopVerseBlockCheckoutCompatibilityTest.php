@@ -1438,7 +1438,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'Please select your District to view shipping options.',
+            'Please select your Subdistrict to view shipping options.',
             $content,
             'Buyer-facing block checkout warning should clearly explain why shipping methods are unavailable'
         );
@@ -2399,7 +2399,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($checkoutValidationStart, 'Plugin checkout validation hook must exist');
         $checkoutValidationBody = substr($controller, $checkoutValidationStart, 1200);
         $normalizePosition = strpos($checkoutValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
-        $noticePosition = strpos($checkoutValidationBody, 'Field Kelurahan');
+        $noticePosition = strpos($checkoutValidationBody, '<strong>Subdistrict</strong> is a required field');
         $this->assertNotFalse($normalizePosition, 'Classic checkout validation must normalize district POST data first');
         $this->assertNotFalse($noticePosition, 'Classic checkout validation still owns the Field Kelurahan notice');
         $this->assertLessThan($noticePosition, $normalizePosition, 'District POST normalization must happen before the Field Kelurahan required notice');
@@ -2408,7 +2408,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $this->assertNotFalse($orderValidationStart, 'Order validation hook must exist');
         $orderValidationBody = substr($controller, $orderValidationStart, strpos($controller, 'public function kiriof_billing_fields', $orderValidationStart) - $orderValidationStart);
         $normalizePosition = strpos($orderValidationBody, '$this->kiriof_normalize_classic_destination_post_data();');
-        $districtNoticePosition = strpos($orderValidationBody, '<strong>District</strong> is a required field');
+        $districtNoticePosition = strpos($orderValidationBody, '<strong>Subdistrict</strong> is a required field');
         $this->assertNotFalse($normalizePosition, 'Order validation must normalize district POST data first');
         $this->assertNotFalse($districtNoticePosition, 'Order validation still owns the District required notice');
         $this->assertLessThan($districtNoticePosition, $normalizePosition, 'District POST normalization must happen before the District required notice');

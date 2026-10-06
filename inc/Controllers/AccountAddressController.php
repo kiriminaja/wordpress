@@ -47,7 +47,7 @@ class AccountAddressController {
         $fields = $this->hideBlockMirrorDistrictFields( $fields, $address_type, $district );
 
         $field = array(
-            'label'    => __( 'District', 'kiriminaja-official' ),
+            'label'    => __( 'Subdistrict', 'kiriminaja-official' ),
             'required' => true,
             'class'    => array( 'form-row-wide' ),
             'type'     => 'select',
@@ -91,7 +91,7 @@ class AccountAddressController {
         $district_name = $this->postedDistrictName( $address_type );
         $this->clearPollutedAddress2Post( $address_type, $district_id );
         if ( $district_id < 1 || '' === $district_name ) {
-            wc_add_notice( __( 'Please select a District.', 'kiriminaja-official' ), 'error' );
+            wc_add_notice( __( 'Please select a Subdistrict.', 'kiriminaja-official' ), 'error' );
         }
     }
 

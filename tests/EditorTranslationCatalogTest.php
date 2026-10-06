@@ -14,10 +14,10 @@ final class EditorTranslationCatalogTest extends TestCase {
 
 	private const EDITOR_TRANSLATIONS = array(
 		'blocks/checkout-district/edit.js' => array(
-			'KiriminAja District'                       => 'Kelurahan KiriminAja',
-			'Searchable shipping destination district.' => 'Kelurahan tujuan pengiriman yang dapat dicari.',
-			'District'                                 => 'Kecamatan',
-			'Select District'                          => 'Pilih Kecamatan',
+			'KiriminAja Subdistrict'                      => 'Desa / Kelurahan KiriminAja',
+			'Searchable shipping destination subdistrict.' => 'Desa / Kelurahan tujuan pengiriman yang dapat dicari.',
+			'Subdistrict'                                 => 'Desa / Kelurahan',
+			'Select Subdistrict'                          => 'Pilih Desa / Kelurahan',
 		),
 		'blocks/map-checkout/edit.js' => array(
 			'KiriminAja Delivery Map'                                       => 'Peta Pengiriman KiriminAja',

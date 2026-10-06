@@ -204,19 +204,19 @@ class Enqueue extends BaseInit{
             'billingCountry' => $customer && method_exists( $customer, 'get_billing_country' ) ? (string) $customer->get_billing_country() : '',
             'shippingCountry' => $customer && method_exists( $customer, 'get_shipping_country' ) ? (string) $customer->get_shipping_country() : '',
             'i18n' => array(
-                'district' => __( 'District', 'kiriminaja-official' ),
-                'districtNotSet' => __( 'District Not Set', 'kiriminaja-official' ),
-                'checkingDistrict' => __( 'Checking District…', 'kiriminaja-official' ),
+                'district' => __( 'Subdistrict', 'kiriminaja-official' ),
+                'districtNotSet' => __( 'Subdistrict Not Set', 'kiriminaja-official' ),
+                'checkingDistrict' => __( 'Checking Subdistrict…', 'kiriminaja-official' ),
                 'pinLocation' => __( 'Pin Location', 'kiriminaja-official' ),
                 'needPinLocation' => __( 'Need Pin Location', 'kiriminaja-official' ),
                 'pinRequirement' => __( 'Optional for Express. Required for Instant delivery.', 'kiriminaja-official' ),
-                'selectDistrict' => __( 'Select District', 'kiriminaja-official' ),
-                'postcodeRequired' => __( 'Enter your shipping postcode to find your district.', 'kiriminaja-official' ),
-                'districtRequired' => __( 'Please select your District to view shipping options.', 'kiriminaja-official' ),
-                'loading' => __( 'Loading districts…', 'kiriminaja-official' ),
-                'empty' => __( 'No districts found. Check your shipping postcode.', 'kiriminaja-official' ),
-                'lookupFailed' => __( 'Districts could not be loaded. Please retry.', 'kiriminaja-official' ),
-                'lookupTimeout' => __( 'District lookup timed out. Please retry.', 'kiriminaja-official' ),
+                'selectDistrict' => __( 'Select Subdistrict', 'kiriminaja-official' ),
+                'postcodeRequired' => __( 'Enter your shipping postcode to find your subdistrict.', 'kiriminaja-official' ),
+                'districtRequired' => __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ),
+                'loading' => __( 'Loading subdistricts…', 'kiriminaja-official' ),
+                'empty' => __( 'No subdistricts found. Check your shipping postcode.', 'kiriminaja-official' ),
+                'lookupFailed' => __( 'Subdistricts could not be loaded. Please retry.', 'kiriminaja-official' ),
+                'lookupTimeout' => __( 'Subdistrict lookup timed out. Please retry.', 'kiriminaja-official' ),
                 'saveStalled' => __( 'Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed.', 'kiriminaja-official' ),
                 'reloadCheckout' => __( 'Reload checkout', 'kiriminaja-official' ),
                 'quoteRefreshFailed' => __( 'Instant prices could not be refreshed. Please retry before placing your order.', 'kiriminaja-official' ),
@@ -410,6 +410,14 @@ class Enqueue extends BaseInit{
             $relative_path = 'assets/wp/js/checkout/' . $module . '.js';
             wp_register_script( $handle, $this->plugin_url . $relative_path, $legacy_dependencies, (string) filemtime( KIRIOF_DIR . $relative_path ), array( 'in_footer' => true ) );
             $legacy_dependencies = array( $handle );
+        }
+        if ( $this->isClassicCheckoutPage() ) {
+            wp_register_script( 'kiriof-choices', $this->plugin_url . 'assets/lib/choices/choices.min.js', array(), '11.2.4', array( 'in_footer' => true ) );
+            wp_register_style( 'kiriof-choices', $this->plugin_url . 'assets/lib/choices/choices.min.css', array(), '11.2.4' );
+            wp_register_style( 'kiriof-classic-choices', $this->plugin_url . 'assets/wp/css/kiriof-classic-choices.css', array( 'kiriof-choices', 'kiriof-style' ), (string) filemtime( KIRIOF_DIR . 'assets/wp/css/kiriof-classic-choices.css' ) );
+            wp_register_script( 'kiriof-classic-choices', $this->plugin_url . 'assets/wp/js/checkout/choices-controls.js', array_merge( $legacy_dependencies, array( 'kiriof-choices', 'wc-country-select' ) ), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/checkout/choices-controls.js' ), array( 'in_footer' => true ) );
+            $legacy_dependencies[] = 'kiriof-classic-choices';
+            wp_enqueue_style( 'kiriof-classic-choices' );
         }
         wp_register_script(
             'kiriof-form-billing-address',

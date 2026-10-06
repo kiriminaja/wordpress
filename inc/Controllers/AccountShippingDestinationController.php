@@ -80,7 +80,7 @@ final class AccountShippingDestinationController {
         $pin = $district && 2 === $snapshot['version'];
         echo '<div class="kiriof-address-status" role="status" aria-live="polite" aria-atomic="true">';
         if ( ! $district ) {
-            $this->badge( __( 'District Not Set', 'kiriminaja-official' ), false );
+            $this->badge( __( 'Subdistrict Not Set', 'kiriminaja-official' ), false );
         }
         $this->badge( $pin ? __( 'Pin Location', 'kiriminaja-official' ) : __( 'Need Pin Location', 'kiriminaja-official' ), $pin );
         echo '</div>';
@@ -165,7 +165,7 @@ final class AccountShippingDestinationController {
             return;
         }
         if ( ! wp_verify_nonce( $nonce, 'kiriof_save_account_destination' ) ) {
-            wc_add_notice( __( 'Could not verify your shipping district. Please try again.', 'kiriminaja-official' ), 'error' );
+            wc_add_notice( __( 'Could not verify your shipping subdistrict. Please try again.', 'kiriminaja-official' ), 'error' );
             return;
         }
         try {
@@ -219,9 +219,9 @@ final class AccountShippingDestinationController {
             }
             throw new \InvalidArgumentException();
         } catch ( \InvalidArgumentException $error ) {
-            wc_add_notice( __( 'Please select your District to view shipping options.', 'kiriminaja-official' ), 'error' );
+            wc_add_notice( __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ), 'error' );
         } catch ( \Throwable $error ) {
-            wc_add_notice( __( 'Could not verify your shipping district. Please try again.', 'kiriminaja-official' ), 'error' );
+            wc_add_notice( __( 'Could not verify your shipping subdistrict. Please try again.', 'kiriminaja-official' ), 'error' );
         }
     }
 
@@ -242,7 +242,7 @@ final class AccountShippingDestinationController {
                 $this->destinations->hydrateSession();
             }
         } catch ( \Throwable $error ) {
-            wc_add_notice( __( 'Could not verify your shipping district. Please try again.', 'kiriminaja-official' ), 'error' );
+            wc_add_notice( __( 'Could not verify your shipping subdistrict. Please try again.', 'kiriminaja-official' ), 'error' );
         }
     }
 }

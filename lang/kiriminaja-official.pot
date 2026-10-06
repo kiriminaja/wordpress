@@ -2574,3 +2574,48 @@ msgstr ""
 #: inc/Base/Enqueue.php
 msgid "This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery."
 msgstr ""
+
+msgid "Subdistrict Not Set"
+msgstr ""
+
+msgid "Checking Subdistrict…"
+msgstr ""
+
+msgid "Select Subdistrict"
+msgstr ""
+
+msgid "Enter your shipping postcode to find your subdistrict."
+msgstr ""
+
+msgid "Please select your Subdistrict to view shipping options."
+msgstr ""
+
+msgid "Loading subdistricts…"
+msgstr ""
+
+msgid "No subdistricts found. Check your shipping postcode."
+msgstr ""
+
+msgid "Subdistricts could not be loaded. Please retry."
+msgstr ""
+
+msgid "Subdistrict lookup timed out. Please retry."
+msgstr ""
+
+msgid "Could not verify your shipping subdistrict. Please try again."
+msgstr ""
+
+msgid "Please select a valid shipping subdistrict matching your shipping address."
+msgstr ""
+
+msgid "Please select a Subdistrict."
+msgstr ""
+
+msgid "<strong>Subdistrict</strong> is a required field"
+msgstr ""
+
+msgid "KiriminAja Subdistrict"
+msgstr ""
+
+msgid "Searchable shipping destination subdistrict."
+msgstr ""

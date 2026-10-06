@@ -101,10 +101,10 @@ final class AccountShippingDestinationRuntimeTest extends TestCase {
     #[Test]
     public function badges_warn_for_missing_district_and_pin_and_suppress_billing_or_guests(): void {
         $result = $this->runFixture( array( 'operations' => array( 'badges' ) ) );
-        $this->assertStringContainsString( 'District Not Set', $result['html'] );
+        $this->assertStringContainsString( 'Subdistrict Not Set', $result['html'] );
         $this->assertStringContainsString( 'Need Pin Location', $result['html'] );
         $result = $this->runFixture( array( 'meta' => array( 7 => self::profile()[7] + array( '_kiriof_buyer_destination' => self::destination( false ) ) ), 'operations' => array( 'badges' ) ) );
-        $this->assertStringNotContainsString( 'District Not Set', $result['html'] );
+        $this->assertStringNotContainsString( 'Subdistrict Not Set', $result['html'] );
         $this->assertStringContainsString( 'Need Pin Location', $result['html'] );
         foreach ( array( array( 'type' => 'billing' ), array( 'current_user' => 0 ) ) as $case ) {
             $this->assertSame( '', $this->runFixture( $case + array( 'operations' => array( 'badges' ) ) )['html'] );

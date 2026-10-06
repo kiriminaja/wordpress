@@ -13,181 +13,100 @@ use KiriminAjaOfficial\Infrastructure\AddressApiTransport;
 const DEFAULT_PICKUP_OPTION = array( 'PICKUP' );
 
 class KiriminajaApiRepository extends KiriminAjaApi {
+    private array $address_transport_metadata = array();
+
+    /** The unified mapping is authoritative for names and postal codes. */
     public function sub_district_search( $search ) {
-        // A single budget covers the parent lookup and every child request.
+        $this->address_transport_metadata = array();
         $deadline = $this->address_lookup_clock() + 25.0;
-        if ( 1 === preg_match( '/^[0-9]{5}$/D', (string) $search ) ) {
-            return $this->subdistrict_postcode_search( (string) $search, $deadline );
+        if ( ! is_string( $search ) || strlen( trim( $search ) ) < 3 || strlen( $search ) > 200 ) {
+            return $this->address_failure( 'invalid_search' );
         }
-        // The search endpoint returns kecamatan, not kelurahan. Never expose a
-        // parent ID as a selectable village, even when it has no children.
-        $failure = array( 'status' => false, 'data' => 'Could not load subdistricts.' );
-        $parents = $this->bounded_address( 'POST', 'api/mitra/v2/get_address_by_name', array( 'search' => (string) $search ), $deadline, 'data' );
-        if ( empty( $parents['status'] ) || ! is_array( $parents['data']->result ?? null ) ) {
-            return $failure;
+        $search = trim( $search );
+        $postcode = 1 === preg_match( '/^[0-9]{5}$/D', $search ) ? $search : null;
+        $response = $this->bounded_address( 'GET', 'api/mitra/v6.1/addresses', array( 'search' => $search ), $deadline );
+        if ( empty( $response['status'] ) ) {
+            return $response;
         }
-
-        $districts = array();
-        foreach ( $parents['data']->result as $parent ) {
-            if ( $this->address_lookup_clock() >= $deadline ) {
-                return $failure;
-            }
-            $parent = (array) $parent;
-            $id = $this->subdistrict_positive_id( $parent['district_id'] ?? $parent['id'] ?? null );
-            if ( null === $id ) {
-                return $failure;
-            }
-            // The documented district search shape is {id, text}; retain its
-            // canonical hierarchy rather than using the submitted search term.
-            if ( is_string( $parent['text'] ?? null ) ) {
-                $parts = array_map( 'trim', explode( ',', $parent['text'] ) );
-                if ( 3 === count( $parts ) ) {
-                    $parent += array( 'district_name' => $parts[0], 'city_name' => $parts[1], 'province_name' => $parts[2] );
-                }
-            }
-            if ( isset( $districts[ $id ] ) && $districts[ $id ] !== $parent ) {
-                return $failure;
-            }
-            $districts[ $id ] = $parent;
+        $addresses = $response['data']['data'] ?? null;
+        // Missing lists are not zero matches. Never return a partial mapping.
+        if ( ! is_array( $addresses ) || ! array_is_list( $addresses ) ) {
+            return $this->address_failure( 'invalid_list' );
         }
-        // Fail closed rather than silently return only part of a broad lookup.
-        if ( count( $districts ) > 50 ) {
-            return $failure;
+        if ( count( $addresses ) > 500 ) {
+            return $this->address_failure( 'result_limit' );
         }
-
         $rows = array();
-        foreach ( $districts as $district_id => $parent ) {
-            $children = $this->bounded_address( 'POST', 'api/mitra/kelurahan', array( 'kecamatan_id' => $district_id ), $deadline, 'children' );
-            if ( empty( $children['status'] ) || ! is_array( $children['data']->result ?? null ) ) {
-                return $failure;
-            }
-            foreach ( $children['data']->result as $child ) {
-                if ( $this->address_lookup_clock() >= $deadline ) {
-                    return $failure;
-                }
-                $child = (array) $child;
-                $id = $this->subdistrict_positive_id( $child['subdistrict_id'] ?? $child['id'] ?? null );
-                $name = $child['subdistrict_name'] ?? $child['kelurahan_name'] ?? null;
-                if ( null === $id || ! is_string( $name ) || '' === trim( $name ) ) {
-                    return $failure;
-                }
-                $child_parent = $child['kecamatan_id'] ?? $child['district_id'] ?? null;
-                if ( null !== $child_parent && $district_id !== $this->subdistrict_positive_id( $child_parent ) ) {
-                    return $failure;
-                }
-                $zip = is_scalar( $child['zip_code'] ?? null ) ? trim( (string) $child['zip_code'] ) : '';
-                $row = array(
-                    'id'               => $id,
-                    'subdistrict_id'   => $id,
-                    'district_id'      => $district_id,
-                    'subdistrict_name' => trim( $name ),
-                    'district_name'    => $parent['district_name'] ?? '',
-                    'city_name'        => $parent['city_name'] ?? '',
-                    'province_name'    => $parent['province_name'] ?? '',
-                    'zip_code'         => $zip,
-                );
-                foreach ( array( 'district_name', 'city_name', 'province_name' ) as $key ) {
-                    if ( ! is_string( $row[ $key ] ) || '' === trim( $row[ $key ] ) ) {
-                        return $failure;
-                    }
-                    $row[ $key ] = trim( $row[ $key ] );
-                }
-                $row['text'] = implode( ', ', array( $row['subdistrict_name'], $row['district_name'], $row['city_name'], $row['province_name'] ) );
-                if ( '' !== $zip ) {
-                    $row['text'] .= ' ' . $zip;
-                }
-                if ( isset( $rows[ $id ] ) && $rows[ $id ] !== $row ) {
-                    return $failure;
-                }
-                $rows[ $id ] = $row;
-            }
-        }
-
-        if ( $this->address_lookup_clock() >= $deadline ) {
-            return $failure;
-        }
-        return array( 'status' => true, 'data' => (object) array( 'status' => true, 'result' => array_map( static fn( $row ) => (object) $row, array_values( $rows ) ) ) );
-    }
-
-    /** Postal membership comes from addresses; the SDK child route confirms IDs. */
-    private function subdistrict_postcode_search( string $postcode, float $deadline ): array {
-        $failure = array( 'status' => false, 'data' => 'Could not load subdistricts.' );
-        $response = $this->bounded_address( 'GET', 'api/mitra/v6.1/addresses', array( 'search' => $postcode ), $deadline );
-        if ( empty( $response['status'] ) || ! is_array( $response['data']->data ?? null ) ) {
-            return $failure;
-        }
-        $districts = array();
-        $candidates = array();
-        foreach ( $response['data']->data as $address ) {
+        $hierarchies = array();
+        foreach ( $addresses as $address ) {
             if ( $this->address_lookup_clock() >= $deadline ) {
-                return $failure;
+                return $this->address_failure( 'deadline' );
             }
-            $address = (array) $address;
-            $full_address = $address['full_address'] ?? null;
-            // The documented comma-separated address ends with its postcode.
-            if ( ! is_string( $full_address ) || ! preg_match( '/(?:,\s*|\s)([0-9]{5})\s*$/D', $full_address, $match ) || $postcode !== $match[1] ) {
-                continue;
+            if ( ! is_array( $address ) || array_is_list( $address ) ) {
+                return $this->address_failure( 'invalid_row' );
             }
             foreach ( array( 'province_id', 'city_id', 'district_id', 'subdistrict_id' ) as $key ) {
                 $address[ $key ] = $this->subdistrict_positive_id( $address[ $key ] ?? null );
                 if ( null === $address[ $key ] ) {
-                    return $failure;
+                    return $this->address_failure( 'invalid_id' );
                 }
             }
-            $hierarchy = preg_replace( '/(?:,\s*|\s)[0-9]{5}\s*$/D', '', trim( $full_address ) );
-            $parts = array_map( 'trim', explode( ',', $hierarchy ) );
-            if ( 4 !== count( $parts ) || in_array( '', $parts, true ) ) {
-                return $failure;
+            // Aliases cannot override the official village or parent IDs.
+            foreach ( array( 'id' => 'subdistrict_id', 'kecamatan_id' => 'district_id', 'provinsi_id' => 'province_id', 'kabupaten_id' => 'city_id' ) as $alias => $key ) {
+                if ( array_key_exists( $alias, $address ) && $this->subdistrict_positive_id( $address[ $alias ] ) !== $address[ $key ] ) {
+                    return $this->address_failure( 'conflicting_alias' );
+                }
             }
-            $parent_id = $address['district_id'];
-            $id = $address['subdistrict_id'];
-            $parent = array( 'province_id' => $address['province_id'], 'city_id' => $address['city_id'], 'district_name' => $parts[1], 'city_name' => $parts[2], 'province_name' => $parts[3] );
-            $candidate = array( 'district_id' => $parent_id, 'text' => trim( $full_address ) );
-            if ( ( isset( $districts[ $parent_id ] ) && $districts[ $parent_id ] !== $parent ) || ( isset( $candidates[ $id ] ) && $candidates[ $id ] !== $candidate ) ) {
-                return $failure;
+            $full_address = $address['full_address'] ?? null;
+            if ( ! is_string( $full_address ) || strlen( $full_address ) > 1000 ) {
+                return $this->address_failure( 'invalid_hierarchy' );
             }
-            $districts[ $parent_id ] = $parent;
-            $candidates[ $id ] = $candidate;
-        }
-        // At most fifty child requests, also constrained by the shared deadline.
-        if ( count( $districts ) > 50 ) {
-            return $failure;
-        }
-        $rows = array();
-        foreach ( $districts as $parent_id => $parent ) {
-            $children = $this->bounded_address( 'POST', 'api/mitra/kelurahan', array( 'kecamatan_id' => $parent_id ), $deadline, 'children' );
-            if ( empty( $children['status'] ) || ! is_array( $children['data']->result ?? null ) ) {
-                return $failure;
+            $parts = array_map( 'trim', explode( ',', trim( $full_address ) ) );
+            if ( 5 !== count( $parts ) || in_array( '', $parts, true ) || 1 !== preg_match( '/^[0-9]{5}$/D', $parts[4] ) ) {
+                return $this->address_failure( 'invalid_hierarchy' );
             }
-            foreach ( $children['data']->result as $child ) {
-                if ( $this->address_lookup_clock() >= $deadline ) {
-                    return $failure;
+            $row = array(
+                'id'               => $address['subdistrict_id'],
+                'subdistrict_id'   => $address['subdistrict_id'],
+                'district_id'      => $address['district_id'],
+                'city_id'          => $address['city_id'],
+                'province_id'      => $address['province_id'],
+                'subdistrict_name' => $parts[0],
+                'district_name'    => $parts[1],
+                'city_name'        => $parts[2],
+                'province_name'    => $parts[3],
+                'zip_code'         => $parts[4],
+                'text'             => implode( ', ', $parts ),
+            );
+            foreach ( array( 'subdistrict_name', 'kelurahan_name', 'district_name', 'city_name', 'province_name', 'zip_code' ) as $alias ) {
+                $key = 'kelurahan_name' === $alias ? 'subdistrict_name' : $alias;
+                if ( array_key_exists( $alias, $address ) && ( ! is_string( $address[ $alias ] ) || trim( $address[ $alias ] ) !== $row[ $key ] ) ) {
+                    return $this->address_failure( 'conflicting_alias' );
                 }
-                $child = (array) $child;
-                $id = $this->subdistrict_positive_id( $child['subdistrict_id'] ?? $child['id'] ?? null );
-                if ( null === $id ) {
-                    return $failure;
-                }
-                if ( ! isset( $candidates[ $id ] ) ) {
-                    continue;
-                }
-                $name = $child['subdistrict_name'] ?? $child['kelurahan_name'] ?? null;
-                $child_parent = $child['kecamatan_id'] ?? $child['district_id'] ?? $parent_id;
-                if ( $candidates[ $id ]['district_id'] !== $parent_id || $parent_id !== $this->subdistrict_positive_id( $child_parent ) || ! is_string( $name ) || '' === trim( $name ) ) {
-                    return $failure;
-                }
-                $row = array_merge( $parent, array( 'id' => $id, 'subdistrict_id' => $id, 'district_id' => $parent_id, 'subdistrict_name' => trim( $name ), 'zip_code' => $postcode, 'text' => $candidates[ $id ]['text'] ) );
-                if ( isset( $rows[ $id ] ) && $rows[ $id ] !== $row ) {
-                    return $failure;
-                }
-                $rows[ $id ] = $row;
             }
-        }
-        if ( count( $rows ) !== count( $candidates ) ) {
-            return $failure;
+            // Check consistency across the entire response, before postal filtering.
+            foreach ( array(
+                'province' => array( $row['province_id'], $row['province_name'] ),
+                'city' => array( $row['city_id'], $row['province_id'], $row['city_name'] ),
+                'district' => array( $row['district_id'], $row['city_id'], $row['province_id'], $row['district_name'] ),
+            ) as $level => $hierarchy ) {
+                $key = $level . ':' . $hierarchy[0];
+                if ( isset( $hierarchies[ $key ] ) && $hierarchies[ $key ] !== $hierarchy ) {
+                    return $this->address_failure( 'conflicting_hierarchy' );
+                }
+                $hierarchies[ $key ] = $hierarchy;
+            }
+            $id = $row['id'];
+            if ( isset( $rows[ $id ] ) && $rows[ $id ] !== $row ) {
+                return $this->address_failure( 'conflicting_village' );
+            }
+            $rows[ $id ] = $row;
         }
         if ( $this->address_lookup_clock() >= $deadline ) {
-            return $failure;
+            return $this->address_failure( 'deadline' );
+        }
+        if ( null !== $postcode ) {
+            $rows = array_filter( $rows, static fn( $row ) => $postcode === $row['zip_code'] );
         }
         return array( 'status' => true, 'data' => (object) array( 'status' => true, 'result' => array_map( static fn( $row ) => (object) $row, array_values( $rows ) ) ) );
     }
@@ -200,33 +119,50 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     /** SDK request construction/authentication, with address-specific limits. */
     protected function address_request( string $method, string $endpoint, array $payload ): array {
         $client = new AddressApiTransport();
-        return 'GET' === $method ? $client->get( $endpoint, $payload ) : $client->post( $endpoint, $payload );
+        $response = 'GET' === $method ? $client->get( $endpoint, $payload ) : $client->post( $endpoint, $payload );
+        // Never retain explanatory error bodies or messages from the transport.
+        $metadata = $client->diagnostics();
+        $this->address_transport_metadata = array(
+            'http_status' => is_int( $metadata['http_status'] ?? null ) ? $metadata['http_status'] : null,
+            'elapsed_ms'  => min( 25000, max( 0, (int) ( $metadata['elapsed_ms'] ?? 0 ) ) ),
+        );
+        return $response;
     }
 
-    /** Mirror the installed SDK address response shapes without its unbounded facade. */
-    private function bounded_address( string $method, string $endpoint, array $payload, float $deadline, string $shape = '' ): array {
-        $failure = array( 'status' => false, 'data' => 'Could not load subdistricts.' );
-        // Never start a request unless its entire eight-second timeout fits.
+    /** One attempt, no legacy-parent lookup or child fan-out. */
+    private function bounded_address( string $method, string $endpoint, array $payload, float $deadline ): array {
         if ( $this->address_lookup_clock() + AddressApiTransport::REQUEST_TIMEOUT > $deadline ) {
-            return $failure;
+            return $this->address_failure( 'deadline' );
         }
         try {
             [ $ok, $body ] = $this->address_request( $method, $endpoint, $payload );
-            if ( $this->address_lookup_clock() >= $deadline || ! $ok || ! is_array( $body ) || empty( $body['status'] ) ) {
-                return $failure;
+            if ( $this->address_lookup_clock() >= $deadline ) {
+                return $this->address_failure( 'deadline' );
             }
-            if ( '' !== $shape ) {
-                $rows = 'children' === $shape ? ( $body['results'] ?? $body['datas'] ?? array() ) : ( $body['data'] ?? null );
-                if ( ! is_array( $rows ) ) {
-                    return $failure;
-                }
-                $body = array( 'result' => $rows );
+            if ( true !== $ok ) {
+                return $this->address_failure( 'transport_failure' );
             }
-            return array( 'status' => true, 'data' => json_decode( json_encode( $body, JSON_THROW_ON_ERROR ), false, 512, JSON_THROW_ON_ERROR ) );
+            if ( ! is_array( $body ) || ! is_bool( $body['status'] ?? null ) ) {
+                return $this->address_failure( 'invalid_envelope' );
+            }
+            if ( ! $body['status'] ) {
+                return $this->address_failure( 'api_rejection' );
+            }
+            return array( 'status' => true, 'data' => $body );
         } catch ( \Throwable $throwable ) {
-            // Do not disclose/log search terms, tokens, response bodies or errors.
-            return $failure;
+            return $this->address_failure( 'transport_exception' );
         }
+    }
+
+    /** Fixed reason codes and numeric metadata only: no query, body or token. */
+    private function address_failure( string $reason ): array {
+        if ( function_exists( 'kiriof_log' ) ) {
+            kiriof_log( 'warning', 'Address lookup failed.', array_merge(
+                array( 'source' => 'kiriminaja_api', 'operation' => 'sub_district_search', 'reason' => $reason, 'backtrace' => false ),
+                $this->address_transport_metadata
+            ) );
+        }
+        return array( 'status' => false, 'data' => 'Could not load subdistricts.' );
     }
 
     private function subdistrict_positive_id( $value ): ?int {

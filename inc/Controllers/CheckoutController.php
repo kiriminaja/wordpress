@@ -657,7 +657,7 @@ class CheckoutController
             $address_type = $this->kiriof_get_classic_destination_address_type();
             $field_key = 'shipping' === $address_type ? $this->field_shipping_destination_key : $field_key;
             if ( 'ID' === $this->kiriof_get_classic_address_country( $address_type ) && isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
-                wc_add_notice( esc_html__('<strong>Field Kelurahan</strong> is a required field.', 'kiriminaja-official'),'error' );
+                wc_add_notice( esc_html__('<strong>Subdistrict</strong> is a required field', 'kiriminaja-official'),'error' );
             }
             (new \KiriminAjaOfficial\Services\CheckoutServices\ValidationCodCalculationService([
                 'shipping_method'   => WC()->session->get('chosen_shipping_methods'),
@@ -1750,7 +1750,7 @@ class CheckoutController
             $district_key = 'shipping' === $address_type ? $this->field_shipping_destination_key : $this->field_destination_key;
             if ( 'ID' === $this->kiriof_get_classic_address_country( $address_type ) ) {
                 if ( '' === $this->kiriof_get_posted_text_field( $district_key ) ) {
-                    wc_add_notice( __( '<strong>District</strong> is a required field', 'kiriminaja-official' ), 'error' );
+                    wc_add_notice( __( '<strong>Subdistrict</strong> is a required field', 'kiriminaja-official' ), 'error' );
                 }
                 if ( empty( $_POST['shipping_method'][0] ) && ! $kiriof_address_too_short ) {
                     wc_add_notice( __( '<strong>Shipping</strong> is a required field', 'kiriminaja-official' ), 'error' );
@@ -1989,7 +1989,7 @@ class CheckoutController
 
         //add field billing District
         $fields['billing'][$field_key] = array(
-            'label'     => esc_html__('District', 'kiriminaja-official'),
+            'label'     => esc_html__('Subdistrict', 'kiriminaja-official'),
             'required'  => true,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -2001,7 +2001,7 @@ class CheckoutController
         );
         //add field shipping District
         $fields['shipping'][$this->field_shipping_destination_key] = array(
-            'label'     => esc_html__('District', 'kiriminaja-official'),
+            'label'     => esc_html__('Subdistrict', 'kiriminaja-official'),
             'required'  => true,
             'class'     => array('form-row-wide'),
             'clear'     => true,
@@ -2327,7 +2327,7 @@ class CheckoutController
             // text for the schema, then the frontend swaps the input to a dynamic select.
             $register_fn( array(
                 'id'           => 'kiriminaja-official/' . $this->field_destination_key,
-                'label'        => __( 'District', 'kiriminaja-official' ),
+                'label'        => __( 'Subdistrict', 'kiriminaja-official' ),
                 'location'     => 'address',
                 'type'         => 'text',
                 'required'     => false,
@@ -2337,7 +2337,7 @@ class CheckoutController
             $register_fn(
                 array(
                     'id'       => 'kiriminaja-official/' . $this->field_destination_key,
-                    'label'    => __( 'District', 'kiriminaja-official' ),
+                    'label'    => __( 'Subdistrict', 'kiriminaja-official' ),
                     'location' => 'address',
                     'type'     => 'select',
                     'required' => false,
@@ -2448,7 +2448,7 @@ class CheckoutController
     }
 
     private function kiriof_destination_error(): void {
-        $message = __( 'Please select a valid shipping district matching your shipping address.', 'kiriminaja-official' );
+        $message = __( 'Please select a valid shipping subdistrict matching your shipping address.', 'kiriminaja-official' );
         $exception = '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException';
         if ( class_exists( $exception ) ) {
             throw new $exception( 'kiriof_invalid_destination', $message, 400 );
@@ -2557,7 +2557,7 @@ class CheckoutController
         $rows = $this->kiriof_district_lookup_cache[$postcode];
         if ( null === $rows ) {
             $exception = '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException';
-            $message = __( 'Could not verify your shipping district. Please try again.', 'kiriminaja-official' );
+            $message = __( 'Could not verify your shipping subdistrict. Please try again.', 'kiriminaja-official' );
             if ( class_exists( $exception ) ) {
                 throw new $exception( 'kiriof_destination_unavailable', $message, 503 );
             }

@@ -47,7 +47,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 		subscribe(callback: any) { subscribers.add(callback); return () => subscribers.delete(callback); },
 	} };
 	window.wc = { blocksCheckout: { registerCheckoutBlock: (registration: any) => registrations.push(registration), extensionCartUpdate(request: any) { sends.push(request); return Promise.resolve({}); } } };
-	const strings = { district: 'District', districtRequired: 'District required', checkingDistrict: 'Checking district', districtNotSet: 'District not set', pinLocation: 'Pin location', needPinLocation: 'Need pin location', pinRequirement: 'Pin required for instant', loading: 'Loading', saving: 'Saving', selectDistrict: 'Select district', empty: 'Empty', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapHelp: 'Move map', mapPlaced: 'Pin placed', mapLocate: 'Locate', mapClear: 'Clear', mapOptional: 'Optional', mapPermission: 'Permission denied', mapUnavailable: 'Map unavailable', mapLocationFailed: 'Location failed' };
+	const strings = { district: 'Subdistrict', districtRequired: 'Subdistrict required', checkingDistrict: 'Checking subdistrict', districtNotSet: 'Subdistrict not set', pinLocation: 'Pin location', needPinLocation: 'Need pin location', pinRequirement: 'Pin required for instant', loading: 'Loading', saving: 'Saving', selectDistrict: 'Select subdistrict', empty: 'Empty', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapHelp: 'Move map', mapPlaced: 'Pin placed', mapLocate: 'Locate', mapClear: 'Clear', mapOptional: 'Optional', mapPermission: 'Permission denied', mapUnavailable: 'Map unavailable', mapLocationFailed: 'Location failed' };
 	window.kiriofBuyerCheckoutConfig = { enabled: true, nonce: 'fixture', ajaxUrl: '/fixture-ajax', savedDestination: options.savedDestination, i18n: strings };
 	window.kiriofMapCheckoutConfig = { enabled: true, tiles: 'https://tiles.example.test/{z}/{x}/{y}.png', i18n: strings };
 	window.fetch = (url: any, init: any) => { const task = deferred(); lookups.push({ url, init, ...task }); return task.promise; };
@@ -101,12 +101,12 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 		const h = await fixture();
 		try {
 			expect(h.document.querySelector('.kiriof-buyer-district')).toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map')).toBeNull(); expect(h.maps).toHaveLength(0);
-			expect(h.badges().map(node => node.textContent)).toEqual(['Checking district', 'Need pin location']);
+			expect(h.badges().map(node => node.textContent)).toEqual(['Checking subdistrict', 'Need pin location']);
 			for (const badge of h.badges()) { expect(h.card().contains(badge)).toBe(true); expect(badge.classList.contains('is-complete')).toBe(false); }
 			expect(h.document.querySelector('#billing-fields .kiriof-address-status-host')).toBeNull();
-			expect(h.publications.length).toBeGreaterThan(0); expect(h.validations.some(value => value['kiriof-buyer-destination']?.message === 'District required')).toBe(true);
+			expect(h.publications.length).toBeGreaterThan(0); expect(h.validations.some(value => value['kiriof-buyer-destination']?.message === 'Subdistrict required')).toBe(true);
 			await h.flush(250); expect(h.lookups).toHaveLength(1); expect(new URLSearchParams(h.lookups[0].init.body).get('term')).toBe('12345'); await h.reply(); await h.flush(0);
-			expect(h.badges().map(node => node.textContent)).toEqual(['District not set', 'Need pin location']); expect(h.badges().every(node => node.classList.contains('is-warning'))).toBe(true);
+			expect(h.badges().map(node => node.textContent)).toEqual(['Subdistrict not set', 'Need pin location']); expect(h.badges().every(node => node.classList.contains('is-warning'))).toBe(true);
 			expect(h.sends.at(-1).data.destination.district_id).toBe(''); expect(h.window.kiriofBuyerCheckout.active).toBe(true);
 		} finally { await h.cleanup(); }
 	});

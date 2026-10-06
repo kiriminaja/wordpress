@@ -832,7 +832,7 @@ function kiriofInitBlockCheckoutCompatibility() {
                 var $fieldWrapper = jQuery('<div class="wc-block-components-address-form__state wc-block-components-state-input kiriof-block-district-field-wrapper"></div>');
                 var $selectWrapper = jQuery('<div class="wc-blocks-components-select kiriof-block-district-select-wrapper"></div>');
                 var $container = jQuery('<div class="wc-blocks-components-select__container kiriof-block-district-select-container"></div>');
-                var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label">' + (kiriofBillingAddressConfig.i18n.district || 'District') + '</label>');
+                var $label = jQuery('<label for="kiriof-block-district-select" class="wc-blocks-components-select__label">' + (kiriofBillingAddressConfig.i18n.district || 'Subdistrict') + '</label>');
                 $select = jQuery('<select size="1" class="wc-blocks-components-select__select kiriof-block-district-select" id="kiriof-block-district-select" aria-invalid="false" autocomplete="section-shipping shipping address-level3"></select>');
                 var $expand = jQuery('<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="wc-blocks-components-select__expand" aria-hidden="true" focusable="false"><path d="M17.5 11.6L12 16l-5.5-4.4.9-1.2L12 14l4.5-3.6 1 1.2z"></path></svg>');
                 $container.append($label, $select, $expand);
@@ -889,7 +889,7 @@ function kiriofInitBlockCheckoutCompatibility() {
             var currentName = jQuery('[name="kiriof_destination_area_name"]').val() || (savedDistrict ? String(savedDistrict.destination_name || '') : '');
             var hasMatchingSavedDistrict = false;
             var placeholderSelected = currentValue ? '' : ' selected';
-            var html = '<option value="" data-alternate-values="[' + (kiriofBillingAddressConfig.i18n.selectDistrict || 'Select District') + ']" disabled' + placeholderSelected + '>' + (kiriofBillingAddressConfig.i18n.selectDistrict || 'Select District') + '</option>';
+            var html = '<option value="" data-alternate-values="[' + (kiriofBillingAddressConfig.i18n.selectDistrict || 'Select Subdistrict') + ']" disabled' + placeholderSelected + '>' + (kiriofBillingAddressConfig.i18n.selectDistrict || 'Select Subdistrict') + '</option>';
             results.forEach(function(d) {
                 var selected = String(d.id) === String(currentValue) ? ' selected' : '';
                 html += '<option value="' + d.id + '" data-alternate-values="[' + d.text + ']"' + selected + '>' + d.text + '</option>';
@@ -1126,7 +1126,7 @@ function kiriofGetCurrentPostcodeKey() {
                         '<div class="wc-block-components-shipping-rates-control__package">' +
                             '<p role="status" aria-live="polite" ' +
                                'class="wc-block-components-shipping-rates-control__no-shipping-address-message">' +
-                                '' + (kiriofBillingAddressConfig.i18n.districtWarning || 'Please select your District to view shipping options.') + '' +
+                                '' + (kiriofBillingAddressConfig.i18n.districtWarning || 'Please select your Subdistrict to view shipping options.') + '' +
                             '</p>' +
                         '</div>' +
                     '</div>'

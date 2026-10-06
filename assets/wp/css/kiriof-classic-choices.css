@@ -1,0 +1,15 @@
+.woocommerce form.checkout .choices { width: 100%; min-width: 0; margin: 0; font: inherit; color: inherit; overflow: visible; }
+.woocommerce form.checkout .choices .choices__inner { display: flex; align-items: center; width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 40px 10px 12px; margin: 0; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; color: inherit; font: inherit; }
+.woocommerce form.checkout .choices .choices__list--single { padding: 0; width: 100%; }
+.woocommerce form.checkout .choices .choices__item { margin: 0; font: inherit; line-height: 1.5; }
+.woocommerce form.checkout .choices[data-type*=select-one]::after { right: 14px; border-color: currentColor transparent transparent; }
+.woocommerce form.checkout .choices.is-focused .choices__inner { outline: 2px solid currentColor; outline-offset: 2px; }
+.woocommerce form.checkout .choices .choices__list--dropdown { border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; color: inherit; z-index: 10010; box-sizing: border-box; }
+.woocommerce form.checkout .choices .choices__list--dropdown .choices__input { box-sizing: border-box; width: calc(100% - 16px); margin: 8px; padding: 10px 12px; border: 1px solid #c3c4c7; border-radius: 4px; font: inherit; background: #fff; color: inherit; }
+.woocommerce form.checkout .choices .choices__list--dropdown .choices__item { padding: 10px 12px; }
+.woocommerce form.checkout .choices .choices__list--dropdown .is-highlighted { background: #f0f0f1; color: inherit; }
+.woocommerce form.checkout .choices[data-type*=select-one] .choices__button { position: absolute !important; width: 20px !important; min-width: 20px !important; max-width: 20px; height: 20px !important; min-height: 20px; padding: 0 !important; margin: -10px 0 0 !important; right: 34px; top: 50%; border: 0; background-color: transparent !important; border-radius: 0; }
+.woocommerce form.checkout .choices .kiriof-choices-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.woocommerce form.checkout .form-row:has(> .choices) { overflow: visible !important; }
+.woocommerce form.checkout .choices.is-open { z-index: 10011; }
+.woocommerce form.checkout .choices input[hidden] { display: none !important; }

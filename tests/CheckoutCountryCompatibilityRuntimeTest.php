@@ -248,7 +248,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     public static function validationCases(): array {
         $required = array(
-            '<strong>District</strong> is a required field',
+            '<strong>Subdistrict</strong> is a required field',
             '<strong>Shipping</strong> is a required field',
             '<strong>Checkout Calculation</strong> is not finished yet',
         );

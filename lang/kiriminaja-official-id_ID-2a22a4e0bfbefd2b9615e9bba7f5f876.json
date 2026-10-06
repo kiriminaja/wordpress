@@ -10,17 +10,17 @@
         "lang": "id_ID",
         "plural-forms": "nplurals=2; plural=(n > 1);"
       },
-      "KiriminAja District": [
-        "Kelurahan KiriminAja"
+      "KiriminAja Subdistrict": [
+        "Desa / Kelurahan KiriminAja"
       ],
-      "Searchable shipping destination district.": [
-        "Kelurahan tujuan pengiriman yang dapat dicari."
+      "Searchable shipping destination subdistrict.": [
+        "Desa / Kelurahan tujuan pengiriman yang dapat dicari."
       ],
-      "District": [
-        "Kecamatan"
+      "Subdistrict": [
+        "Desa / Kelurahan"
       ],
-      "Select District": [
-        "Pilih Kecamatan"
+      "Select Subdistrict": [
+        "Pilih Desa / Kelurahan"
       ]
     }
   }

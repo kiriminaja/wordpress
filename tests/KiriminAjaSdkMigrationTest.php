@@ -37,8 +37,8 @@ final class KiriminAjaSdkMigrationTest extends TestCase
         $repository = file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php');
 
         $this->assertStringContainsString('AddressApiTransport', $repository);
-        $this->assertStringContainsString('api/mitra/kelurahan', $repository);
-        $this->assertStringContainsString('api/mitra/v2/get_address_by_name', $repository);
+        $this->assertStringContainsString('api/mitra/v6.1/addresses', $repository);
+        $this->assertStringNotContainsString('api/mitra/v2/get_address_by_name', $repository);
         foreach (
             array(
                 'KiriminAja::setCallback',

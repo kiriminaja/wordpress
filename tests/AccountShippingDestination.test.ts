@@ -62,7 +62,7 @@ function fixture(saved: any = null, extra: any = {}, locationMode = 'grant', wit
 		setTimeout(callback: any, delay: number) { timers.set(++timerId, { callback, delay }); return timerId; },
 		clearTimeout(id: number) { timers.delete(id); },
 		fetch(url: string, options: any) { return new Promise((resolve, reject) => requests.push({ url, options, resolve, reject })); },
-		kiriofAccountShippingConfig: { ajaxUrl: '/ajax', nonce: 'nonce', map: { tiles: 'https://tiles.test/{z}/{x}/{y}', defaultCenter: [0, 0] }, i18n: { selectDistrict: 'Choose district', loading: 'Loading', lookupFailed: 'Lookup failed', districtRequired: 'Required', empty: 'Empty', postcodeRequired: 'Postcode required', mapPlaced: 'Placed', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed' }, ...extra },
+		kiriofAccountShippingConfig: { ajaxUrl: '/ajax', nonce: 'nonce', map: { tiles: 'https://tiles.test/{z}/{x}/{y}', defaultCenter: [0, 0] }, i18n: { selectDistrict: 'Choose subdistrict', loading: 'Loading', lookupFailed: 'Lookup failed', districtRequired: 'Required', empty: 'Empty', postcodeRequired: 'Postcode required', mapPlaced: 'Placed', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed' }, ...extra },
 	});
 	runInNewContext(mapSource, { window: root });
 	if (withoutCoverageApi) delete root.kiriofMapCheckout.coverageStatus;
@@ -94,7 +94,7 @@ test('actual native select unlocks after success, failure and timeout; retry pub
 	let id = 0; const timers = new Map<number, { callback: any; delay: number }>(), requests: any[] = [];
 	const root = {
 		document, AbortController, URLSearchParams,
-		kiriofAccountShippingConfig: { ajaxUrl: '/ajax', map: { enabled: false }, i18n: { selectDistrict: 'Choose district', lookupFailed: 'Failed' } },
+		kiriofAccountShippingConfig: { ajaxUrl: '/ajax', map: { enabled: false }, i18n: { selectDistrict: 'Choose subdistrict', lookupFailed: 'Failed' } },
 		setTimeout(callback: any, delay: number) { timers.set(++id, { callback, delay }); return id; }, clearTimeout(id: number) { timers.delete(id); },
 		fetch() { return new Promise((resolve, reject) => requests.push({ resolve, reject })); },
 		addEventListener: window.addEventListener.bind(window), removeEventListener: window.removeEventListener.bind(window),
@@ -164,7 +164,7 @@ describe('Account shipping destination native form', () => {
 	test('pending saved district stays visible but disabled until canonical confirmation', async () => {
 		const h = fixture(destination(), {}, 'pending');
 		expect(h.district.disabled).toBe(true); expect(h.district.value).toBe('12');
-		expect(h.district.children.map(node => [node.value, node.textContent])).toEqual([['', 'Choose district'], ['12', 'Old label']]);
+		expect(h.district.children.map(node => [node.value, node.textContent])).toEqual([['', 'Choose subdistrict'], ['12', 'Old label']]);
 		expect(h.retry.hidden).toBe(true); h.flush(); await h.respond();
 		expect(h.district.disabled).toBe(false); expect(h.district.value).toBe('12'); expect(h.posted().district_label).toBe('Canonical district');
 	});
@@ -280,7 +280,7 @@ describe('Account shipping destination native form', () => {
 		eligible.edit('country', 'ID'); expect(eligible.locations).toHaveLength(2);
 	});
 	test('shipping edit badges track verified district, placed pin and full-address invalidation', async () => {
-		const h = fixture(null, { i18n: { checkingDistrict: 'Checking', districtNotSet: 'District missing', needPinLocation: 'Need pin', pinLocation: 'Pin saved' } }, 'pending');
+		const h = fixture(null, { i18n: { checkingDistrict: 'Checking', districtNotSet: 'Subdistrict missing', needPinLocation: 'Need pin', pinLocation: 'Pin saved' } }, 'pending');
 		expect(h.badges.children.map(node => node.textContent)).toEqual(['⚠ Checking', '⚠ Need pin']);
 		h.flush(); await h.respond(); h.choose('12');
 		expect(h.badges.children.map(node => node.textContent)).toEqual(['⚠ Need pin']);

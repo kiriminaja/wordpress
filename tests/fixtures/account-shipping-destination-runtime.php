@@ -18,7 +18,7 @@ namespace KiriminAjaOfficial\Services {
 namespace KiriminAjaOfficial\Base {
     class Enqueue {
         public function buyer_checkout_config(): array {
-            return array( 'ajaxUrl' => '/wp-admin/admin-ajax.php', 'nonce' => 'lookup-nonce', 'map' => array( 'enabled' => true, 'tiles' => 'https://tiles.example/{z}/{x}/{y}' ), 'i18n' => array( 'selectDistrict' => 'Select District', 'district' => 'District', 'retry' => 'Try again', 'mapTitle' => 'Pin Location', 'mapOptional' => 'Optional for Express.', 'mapHelp' => 'Move map', 'mapKeyboard' => 'Use arrow keys', 'mapPermission' => 'Allow location', 'mapLocate' => 'Locate me' ) );
+            return array( 'ajaxUrl' => '/wp-admin/admin-ajax.php', 'nonce' => 'lookup-nonce', 'map' => array( 'enabled' => true, 'tiles' => 'https://tiles.example/{z}/{x}/{y}' ), 'i18n' => array( 'selectDistrict' => 'Select Subdistrict', 'district' => 'Subdistrict', 'retry' => 'Try again', 'mapTitle' => 'Pin Location', 'mapOptional' => 'Optional for Express.', 'mapHelp' => 'Move map', 'mapKeyboard' => 'Use arrow keys', 'mapPermission' => 'Allow location', 'mapLocate' => 'Locate me' ) );
         }
     }
 }
