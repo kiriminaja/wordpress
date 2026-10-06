@@ -31,8 +31,8 @@
 }
 .woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-pin-state.is-complete { color: #166534; border-color: #86b99a; }
 .kiriof-classic-pin-state svg { width: 16px; height: 16px; flex-shrink: 0; }
-.kiriof-classic-map-indicator { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-100%); z-index: 900; pointer-events: none; color: #166534; }
-.kiriof-classic-map-indicator svg { display: block; width: 30px; height: 40px; fill: currentColor; stroke: #FFFFFF; stroke-width: 1.5; filter: drop-shadow(0 1px 2px #0005); }
+.kiriof-classic-map-indicator { position: absolute; left: 50%; top: 50%; width: 32px; height: 44px; transform: translate(-50%,-100%); z-index: 900; pointer-events: none; color: #166534; }
+.kiriof-classic-map-indicator svg { display: block; width: 32px; height: 44px; overflow: visible; fill: currentColor; stroke: #FFFFFF; stroke-width: 1.5; filter: drop-shadow(0 1px 2px #0005); }
 .woocommerce form.checkout .kiriof-classic-pin .leaflet-control-zoom a { text-decoration: none !important; font-family: Arial, sans-serif; line-height: 30px; color: #1F2937; }
 .woocommerce form.checkout .kiriof-classic-pin .leaflet-control-attribution { font-size: 10px; line-height: 1.4; max-width: calc(100% - 8px); }
 .woocommerce form.checkout .form-row-first { box-sizing: border-box; }

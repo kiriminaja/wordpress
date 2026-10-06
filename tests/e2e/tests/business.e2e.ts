@@ -116,6 +116,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
         enabled: true,
         tiles: 'https://tiles.fixture.test/{z}/{x}/{y}.png',
         attribution: 'Fixture tiles',
+        coverage: { origin: { latitude: -7.7, longitude: 110.3 }, radiusMeters: 40000 },
       },
     })};
 		window.kiriofBillingAddressConfig = {
@@ -558,8 +559,18 @@ async function mapGeometry(browser: any) {
         (a) => getComputedStyle(a).textDecorationLine,
       ),
       markerCentered:
-        Math.abs((marker.left + marker.right) / 2 - (map.left + map.right) / 2) < 1 &&
-        Math.abs(marker.bottom - (map.top + map.bottom) / 2) < 1,
+        (()=>{
+          const svg=document.querySelector('.kiriof-classic-map-indicator svg') as SVGSVGElement;
+          const tip=svg.createSVGPoint();tip.x=16;tip.y=44;
+          const rendered=tip.matrixTransform(svg.getScreenCTM()!);
+          return Math.abs(rendered.x-(map.left+map.right)/2)<1 && Math.abs(rendered.y-(map.top+map.bottom)/2)<1;
+        })(),
+      coverageDottedUnfilled: (()=>{
+        const boundary=document.querySelector('.leaflet-overlay-pane path') as SVGPathElement;
+        if(!boundary)return false;
+        const css=getComputedStyle(boundary);
+        return css.fill==='none' && boundary.getAttribute('stroke-dasharray')==='1 6' && boundary.getAttribute('stroke-linecap')==='round';
+      })(),
       markerVisible:
         contained(marker) &&
         getComputedStyle(document.querySelector('.kiriof-classic-map-indicator')).display !==
@@ -631,6 +642,7 @@ for (const width of [1200, 390]) {
         'badgeNoOverlap',
         'markerCentered',
         'markerVisible',
+        'coverageDottedUnfilled',
         'noHorizontalOverflow',
       ]) {
         expect(geometry[key]).toBe(true);

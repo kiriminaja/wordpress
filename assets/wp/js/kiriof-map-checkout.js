@@ -101,7 +101,7 @@
 			map = L.map( options.node, { scrollWheelZoom: false } ).setView( options.defaultCenter || [ -6.2088, 106.8456 ], 13 );
 			if ( coverageStatus( coverage, coverage && coverage.origin ) && 'function' === typeof L.circle ) {
 				// A missing optional overlay must not disable Express pin selection.
-				try { L.circle( [ Number( coverage.origin.latitude ), Number( coverage.origin.longitude ) ], { radius: Number( coverage.radiusMeters ), interactive: false } ).addTo( map ); } catch { /* Keep the unrestricted map usable. */ }
+				try { L.circle( [ Number( coverage.origin.latitude ), Number( coverage.origin.longitude ) ], { radius: Number( coverage.radiusMeters ), interactive: false, fill: false, fillOpacity: 0, color: '#64748b', weight: 2, opacity: 0.85, dashArray: '1 6', lineCap: 'round' } ).addTo( map ); } catch { /* Keep the unrestricted map usable. */ }
 			}
 			var tiles = L.tileLayer( options.tiles, { maxZoom: 19, attribution: options.attribution } ).addTo( map );
 			tiles.on( 'tileerror', function() { report( 'unavailable' ); } );
@@ -279,7 +279,7 @@
 					selected ? ( strings.pinLocation || buyerStrings.pinLocation ) : ( strings.needPinLocation || buyerStrings.needPinLocation ) ),
 				h( 'div', { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
 					h( 'svg', { viewBox: '0 0 32 44', width: 32, height: 44, focusable: 'false' },
-						h( 'path', { d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z', fill: 'currentColor', stroke: '#fff', strokeWidth: 2 } ),
+						h( 'path', { d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 28 15 28s15-17 15-28C31 7.7 24.3 1 16 1Z', fill: 'currentColor', stroke: '#fff', strokeWidth: 2 } ),
 						h( 'circle', { cx: 16, cy: 16, r: 5, fill: '#fff' } ) ) ),
 				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', 'aria-label': strings.mapLocate, title: strings.mapLocate, onClick: function() { if ( session.current ) { session.current.locate(); } } },
 					h( 'svg', { viewBox: '0 0 24 24', width: 22, height: 22, fill: 'none', stroke: 'currentColor', strokeWidth: 2, 'aria-hidden': 'true', focusable: 'false' },

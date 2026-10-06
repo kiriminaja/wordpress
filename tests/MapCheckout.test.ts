@@ -92,7 +92,7 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 	test('seller coverage circle is unrestricted, independent of device view and removed with map', () => {
 		const coverage = { origin: { latitude: '0', longitude: '0' }, radiusMeters: 40000 };
 		const statuses: any[] = []; const h = fixture({ coverage, defaultCenter: [5, 6], initial: { latitude: 1, longitude: 0 }, onCoverage: (status: any) => statuses.push(status) });
-		expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.circles[0].options).toEqual({ radius: 40000, interactive: false }); expect(h.circles[0].map).toBe(h.maps[0]);
+		expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.circles[0].options).toEqual({ radius: 40000, interactive: false, fill: false, fillOpacity: 0, color: '#64748b', weight: 2, opacity: 0.85, dashArray: '1 6', lineCap: 'round' }); expect(h.circles[0].map).toBe(h.maps[0]);
 		expect(h.maps[0].options.maxBounds).toBeUndefined(); expect(statuses.at(-1).inside).toBe(false); expect(h.selections).toEqual([]);
 		coverage.origin.latitude = '1'; h.click(1, 0); expect(statuses.at(-1).inside).toBe(false); expect(h.selections).toHaveLength(0);
 		h.click(0, 0); expect(statuses.at(-1).inside).toBe(true);

@@ -18,7 +18,7 @@
 		var retry = button( strings.retry || 'Retry' ); retry.hidden = true;
 		var badge = root.document.createElement( 'span' ); badge.className = 'kiriof-classic-pin-state'; badge.setAttribute('role','status');
 		var indicator=root.document.createElement('span');indicator.className='kiriof-classic-map-indicator';indicator.setAttribute('aria-hidden','true');
-		var marker=icon('M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Z');indicator.append(marker);
+		var marker=icon('M16 1C7.7 1 1 7.7 1 16c0 11 15 28 15 28s15-17 15-28C31 7.7 24.3 1 16 1Z');marker.setAttribute('viewBox','0 0 32 44');marker.setAttribute('width','32');marker.setAttribute('height','44');indicator.append(marker);
 		locate.textContent = ''; locate.setAttribute('aria-label',strings.mapLocate || 'Current location'); locate.title = strings.mapLocate || 'Current location'; locate.append(icon('M12 3v3m0 12v3M3 12h3m12 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8'));
 		viewport.append( canvas, indicator, locate, badge ); panel.append( title, viewport, status, retry );
 		var hidden = root.document.createElement( 'input' ); hidden.type = 'hidden'; hidden.name = 'kiriof_buyer_destination_snapshot'; form.append( hidden );
