@@ -1,6 +1,8 @@
 .woocommerce form.checkout .choices { width: 100%; min-width: 0; margin: 0; font: inherit; color: inherit; overflow: visible; }
 .woocommerce form.checkout .choices .choices__inner { display: flex; align-items: center; width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 40px 10px 12px; margin: 0; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; color: inherit; font: inherit; }
-.woocommerce form.checkout .choices .choices__list--single { padding: 0; width: 100%; }
+.woocommerce form.checkout .choices .choices__list--single { padding: 0; width: 100%; min-width: 0; }
+.woocommerce form.checkout .choices .choices__list--single > .choices__item { display: block; width: 100%; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.woocommerce form.checkout .choices[data-type*=select-one]:has(.choices__button) .choices__inner { padding-right: 64px; }
 .woocommerce form.checkout .choices .choices__item { margin: 0; font: inherit; line-height: 1.5; }
 .woocommerce form.checkout .choices[data-type*=select-one]::after { right: 14px; border-color: currentColor transparent transparent; }
 .woocommerce form.checkout .choices.is-focused .choices__inner { outline: 2px solid currentColor; outline-offset: 2px; }

@@ -44,6 +44,13 @@ function load(h: ReturnType<typeof harness>) {
 }
 
 describe('separate legacy checkout browser modules', () => {
+	test('Choices/native labels never call Select2 data without a field instance', () => {
+		const h=harness();load(h);let calls=0;
+		const field:any={val:()=> '123',data:()=>null,find:()=>({text:()=> 'Sari Harjo, Ngaglik'}),attr:()=> 'kiriof_destination_area',selectWoo:()=>{calls++;throw new Error('Select2 data on uninitialized field');}};
+		expect(h.context.kiriofGetClassicDistrictLabel(field)).toBe('Sari Harjo, Ngaglik');expect(calls).toBe(0);
+		field.data=(key:string)=>key==='select2'?{}:null;field.selectWoo=()=>{calls++;return [{text:'SelectWoo village'}];};
+		expect(h.context.kiriofGetClassicDistrictLabel(field)).toBe('SelectWoo village');expect(calls).toBe(1);
+	});
 	test('actual SelectWoo request and result callbacks accept names, postcodes and legacy response envelopes', () => {
 		const h = harness();
 		load(h);

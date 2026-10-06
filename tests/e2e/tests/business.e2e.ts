@@ -570,6 +570,20 @@ async function mapGeometry(browser: any) {
 }
 
 for (const width of [1200, 390]) {
+  test(`Choices label resolution after native clear does not call Select2 on an unowned field at ${width}px`, async ({ app, browser }) => {
+    await browser.setViewport({width,height:1000});const fixture=await checkout(app,browser,false);
+    const result=await browser.evaluate(()=>{
+      const $=(window as any).jQuery;const select=document.getElementById('kiriof_destination_area');
+      $(select).removeData('kiriofSelectedDistrictText');
+      const errors:string[]=[];const original=console.error;console.error=(...args:any[])=>{errors.push(args.join(' '));};
+      let label='';try {label=(window as any).kiriofGetClassicDistrictLabel($(select));}finally{console.error=original;}
+      return {label,errors,select2:Boolean($(select).data('select2'))};
+    });
+    expect(result).toEqual({label:'Fixture district',errors:[],select2:false});
+    await browser.locator('#kiriof_destination_area_field .choices__list--single > .choices__item').tap();
+    await expect(browser.locator('#kiriof_destination_area_field .choices__list--dropdown')).toBeVisible();
+    expect(fixture.unexpected).toEqual([]);
+  });
   test(`Classic real Leaflet map resists adverse theme geometry at ${width}px`, async ({
     app,
     browser,
@@ -668,6 +682,35 @@ for (const width of [1200, 390]) {
       };
     });
     expect(idle).toEqual({ mutations: 0, maps: 0, updates: 0, stable: true });
+    expect(fixture.unexpected).toEqual([]);
+  });
+  test(`Classic Choices selected text is single-line and clicking text focuses search at ${width}px`, async ({ app, browser }) => {
+    await browser.setViewport({ width, height: 1000 });
+    const fixture = await checkout(app, browser, false);
+    await browser.evaluate(() => {
+      for (const id of ['kiriof_destination_area', 'billing_state']) {
+        const select = document.getElementById(id) as HTMLSelectElement;
+        select.selectedOptions[0].textContent = 'Sari Harjo, Ngaglik, Sleman, Daerah Istimewa Yogyakarta, 55581 ' .repeat(3);
+      }
+      (window as any).kiriofClassicChoices.refresh();
+      return true;
+    });
+    for (const id of ['kiriof_destination_area', 'billing_state']) {
+      const prefix = `#${id}_field`;
+      expect(await browser.evaluate((selector: string) => {
+        const item = document.querySelector(`${selector} .choices__list--single > .choices__item`)!;
+        const inner = document.querySelector(`${selector} .choices__inner`)!;
+        const css = getComputedStyle(item);
+        return { nowrap: css.whiteSpace, overflow: css.overflow, ellipsis: css.textOverflow, clipped: item.scrollWidth > item.clientWidth, itemHeight: item.getBoundingClientRect().height, controlHeight: inner.getBoundingClientRect().height };
+      }, prefix)).toEqual({ nowrap: 'nowrap', overflow: 'hidden', ellipsis: 'ellipsis', clipped: true, itemHeight: 24, controlHeight: 46 });
+      await browser.locator(`${prefix} .choices__list--single > .choices__item`).tap();
+      await expect(browser.locator(`${prefix} .choices__list--dropdown`)).toBeVisible();
+      await expect.poll(() => browser.evaluate((selector: string) => document.activeElement === document.querySelector(`${selector} .choices__input--cloned`), prefix)).toBe(true);
+      await browser.keyboard.press('Escape');
+      await browser.locator(`${prefix} .choices__inner`).tap();
+      await expect(browser.locator(`${prefix} .choices__list--dropdown`)).toBeVisible();
+      await browser.keyboard.press('Escape');
+    }
     expect(fixture.unexpected).toEqual([]);
   });
 }
@@ -986,18 +1029,19 @@ for (const width of [1200, 390]) {
       const style = (selector: string) => {
         const node = document.querySelector(selector);
         const css = getComputedStyle(node);
-        return { height: node.getBoundingClientRect().height, font: css.font, padding: css.padding, border: css.border, background: css.backgroundColor };
+        return { height: node.getBoundingClientRect().height, font: css.font, paddingTop: css.paddingTop, paddingLeft: css.paddingLeft, border: css.border, background: css.backgroundColor };
       };
       return { district: style('#kiriof_destination_area_field .choices__inner'), province: style('#billing_state_field .choices__inner') };
     })).toEqual(await browser.evaluate(() => {
       const node = document.querySelector('#billing_state_field .choices__inner');
       const css = getComputedStyle(node);
-      const style = { height: node.getBoundingClientRect().height, font: css.font, padding: css.padding, border: css.border, background: css.backgroundColor };
+      const style = { height: node.getBoundingClientRect().height, font: css.font, paddingTop: css.paddingTop, paddingLeft: css.paddingLeft, border: css.border, background: css.backgroundColor };
       return { district: style, province: style };
     }));
     await browser.locator('#billing_state_field .choices').tap();
     await expect(browser.locator('#billing_state_field .choices__list--dropdown')).toBeVisible();
     await browser.keyboard.press('Escape');
+    await expect(browser.locator('#billing_state_field .choices__list--dropdown')).not.toBeVisible();
     await browser.keyboard.press('Enter');
     await expect(browser.locator('#billing_state_field .choices__list--dropdown')).toBeVisible();
     await browser.locator('#billing_state_field .choices__input--cloned').fill('Jawa');

@@ -198,6 +198,38 @@
         var record = { select: select, choices: choices, status: notice, generation: 0,
             signature: '', addressScope: scope(select), term: '' };
         records.set(select, record);
+        // Themes can intercept clicks on the selected item. Own activation of
+        // the closed control, while leaving results/search/clear events alone.
+        record.onActivate = function (event) {
+            if (select.disabled || !event.target.closest('.choices__inner') || event.target.closest('.choices__button')) { return; }
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (choices.containerOuter.element.classList.contains('is-open')) { choices.hideDropdown(); }
+            else { choices.showDropdown(); }
+        };
+        record.onOpen = function () {
+            window.requestAnimationFrame(function () {
+                if (!stopped && select.isConnected && !select.disabled && choices.containerOuter.element.classList.contains('is-open')) {
+                    choices.input.element.focus();
+                }
+            });
+        };
+        choices.containerOuter.element.addEventListener('click', record.onActivate, true);
+        record.onEscape = function (event) {
+            if ((event.key === 'Enter' || (event.key === ' ' && event.target === choices.containerOuter.element)) && !select.disabled && !choices.containerOuter.element.classList.contains('is-open')) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                choices.showDropdown();
+                return;
+            }
+            if (event.key !== 'Escape' || !choices.containerOuter.element.classList.contains('is-open')) { return; }
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            choices.hideDropdown(true);
+            choices.containerOuter.element.focus();
+        };
+        choices.containerOuter.element.addEventListener('keydown', record.onEscape, true);
+        select.addEventListener('showDropdown', record.onOpen);
         record.onSearch = function (event) { search(record, event.detail.value); };
         record.onInput = function () {
             var term = choices.input.element.value.trim();
@@ -240,6 +272,9 @@
         cancel(record);
         record.select.removeEventListener('change', record.onChange, true);
         record.select.removeEventListener('search', record.onSearch);
+        record.select.removeEventListener('showDropdown', record.onOpen);
+        record.choices.containerOuter.element.removeEventListener('click', record.onActivate, true);
+        record.choices.containerOuter.element.removeEventListener('keydown', record.onEscape, true);
         record.choices.input.element.removeEventListener('input', record.onInput);
         var disconnected = !record.select.isConnected;
         var outer = record.choices.containerOuter.element;

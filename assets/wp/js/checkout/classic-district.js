@@ -60,7 +60,10 @@ function kiriofGetClassicDistrictLabel($select) {
     }
 
     try {
-        var selectData = $select.selectWoo ? $select.selectWoo('data') : ($select.select2 ? $select.select2('data') : []);
+        // Plugin availability does not mean this field owns an instance: Classic
+        // checkout may use Choices or an untouched native select instead.
+        var instance = $select.data('select2') || $select.data('selectWoo');
+        var selectData = instance ? ($select.selectWoo ? $select.selectWoo('data') : ($select.select2 ? $select.select2('data') : [])) : [];
         if (selectData && selectData.length && selectData[0].text) {
             label = String(selectData[0].text || '').trim();
             if (!kiriofIsPlaceholderDistrictText(label)) {
