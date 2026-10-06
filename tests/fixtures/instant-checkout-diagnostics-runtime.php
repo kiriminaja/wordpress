@@ -114,8 +114,5 @@ namespace {
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutDiagnosticsService($settings, $locations);
     $snapshot = null;
     try { $snapshot = $service->snapshot(); } catch (Throwable $error) {}
-    $service->report(); $service->report(); $service->reportCart(WC()->cart);
-    if ('change' === $scenario) { WC()->customer->address['address_1'] .= 'changed'; $service->report(); }
-    if ('bound' === $scenario) { for ($i = 0; $i < 20; ++$i) { $settings->selection['gosend'] = ['CODE' . $i]; $service->report(); } }
     echo json_encode(['snapshot' => $snapshot, 'logs' => $GLOBALS['logs'], 'hooks' => $GLOBALS['hooks'], 'lazy_counts' => $lazy_counts, 'network' => $GLOBALS['network']]);
 }

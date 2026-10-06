@@ -1509,10 +1509,10 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             $shippingMethod,
             'Address-length validation should fall back to Woo customer address accessors when package data is unavailable'
         );
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'KiriminAja shipping rates hidden because checkout address is too short.',
             $shippingMethod,
-            'When rates are hidden by address length, the reason should be traceable in logs'
+            'An incomplete checkout address is expected and must not produce routine log noise'
         );
     }
 

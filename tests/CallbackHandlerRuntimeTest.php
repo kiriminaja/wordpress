@@ -91,6 +91,7 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
         $this->assertSame( 200, $response->status );
+        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
         $this->assertSame( array( 'ORDER-1', 'ORDER-2' ), $transactionRepository->updatedOrderIds );
         $this->assertSame( array( 'PICKUP-1', 'PICKUP-2' ), $paymentRepository->updatedPickupNumbers );
         $this->assertSame( 'paid', $paymentRepository->payments['PICKUP-1']->status );
@@ -154,6 +155,7 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
         $this->assertSame( 200, $response->status );
+        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
         $this->assertSame( 'unpaid', $paymentRepository->payments['PICKUP-1']->status );
         $this->assertSame( array(), $paymentRepository->updatedPickupNumbers );
     }
@@ -176,6 +178,7 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
         $this->assertSame( 200, $response->status );
+        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
         $this->assertSame( array( 'ORDER-1', 'ORDER-2' ), $transactionRepository->updatedOrderIds );
         $this->assertSame( array( 'PICKUP-1', 'PICKUP-2' ), $paymentRepository->updatedPickupNumbers );
     }
@@ -227,6 +230,9 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $this->assertSame( 401, $response->status );
         $this->assertSame( 'Authorization failed', $response->message );
+        $this->assertCount( 1, $GLOBALS['kiriof_callback_test_logs'] );
+        $this->assertSame( 'warning', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
+        $this->assertStringNotContainsString( 'wrong-secret', json_encode( $GLOBALS['kiriof_callback_test_logs'] ) );
     }
 
     #[Test]
@@ -253,11 +259,15 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         )->call();
 
         $this->assertSame( 200, $response->status );
+        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
         foreach ( $expectedChanges as $field => $value ) {
             $this->assertSame( $value, $transactionRepository->transactions['ORDER-1']->{$field} );
         }
         $this->assertSame( $expectedOrderStatus, $order->updatedStatus );
         $this->assertCount( $expectsCancelHooks ? 2 : 0, $GLOBALS['kiriof_callback_test_hooks'] );
+        $replay = $this->eventService( $transactionRepository, $paymentRepository, $method, array( (object) array_merge( array( 'order_id' => 'ORDER-1' ), $packageData ) ) )->call();
+        $this->assertSame( 200, $replay->status );
+        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
     }
 
     public static function packageEventProvider(): array {
@@ -323,6 +333,8 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $response = $service->call();
         $this->assertSame( 400, $response->status );
         $this->assertSame( 'Invalid callback payload', $response->message );
+        $this->assertCount( 1, $GLOBALS['kiriof_callback_test_logs'] );
+        $this->assertSame( 'warning', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
         $this->assertSame( array(), $response->data );
         $this->assertSame( array(), $transactions->lookupOrderIds );
         $this->assertSame( array(), $transactions->updatedOrderIds );
@@ -399,6 +411,20 @@ final class CallbackHandlerRuntimeTest extends TestCase {
             $this->assertSame( 401, $service->call()->status );
             $this->assertSame( array(), $transactions->lookupOrderIds );
         }
+    }
+
+    #[Test]
+    public function mixed_delivery_batch_has_one_specific_warning_without_mutation(): void {
+        $express = $this->transaction( 'ORDER-1', 'PICKUP-1' );
+        $instant = $this->transaction( 'ORDER-2', 'PICKUP-2' );
+        $instant->delivery_type = 'instant';
+        $transactions = new CallbackTransactionRepositoryFake( array( $express, $instant ) );
+        $response = $this->service( $transactions, new CallbackPaymentRepositoryFake( array() ) )->call();
+        $this->assertSame( 400, $response->status );
+        $this->assertSame( array(), $transactions->updatedOrderIds );
+        $this->assertCount( 1, $GLOBALS['kiriof_callback_test_logs'] );
+        $this->assertSame( 'warning', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
+        $this->assertStringContainsString( 'mixed Express and Instant', $GLOBALS['kiriof_callback_test_logs'][0]['message'] );
     }
 
     private function service( $transactionRepository, $paymentRepository ): CallbackHandlerService {

@@ -51,7 +51,6 @@ class GetShippingProcessPayment extends BaseService{
         $remotePaidAt = (string) ($remotePayment->paid_at ?? '');
         $hasAwbForPickup = $this->hasAwbForPickup($this->payment_id);
         $localMethod = strtolower((string) ($getPayment->method ?? ''));
-        $localStatusBefore = (string) ($getPayment->status ?? '');
         $remotePaymentStatus = strtolower((string) ($remotePayment->payment_status ?? $remotePayment->status ?? ''));
         $remoteHasPaidTimestamp = $remotePaidAt !== '';
         $remoteHasPaidStatus = in_array($remotePaymentStatus, ['paid', 'settlement', 'settled', 'success'], true);
@@ -82,22 +81,6 @@ class GetShippingProcessPayment extends BaseService{
             ]);
             $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
         }
-
-        kiriof_log('info', 'QRIS payment form status resolved.', [
-            'pickup_number' => $this->payment_id,
-            'local_method' => $localMethod,
-            'local_status_before' => $localStatusBefore,
-            'local_status_after' => (string) ($getPayment->status ?? ''),
-            'remote_status_code' => $remoteStatusCode,
-            'remote_payment_status' => $remotePaymentStatus,
-            'remote_pay_time_present' => $remotePayTime !== '',
-            'remote_paid_at_present' => $remotePaidAt !== '',
-            'remote_has_paid_timestamp' => $remoteHasPaidTimestamp,
-            'remote_has_paid_status' => $remoteHasPaidStatus,
-            'remote_is_paid' => $remoteIsPaid,
-            'has_awb_for_pickup' => $hasAwbForPickup,
-            'has_qr_content' => !empty($remotePayment->qr_content ?? ''),
-        ], 'kiriminaja_request_pickup');
 
         self::transactionsSummaryProccess();
         return self::success([
@@ -168,8 +151,6 @@ class GetShippingProcessPayment extends BaseService{
         $dt = new DateTime("now", new DateTimeZone($this->timeZone));
         $dt->setTimestamp(strtotime($dateTime));
         $date = $dt->format('Y-m-d H:i:s');
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$tz',[$this->timeZone]);
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$dt',[$dt->format('Y-m-d H:i:s')]);
         
         return $date;
     }

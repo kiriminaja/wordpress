@@ -11,7 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class InstantCheckoutDiagnosticsService {
 	private ?SettingRepository $settings;
 	private ?ShipmentLocationService $locations;
-	private array $reported = array();
 
 	/** Keep composition at plugins_loaded free of database initialization. */
 	public function __construct( ?SettingRepository $settings = null, ?ShipmentLocationService $locations = null ) {
@@ -19,20 +18,8 @@ class InstantCheckoutDiagnosticsService {
 		$this->locations = $locations;
 	}
 
-	public function register(): void {
-		if ( function_exists( 'add_action' ) ) {
-			add_action( 'wp', array( $this, 'report' ) );
-			add_action( 'woocommerce_checkout_update_order_review', array( $this, 'report' ), 100, 0 );
-			add_action( 'woocommerce_after_calculate_totals', array( $this, 'reportCart' ), 100, 1 );
-		}
-	}
-
-	/** Store API totals are calculated after the persisted destination has been updated. */
-	public function reportCart( $cart ): void {
-		if ( function_exists( 'WC' ) && WC() && $cart === WC()->cart ) {
-			$this->report();
-		}
-	}
+	/** Diagnostics are requested explicitly by callers; checkout hooks never log readiness. */
+	public function register(): void {}
 
 	/** Only booleans, numeric IDs and bounded configuration/reason codes leave this method. */
 	public function snapshot(): array {
@@ -208,53 +195,6 @@ class InstantCheckoutDiagnosticsService {
 		}
 		$result['ready'] = empty( $result['reasons'] );
 		return $result;
-	}
-
-	public function report(): void {
-		try {
-			if ( ! $this->shouldReport() ) {
-				return;
-			}
-			$context = $this->snapshot();
-			$level = $context['ready'] ? 'info' : 'warning';
-		} catch ( \Throwable $error ) {
-			$context = array( 'code' => 'diagnostics_unavailable', 'ready' => false, 'reasons' => array( 'diagnostics_unavailable' ) );
-			$level = 'error';
-		}
-		$hash = hash( 'sha256', (string) json_encode( $context ) );
-		if ( isset( $this->reported[ $hash ] ) || count( $this->reported ) >= 8 || ! function_exists( 'kiriof_log' ) ) {
-			return;
-		}
-		$this->reported[ $hash ] = true;
-		$context['backtrace'] = false;
-		try {
-			kiriof_log( $level, 'Instant checkout local readiness diagnostics (not a live quote).', $context, 'kiriminaja_instant' );
-		} catch ( \Throwable $error ) {
-			// Diagnostics must never interrupt the buyer checkout, even if logging fails.
-		}
-	}
-
-	private function shouldReport(): bool {
-		if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart->needs_shipping() ) {
-			return false;
-		}
-		if ( function_exists( 'is_admin' ) && is_admin() && ! ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) ) {
-			return false;
-		}
-		if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
-			return false;
-		}
-		return ( function_exists( 'is_checkout' ) && is_checkout() ) || ( function_exists( 'is_cart' ) && is_cart() )
-			|| ( function_exists( 'doing_action' ) && doing_action( 'woocommerce_checkout_update_order_review' ) )
-			|| $this->isStoreApiRequest();
-	}
-
-	private function isStoreApiRequest(): bool {
-		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
-			return false;
-		}
-		$route = $GLOBALS['wp']->query_vars['rest_route'] ?? '';
-		return is_string( $route ) && 1 === preg_match( '#\A/wc/store/(?:v[0-9]+/)?(?:cart|checkout)(?:/|\z)#', $route );
 	}
 
 	/** Reject arbitrary strings rather than coercing private data into identifiers. */

@@ -26,6 +26,8 @@ namespace KiriminAjaOfficial\Services {
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );
+	$GLOBALS['logs'] = array();
+	function kiriof_log( ...$args ) { $GLOBALS['logs'][] = $args; }
 	$GLOBALS['actions'] = array();
 	$GLOBALS['filters'] = array();
 	function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['actions'][ $hook ][] = $callback; }
@@ -204,6 +206,7 @@ namespace {
 		$guard->calculate_shipping( $package );
 		$result['reasons'][ $reason ] = $session->get( 'kiriof_instant_checkout_status' )['100:' . hash( 'sha256', json_encode( array_keys( $package['contents'] ) ) )];
 	}
+	$result['logs'] = $GLOBALS['logs'];
 	echo json_encode( $result );
 
 }

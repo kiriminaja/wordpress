@@ -112,6 +112,8 @@ PHP;
         foreach ( array( 'Bearer exact%20-token', 'Bearer <b>exact-token</b>', 'Bearer exact-\ntoken' ) as $token ) {
             $result = $this->runScenario( array( 'headers' => array( 'Authorization' => $token ) ) );
             $this->assertSame( 401, $result['status'] );
+            $this->assertCount( 1, $result['logs'] );
+            $this->assertSame( 'warning', $result['logs'][0]['level'] );
             $this->assertSame( 0, $result['reads'] );
             $this->assertSame( $token, $result['headers']['authorization'] );
         }
@@ -121,6 +123,8 @@ PHP;
         foreach ( array( 'exact-token', '  bEaReR exact-token  ' ) as $token ) {
             $result = $this->runScenario( array( 'headers' => array( 'aUtHoRiZaTiOn' => $token ) ) );
             $this->assertSame( 503, $result['status'] );
+            $this->assertCount( 1, $result['logs'] );
+            $this->assertSame( 'error', $result['logs'][0]['level'] );
             $this->assertSame( 1, $result['reads'] );
             $this->assertSame( $token, $result['headers']['authorization'] );
         }
@@ -147,6 +151,9 @@ PHP;
         $this->assertSame( 0, $result['reads'] );
         $this->assertSame( 400, $result['status'] );
         $this->assertSame( 'Invalid callback payload', $result['data']['text'] );
+        $this->assertCount( 1, $result['logs'] );
+        $this->assertSame( 'warning', $result['logs'][0]['level'] );
+        $this->assertStringNotContainsString( 'SHIP-1', json_encode( $result['logs'] ) );
     }
 
     public function test_only_json_objects_are_accepted(): void {
@@ -167,6 +174,9 @@ PHP;
         $this->assertSame( 0, $result['reads'] );
         $result = $this->runScenario( array( 'body_size' => 2097152 ) );
         $this->assertSame( 'Invalid callback payload', $result['data']['text'] );
+        $this->assertCount( 1, $result['logs'] );
+        $this->assertSame( 'warning', $result['logs'][0]['level'] );
+        $this->assertStringNotContainsString( 'SHIP-1', json_encode( $result['logs'] ) );
     }
 
     public function test_unexpected_failures_return_retryable_fixed_message_and_safe_log(): void {

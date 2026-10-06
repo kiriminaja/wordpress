@@ -8,7 +8,9 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 		$status = 0;
 		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/instant-checkout-shipping-runtime.php' ) . ' 2>&1', $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
-		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+		$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+		$this->assertSame( array(), $result['logs'] );
+		return $result;
 	}
 
 	public function test_registration_is_safe_without_woocommerce_and_instances_have_distinct_ids(): void {

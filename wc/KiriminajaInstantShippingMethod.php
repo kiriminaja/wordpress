@@ -234,12 +234,6 @@ function kiriof_instant_shipping_method() {
 			$status = is_array( $status ) ? $status : array();
 			$status[ $key ] = array( 'code' => $code, 'message' => $messages[ $code ] ?? $messages['unavailable'], 'eligible' => (bool) $eligible, 'count' => (int) $count, 'updated' => time(), 'expires' => $eligible ? (int) $expires : 0, 'fingerprint' => hash( 'sha256', wp_json_encode( $context ) ) );
 			$session->set( 'kiriof_instant_checkout_status', $status );
-			if ( function_exists( 'kiriof_log' ) ) {
-				kiriof_log( $eligible ? 'info' : 'warning', 'Instant checkout rate calculation completed.', array(
-					'code' => $code, 'eligible' => (bool) $eligible, 'rate_count' => (int) $count,
-					'instance_id' => (int) $this->instance_id, 'backtrace' => false,
-				), 'kiriminaja_instant' );
-			}
 		}
 	}
 }

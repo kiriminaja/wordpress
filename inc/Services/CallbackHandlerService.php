@@ -50,6 +50,7 @@ class CallbackHandlerService extends BaseService {
 
         // Validate routing identities while they are still raw, before any lookup or mutation.
         if ( ! $this->validateRoutingPayload() ) {
+            $this->logWebhookEvent( 'warning', 'KiriminAja webhook request was rejected because routing identities or the callback envelope were invalid.' );
             return self::error( array(), 'Invalid callback payload', 400 );
         }
         $this->packages = ! empty( $this->body->data )
@@ -91,6 +92,7 @@ class CallbackHandlerService extends BaseService {
             $deliveryTypes[ TransactionDeliveryType::resolve( $transaction ) ] = true;
         }
         if ( count( $deliveryTypes ) > 1 ) {
+            $this->logWebhookEvent( 'warning', 'KiriminAja webhook request was rejected because it mixed Express and Instant transactions.', array( 'order_ids' => $orderIds ) );
             return self::error( array(), 'Mixed Express and Instant callbacks are not supported', 400 );
         }
         if ( isset( $deliveryTypes['instant'] ) ) {
@@ -150,7 +152,7 @@ class CallbackHandlerService extends BaseService {
                 'pickup_numbers'   => $this->processing['pickup_numbers'] ?? array(),
                 'message'          => $this->processing['message'],
             );
-            $this->logWebhookEvent( 'error', 'KiriminAja webhook processing failed while updating local state and should be retried.', $context );
+            $this->logWebhookEvent( 'error', 'KiriminAja webhook processing failed while updating local state and should be retried.', array_diff_key( $context, array( 'message' => true ) ) );
             return self::error( $context, $this->processing['message'], 503 );
         }
 
@@ -275,16 +277,6 @@ class CallbackHandlerService extends BaseService {
             }
             $paymentStatuses[ $pickupNumber ] = array( 'method' => $paymentMethod, 'status' => $paymentStatus );
         }
-
-        $this->logWebhookEvent(
-            'notice',
-            'KiriminAja webhook stored AWB numbers and synchronized payment status for processed packages.',
-            array(
-                'order_ids'        => $this->getPackageOrderIds(),
-                'pickup_numbers'   => array_keys( $pickupNumbers ),
-                'payment_statuses' => $paymentStatuses,
-            )
-        );
 
         return array( 'status' => true, 'message' => '' );
     }
@@ -412,7 +404,6 @@ class CallbackHandlerService extends BaseService {
                 return $this->processingError( 'One or more package updates could not be verified', $failedOrderIds );
             }
 
-            $this->logWebhookEvent( 'notice', $message, array( 'order_ids' => $this->getPackageOrderIds() ) );
             return array( 'status' => true, 'message' => '' );
         } catch ( \Throwable $th ) {
             return $this->processingError( $th->getMessage(), $this->getPackageOrderIds() );
@@ -453,7 +444,7 @@ class CallbackHandlerService extends BaseService {
             array_merge(
                 array(
                     'source'          => 'kiriminaja_webhook',
-                    'callback_method' => is_object( $this->body ) && isset( $this->body->method ) && is_string( $this->body->method ) ? $this->body->method : '',
+                    'callback_method' => is_object( $this->body ) && isset( $this->body->method ) && is_string( $this->body->method ) && in_array( $this->body->method, array( 'return_finished_packages', 'processed_packages', 'shipped_packages', 'finished_packages', 'returned_packages', 'validated_packages', 'rejected_packages', 'canceled_packages' ), true ) ? $this->body->method : '',
                     'package_count'   => count( (array) $this->packages ),
                 ),
                 $context

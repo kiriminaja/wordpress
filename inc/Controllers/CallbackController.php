@@ -96,15 +96,6 @@ class CallbackController{
 
             $service = $this->callback_handler->header($header)->body($body)->call();
             if ($service->status!==200){
-                kiriof_log(
-                    'warning',
-                    'KiriminAja webhook dispatch completed with an application error.',
-                    array(
-                        'source'          => 'kiriminaja_webhook',
-                        'message' => $service->message,
-                    )
-                );
-
                 wp_send_json_error(
                     array(
                         'status' => false,

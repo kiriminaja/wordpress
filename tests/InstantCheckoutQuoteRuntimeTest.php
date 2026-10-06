@@ -54,6 +54,7 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
             $this->assertSame([], $r['quote']['rates'], $scenario);
             $this->assertNull($r['quote']['context'], $scenario);
             $this->assertSame(0, $r['calls'], $scenario);
+            $this->assertSame([], $r['logs'], $scenario);
             $this->assertSame([], $r['cache'], $scenario);
             $this->assertStringNotContainsString('secret', $r['quote']['code']);
         }
@@ -106,19 +107,24 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function quote_traces_only_fixed_codes_and_safe_live_cache_metadata(): void {
-        $r = $this->runFixture();
-        $this->assertSame('ok', $r['logs'][0]['context']['code']);
-        $this->assertTrue($r['logs'][0]['context']['live_quote_checked']);
-        $this->assertTrue($r['logs'][1]['context']['cached']);
-        $this->assertFalse($r['logs'][1]['context']['live_quote_checked']);
-        $this->assertSame('kiriminaja_instant', $r['logs'][0]['source']);
-        foreach (['secret', 'Buyer', '081234567890', '106.8', 'quote_token'] as $private) {
-            $this->assertStringNotContainsString($private, json_encode($r['logs']));
+    public function only_genuine_pricing_failures_log_fixed_redacted_warnings(): void {
+        foreach (['', 'no_pin', 'cod', 'disabled', 'outside_radius', 'wrong_service', 'wrong_courier', 'car', 'logger_throw'] as $scenario) {
+            $r = $this->runFixture(['scenario' => $scenario]);
+            $this->assertSame([], $r['logs'], $scenario);
         }
-        $this->assertSame('destination_invalid', $this->runFixture(['scenario' => 'no_pin'])['logs'][0]['context']['code']);
-        $this->assertSame('quote_unavailable', $this->runFixture(['scenario' => 'throw'])['logs'][0]['context']['code']);
-        $this->assertTrue($this->runFixture(['scenario' => 'api_failure'])['logs'][0]['context']['live_quote_checked']);
+        foreach (['throw' => 'pricing_api_exception', 'api_failure' => 'pricing_unavailable', 'status_string' => 'pricing_unavailable', 'malformed' => 'pricing_unavailable', 'price_negative' => 'pricing_unavailable', 'duplicate' => 'pricing_unavailable'] as $scenario => $code) {
+            $r = $this->runFixture(['scenario' => $scenario]);
+            $this->assertFalse($r['quote']['eligible']);
+            $this->assertCount(2, $r['logs']);
+            foreach ($r['logs'] as $log) {
+                $this->assertSame('warning', $log['level']);
+                $this->assertSame('kiriminaja_instant', $log['source']);
+                $this->assertSame(['code' => $code, 'backtrace' => false], $log['context']);
+            }
+            foreach (['secret', 'Buyer', '081234567890', '106.8', 'quote_token'] as $private) {
+                $this->assertStringNotContainsString($private, json_encode($r['logs']));
+            }
+        }
         $this->assertTrue($this->runFixture(['scenario' => 'logger_throw'])['quote']['eligible']);
     }
 

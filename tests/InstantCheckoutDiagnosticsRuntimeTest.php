@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
     #[Test]
-    public function diagnostics_are_registered_and_exported_under_the_normalized_log_source(): void {
+    public function diagnostics_remain_available_with_the_normalized_log_source(): void {
         $init = file_get_contents(PLUGIN_DIR . '/inc/Init.php');
         $settings = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
         $this->assertStringContainsString('Services\\InstantCheckoutDiagnosticsService::class', $init);
@@ -20,12 +20,10 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function composition_is_lazy_and_registers_read_only_lifecycle_hooks(): void {
+    public function composition_is_lazy_without_automatic_readiness_hooks(): void {
         $r = $this->runFixture();
         $this->assertSame([0, 0], $r['lazy_counts']);
-        $this->assertSame([10, 1], $r['hooks']['wp']);
-        $this->assertSame([100, 0], $r['hooks']['woocommerce_checkout_update_order_review']);
-        $this->assertSame([100, 1], $r['hooks']['woocommerce_after_calculate_totals']);
+        $this->assertSame([], $r['hooks']);
     }
 
     #[Test]
@@ -33,16 +31,16 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
         $r = $this->runFixture();
         $this->assertFalse($r['snapshot']['ready']);
         $this->assertSame(['checkout_integration_not_ready'], $r['snapshot']['reasons']);
-        $this->assertSame('warning', $r['logs'][0]['level']);
+        $this->assertSame([], $r['logs']);
         $this->assertFalse($r['snapshot']['live_quote_checked']);
         $this->assertSame('configured_store_readiness', $r['snapshot']['code']);
     }
 
     #[Test]
-    public function complete_local_configuration_is_info_not_live_availability(): void {
+    public function complete_local_configuration_is_silent_and_not_live_availability(): void {
         $r = $this->runFixture('ready');
         $this->assertTrue($r['snapshot']['ready']);
-        $this->assertSame('info', $r['logs'][0]['level']);
+        $this->assertSame([], $r['logs']);
         $this->assertFalse($r['snapshot']['live_quote_checked']);
     }
 
@@ -118,33 +116,30 @@ final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
     #[Test]
     public function exceptions_use_fixed_error_reason_and_never_leak_contents(): void {
         $r = $this->runFixture('throw');
-        $this->assertSame('error', $r['logs'][0]['level']);
-        $this->assertSame(['diagnostics_unavailable'], $r['logs'][0]['context']['reasons']);
+        $this->assertNull($r['snapshot']);
+        $this->assertSame([], $r['logs']);
         $this->assertStringNotContainsString('private', json_encode($r));
     }
 
     #[Test]
-    public function logs_are_private_safe_deduplicated_and_bounded_without_network(): void {
-        $r = $this->runFixture();
-        $this->assertCount(1, $r['logs']);
-        $this->assertSame('kiriminaja_instant', $r['logs'][0]['source']);
-        $this->assertFalse($r['logs'][0]['context']['backtrace']);
-        $this->assertSame(0, $r['network']);
-        $encoded = json_encode($r);
-        foreach (['Private', 'private-api-key', '081234567890', '-6.2', '106.8'] as $private) {
-            $this->assertStringNotContainsString($private, $encoded);
+    public function snapshots_are_private_safe_without_logging_or_network(): void {
+        foreach (['', 'ready', 'no_pin', 'disabled', 'cod', 'change', 'bound'] as $scenario) {
+            $r = $this->runFixture($scenario);
+            $this->assertSame([], $r['logs']);
+            $this->assertSame(0, $r['network']);
+            foreach (['Private', 'private-api-key', '081234567890', '-6.2', '106.8'] as $private) {
+                $this->assertStringNotContainsString($private, json_encode($r));
+            }
         }
-        $this->assertCount(2, $this->runFixture('change')['logs']);
-        $this->assertCount(8, $this->runFixture('bound')['logs']);
     }
 
     #[Test]
-    public function only_physical_buyer_cart_checkout_or_store_api_requests_emit_reports(): void {
+    public function no_checkout_lifecycle_emits_readiness_reports(): void {
         foreach (['admin', 'virtual', 'unrelated', 'received', 'other_rest'] as $scenario) {
             $this->assertSame([], $this->runFixture($scenario)['logs'], $scenario);
         }
         foreach (['cart', 'rest'] as $scenario) {
-            $this->assertCount(1, $this->runFixture($scenario)['logs'], $scenario);
+            $this->assertSame([], $this->runFixture($scenario)['logs'], $scenario);
         }
     }
     #[Test]

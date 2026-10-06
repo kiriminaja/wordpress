@@ -55,7 +55,6 @@ class InstantCheckoutQuoteService {
 		} catch ( \Throwable $error ) {
 			return $this->failure( 'context_unavailable' );
 		}
-		$live_checked = false;
 		try {
 			$session = $this->session();
 			if ( null === $session ) {
@@ -64,13 +63,18 @@ class InstantCheckoutQuoteService {
 			$cache = $this->cache( $session );
 			$key = $context['fingerprint'];
 			if ( isset( $cache[ $key ] ) && $this->compatible( $cache[ $key ], $context ) ) {
-				return $this->success( $cache[ $key ]['rates'], $context, true );
+				return $this->success( $cache[ $key ]['rates'], $context );
 			}
 			$this->api = $this->api ?? new InstantDeliveryApiRepository();
-			$live_checked = true;
-			$rates = $this->rates( $this->api->price( $context['pricing'] ), $context['policy'] );
+			try {
+				$response = $this->api->price( $context['pricing'] );
+			} catch ( \Throwable $error ) {
+				$this->trace( 'pricing_api_exception' );
+				throw $error;
+			}
+			$rates = $this->rates( $response, $context['policy'] );
 			if ( empty( $rates ) ) {
-				return $this->failure( 'no_rates', true );
+				return $this->failure( 'no_rates' );
 			}
 			$expires = time() + self::TTL;
 			foreach ( $rates as &$rate ) {
@@ -87,7 +91,7 @@ class InstantCheckoutQuoteService {
 			return $this->success( $rates, $context );
 		} catch ( \Throwable $error ) {
 			// Upstream exceptions may contain addresses, tokens or credentials.
-			return $this->failure( 'quote_unavailable', $live_checked );
+			return $this->failure( 'quote_unavailable' );
 		}
 	}
 
@@ -289,10 +293,12 @@ class InstantCheckoutQuoteService {
 
 	private function rates( array $response, array $policy ): array {
 		if ( true !== ( $response['status'] ?? false ) ) {
+			$this->trace( 'pricing_unavailable' );
 			return array();
 		}
 		$data = (array) ( $response['data'] ?? array() );
 		if ( array_key_exists( 'status', $data ) && true !== $data['status'] ) {
+			$this->trace( 'pricing_unavailable' );
 			return array();
 		}
 		$rows = $data['result'] ?? $data['results'] ?? null;
@@ -301,11 +307,13 @@ class InstantCheckoutQuoteService {
 			$rows = $envelope['result'] ?? $envelope['results'] ?? $rows;
 		}
 		if ( ! is_array( $rows ) || ! array_is_list( $rows ) ) {
+			$this->trace( 'pricing_unavailable' );
 			return array();
 		}
 		$rates = array();
 		$seen = array();
 		$duplicates = array();
+		$invalid = false;
 		foreach ( $rows as $row ) {
 			$row = (array) $row;
 			$courier = $row['name'] ?? null;
@@ -314,6 +322,7 @@ class InstantCheckoutQuoteService {
 			}
 			$costs = $row['costs'] ?? null;
 			if ( ! is_array( $costs ) || ! array_is_list( $costs ) ) {
+				$invalid = true;
 				continue;
 			}
 			foreach ( $costs as $cost ) {
@@ -324,7 +333,8 @@ class InstantCheckoutQuoteService {
 				}
 				$key = $courier . ':' . strtolower( $service );
 				if ( isset( $seen[ $key ] ) ) {
-					$duplicates[ $key ] = true;
+					$invalid = true;
+				$duplicates[ $key ] = true;
 					unset( $rates[ $key ] );
 					continue;
 				}
@@ -338,6 +348,7 @@ class InstantCheckoutQuoteService {
 					'admin_fee' => $price['admin_fee'] ?? null, 'total_price' => $price['total_price'] ?? null,
 					'estimation' => $cost['estimation'] ?? null, 'vehicle' => 'motor' );
 				if ( ! self::validRateAmounts( $rate ) ) {
+					$invalid = true;
 					continue;
 				}
 				// Preserve the upstream hour estimate; never reinterpret it as days.
@@ -345,7 +356,11 @@ class InstantCheckoutQuoteService {
 				$rates[ $key ] = $rate;
 			}
 		}
-		return array_values( array_diff_key( $rates, $duplicates ) );
+		$rates = array_values( array_diff_key( $rates, $duplicates ) );
+		if ( $invalid && empty( $rates ) ) {
+			$this->trace( 'pricing_unavailable' );
+		}
+		return $rates;
 	}
 
 	/** Strict API amounts, also required for cached quotes and durable receipts. */
@@ -447,14 +462,12 @@ class InstantCheckoutQuoteService {
 		return $data;
 	}
 
-	private function success( array $rates, array $context, bool $cached = false ): array {
-		$this->trace( 'ok', true, $cached, count( $rates ), ! $cached );
+	private function success( array $rates, array $context ): array {
 		return array( 'eligible' => true, 'code' => 'ok', 'message' => '', 'rates' => $rates, 'context' => $context );
 	}
 
-	private function failure( string $reason, bool $live_checked = false ): array {
+	private function failure( string $reason ): array {
 		$reason = $this->reason( $reason );
-		$this->trace( $reason, false, false, 0, $live_checked );
 		$messages = array(
 			'currency_unsupported' => __( 'Instant delivery requires Indonesian rupiah (IDR).', 'kiriminaja-official' ),
 			'packages_invalid' => __( 'Instant delivery supports only one shipping package.', 'kiriminaja-official' ),
@@ -473,16 +486,13 @@ class InstantCheckoutQuoteService {
 		return array( 'eligible' => false, 'code' => $reason, 'message' => $messages[ $reason ] ?? __( 'Instant delivery could not be quoted. Please try again.', 'kiriminaja-official' ), 'rates' => array(), 'context' => null );
 	}
 
-	/** Never log request/response payloads, fingerprints, credentials or quote tokens. */
-	private function trace( string $code, bool $eligible, bool $cached = false, int $rate_count = 0, bool $live_checked = false ): void {
-		if ( ! function_exists( 'kiriof_log' ) ) {
+	/** Log only actionable pricing failures, without payloads, identifiers or traces. */
+	private function trace( string $code ): void {
+		if ( ! in_array( $code, array( 'pricing_api_exception', 'pricing_unavailable' ), true ) || ! function_exists( 'kiriof_log' ) ) {
 			return;
 		}
 		try {
-			kiriof_log( $eligible ? 'info' : 'warning', 'Instant checkout quote result.', array(
-				'code' => 'ok' === $code ? 'ok' : $this->reason( $code ), 'eligible' => $eligible, 'live_quote_checked' => $live_checked,
-				'cached' => $cached, 'rate_count' => $rate_count, 'backtrace' => false,
-			), 'kiriminaja_instant' );
+			kiriof_log( 'warning', 'Instant checkout pricing failed.', array( 'code' => $code, 'backtrace' => false ), 'kiriminaja_instant' );
 		} catch ( \Throwable $error ) {
 			// Observability must not interrupt checkout.
 		}
