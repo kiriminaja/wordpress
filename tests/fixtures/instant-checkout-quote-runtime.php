@@ -88,6 +88,7 @@ namespace {
         public function get_id() { return 123; }
     }
     require dirname(__DIR__, 2) . '/inc/Services/BuyerDestination.php';
+    require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutRecipient.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantDeliveryCoverage.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutQuoteService.php';
     $input = json_decode($argv[1] ?? '{}', true);
@@ -131,6 +132,9 @@ namespace {
         case 'negative_value': $package['contents']['cart-key']['line_total'] = -1; break;
         case 'fractional_units': $product->weight = 0.1; $product->width = 0.1; break;
         case 'zero_coordinates': $destination['destination_latitude'] = '0'; $destination['destination_longitude'] = '0'; $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['origin_latitude'] = '0'; $package['origin']['origin_longitude'] = '0'; break;
+    }
+    if ( defined('INSTANT_RECIPIENT_RUNTIME') ) {
+        require __DIR__ . '/instant-recipient-setup.php';
     }
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
     $quote = $service->quote($package, $destination, $payment, $insurance);

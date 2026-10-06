@@ -66,6 +66,16 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		$this->assertSame( 400, $result['allowed']['status'] );
 	}
 
+    public function test_recipient_edits_invalidate_absent_rates_but_explicit_empty_is_authoritative(): void {
+        $r = $this->run_fixture('recipient_cache');
+        $this->assertNotSame($r['invalid'], $r['named']);
+        $this->assertNotSame($r['named'], $r['complete']);
+        $this->assertNotSame($r['complete'], $r['explicit_empty']);
+        $this->assertSame($r['explicit_empty'], $r['explicit_empty_again']);
+        $this->assertSame('', $r['returned_destination']['phone']);
+        $this->assertSame(0, $r['network_calls']);
+    }
+
 	public function test_package_rate_cache_changes_for_different_service_on_same_courier_without_network(): void {
 		$result = $this->run_fixture( 'cache' );
 		$this->assertSame( array( 'jne' ), $result['couriers_before'] );

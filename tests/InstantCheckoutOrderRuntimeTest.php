@@ -12,6 +12,24 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function classic_inherited_phone_is_bound_to_fees_snapshot_and_durable_replay(): void {
+        $r = $this->fixture('classic_billing_phone');
+        $this->assertSame('', $r['error']);
+        $this->assertSame('', $r['processed_error']);
+        $this->assertSame('081234567890', $r['order_address']['phone']);
+        $this->assertSame('Buyer', $r['order_address']['first_name']);
+        $this->assertCount(1, $r['cart_fees']);
+        $this->assertCount(1, $r['rows']);
+        $this->assertSame('081234567890', json_decode($r['rows'][0]['shipping_info'], true)['_shipping_phone']);
+        $this->assertSame(1, $r['calls']);
+        foreach (['classic_billing_phone_changed_name', 'blocks_empty_phone'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertNotEmpty($r['error'], $scenario);
+            $this->assertSame([], $r['rows']);
+        }
+    }
+
+    #[Test]
     public function validated_quote_creates_one_unbooked_instant_transaction(): void {
         $r = $this->fixture();
         $this->assertSame('', $r['error']);

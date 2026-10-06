@@ -4,6 +4,29 @@
     var section, list, insuranceArea, observer, queued = false, stopped = false;
     var packages = new Map();
     var insuranceAnchor;
+    var layoutObserver, observedParent, observedReview;
+    function align(review) {
+        var css = window.getComputedStyle(review);
+        var float = css.cssFloat;
+        var floating = float === 'left' || float === 'right';
+        var parent = review.parentElement;
+        var parentCss = window.getComputedStyle(parent);
+        var available = parent.clientWidth - parseFloat(parentCss.paddingLeft || 0) - parseFloat(parentCss.paddingRight || 0);
+        var width = review.getBoundingClientRect().width;
+        var nextWidth = floating && available > 0 && width > 0 ? (width / available * 100) + '%' : '100%';
+        if (section.style.width !== nextWidth) { section.style.width = nextWidth; }
+        if (section.style.cssFloat !== (floating ? float : 'none')) { section.style.cssFloat = floating ? float : 'none'; }
+        section.style.clear = 'none';
+        section.classList.toggle('is-summary-column', floating);
+        review.classList.toggle('kiriof-shipping-options-review-right', float === 'right');
+        review.classList.toggle('kiriof-shipping-options-review-left', float === 'left');
+        if (window.ResizeObserver && (observedParent !== parent || observedReview !== review)) {
+            if(layoutObserver)layoutObserver.disconnect();
+            layoutObserver = new window.ResizeObserver(refresh);
+            layoutObserver.observe(parent);layoutObserver.observe(review);
+            observedParent = parent; observedReview = review;
+        }
+    }
     function active() { return document.querySelector('form.checkout') && !document.querySelector('.wc-block-checkout'); }
     function place() {
         if (stopped || !active()) { return; }
@@ -31,6 +54,7 @@
         var review = table.closest('#order_review') || table;
         if (!form.contains(review.parentNode)) { review = table; }
         if (review.previousElementSibling !== section) { review.parentNode.insertBefore(section, review); }
+        align(review);
         var current = new Set();
         rows.forEach(function (row, index) {
             var key = row.getAttribute('data-kiriof-package-index') || String(index);
@@ -68,6 +92,6 @@
         if (window.jQuery) { window.jQuery(document.body).on('updated_checkout.kiriofShippingOptions init_checkout.kiriofShippingOptions', refresh); }
     }
     window.kiriofClassicShippingOptions = {refresh: place};
-    window.addEventListener('pagehide', function () { stopped = true;if(observer)observer.disconnect();if(window.jQuery)window.jQuery(document.body).off('.kiriofShippingOptions'); }, {once: true});
+    window.addEventListener('pagehide', function () { stopped = true;if(observer)observer.disconnect();if(layoutObserver)layoutObserver.disconnect();if(window.jQuery)window.jQuery(document.body).off('.kiriofShippingOptions'); }, {once: true});
     if(document.readyState === 'loading')document.addEventListener('DOMContentLoaded', start, {once: true});else start();
 })(window, document);

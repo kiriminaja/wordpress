@@ -35,7 +35,9 @@
 .woocommerce form.checkout .choices .kiriof-choice-courier-note { display: block; margin-top: 3px; font-size: 0.8em; line-height: 1.4; color: #64748b; }
 .woocommerce form.checkout .choices:has(.kiriof-choice-courier) .choices__inner { min-height: 68px; height: auto; text-align: left !important; }
 .woocommerce form.checkout .choices .choices__list--dropdown .kiriof-choice-courier { padding: 12px; }
-.woocommerce form.checkout .kiriof-classic-shipping-options { display: block; width: 100%; clear: both; box-sizing: border-box; margin: 0 0 1.5rem; padding: 0; }
+.woocommerce form.checkout .kiriof-classic-shipping-options { display: block; width: 100%; clear: none; box-sizing: border-box; margin: 0 0 1.5rem; padding: 0; }
+.woocommerce form.checkout #order_review.kiriof-shipping-options-review-right { clear: right; }
+.woocommerce form.checkout #order_review.kiriof-shipping-options-review-left { clear: left; }
 .woocommerce form.checkout .kiriof-classic-shipping-options > h3 { margin: 0 0 0.75rem; }
 .woocommerce form.checkout .kiriof-classic-shipping-package { width: 100%; min-width: 0; margin-bottom: 0.75rem; }
 .woocommerce form.checkout .kiriof-classic-shipping-package .kiriof-classic-shipping-method-select-wrap { max-width: none; width: 100%; }

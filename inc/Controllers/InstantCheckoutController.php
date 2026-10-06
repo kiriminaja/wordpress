@@ -5,6 +5,7 @@ use KiriminAjaOfficial\Repositories\SettingRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\BuyerDestination;
 use KiriminAjaOfficial\Services\InstantCheckoutQuoteService;
+use KiriminAjaOfficial\Services\InstantCheckoutRecipient;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
 use KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId;
 
@@ -54,13 +55,7 @@ class InstantCheckoutController {
 			if ( $id !== 'kiriminaja-instant:' . $rate->get_instance_id() . ':' . ( $meta['kiriof_instant_courier'] ?? '' ) . ':' . ( $meta['kiriof_instant_service'] ?? '' ) ) {
 				return;
 			}
-			$package['destination'] = is_array( $package['destination'] ?? null ) ? $package['destination'] : array();
-			foreach ( array_merge( BuyerDestination::ADDRESS_FIELDS, array( 'first_name', 'last_name', 'phone' ) ) as $field ) {
-				$getter = 'get_shipping_' . $field;
-				if ( ! array_key_exists( $field, $package['destination'] ) && is_callable( array( $wc->customer ?? null, $getter ) ) ) {
-					$package['destination'][ $field ] = $wc->customer->$getter();
-				}
-			}
+			$package['destination'] = InstantCheckoutRecipient::resolve( $package, $wc->customer ?? null );
 			$payment = $wc->session->get( 'chosen_payment_method', '' );
 			if ( ! is_string( $payment ) || '' === $payment ) {
 				$payment = $wc->session->get( 'payment_method', $wc->session->get( 'kiriof_payment_method', '' ) );
@@ -128,14 +123,8 @@ class InstantCheckoutController {
 				throw new \InvalidArgumentException( 'packages_invalid' );
 			}
 			$package = reset( $packages );
-			$package['destination'] = is_array( $package['destination'] ?? null ) ? $package['destination'] : array();
-			$fields = array_merge( BuyerDestination::ADDRESS_FIELDS, array( 'first_name', 'last_name', 'phone' ) );
-			foreach ( $fields as $field ) {
-				$getter = 'get_shipping_' . $field;
-				if ( ! array_key_exists( $field, $package['destination'] ) && is_callable( array( $wc->customer ?? null, $getter ) ) ) {
-					$package['destination'][ $field ] = $wc->customer->$getter();
-				}
-			}
+			$package['destination'] = InstantCheckoutRecipient::resolve( $package, $wc->customer ?? null );
+			$fields = array_merge( BuyerDestination::ADDRESS_FIELDS, InstantCheckoutRecipient::FIELDS );
 			if ( $classic ) {
 				$raw = $wc->session->get( 'kiriof_buyer_destination', null );
 				// Native WooCommerce checkout verifies its nonce before this hook.
@@ -171,12 +160,15 @@ class InstantCheckoutController {
 				}
 			}
 			$destination = BuyerDestination::normalize( $raw );
+			if ( $classic ) {
+				InstantCheckoutRecipient::inheritClassicOrderPhone( $order );
+			}
 			$current = $this->orderAddress( $order );
 			if ( 2 !== $destination['version'] || $destination['shipping_address'] !== BuyerDestination::address( $current ) || BuyerDestination::address( $package['destination'] ) !== BuyerDestination::address( $current ) ) {
 				throw new \InvalidArgumentException( 'address_changed' );
 			}
 			foreach ( array( 'first_name', 'last_name', 'phone' ) as $field ) {
-				if ( trim( (string) ( $package['destination'][ $field ] ?? '' ) ) !== trim( $current[ $field ] ) ) {
+				if ( ! is_string( $package['destination'][ $field ] ?? null ) || trim( $package['destination'][ $field ] ) !== trim( $current[ $field ] ) ) {
 					throw new \InvalidArgumentException( 'recipient_changed' );
 				}
 			}

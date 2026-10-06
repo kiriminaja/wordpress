@@ -23,7 +23,7 @@ function fragment(generation: number, packages = 1, virtual = false) {
   return review().replace(/<tr[^>]*class="woocommerce-shipping-totals[^"\n]*"[\s\S]*?<\/tr>/, virtual ? '' : rows);
 }
 
-function pageHTML(enhanced = true, mandatory = false, virtual = false) {
+function pageHTML(enhanced = true, mandatory = false, virtual = false, floatLayout?: 'shop-mania' | 'wc-booster') {
   const table = virtual ? fragment(0, 0, true) : review();
   const scripts = [
     readFileSync(new URL('../node_modules/jquery/dist/jquery.min.js', import.meta.url), 'utf8'),
@@ -57,23 +57,55 @@ function pageHTML(enhanced = true, mandatory = false, virtual = false) {
     read('assets/wp/js/checkout/choices-controls.js'),
     read('assets/wp/js/checkout/state.js'),
     read('assets/wp/js/checkout/shipping-payment.js'),
-    read('assets/wp/js/checkout/shipping-options.js'),
+    ...(floatLayout ? [] : [read('assets/wp/js/checkout/shipping-options.js')]),
     'kiriofScheduleClassicShippingMethodSelectInit();',
   ];
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+  let html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
     <style>body{margin:12px;font-family:sans-serif}table{width:100%;table-layout:fixed}th,td{padding:8px;text-align:left}</style>
     <style>${read('assets/lib/choices/choices.min.css')}${read('assets/wp/css/kiriof-classic-choices.css')}${read('assets/wp/css/kj-wp-style.css')}</style>
     </head><body><div class="woocommerce woocommerce-checkout"><form class="checkout woocommerce-checkout">
     <div id="insurance-anchor"><p id="kiriof-classic-insurance-field"><input type="hidden" name="kiriof_insurance" value="${mandatory ? '1' : '0'}"><label for="kiriof_insurance"><input id="kiriof_insurance" type="checkbox" name="kiriof_insurance" value="1" ${mandatory ? 'checked disabled' : ''}>Shipping insurance</label></p></div>
     <div id="order_review" class="summary-payment-card">${table}<div id="payment"><label><input type="radio" name="payment_method" value="bacs" checked>Bank transfer</label></div></div>
     </form></div>${scripts.map(script => `<script>${script.replace(/<\/script/gi, '<\\/script')}</script>`).join('')}</body></html>`;
+  if (floatLayout) {
+    // Native classic TH Shop Mania float contract, not a flex/grid approximation.
+    // Booster's optional article content width is scoped to the article, not the body.
+    html = html.replace('</head>', `<style>
+      article.checkout-content { max-width: 1176px; margin: auto; }
+      ${floatLayout === 'wc-booster' ? 'article.checkout-content > .woocommerce { width:58%; margin:auto; }' : ''}
+      form.checkout::after { content:""; display:table; clear:both; }
+      #customer_details.col2-set { float:left; width:48%; }
+      #customer_details .col-1, #customer_details .col-2 { float:none; width:100%; }
+      #order_review_heading, #order_review { float:right; width:45%; box-sizing:border-box; }
+      #order_review_heading { margin:0 0 20px; }
+      #order_review { clear:right; background:#f4f4f4; border:1px solid #ddd; padding:16px; }
+      #customer_details .contact-card { background:#fff; border:1px solid #ddd; padding:16px; box-sizing:border-box; }
+      #customer_details .form-row { width:100%; box-sizing:border-box; margin:0 0 20px; }
+      #customer_details input.input-text { width:100%; box-sizing:border-box; padding:12px; }
+      #customer_details h3 { margin:0 0 20px; }
+      @media(max-width:768px) {
+        #customer_details.col2-set, #order_review_heading, #order_review { float:left; width:100%; }
+        article.checkout-content > .woocommerce { width:100%; }
+      }
+    </style></head>`);
+    html = html.replace('<div class="woocommerce woocommerce-checkout">', '<article class="checkout-content"><div class="woocommerce woocommerce-checkout">');
+    html = html.replace('</form></div>', '</form></div></article>');
+    html = html.replace('<div id="insurance-anchor">', `<div id="customer_details" class="col2-set"><div class="col-1">
+      <div class="woocommerce-billing-fields"><h3>Billing details</h3><div class="contact-card">
+      <p class="form-row" id="billing_first_name_field"><label for="billing_first_name">First name</label><input class="input-text" id="billing_first_name" name="billing_first_name" value="Test buyer"></p>
+      <p class="form-row"><label for="billing_email">Email</label><input class="input-text" id="billing_email" name="billing_email" value="buyer@example.test"></p>
+      </div><h3 id="address_heading">Shipping address</h3><div id="insurance-anchor">`);
+    html = html.replace('<div id="order_review"', `</div></div><div class="col-2"><p>Order notes</p><textarea name="order_comments" aria-label="Order notes"></textarea></div></div>
+      <h3 id="order_review_heading">Your order</h3><div id="order_review"`);
+  }
+  return html;
 }
 
-async function openFixture(app: any, browser: any, enhanced = true, mandatory = false, virtual = false) {
+async function openFixture(app: any, browser: any, enhanced = true, mandatory = false, virtual = false, floatLayout?: 'shop-mania' | 'wc-booster') {
   const unexpected: string[] = [];
   await browser.route('**/*', (route: any) => {
     const url = new URL(route.request.url);
-    if (url.pathname === '/shipping-options') return route.fulfill({ contentType: 'text/html', body: pageHTML(enhanced, mandatory, virtual) });
+    if (url.pathname === '/shipping-options') return route.fulfill({ contentType: 'text/html', body: pageHTML(enhanced, mandatory, virtual, floatLayout) });
     if (/^\/assets\/wp\/img\/couriers\/(jne|gosend|lion)\.png$/.test(url.pathname)) return route.fulfill({ contentType: 'image/png', path: root + url.pathname });
     if (url.pathname !== '/favicon.ico') unexpected.push(url.href);
     return route.fulfill({ status: 409, body: 'No live requests permitted' });
@@ -214,3 +246,84 @@ test('removing all shipping packages restores moved insurance to the original an
   await assertIdle(browser);
   expect(unexpected).toEqual([]);
 });
+
+// The one-column fixtures above cannot expose clear:both pushing a floated review down.
+for (const theme of ['shop-mania', 'wc-booster'] as const) {
+  test(`${theme} native float checkout retains columns through AJAX and resize`, async ({ app, browser }) => {
+    await browser.setViewport({ width: 1200, height: 1100 });
+    const unexpected = await openFixture(app, browser, true, false, false, theme);
+    // Render first; reference geometry MUST precede the options module.
+    await browser.evaluate(() => {
+      const selectors = ['form.checkout', '#customer_details', '#customer_details .col-1', '#billing_first_name_field', '#billing_first_name', '.contact-card', '#order_review'];
+      (window as any).__floatBaseline = Object.fromEntries(selectors.map(selector => {
+        const r = document.querySelector(selector)!.getBoundingClientRect();
+        return [selector, { left: r.left, top: r.top, width: r.width }];
+      }));
+      (window as any).__originalBillingInput = document.querySelector('#billing_first_name');
+      return null;
+    });
+    expect(await browser.evaluate(() => ({
+      sections: document.querySelectorAll('.kiriof-classic-shipping-options').length,
+      anchor: document.querySelector('#kiriof-classic-insurance-field')!.parentElement!.id,
+      heading: document.querySelector('#insurance-anchor')!.previousElementSibling!.id,
+    }))).toEqual({ sections: 0, anchor: 'insurance-anchor', heading: 'address_heading' });
+    await app.screenshot(`${theme}-native-before-module`);
+    await browser.evaluate((source: string) => { (0, eval)(source); return null; }, read('assets/wp/js/checkout/shipping-options.js'));
+    await expect(browser.locator(`${section} .choices__inner`)).toBeVisible();
+    const failures: string[] = [];
+    const measure = async (width: number, phase: string) => {
+      // Native ResizeObserver/rAF may settle; never manually refresh on resize.
+      await browser.evaluate(() => new Promise<boolean>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)))));
+      failures.push(...await browser.evaluate(({ width, phase }: any) => {
+        const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+        const w = window as any, baseline = w.__floatBaseline;
+        const f = rect('form.checkout'), c = rect('#customer_details'), s = rect('.kiriof-classic-shipping-options'), r = rect('#order_review');
+        const errors: string[] = [];
+        const check = (ok: boolean, name: string) => { if (!ok) errors.push(`${phase}: ${name}`); };
+        const near = (a: number, b: number) => Math.abs(a - b) <= 1;
+        const shipping = document.querySelector('.kiriof-classic-shipping-options')!;
+        check(shipping.closest('form.checkout') === document.querySelector('form.checkout'), 'inside form');
+        check(!shipping.closest('#order_review, .summary-payment-card, table'), 'outside summary card');
+        check(document.querySelector('#order_review')!.previousElementSibling === shipping, 'before review');
+        check(document.querySelector('#kiriof-classic-insurance-field')!.parentElement!.classList.contains('kiriof-classic-shipping-insurance'), 'original insurance external');
+        check(document.querySelector('#billing_first_name') === w.__originalBillingInput, 'billing input identity');
+        check(near(s.left, r.left) && near(s.width, r.width), `selector anchored to review (left ${s.left}/${r.left}, width ${s.width}/${r.width})`);
+        check(r.top >= s.bottom - 1, 'summary below selector, not alongside');
+        check(s.left >= f.left - 1 && s.right <= f.right + 1, 'selector inside form bounds');
+        check(document.documentElement.scrollWidth <= innerWidth, 'no horizontal overflow');
+        check(getComputedStyle(document.querySelector('#order_review')!).backgroundColor === 'rgb(244, 244, 244)', 'summary background retained');
+        if (width > 768) {
+          check(near(c.width, f.width * .48), 'customer native 48% width');
+          check(near(c.top, baseline['#customer_details'].top), 'customer top unchanged');
+          for (const selector of ['#customer_details', '#customer_details .col-1', '#billing_first_name_field', '#billing_first_name', '.contact-card', '#order_review']) {
+            const current = rect(selector), before = baseline[selector];
+            check(near(current.left, before.left) && near(current.width, before.width), `${selector} original left/width unchanged`);
+          }
+          check(s.width <= f.width * .45 + 1 && near(s.right, f.right), 'shipping right aligned at most 45%');
+          check(s.top < c.bottom - 1, 'shipping alongside customer, not pushed below left column');
+          check(s.left >= c.right - 1 && rect('.contact-card').right < s.left, 'contact left unaffected, no full-row shipping area');
+          check(getComputedStyle(shipping).clear !== 'both', 'must not clear both native columns');
+        } else {
+          check(near(c.width, f.width) && near(s.width, f.width) && near(r.width, f.width), 'mobile full-width columns');
+          check(near(c.left, f.left) && near(s.left, f.left) && near(r.left, f.left), 'mobile left aligned');
+          check(s.top >= c.bottom - 1, 'mobile stacked after customer');
+        }
+        return errors;
+      }, { width, phase }));
+      await assertInsurance(browser, false);
+      await app.screenshot(`${theme}-${phase}-${width}`);
+    };
+    await measure(1200, 'initial');
+    for (const [generation, width] of [[1, 1200], [2, 390], [3, 1200]]) {
+      await browser.setViewport({ width, height: 1100 });
+      await measure(width, `resize-${generation}`);
+      await browser.evaluate((html: string) => (window as any).__replaceReview(html, true), fragment(generation));
+      await expect(browser.locator(`${section} .choices__list--single`)).toContainText(`Refresh ${generation} GOSEND`);
+      await measure(width, `updated-${generation}`);
+    }
+    await assertIdle(browser);
+    expect(unexpected).toEqual([]);
+    // Collect every viewport's screenshot before reporting the initial regression.
+    expect(failures).toEqual([]);
+  });
+}

@@ -231,6 +231,27 @@ switch ( $argv[1] ?? '' ) {
 		$result['foreign_country'] = $controller->kiriof_shipping_rate_cache_invalidation( $package )[0]['rate_cache'];
 		$result['network_calls'] = $GLOBALS['rate_network_calls'];
 		break;
+	case 'recipient_cache':
+        $controller = rate_controller();
+        $address = array('address_1' => 'Buyer street', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID');
+        WC()->customer = new class($address) {
+            public array $billing;
+            public function __construct($address) { $this->billing = $address + array('first_name' => '', 'last_name' => '', 'phone' => ''); }
+            public function __call($name, $args) { return str_starts_with($name, 'get_billing_') ? ($this->billing[substr($name, 12)] ?? '') : ''; }
+        };
+        $package = array(array('destination' => $address));
+        $result['invalid'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['first_name'] = 'Buyer';
+        $result['named'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['phone'] = '081234567890';
+        $result['complete'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        $package[0]['destination']['phone'] = '';
+        $result['explicit_empty'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['phone'] = '081234567899';
+        $result['explicit_empty_again'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        $result['returned_destination'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['destination'];
+        $result['network_calls'] = $GLOBALS['rate_network_calls'];
+        break;
 	case 'fees':
 		rate_policy( '{"jne":["REG"]}' );
 		$result['disabled_legacy'] = rate_checkout_fees( 'kiriminaja-official_jne_YES', true );

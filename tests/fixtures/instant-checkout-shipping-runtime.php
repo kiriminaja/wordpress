@@ -95,6 +95,7 @@ namespace {
 	kiriof_instant_shipping_method();
 	$registered = kiriof_register_instant_shipping_method( $before );
 	require dirname( __DIR__, 2 ) . '/inc/Services/BuyerDestination.php';
+	require dirname( __DIR__, 2 ) . '/inc/Services/InstantCheckoutRecipient.php';
 	$quotes = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService( new \stdClass(), new \stdClass() );
 	$one = new Kiriof_Instant_Shipping_Method_Controller( 11, $quotes );
 	$two = new Kiriof_Instant_Shipping_Method_Controller( 22, $quotes );

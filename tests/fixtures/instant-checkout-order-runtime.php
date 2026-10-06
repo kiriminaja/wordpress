@@ -64,7 +64,7 @@ namespace {
         public function add_meta_data($key, $value, $unique = false) { $this->meta[$key] = $value; }
     }
     class OrderFixture {
-        public array $fees = []; public array $meta = []; public array $address; public array $lines; public string $payment = 'bacs'; public string $currency = 'IDR';
+        public array $billing = []; public array $fees = []; public array $meta = []; public array $address; public array $lines; public string $payment = 'bacs'; public string $currency = 'IDR';
         public function __construct($address, $line) { $this->address = $address; $this->lines = [$line]; }
         public function get_items($type) { return $type === 'shipping' ? $this->lines : ($type === 'fee' ? $this->fees : []); }
         public function get_id() { return 123; }
@@ -75,7 +75,7 @@ namespace {
         public function get_currency() { return $this->currency; }
         public function get_discount_total() { return 100; }
         public function save_meta_data() {}
-        public function __call($name, $args) { if (str_starts_with($name, 'get_shipping_')) { return $this->address[substr($name, 13)] ?? ''; } if (str_starts_with($name, 'set_shipping_')) { $this->address[substr($name, 13)] = $args[0]; } }
+        public function __call($name, $args) { if (str_starts_with($name, 'get_billing_')) { return $this->billing[substr($name, 12)] ?? ''; } if (str_starts_with($name, 'get_shipping_')) { return $this->address[substr($name, 13)] ?? ''; } if (str_starts_with($name, 'set_shipping_')) { $this->address[substr($name, 13)] = $args[0]; } }
     }
     class OrderRequest { public array $params; public function get_param($key) { return $this->params[$key] ?? null; } }
     class OrderWC {
@@ -149,6 +149,16 @@ namespace {
     $savedRates = $wc->packages[0]['rates'];
     $wc->packages[0]['rates'] = [];
     foreach ($savedRates as $r) { $wc->packages[0]['rates'][$r->get_id()] = $r; }
+    if (in_array($scenario, ['classic_billing_phone', 'classic_billing_phone_changed_name', 'blocks_empty_phone'], true)) {
+        $order->billing = $order->address;
+        $order->address['phone'] = '';
+        unset($wc->packages[0]['destination']['phone']);
+        $wc->customer = new OrderFixture($package['destination'], $line);
+        $wc->customer->address['phone'] = '';
+        $wc->customer->billing = $package['destination'];
+        if ($scenario === 'classic_billing_phone_changed_name') { $order->address['first_name'] = 'Changed'; }
+        if ($scenario === 'blocks_empty_phone') { $request->params['shipping_address']['phone'] = ''; }
+    }
     $controller->addAdminFee($cartFees);
     $controller->addAdminFee($cartFees);
     $wc->packages[0]['rates'] = $savedRates;
@@ -177,6 +187,7 @@ namespace {
         if ($scenario === 'snapshot_fee_edit') { $order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['rate']['admin_fee']++; }
         if ($scenario === 'receipt_fee_edit') { $order->meta['_kiriof_instant_admin_fee']++; }
         if ($scenario === 'receipt_total_edit') { $order->meta['_kiriof_instant_customer_shipping_total']++; }
+        if ($scenario === 'classic_billing_phone') { $wc->session->data = []; }
         if ($scenario === 'processed_expiry') { $wc->session->data = []; }
         if ($scenario === 'conflict') { $transactions->rows[] = (object) ['delivery_type' => 'instant', 'service' => 'grab_express']; }
         try {
@@ -188,5 +199,5 @@ namespace {
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
         }
     }
-    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
+    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
 }

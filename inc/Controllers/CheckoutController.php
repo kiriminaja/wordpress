@@ -1711,6 +1711,7 @@ class CheckoutController
                     'rate_presentation_version' => 4,
                     'cart_hash'        => $cart_hash,
                     'supported_country' => 'ID',
+                    'instant_recipient' => array_intersect_key( \KiriminAjaOfficial\Services\InstantCheckoutRecipient::resolve( $package, WC()->customer ?? null ), array_flip( \KiriminAjaOfficial\Services\InstantCheckoutRecipient::FIELDS ) ),
                     'instant_pin' => WC()->session ? WC()->session->get( 'kiriof_buyer_destination', null ) : null,
                     'origin' => $package['origin'] ?? array(),
                     'instant_quote_window' => WC()->session && 2 === ( WC()->session->get( 'kiriof_buyer_destination', array() )['version'] ?? 0 ) ? intdiv( time(), 60 ) : 0,

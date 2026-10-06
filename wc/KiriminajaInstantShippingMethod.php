@@ -128,15 +128,7 @@ function kiriof_instant_shipping_method() {
 				return;
 			}
 
-			// Only fill missing fields: the actual package always wins over the customer.
-			$package['destination'] = isset( $package['destination'] ) && is_array( $package['destination'] ) ? $package['destination'] : array();
-			$customer = $wc->customer ?? null;
-			foreach ( array( 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'first_name', 'last_name', 'phone' ) as $field ) {
-				$getter = 'get_shipping_' . $field;
-				if ( ! array_key_exists( $field, $package['destination'] ) && $customer && is_callable( array( $customer, $getter ) ) ) {
-					$package['destination'][ $field ] = $customer->$getter();
-				}
-			}
+			$package['destination'] = \KiriminAjaOfficial\Services\InstantCheckoutRecipient::resolve( $package, $wc->customer ?? null );
 			try {
 				if ( class_exists( '\KiriminAjaOfficial\Services\PackageTypeService' ) ) {
 					$package['package_type_id'] = \KiriminAjaOfficial\Services\PackageTypeService::resolveForCartPackage( $package );
