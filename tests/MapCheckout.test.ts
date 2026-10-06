@@ -89,6 +89,24 @@ describe('Map checkout exported session: unchanged production VM, no UI hooks', 
 		for (const radiusMeters of [undefined, null, false, '', ' ', -1, 0, Infinity]) expect(api.coverageStatus({ origin, radiusMeters }, origin)).toBeNull();
 		expect(api.coverageStatus(null, origin)).toBeNull(); expect(api.coverageStatus(coverage, null)).toBeNull();
 	});
+	uiTest('optional and coverage notes float inside the granted map rather than above it', () => {
+		const h = uiHarness({ coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } }); try {
+			const section = h.container.querySelector('.kiriof-buyer-map');
+			const viewport = section.querySelector('.kiriof-buyer-map__viewport');
+			const information = viewport.querySelector('.kiriof-buyer-map__information');
+			expect(information.getAttribute('role')).toBe('note');
+			expect(information.getAttribute('tabindex')).toBe('0');
+			expect(information.querySelector('.kiriof-buyer-map__optional').textContent).toBe('Optional delivery pin');
+			expect(information.querySelector('.kiriof-buyer-map__coverage').textContent).toContain('Instant coverage: 40 km');
+			expect(section.querySelector(':scope > .kiriof-buyer-map__coverage')).toBeNull();
+			expect(section.querySelector(':scope > p:not(.kiriof-buyer-map__status):not(.kiriof-buyer-map__coverage-warning)')).toBeNull();
+			expect(h.maps).toHaveLength(1); expect(h.writes).toHaveLength(1);
+		} finally { h.cleanup(); }
+		const pending = uiHarness({ autoLocation: false }); try {
+			expect(pending.container.querySelector('.kiriof-buyer-map__information')).toBeNull();
+			expect(pending.container.querySelector('.kiriof-buyer-map__status').textContent).toContain('Requesting location permission');
+		} finally { pending.cleanup(); }
+	});
 	test('seller coverage circle is unrestricted, independent of device view and removed with map', () => {
 		const coverage = { origin: { latitude: '0', longitude: '0' }, radiusMeters: 40000 };
 		const statuses: any[] = []; const h = fixture({ coverage, defaultCenter: [5, 6], initial: { latitude: 1, longitude: 0 }, onCoverage: (status: any) => statuses.push(status) });
@@ -391,9 +409,10 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 	});
 	uiTest('coverage circle awaits grant; out pin persists and warning never replaces permission or tile errors', () => {
 		const h = uiHarness({ autoLocation: false, coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } }); try {
-			expect(h.circles).toHaveLength(0); expect(h.container.textContent).toContain('Instant coverage: 40 km');
+			expect(h.circles).toHaveLength(0); expect(h.container.querySelector('.kiriof-buyer-map__information')).toBeNull();
 			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 0 } }));
 			expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.writes).toHaveLength(1);
+			expect(h.container.querySelector('.kiriof-buyer-map__information').textContent).toContain('Instant coverage: 40 km');
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning').getAttribute('role')).toBe('note'); expect(h.container.textContent).toContain('Outside Instant coverage');
 			React.act(() => h.tiles[0].fire('tileerror')); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Map unavailable'); expect(h.container.textContent).toContain('Outside Instant coverage');
 			h.click('Locate me'); React.act(() => h.locations[0].failure({ code: 1 })); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Permission denied');

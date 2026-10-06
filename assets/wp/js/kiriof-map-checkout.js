@@ -269,10 +269,11 @@
 		var outside = coverageResult && coverageResult.key === coverageKey ? coverageResult.status : coverageStatus( coverage, root.kiriofBuyerCheckout && root.kiriofBuyerCheckout.getCoordinates( address ) );
 		return h( 'section', { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
 			h( 'h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle ),
-			h( 'p', null, strings.mapOptional ),
-			hasCoverage ? h( 'p', { className: 'kiriof-buyer-map__coverage', role: 'note' }, strings.mapCoverage ) : null,
 			granted ? h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
 				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp, 'aria-description': strings.mapKeyboard } ),
+				h( 'div', { className: 'kiriof-buyer-map__information', role: 'note', tabIndex: 0, 'aria-label': strings.mapTitle },
+					h( 'p', { className: 'kiriof-buyer-map__optional' }, strings.mapOptional ),
+					hasCoverage ? h( 'p', { className: 'kiriof-buyer-map__coverage' }, strings.mapCoverage ) : null ),
 				h( 'div', { className: 'kiriof-buyer-map__pin-status ' + ( selected ? 'is-complete' : 'is-warning' ), role: 'status', 'aria-live': 'polite' },
 					h( 'svg', { viewBox: '0 0 24 24', width: 18, height: 18, fill: 'none', stroke: 'currentColor', strokeWidth: 2, 'aria-hidden': 'true', focusable: 'false' },
 						h( 'path', { d: selected ? 'm5 12 4 4 10-10' : 'M5 5h14v14H5Z' } ) ),
