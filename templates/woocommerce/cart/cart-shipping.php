@@ -45,7 +45,7 @@ $kiriof_package_title            = $kiriof_is_cart_totals_shipping ? esc_html__(
 $kiriof_shipment_title           = $kiriof_is_cart_totals_shipping ? esc_html__( 'Shipment', 'kiriminaja-official' ) : $package_name;
 $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( 'destination_id' ) );
 ?>
-<tr class="woocommerce-shipping-totals shipping">
+<tr data-kiriof-package-index="<?php echo esc_attr( $index ); ?>" class="woocommerce-shipping-totals shipping">
 	<th><?php echo wp_kses_post( $kiriof_package_title ); ?></th>
 	<td data-title="<?php echo esc_attr( $kiriof_package_title ); ?>">
 		<?php

@@ -57,6 +57,7 @@ return array(
     'updateCheckoutNonce'     => wp_create_nonce( 'kiriof-update-checkout' ),
     'fieldKey'                => (string) $field_key,
     'i18n'                    => array(
+        'shippingOptions' => __( 'Shipping options', 'kiriminaja-official' ),
         'district'        => __( 'Subdistrict', 'kiriminaja-official' ),
         'selectDistrict'  => __( 'Select Subdistrict', 'kiriminaja-official' ),
         'districtWarning' => __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ),

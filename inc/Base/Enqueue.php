@@ -433,6 +433,8 @@ class Enqueue extends BaseInit{
             wp_register_style( 'kiriof-classic-choices', $this->plugin_url . 'assets/wp/css/kiriof-classic-choices.css', array( 'kiriof-choices', 'kiriof-style' ), (string) filemtime( KIRIOF_DIR . 'assets/wp/css/kiriof-classic-choices.css' ) );
             wp_register_script( 'kiriof-classic-choices', $this->plugin_url . 'assets/wp/js/checkout/choices-controls.js', array_merge( $legacy_dependencies, array( 'kiriof-choices', 'wc-country-select' ) ), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/checkout/choices-controls.js' ), array( 'in_footer' => true ) );
             $legacy_dependencies[] = 'kiriof-classic-choices';
+            wp_register_script( 'kiriof-classic-shipping-options', $this->plugin_url . 'assets/wp/js/checkout/shipping-options.js', $legacy_dependencies, (string) filemtime( KIRIOF_DIR . 'assets/wp/js/checkout/shipping-options.js' ), array( 'in_footer' => true ) );
+            $legacy_dependencies[] = 'kiriof-classic-shipping-options';
             wp_enqueue_style( 'kiriof-classic-choices' );
         }
         wp_register_script(

@@ -5654,6 +5654,10 @@ msgid "Contact Information"
 msgstr "Informasi Kontak"
 
 #: templates/front/partials/form-billing-address-config.php
+msgid "Shipping options"
+msgstr "Pilihan pengiriman"
+
+#: templates/front/partials/form-billing-address-config.php
 msgid "Enter at least 3 characters"
 msgstr "Masukkan minimal 3 karakter"
 

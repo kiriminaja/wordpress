@@ -35,3 +35,12 @@
 .woocommerce form.checkout .choices .kiriof-choice-courier-note { display: block; margin-top: 3px; font-size: 0.8em; line-height: 1.4; color: #64748b; }
 .woocommerce form.checkout .choices:has(.kiriof-choice-courier) .choices__inner { min-height: 68px; height: auto; text-align: left !important; }
 .woocommerce form.checkout .choices .choices__list--dropdown .kiriof-choice-courier { padding: 12px; }
+.woocommerce form.checkout .kiriof-classic-shipping-options { display: block; width: 100%; clear: both; box-sizing: border-box; margin: 0 0 1.5rem; padding: 0; }
+.woocommerce form.checkout .kiriof-classic-shipping-options > h3 { margin: 0 0 0.75rem; }
+.woocommerce form.checkout .kiriof-classic-shipping-package { width: 100%; min-width: 0; margin-bottom: 0.75rem; }
+.woocommerce form.checkout .kiriof-classic-shipping-package .kiriof-classic-shipping-method-select-wrap { max-width: none; width: 100%; }
+.woocommerce form.checkout .kiriof-shipping-row-relocated[hidden] { display: none !important; }
+.woocommerce form.checkout .kiriof-classic-shipping-insurance #kiriof-classic-insurance-field { margin: 0.75rem 0 0; font-size: inherit; font-weight: normal; line-height: inherit; }
+.woocommerce form.checkout .kiriof-classic-shipping-insurance label { display: flex; align-items: flex-start; gap: 0.5rem; }
+.woocommerce form.checkout .kiriof-classic-shipping-insurance input[type=checkbox] { flex-shrink: 0; margin-top: 0.25em; }
+.woocommerce form.checkout .kiriof-classic-package-label { margin: 0 0 0.5rem; font-weight: 600; }

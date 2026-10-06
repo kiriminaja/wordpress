@@ -329,7 +329,7 @@
             choices.input.element.addEventListener('input', record.onInput);
         }
         accessibility(record);
-        if (shipping(select)) { select.classList.add('kiriof-classic-shipping-method-select--enhanced'); var cell = select.closest('td'); if (cell) { cell.classList.add('kiriof-shipping-methods-ready'); } }
+        if (shipping(select)) { select.classList.add('kiriof-classic-shipping-method-select--enhanced'); var cell = select.closest('.kiriof-classic-shipping-package, td'); if (cell) { cell.classList.add('kiriof-shipping-methods-ready'); } }
         record.signature = signature(select);
         return choices;
     }
@@ -355,7 +355,7 @@
             });
         }
         record.choices.destroy();
-        if (shipping(record.select)) { var cell = record.select.closest('td'); if (cell) { cell.classList.remove('kiriof-shipping-methods-ready'); } record.select.classList.remove('kiriof-classic-shipping-method-select--enhanced'); }
+        if (shipping(record.select)) { var cell = record.select.closest('.kiriof-classic-shipping-package, td'); if (cell) { cell.classList.remove('kiriof-shipping-methods-ready'); } record.select.classList.remove('kiriof-classic-shipping-method-select--enhanced'); }
         // Woo replaced this node inside the wrapper; destroy must not resurrect it.
         if (disconnected) { record.select.remove(); }
         record.status.remove();

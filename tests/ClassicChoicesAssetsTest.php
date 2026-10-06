@@ -45,7 +45,8 @@ final class ClassicChoicesAssetsTest extends TestCase {
 		}
 		$scripts = $result['scripts'];
 		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-choices', 'wc-country-select' ), $scripts['kiriof-classic-choices']['deps'] );
-		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-classic-choices' ), $scripts['kiriof-form-billing-address']['deps'] );
+		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-classic-choices' ), $scripts['kiriof-classic-shipping-options']['deps'] );
+		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-classic-choices', 'kiriof-classic-shipping-options' ), $scripts['kiriof-form-billing-address']['deps'] );
 		$previous = 'kiriof-script';
 		foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module ) {
 			$handle = 'kiriof-checkout-' . $module;
