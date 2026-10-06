@@ -10,7 +10,9 @@ namespace KiriminAjaOfficial\Services {
 namespace KiriminAjaOfficial\Repositories { class SettingRepository {} }
 namespace {
 	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+	require ABSPATH . 'inc/Services/CourierLogoAssets.php';
 	define( 'KIRIOF_DIR', ABSPATH );
+	define( 'KIRIOF_URL', 'https://shop.example/wp-content/plugins/kiriminaja/' );
 	define( 'KIRIOF_VERSION', 'test' );
 	define( 'KIRIOF_NONCE', 'choices-assets-test' );
 	$input = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );

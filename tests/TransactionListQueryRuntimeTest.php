@@ -191,9 +191,9 @@ final class TransactionListQueryRuntimeTest extends TestCase
 		$this->assertStringContainsString( '!rounded-md', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
 		$this->assertStringContainsString( 'sideOffset = 5', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.png' );
-		$this->assertFileDoesNotExist( PLUGIN_DIR . '/src/assets/images/kiriminaja-kurir/ninja_inter.svg' );
-		$this->assertStringContainsString( 'spx: shopeeExpress', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' ) );
+		$this->assertFileExists( PLUGIN_DIR . '/assets/wp/img/couriers/ninja-inter.png' );
+		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/wp/img/couriers/ninja-inter.svg' );
+		$this->assertStringContainsString( "spx: 'shopee-express.png'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' ) );
 		$this->assertStringContainsString( 'formatPhone(row.customer.phone)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( '<CourierLogo code={row.courier.code} service={row.courier.service}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertStringContainsString( 'courierImage(code, name || service)', file_get_contents( PLUGIN_DIR . '/src/lib/ui/CourierLogo.svelte' ) );

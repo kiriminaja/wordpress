@@ -72,10 +72,10 @@ body.wc-booster-checkout-customization .woocommerce form .shipping_address .wooc
 }`;
 const fixtureRates = [
   { id: 'kiriminaja-instant:1:gosend:instant', label: 'Fixture Instant courier', cost: 20000 },
-  { id: 'kiriminaja-official:1:fixture:regular', label: 'Fixture Regular courier', cost: 15000 },
+  { id: 'kiriminaja-official:1:jne:reg', label: 'Fixture Regular courier', cost: 15000 },
 ];
 
-function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' | 'native' = false) {
+function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' | 'native' | 'no-select2' = false) {
   const src = (file: string) => readFileSync(root + '/assets/wp/js/' + file, 'utf8');
   const dependency = (file: string) =>
     readFileSync(new URL('../node_modules/' + file, import.meta.url), 'utf8');
@@ -101,7 +101,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     ...(geometry ? [readFileSync(root + '/assets/lib/leaflet/leaflet.js', 'utf8')] : []),
     dependency('jquery/dist/jquery.min.js'),
     dependency('select2/dist/js/select2.full.min.js'),
-    readFileSync(root + '/assets/lib/choices/choices.min.js', 'utf8'),
+    ...(shipping === 'native' ? [] : [readFileSync(root + '/assets/lib/choices/choices.min.js', 'utf8')]),
     `jQuery.fn.selectWoo = jQuery.fn.select2;
     window.wc_country_select_params = { countries: JSON.stringify({ ID: { YO: 'DI Yogyakarta', JT: 'Jawa Tengah' }, US: { CA: 'California', NY: 'New York' }, AQ: {} }), i18n_select_state_text: 'Select a state', i18n_searching: 'Searching…', i18n_no_matches: 'No matches found' };`,
     readFileSync(new URL('../fixtures/country-select.js', import.meta.url), 'utf8'),
@@ -122,6 +122,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
 		window.kiriofBillingAddressConfig = {
 			isCheckout: true, isCart: false, fieldKey: 'kiriof_destination_area',
 			ajaxUrl: '/admin-ajax.php', nonce: 'fixture-search-nonce',
+			courierLogos: { jne: '/assets/wp/img/couriers/jne.png', gosend: '/assets/wp/img/couriers/gosend.png', lion: '/assets/wp/img/couriers/lion.png' },
 			i18n: { selectOption: 'Select Option' }
 		};
 		// Only the production district module is bootstrapped, not the legacy
@@ -170,7 +171,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
         window.__shippingUpdates.push({ id: this.value, name: this.name, checked: this.checked });
         jQuery(document.body).trigger('update_checkout', { update_shipping_method: true });
       });
-      ${shipping === 'native' ? 'jQuery.fn.select2 = undefined; jQuery.fn.selectWoo = undefined;' : ''}
+      ${shipping === 'native' || shipping === 'no-select2' ? 'jQuery.fn.select2 = undefined; jQuery.fn.selectWoo = undefined;' : ''}
       kiriofScheduleClassicShippingMethodSelectInit();`,
     ] : []),
     `document.getElementById('submit').onclick = () => {
@@ -240,7 +241,7 @@ async function checkout(
   enabled: boolean,
   searchResponse: unknown = { success: true, data: [district] },
   geometry = false,
-  shipping: false | 'enhanced' | 'native' = false,
+  shipping: false | 'enhanced' | 'native' | 'no-select2' = false,
 ) {
   const requests: { url: string; method: string; body: Record<string, string> }[] = [];
   const unexpected: string[] = [];
@@ -252,6 +253,10 @@ async function checkout(
       route.request.method === 'GET'
     ) {
       await route.fulfill({ contentType: 'text/html', body: html(enabled, geometry, shipping) });
+      return;
+    }
+    if (url.origin === 'https://fixture.test' && /^\/assets\/wp\/img\/couriers\/(jne|gosend|lion)\.png$/.test(url.pathname)) {
+      await route.fulfill({ contentType: 'image/png', path: root + url.pathname });
       return;
     }
     if (geometry && url.origin === 'https://tiles.fixture.test' && route.request.method === 'GET') {
@@ -853,19 +858,20 @@ for (const width of [1200, 390]) {
   test(`Classic full district and courier visibility under WC Booster at ${width}px`, async ({ app, browser, screen }) => {
     await browser.setViewport({ width, height: 1000 });
     const fixture = await checkout(app, browser, true, [district], true, 'enhanced');
-    const courier = browser.locator('.kiriof-classic-shipping-method-select-wrap .select2-selection');
+    const courier = browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__inner');
     await expect(courier).toBeVisible();
+    expect(await browser.evaluate(() => Array.from(document.querySelectorAll('.select2-container')).every(node => !!node.closest('#billing_country_field, #shipping_country_field')))).toBe(true);
     await courier.tap();
     expect(await browser.evaluate(() => {
       const $ = (window as any).jQuery;
       const select = $('.kiriof-classic-shipping-method-select');
-      const instance = select.data('select2');
-      const dropdown = document.querySelector('.select2-dropdown');
+      const instance = (window as any).kiriofClassicChoices.initShipping(select[0]);
+      const dropdown = document.querySelector('.choices.is-open .choices__list--dropdown');
       $(document.body).trigger('updated_checkout');
-      return instance === select.data('select2') && dropdown === document.querySelector('.select2-dropdown');
+      return instance === (window as any).kiriofClassicChoices.initShipping(select[0]) && dropdown === document.querySelector('.choices.is-open .choices__list--dropdown');
     })).toBe(true);
     const updatesBefore = await browser.evaluate(() => window.__checkoutUpdates);
-    await screen.getByRole('option', 'Fixture Regular courier: Rp 15000').tap();
+    await browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__list--dropdown [data-choice-selectable]').filter({ hasText: 'Fixture Regular courier' }).tap();
     expect(await browser.evaluate(() => ({
       chosen: (document.querySelector('input.shipping_method:checked') as HTMLInputElement).value,
       events: (window as any).__shippingUpdates,
@@ -919,7 +925,7 @@ for (const width of [1200, 390]) {
   });
 }
 
-test('Classic courier radios remain selectable when Select2 is unavailable', async ({ app, browser }) => {
+test('Classic courier radios remain selectable when Choices is unavailable', async ({ app, browser }) => {
   const fixture = await checkout(app, browser, true, [district], true, 'native');
   await expect(browser.locator('#shipping_method')).toBeVisible();
   const radio = browser.locator(`input.shipping_method[value="${fixtureRates[1].id}"]`);
@@ -1063,3 +1069,17 @@ for (const width of [1200, 390]) {
     expect(fixture.unexpected).toEqual([]);
   });
 }
+
+test('Classic courier Choices is independent of Select2', async ({ app, browser }) => {
+  const fixture = await checkout(app, browser, true, [district], true, 'no-select2');
+  await expect(browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__inner')).toBeVisible();
+  await expect(browser.locator('#shipping_method')).not.toBeVisible();
+  await browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__inner').click();
+  await browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__list--dropdown [data-choice-selectable]').filter({ hasText: 'Fixture Regular courier' }).click();
+  expect(await browser.evaluate(() => ({
+    chosen: document.querySelector<HTMLInputElement>('input.shipping_method:checked')!.value,
+    events: (window as any).__shippingUpdates,
+    select2: typeof (window as any).jQuery.fn.select2,
+  }))).toEqual({ chosen: fixtureRates[1].id, events: [{ id: fixtureRates[1].id, name: 'shipping_method[0]', checked: true }], select2: 'undefined' });
+  expect(fixture.unexpected).toEqual([]);
+});

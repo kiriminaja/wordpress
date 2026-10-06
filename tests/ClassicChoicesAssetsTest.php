@@ -108,7 +108,9 @@ final class ClassicChoicesAssetsTest extends TestCase {
 		$this->assertStringContainsString( "body.set('nonce', root.nonce || config.nonce || '')", $source );
 		$this->assertStringContainsString( "window.fetch(root.ajaxurl || config.ajaxUrl || ''", $source );
 		$this->assertStringContainsString( "credentials: 'same-origin'", $source );
-		$this->assertDoesNotMatchRegularExpression( '/https?:\/\//i', $source );
+		$this->assertStringContainsString( 'url.origin === window.location.origin', $source );
+		$this->assertStringNotContainsString( 'createElementNS(', $source );
+		$this->assertStringContainsString( "img.addEventListener('error'", $source );
 		$this->assertDoesNotMatchRegularExpression( '/(?:create[_-]?order|booking|credit|api[_-]?key|api[_-]?token|Authorization|Bearer|svelte)/i', $source );
 		preg_match_all( '/body\.set\(\s*[\'"]([^\'"]+)/', $source, $matches );
 		$this->assertSame( array( 'action', 'nonce', 'term', 'data[term]', 'data[search]' ), $matches[1], 'Search must never send credentials or mutate booking/order payloads.' );

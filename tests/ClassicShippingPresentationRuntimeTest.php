@@ -28,7 +28,7 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 		$this->assertSame( 2, substr_count( $html, 'type="radio"' ) );
 		$this->assertStringContainsString( 'name="shipping_method[2]" data-index="2"', $html );
 		$this->assertStringContainsString( 'for="shipping_method_2_kiriminaja-official_gosend_instant"', $html );
-		$this->assertStringContainsString( 'value="kiriminaja-official_gosend_instant" selected="selected"', $html );
+		$this->assertMatchesRegularExpression( '/value="kiriminaja-official_gosend_instant"[^>]*selected="selected"/', $html );
 		$this->assertSame( 1, substr_count( $html, 'checked="checked"' ) );
 		$this->assertStringNotContainsString( '<option value=""', $html );
 		$this->assertStringNotContainsString( 'kiriof-cart-shipment-row', $html );
@@ -70,7 +70,7 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 		$this->assertSame( array( array( 'a', 0 ), array( 'b', 0 ) ), $result['hooks'] );
 		$input['session']['kiriof_chosen_shipping_methods'] = array( 'b' );
 		$selected = $this->render( $input );
-		$this->assertStringContainsString( 'value="b" selected="selected"', $selected['html'] );
+		$this->assertMatchesRegularExpression( '/value="b"[^>]*selected="selected"/', $selected['html'] );
 		$this->assertStringContainsString( 'checked="checked"', $selected['html'] );
 		$this->assertStringNotContainsString( '<option value=""', $selected['html'] );
 		unset( $input['session']['destination_id'] );

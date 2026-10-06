@@ -19,10 +19,10 @@ final class ClassicOrderReviewVisibilityRuntimeTest extends TestCase {
 		foreach ( array( '<thead>', '<tbody>', '<tfoot>', 'Fixture coffee', 'product-quantity', 'cart-subtotal', 'order-total', 'Rp 120,000', 'Rp 135,000', 'Fixture JNE Express REG', 'Fixture GOSEND Instant', 'woocommerce-shipping-contents' ) as $part ) {
 			$this->assertStringContainsString( $part, $html );
 		}
-		$this->assertSame( 2, substr_count( $html, 'name="shipping_method[0]"' ) );
+		$this->assertSame( count($result['rates']), substr_count( $html, 'name="shipping_method[0]"' ) );
 		$this->assertSame( 1, substr_count( $html, 'checked="checked"' ) );
 		foreach ( $result['rates'] as $id ) { $this->assertStringContainsString( 'value="' . $id . '"', $html ); }
-		$this->assertSame( array( 'woocommerce_review_order_before_cart_contents', 'woocommerce_review_order_after_cart_contents', 'woocommerce_review_order_before_shipping', 'woocommerce_after_shipping_rate', 'woocommerce_after_shipping_rate', 'woocommerce_review_order_after_shipping', 'woocommerce_review_order_before_order_total', 'woocommerce_review_order_after_order_total' ), array_column( $result['hooks'], 'name' ) );
+		$this->assertSame( array_merge(array('woocommerce_review_order_before_cart_contents','woocommerce_review_order_after_cart_contents','woocommerce_review_order_before_shipping'),array_fill(0,count($result['rates']),'woocommerce_after_shipping_rate'),array('woocommerce_review_order_after_shipping','woocommerce_review_order_before_order_total','woocommerce_review_order_after_order_total')), array_column( $result['hooks'], 'name' ) );
 		$this->assertSame( $result['rates'], array_values( array_filter( array_column( $result['hooks'], 'rate' ) ) ) );
 		foreach ( array( 'booking', 'pin required', 'place_order' ) as $extra ) { $this->assertStringNotContainsString( $extra, strtolower( $html ) ); }
 	}

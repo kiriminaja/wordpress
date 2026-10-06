@@ -2,12 +2,14 @@
 /** Pure, isolated WC boundary: render both production templates, never book a shipment. */
 namespace KiriminAjaOfficial\Services {
 	class ShippingDiscountCouponService {
-		public function getCurrentShippingDiscountTotal() { return 0; }
+		public function getCurrentShippingDiscountTotal() { return 'discounted' === ( $GLOBALS['input']['scene'] ?? '' ) ? 6000 : 0; }
 		public function isShippingCoupon( $coupon ) { return false; }
 	}
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );
+	require_once dirname( __DIR__, 2 ) . '/inc/Services/CourierLogoAssets.php';
+	require_once dirname( __DIR__, 2 ) . '/inc/Services/RateChoicePresentation.php';
 	$input = json_decode( $argv[1] ?? '{}', true, 512, JSON_THROW_ON_ERROR );
 	$GLOBALS['hooks'] = array();
 	function WC() { return $GLOBALS['wc']; }
@@ -38,11 +40,11 @@ namespace {
 	function wc_price( $value ) { return '<span class="amount">Rp ' . number_format( $value, 0, '.', ',' ) . '</span>'; }
 	function wc_get_formatted_cart_item_data( $item ) { return ''; }
 	function wc_cart_totals_subtotal_html() { echo wc_price( 120000 ); }
-	function wc_cart_totals_order_total_html() { echo '<strong>' . wc_price( 120000 + ( WC()->rates[0]->cost ?? 0 ) ) . '</strong>'; }
+	function wc_cart_totals_order_total_html() { echo '<strong>' . wc_price( 120000 + ( 'discounted' === ( $GLOBALS['input']['scene'] ?? '' ) ? 6000 : ( WC()->rates[0]->cost ?? 0 ) ) ) . '</strong>'; }
 	function wc_cart_totals_shipping_method_label( $rate ) { return esc_html( $rate->get_label() ) . ': ' . wc_price( $rate->cost ); }
 	function wc_cart_totals_shipping_html() {
 		$available_methods = WC()->rates;
-		$chosen_method = $available_methods[0]->id ?? '';
+		$chosen_method = 'discounted' === ( $GLOBALS['input']['scene'] ?? '' ) ? 'kiriminaja-official:1:lion:reg' : ( $available_methods[0]->id ?? '' );
 		$index = 0;
 		$package_name = 'Shipping';
 		$formatted_destination = 'Sleman, DI Yogyakarta, Indonesia';
@@ -77,11 +79,21 @@ namespace {
 	$rates = array(
 		new ReviewFixtureRate( 'kiriminaja-official:1:jne:reg', 'Fixture JNE Express REG', 15000 ),
 		new ReviewFixtureRate( 'kiriminaja-instant:1:gosend:instant', 'Fixture GOSEND Instant', 20000 ),
+		new ReviewFixtureRate( 'kiriminaja-official:1:lion:reg', 'Fixture Lion Parcel REG', 18000 ),
+		new ReviewFixtureRate( 'flat_rate:9', 'Third-party JNE delivery', 12000 ),
+		new ReviewFixtureRate( 'kiriminaja-official:1:fixture:regular', 'Unknown plugin courier', 17000 ),
 	);
 	if ( 'missing-api' === ( $input['scene'] ?? '' ) ) { $rates = array(); }
+	if ( 'discounted' === ( $input['scene'] ?? '' ) ) { $rates[2]->cost = 6000; }
 	if ( 'single' === ( $input['scene'] ?? '' ) ) { $rates = array( $rates[1] ); }
 	$GLOBALS['wc'] = (object) array( 'cart' => $cart, 'rates' => $rates, 'session' => new class {
-		public function get( $key, $default = null ) { return $default; }
+		public function get( $key, $default = null ) {
+			if ( 'discounted' === ( $GLOBALS['input']['scene'] ?? '' ) ) {
+				if ( 'kiriof_chosen_shipping_methods' === $key ) { return array( 'kiriminaja-official:1:lion:reg' ); }
+				if ( 'kiriof_shipping_coupon_rate_meta' === $key ) { return array( 'kiriminaja-official:1:lion:reg' => array( 'original_cost' => 12000, 'discount_amount' => 6000, 'badge' => 'Fixture shipping coupon' ) ); }
+			}
+			return $default;
+		}
 	} );
 	ob_start();
 	require dirname( __DIR__, 2 ) . '/templates/woocommerce/checkout/review-order.php';

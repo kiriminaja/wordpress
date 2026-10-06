@@ -15,3 +15,23 @@
 .woocommerce form.checkout .form-row:has(> .choices) { overflow: visible !important; }
 .woocommerce form.checkout .choices.is-open { z-index: 10011; }
 .woocommerce form.checkout .choices input[hidden] { display: none !important; }
+.woocommerce form.checkout .choices .kiriof-choice-courier {
+ display: flex !important; align-items: center; justify-content: flex-start !important; gap: 12px;
+ min-width: 0; width: 100%; text-align: left !important; box-sizing: border-box;
+}
+.woocommerce form.checkout .choices .choices__list--single > .choices__item.kiriof-choice-courier { display: flex !important; white-space: normal; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-logo {
+ display: inline-flex; align-items: center; justify-content: center; flex: 0 0 64px; width: 64px; height: 44px;
+ padding: 5px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;
+}
+.woocommerce form.checkout .choices .kiriof-choice-courier-logo img { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important; object-fit: contain; padding: 0 !important; margin: 0 !important; border: 0 !important; box-sizing: border-box; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-copy { display: block; min-width: 0; flex: 1; text-align: left !important; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-label { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left !important; }
+.woocommerce form.checkout .choices .choices__list--dropdown .kiriof-choice-courier-label { white-space: normal; overflow-wrap: anywhere; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-prices { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 4px; font-size: 0.875em; line-height: 1.4; text-align: left !important; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-current { font-weight: 600; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-prices del { color: #64748b; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-savings { color: #166534; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-note { display: block; margin-top: 3px; font-size: 0.8em; line-height: 1.4; color: #64748b; }
+.woocommerce form.checkout .choices:has(.kiriof-choice-courier) .choices__inner { min-height: 68px; height: auto; text-align: left !important; }
+.woocommerce form.checkout .choices .choices__list--dropdown .kiriof-choice-courier { padding: 12px; }

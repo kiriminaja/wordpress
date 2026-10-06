@@ -32,6 +32,7 @@ foreach ( array( 'billing', 'shipping' ) as $kiriof_scope ) {
 }
 
 return array(
+    'courierLogos'            => \KiriminAjaOfficial\Services\CourierLogoAssets::urls(),
     'billingCountry'          => $kiriof_countries['billing'],
     'shippingCountry'         => $kiriof_countries['shipping'],
     'savedDistrictByPostcode' => is_array( $kiriof_saved_destination_map ) ? $kiriof_saved_destination_map : array(),

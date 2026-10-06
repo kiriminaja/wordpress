@@ -153,8 +153,18 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 							<?php foreach ( $available_methods as $kiriof_shipping_method ) : ?>
 								<?php
 								$kiriof_option_label = html_entity_decode( wp_strip_all_tags( $kiriof_get_shipping_method_label_html( $kiriof_shipping_method ) ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+								$kiriof_option_courier = class_exists( \KiriminAjaOfficial\Services\CourierLogoAssets::class )
+									? \KiriminAjaOfficial\Services\CourierLogoAssets::forRate( $kiriof_shipping_method )
+									: '';
+								$kiriof_option_presentation = class_exists( \KiriminAjaOfficial\Services\RateChoicePresentation::class )
+									? \KiriminAjaOfficial\Services\RateChoicePresentation::forRate( $kiriof_shipping_method, $kiriof_session_rate_meta )
+									: array();
 								?>
-								<option value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>" <?php selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method ); ?>>
+								<option value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>" data-courier="<?php echo esc_attr( $kiriof_option_courier ); ?>"
+									<?php foreach ( $kiriof_option_presentation as $kiriof_attribute => $kiriof_attribute_value ) : ?>
+										data-<?php echo esc_attr( $kiriof_attribute ); ?>="<?php echo esc_attr( $kiriof_attribute_value ); ?>"
+									<?php endforeach; ?>
+									<?php selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method ); ?>>
 									<?php echo esc_html( trim( preg_replace( '/\s+/', ' ', $kiriof_option_label ) ) ); ?>
 								</option>
 							<?php endforeach; ?>

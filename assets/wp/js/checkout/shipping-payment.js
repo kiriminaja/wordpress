@@ -3,6 +3,16 @@ jQuery(document.body).on('updated_checkout', function() {
     if (kiriofUsesClassicCheckout()) {
         return;
     }
+    if (window.kiriofClassicChoices && window.kiriofClassicChoices.active()) {
+        jQuery('.kiriof-classic-shipping-method-select').each(function() {
+            var index = String(jQuery(this).data('index') || '0');
+            var current = jQuery('input.shipping_method[data-index="' + index + '"]:checked').first();
+            if(current.length) { jQuery(this).val(current.val()); }
+            window.kiriofClassicChoices.initShipping(this);
+        });
+        window.kiriofClassicChoices.refresh();
+        return;
+    }
     if ( kiriofTriggeredInitialShippingUpdate ) {
         return false;
     }
