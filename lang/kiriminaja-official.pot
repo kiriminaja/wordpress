@@ -1276,6 +1276,7 @@ msgid "Set your business location for accurate shipping rates."
 msgstr ""
 
 #: templates/setting/setuped/index.php:242
+#: inc/Services/PackageTypeService.php
 msgid "Others"
 msgstr ""
 
@@ -2219,6 +2220,8 @@ msgstr ""
 
 #. translators: %1$s: enabled count, %2$s: total count.
 #: inc/Base/Enqueue.php
+#: inc/Controllers/SettingController.php
+#: inc/Services/SettingsPageData.php
 #: templates/setting/setuped/section-couriers.php:38
 #, php-format
 msgid "%1$s of %2$s enabled"
@@ -2618,4 +2621,52 @@ msgid "KiriminAja Subdistrict"
 msgstr ""
 
 msgid "Searchable shipping destination subdistrict."
+msgstr ""
+
+#: inc/Controllers/ProductController.php
+msgid "Category"
+msgstr ""
+
+#: inc/Controllers/ProductController.php
+msgid "Select KiriminAja package category for shipping. Defaults to Others."
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Others (Default)"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Electronics & Gadgets"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Clothing"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Fragile"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Documents"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Household Appliances"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Accessories"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Valuable Documents"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Health & Beauty"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Sports & Entertainment"
 msgstr ""

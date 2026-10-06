@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PackageTypeService {
 
 	public const DEFAULT_PACKAGE_TYPE_ID   = 7;
-	public const DEFAULT_PACKAGE_TYPE_NAME = 'Lain-lain';
+	public const DEFAULT_PACKAGE_TYPE_NAME = 'Others';
 	public const META_KEY                  = '_kiriof_package_type_id';
 
 	/**
@@ -25,7 +25,7 @@ class PackageTypeService {
 		return array(
 			1  => array(
 				'id'         => 1,
-				'name'       => 'Peralatan Elektronik & Gadget',
+				'name'       => __( 'Electronics & Gadgets', 'kiriminaja-official' ),
 				'insurance'  => 1,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-08 09:22:36',
@@ -33,7 +33,7 @@ class PackageTypeService {
 			),
 			2  => array(
 				'id'         => 2,
-				'name'       => 'Pakaian',
+				'name'       => __( 'Clothing', 'kiriminaja-official' ),
 				'insurance'  => 0,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-08 09:23:01',
@@ -41,7 +41,7 @@ class PackageTypeService {
 			),
 			3  => array(
 				'id'         => 3,
-				'name'       => 'Pecah Belah',
+				'name'       => __( 'Fragile', 'kiriminaja-official' ),
 				'insurance'  => 1,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-10 10:18:57',
@@ -49,7 +49,7 @@ class PackageTypeService {
 			),
 			4  => array(
 				'id'         => 4,
-				'name'       => 'Dokumen',
+				'name'       => __( 'Documents', 'kiriminaja-official' ),
 				'insurance'  => 1,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-26 19:02:25',
@@ -57,7 +57,7 @@ class PackageTypeService {
 			),
 			5  => array(
 				'id'         => 5,
-				'name'       => 'Peralatan Rumah Tangga',
+				'name'       => __( 'Household Appliances', 'kiriminaja-official' ),
 				'insurance'  => 0,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-26 19:02:36',
@@ -65,7 +65,7 @@ class PackageTypeService {
 			),
 			6  => array(
 				'id'         => 6,
-				'name'       => 'Aksesoris',
+				'name'       => __( 'Accessories', 'kiriminaja-official' ),
 				'insurance'  => 0,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-26 19:02:44',
@@ -73,7 +73,7 @@ class PackageTypeService {
 			),
 			7  => array(
 				'id'         => 7,
-				'name'       => 'Lain-lain',
+				'name'       => __( 'Others', 'kiriminaja-official' ),
 				'insurance'  => 0,
 				'is_fragile' => 0,
 				'created_at' => '2021-01-25 15:32:42',
@@ -81,7 +81,7 @@ class PackageTypeService {
 			),
 			8  => array(
 				'id'         => 8,
-				'name'       => 'Dokumen Berharga',
+				'name'       => __( 'Valuable Documents', 'kiriminaja-official' ),
 				'insurance'  => 1,
 				'is_fragile' => 0,
 				'created_at' => '2020-12-26 19:02:25',
@@ -89,7 +89,7 @@ class PackageTypeService {
 			),
 			9  => array(
 				'id'         => 9,
-				'name'       => 'Peralatan Kesehatan & Kecantikan',
+				'name'       => __( 'Health & Beauty', 'kiriminaja-official' ),
 				'insurance'  => 0,
 				'is_fragile' => 0,
 				'created_at' => '2021-08-26 09:59:59',
@@ -97,7 +97,7 @@ class PackageTypeService {
 			),
 			10 => array(
 				'id'         => 10,
-				'name'       => 'Peralatan Olahraga & Hiburan',
+				'name'       => __( 'Sports & Entertainment', 'kiriminaja-official' ),
 				'insurance'  => 0,
 				'is_fragile' => 0,
 				'created_at' => '2021-08-26 10:00:16',
@@ -134,7 +134,7 @@ class PackageTypeService {
 	 */
 	public static function getSelectOptions(): array {
 		$options = array(
-			'' => __( 'Lain-lain (Default)', 'kiriminaja-official' ),
+			'' => __( 'Others (Default)', 'kiriminaja-official' ),
 		);
 
 		foreach ( self::all() as $item ) {

@@ -1310,8 +1310,9 @@ msgid "Origin Setup"
 msgstr "Pengaturan Origin"
 
 #: templates/setting/setuped/index.php:242
+#: inc/Services/PackageTypeService.php
 msgid "Others"
-msgstr "Lainnya"
+msgstr "Lain-lain"
 
 #: templates/request-pickup-detail/view/index.php:72
 #: templates/transaction-process/view/index.php:122
@@ -2626,6 +2627,8 @@ msgstr "Gagal memuat kurir."
 
 #. translators: %1$s: enabled count, %2$s: total count.
 #: inc/Base/Enqueue.php
+#: inc/Controllers/SettingController.php
+#: inc/Services/SettingsPageData.php
 #: templates/setting/setuped/section-couriers.php:38
 #, php-format
 msgid "%1$s of %2$s enabled"
@@ -5788,3 +5791,51 @@ msgstr "Pin pengiriman tidak dapat disimpan. Silakan coba lagi."
 #: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
 msgid "Saving delivery pin…"
 msgstr "Menyimpan pin pengiriman…"
+
+#: inc/Controllers/ProductController.php
+msgid "Category"
+msgstr "Kategori"
+
+#: inc/Controllers/ProductController.php
+msgid "Select KiriminAja package category for shipping. Defaults to Others."
+msgstr "Pilih kategori paket KiriminAja untuk pengiriman. Default ke Lain-lain."
+
+#: inc/Services/PackageTypeService.php
+msgid "Others (Default)"
+msgstr "Lain-lain (Default)"
+
+#: inc/Services/PackageTypeService.php
+msgid "Electronics & Gadgets"
+msgstr "Peralatan Elektronik & Gadget"
+
+#: inc/Services/PackageTypeService.php
+msgid "Clothing"
+msgstr "Pakaian"
+
+#: inc/Services/PackageTypeService.php
+msgid "Fragile"
+msgstr "Pecah Belah"
+
+#: inc/Services/PackageTypeService.php
+msgid "Documents"
+msgstr "Dokumen"
+
+#: inc/Services/PackageTypeService.php
+msgid "Household Appliances"
+msgstr "Peralatan Rumah Tangga"
+
+#: inc/Services/PackageTypeService.php
+msgid "Accessories"
+msgstr "Aksesoris"
+
+#: inc/Services/PackageTypeService.php
+msgid "Valuable Documents"
+msgstr "Dokumen Berharga"
+
+#: inc/Services/PackageTypeService.php
+msgid "Health & Beauty"
+msgstr "Peralatan Kesehatan & Kecantikan"
+
+#: inc/Services/PackageTypeService.php
+msgid "Sports & Entertainment"
+msgstr "Peralatan Olahraga & Hiburan"

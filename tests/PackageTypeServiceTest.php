@@ -25,16 +25,16 @@ final class PackageTypeServiceTest extends TestCase {
 		$this->assertCount( 10, $all );
 
 		$expected = array(
-			1  => array( 'name' => 'Peralatan Elektronik & Gadget', 'insurance' => 1, 'is_fragile' => 0 ),
-			2  => array( 'name' => 'Pakaian', 'insurance' => 0, 'is_fragile' => 0 ),
-			3  => array( 'name' => 'Pecah Belah', 'insurance' => 1, 'is_fragile' => 0 ),
-			4  => array( 'name' => 'Dokumen', 'insurance' => 1, 'is_fragile' => 0 ),
-			5  => array( 'name' => 'Peralatan Rumah Tangga', 'insurance' => 0, 'is_fragile' => 0 ),
-			6  => array( 'name' => 'Aksesoris', 'insurance' => 0, 'is_fragile' => 0 ),
-			7  => array( 'name' => 'Lain-lain', 'insurance' => 0, 'is_fragile' => 0 ),
-			8  => array( 'name' => 'Dokumen Berharga', 'insurance' => 1, 'is_fragile' => 0 ),
-			9  => array( 'name' => 'Peralatan Kesehatan & Kecantikan', 'insurance' => 0, 'is_fragile' => 0 ),
-			10 => array( 'name' => 'Peralatan Olahraga & Hiburan', 'insurance' => 0, 'is_fragile' => 0 ),
+			1  => array( 'name' => 'Electronics & Gadgets', 'insurance' => 1, 'is_fragile' => 0 ),
+			2  => array( 'name' => 'Clothing', 'insurance' => 0, 'is_fragile' => 0 ),
+			3  => array( 'name' => 'Fragile', 'insurance' => 1, 'is_fragile' => 0 ),
+			4  => array( 'name' => 'Documents', 'insurance' => 1, 'is_fragile' => 0 ),
+			5  => array( 'name' => 'Household Appliances', 'insurance' => 0, 'is_fragile' => 0 ),
+			6  => array( 'name' => 'Accessories', 'insurance' => 0, 'is_fragile' => 0 ),
+			7  => array( 'name' => 'Others', 'insurance' => 0, 'is_fragile' => 0 ),
+			8  => array( 'name' => 'Valuable Documents', 'insurance' => 1, 'is_fragile' => 0 ),
+			9  => array( 'name' => 'Health & Beauty', 'insurance' => 0, 'is_fragile' => 0 ),
+			10 => array( 'name' => 'Sports & Entertainment', 'insurance' => 0, 'is_fragile' => 0 ),
 		);
 
 		foreach ( $expected as $id => $meta ) {
@@ -47,7 +47,7 @@ final class PackageTypeServiceTest extends TestCase {
 		}
 
 		$this->assertSame( 7, PackageTypeService::DEFAULT_PACKAGE_TYPE_ID );
-		$this->assertSame( 'Lain-lain', PackageTypeService::DEFAULT_PACKAGE_TYPE_NAME );
+		$this->assertSame( 'Others', PackageTypeService::DEFAULT_PACKAGE_TYPE_NAME );
 		$this->assertSame( '_kiriof_package_type_id', PackageTypeService::META_KEY );
 	}
 
@@ -69,7 +69,7 @@ final class PackageTypeServiceTest extends TestCase {
 		$options = PackageTypeService::getSelectOptions();
 
 		$this->assertArrayHasKey( '', $options );
-		$this->assertStringContainsString( 'Lain-lain', $options[''] );
+		$this->assertStringContainsString( 'Others', $options[''] );
 		$this->assertStringContainsString( 'Default', $options[''] );
 
 		for ( $i = 1; $i <= 10; $i++ ) {

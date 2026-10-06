@@ -59,7 +59,7 @@ class ProductController{
                 'id'          => PackageTypeService::META_KEY,
                 'name'        => PackageTypeService::META_KEY,
                 'label'       => __( 'Category', 'kiriminaja-official' ),
-                'description' => __( 'Select KiriminAja package category for shipping. Defaults to Lain-lain.', 'kiriminaja-official' ),
+                'description' => __( 'Select KiriminAja package category for shipping. Defaults to Others.', 'kiriminaja-official' ),
                 'desc_tip'    => true,
                 'options'     => PackageTypeService::getSelectOptions(),
                 'value'       => $current_value,
