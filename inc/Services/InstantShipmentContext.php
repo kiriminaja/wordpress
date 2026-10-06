@@ -237,9 +237,9 @@ class InstantShipmentContext {
 		if ( empty( $items ) || $weight > 40000 || $value > PHP_INT_MAX ) {
 			throw new InvalidArgumentException( esc_html__( 'Instant shipments require physical items with a total weight of at most 40000 grams.', 'kiriminaja-official' ) );
 		}
-		// Temporary category default from the API example; merchants can override
-		// it without changing the immutable address or price context.
-		$type_id = $this->integer( apply_filters( 'kiriof_instant_package_type_id', 7, $transaction, $order ), 1 );
+		// Resolve package category based on products, defaulting to Lain-lain (7).
+		$default_type_id = PackageTypeService::resolveForOrder( $order );
+		$type_id         = $this->integer( apply_filters( 'kiriof_instant_package_type_id', $default_type_id, $transaction, $order ), 1 );
 		$package = array(
 			'order_id'        => $order_id,
 			'destination'     => $destination,

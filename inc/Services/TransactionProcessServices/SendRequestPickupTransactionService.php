@@ -12,6 +12,7 @@ use KiriminAjaOfficial\Repositories\PaymentRepository;
 use KiriminAjaOfficial\Repositories\SettingRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\KiriminajaApiService;
+use KiriminAjaOfficial\Services\PackageTypeService;
 use KiriminAjaOfficial\Services\SettingService;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
@@ -540,7 +541,7 @@ class SendRequestPickupTransactionService extends BaseService
                 "service_type"              => $transaction->service_name,
                 "item_name"                 => $combinedItemNames,
                 "note"                      => $note,
-                "package_type_id"           => 7,
+                "package_type_id"           => PackageTypeService::resolveForOrder( $order ),
                 "cod" => 0,
                 "drop" => false,
                 "is_with_insurance" => ( (float) ( $transaction->insurance_cost ?? 0 ) ) > 0,

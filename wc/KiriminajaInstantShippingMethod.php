@@ -138,6 +138,9 @@ function kiriof_instant_shipping_method() {
 				}
 			}
 			try {
+				if ( class_exists( '\KiriminAjaOfficial\Services\PackageTypeService' ) ) {
+					$package['package_type_id'] = \KiriminAjaOfficial\Services\PackageTypeService::resolveForCartPackage( $package );
+				}
 				$result = $this->quote_service()->quote( $package, $destination, $payment, $insurance );
 				$count  = 0;
 				$expires = 0;
