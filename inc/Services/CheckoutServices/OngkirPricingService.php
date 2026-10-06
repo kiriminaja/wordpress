@@ -81,7 +81,6 @@ class OngkirPricingService extends BaseService{
             'courier'                   => ! empty( $courier_filter ) ? $courier_filter : null
         ];
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$pricingPayload',[$pricingPayload]);
         
         $cachedPricingData = PricingCacheService::get( $pricingPayload );
         if ( $cachedPricingData ) {
@@ -95,7 +94,6 @@ class OngkirPricingService extends BaseService{
                 PricingCacheService::put( $pricingPayload, $kiriofPricing['data'] );
             }
         }
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$kiriofPricing',[$kiriofPricing]);
         
         if(!$kiriofPricing['data']->status){
             return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');

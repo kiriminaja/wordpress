@@ -28,10 +28,6 @@ class KiriminAjaTrackingService extends BaseService{
         $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getTracking([
             'order_id' => $transactionRepo->order_id
         ]);
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('pload',[
-            '$transactionRepo' => $transactionRepo
-        ]);
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$repo',[$repo]);
         
         $details = (array) ($repo['data']->details ?? $this->getDetailWcOrder($transactionRepo->wp_wc_order_stat_order_id) );
         $histories = (array) (@$repo['data']->histories ?? []);

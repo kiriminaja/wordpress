@@ -8,6 +8,42 @@ use PHPUnit\Framework\TestCase;
 final class LoggingFeatureTest extends TestCase
 {
     #[Test]
+    public function routine_checkout_payment_and_coupon_reads_do_not_emit_info_chatter(): void {
+        $files = array(
+            'wc/KiriminajaShippingMethod.php',
+            'wc/KiriminajaInstantShippingMethod.php',
+            'inc/Services/InstantCheckoutQuoteService.php',
+            'inc/Services/InstantCheckoutDiagnosticsService.php',
+            'inc/Services/ShippingDiscountCouponService.php',
+            'inc/Controllers/ShippingDiscountCouponController.php',
+            'inc/Services/ShippingProcessServices/GetShippingProcessPayment.php',
+        );
+        foreach ( $files as $file ) {
+            $source = file_get_contents( PLUGIN_DIR . '/' . $file );
+            $this->assertDoesNotMatchRegularExpression( '/(?:kiriof_log|logShippingCouponEvent)\(\s*[\'"]info[\'"]/', $source, $file );
+        }
+        foreach ( array( 'CheckoutCalculationService', 'OngkirPricingService' ) as $service ) {
+            $this->assertStringNotContainsString( '->logThis(', file_get_contents( PLUGIN_DIR . '/inc/Services/CheckoutServices/' . $service . '.php' ) );
+        }
+        $this->assertStringNotContainsString( '->logThis(', file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php' ) );
+        $this->assertStringNotContainsString( '->logThis(', file_get_contents( PLUGIN_DIR . '/inc/Services/KiriminAjaTrackingService.php' ) );
+        $this->assertStringNotContainsString( "logThis('afterCheckoutAfterCreated',[\$createTransaction])", file_get_contents( PLUGIN_DIR . '/inc/Controllers/CheckoutController.php' ) );
+        $this->assertStringNotContainsString( "logThis('\$postMetaRepo'", file_get_contents( PLUGIN_DIR . '/inc/Services/CheckoutServices/CreateTransactionService.php' ) );
+    }
+
+    #[Test]
+    public function booking_audits_and_structured_address_failures_remain_without_duplicate_warning(): void {
+        $booking = file_get_contents( PLUGIN_DIR . '/inc/Services/InstantDispatchService.php' );
+        foreach ( array( 'booking_submitted', 'booking_confirmed', 'booking_response_invalid', 'booking_rollback_failed' ) as $code ) {
+            $this->assertStringContainsString( $code, $booking );
+        }
+        $address = file_get_contents( PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php' );
+        $this->assertStringContainsString( "'Address lookup failed.'", $address );
+        $this->assertStringContainsString( "'backtrace' => false", $address );
+        $this->assertStringNotContainsString( "'Subdistrict lookup failed.'", file_get_contents( PLUGIN_DIR . '/inc/Controllers/GeneralAjaxController.php' ) );
+    }
+
+    #[Test]
     public function logger_utility_exists_and_uses_woocommerce_logger_shortcuts(): void
     {
         $path = PLUGIN_DIR . '/inc/Utils/Logger.php';

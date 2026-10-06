@@ -63,15 +63,8 @@ class GeneralAjaxController
 
             $subdistrict_search = $this->checkout_service_factory->districtSearch( $search );
             if ( 200 !== $subdistrict_search->status ) {
-                kiriof_log(
-                    'warning',
-                    'Subdistrict lookup failed.',
-                    array(
-                        'source'    => 'kiriminaja_shipping',
-                        'operation' => 'sub_district_search',
-                        'message'   => $subdistrict_search->message,
-                    )
-                );
+                // The address repository already records the fixed failure reason
+                // and transport metadata. Do not duplicate it per keystroke here.
                 wp_send_json_error(
                     array(
                         'code'    => 'subdistrict_lookup_failed',
@@ -89,6 +82,7 @@ class GeneralAjaxController
                     'source'            => 'kiriminaja_shipping',
                     'operation'         => 'sub_district_search',
                     'exception_class'   => get_class( $e ),
+                    'backtrace'         => false,
                     'exception_message' => $e->getMessage(),
                 )
             );

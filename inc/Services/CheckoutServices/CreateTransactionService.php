@@ -474,7 +474,6 @@ class CreateTransactionService extends BaseService{
                 return array( 'status' => true, 'data' => $data );
             }
             $postMetaRepo = $this->post_meta_repository->getRequiredRowsByPostId($this->payload['order_id']);
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('$postMetaRepo',[$postMetaRepo]);
             
             // Use array_column for more efficient mapping
             $returnArr = [];

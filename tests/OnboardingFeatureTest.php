@@ -48,7 +48,8 @@ final class OnboardingFeatureTest extends TestCase
 
 		$this->assertStringContainsString("'subdistrict_lookup_failed'", $controller);
 		$this->assertStringContainsString("wp_send_json_error(", $controller);
-		$this->assertStringContainsString("'Subdistrict lookup failed.'", $controller);
+		$this->assertStringNotContainsString("'Subdistrict lookup failed.'", $controller);
+		$this->assertStringContainsString("'Address lookup failed.'", file_get_contents(PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php'));
 		$this->assertStringNotContainsString('wp_send_json_success([])', $controller);
 		$this->assertStringContainsString('api/mitra/v6.1/addresses', $repository);
 	}

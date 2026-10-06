@@ -91,17 +91,6 @@ class TransactionListRenderService
         $kiriof_print_status_filter = $filters["print_status"];
         $kiriof_month_filter = $filters["month"];
 
-        if (class_exists(\KiriminAjaOfficial\Base\BaseInit::class)) {
-            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis(
-                '$kiriof_results',
-                [$kiriof_results],
-            );
-            ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis(
-                '$kiriof_monthOptions',
-                [$kiriof_monthOptions],
-            );
-        }
-
         $courier_name_map = ( new KiriminajaApiService() )->getCourierNameMap();
         $kiriof_couriers = array_map(static function ($row) use (
             $courier_name_map,

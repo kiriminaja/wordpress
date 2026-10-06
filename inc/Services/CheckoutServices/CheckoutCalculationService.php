@@ -100,7 +100,6 @@ class CheckoutCalculationService extends BaseService{
             'courier'                   => [$courier]
         ];
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
         $cachedPricingData = PricingCacheService::get( $pricingPayload );
         if ( $cachedPricingData ) {
@@ -124,7 +123,6 @@ class CheckoutCalculationService extends BaseService{
 
         $kiriofPricing = $this->api_repository->getPricing($pricingPayload);
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
         if($kiriofPricing['status'] != 200){
             return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');

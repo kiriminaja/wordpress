@@ -1159,7 +1159,6 @@ class CheckoutController
                 'blocks_validated'          => is_array( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true ) ),
                 'validated_calculation'     => ( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true )['validated_calculation'] ?? null ),
             ])->call();
-            (new \KiriminAjaOfficial\Base\BaseInit())->logThis('afterCheckoutAfterCreated',[$createTransaction]);
             if ( ! is_object( $createTransaction ) || 200 !== ( $createTransaction->status ?? null ) ) {
                 if ( $blocks_validated ) { $this->kiriof_express_transaction_error(); }
                 return;
