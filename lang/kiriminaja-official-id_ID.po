@@ -5649,6 +5649,10 @@ msgstr "Reguler"
 msgid "Instant"
 msgstr "Instant"
 
+#: inc/Base/Enqueue.php
+msgid "Contact Information"
+msgstr "Informasi Kontak"
+
 #: inc/Services/InstantLabelService.php
 msgid "Each requested Instant shipment must have a distinct AWB."
 msgstr "Setiap pengiriman Instant yang dipilih harus memiliki AWB berbeda."

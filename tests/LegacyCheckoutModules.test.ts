@@ -44,6 +44,42 @@ function load(h: ReturnType<typeof harness>) {
 }
 
 describe('separate legacy checkout browser modules', () => {
+	test('actual SelectWoo request and result callbacks accept names, postcodes and legacy response envelopes', () => {
+		const h = harness();
+		load(h);
+		const settings: any[] = [];
+		const field: any = {
+			length: 1, data: () => null, closest: () => field,
+			off: () => field, on: () => field,
+			val: () => '', find: () => ({ text: () => '' }),
+		};
+		const fields: any = { length: 1, each(callback: any) { callback.call(field); return fields; } };
+		const jquery: any = (selector: any) => selector === field ? field : fields;
+		jquery.fn = { selectWoo(options: any) { settings.push(options); } };
+		jquery.map = (rows: any[], callback: any) => rows.map(callback).filter(value => value != null);
+		h.context.jQuery = jquery;
+		h.config.ajaxUrl = '/wp-admin/admin-ajax.php';
+		h.config.nonce = 'district-nonce';
+		h.config.i18n = { selectOption: 'Select Option' };
+		runInContext('kiriofRestoreClassicDistrictSelections = function() {}; getSearchAreaKelurahan();', h.context);
+		expect(settings).toHaveLength(1);
+		const options = settings[0];
+		expect(options.width).toBe('100%');
+		expect(options.dropdownParent).toBe(field);
+		expect(options.minimumInputLength).toBe(3);
+		for (const [params, term] of [[{ term: '  Gambir  ' }, 'Gambir'], [{ term: ' 10110 ' }, '10110'], [{ q: ' Jakarta ' }, 'Jakarta']] as const) {
+			expect(options.ajax.data(params)).toEqual({ action: 'kiriminaja_subdistrict_search', nonce: 'district-nonce', term, data: { search: term, term } });
+		}
+		expect(options.ajax.url).toBe('/wp-admin/admin-ajax.php');
+		expect(options.ajax.type).toBe('POST');
+		const rows = [{ id: 123, text: 'Gambir, Jakarta' }];
+		for (const response of [rows, { success: true, data: rows }, { results: rows }, { success: true, data: { results: rows } }, { data: { data: rows } }]) {
+			expect(options.ajax.processResults(response)).toEqual({ results: rows });
+		}
+		for (const response of [null, {}, { success: false, data: rows }, { success: true, data: { code: '401', message: 'Error' } }, [null, { message: 'Error' }, { id: 2 }]]) {
+			expect(options.ajax.processResults(response)).toEqual({ results: [] });
+		}
+	});
 	test('dependency-order evaluation retains globals and registers events before a single ready boot', () => {
 		const h = harness();
 		const globals = [

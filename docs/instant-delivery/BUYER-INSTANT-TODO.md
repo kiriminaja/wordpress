@@ -4,6 +4,12 @@ Status: Buyer quote/order implementation and local regression coverage implement
 
 ## Classic pin-only extension and safe reactivation
 
+### Native layout and map controls follow-up
+
+The Instant-enabled Classic pin section uses a form label and follows the active native district row (including repeated separate-address toggles and Woo/theme priority sorting). An idempotent DOM observer repairs placement without recreating maps or pin state. Native Email is moved—not copied—to Contact Information before Billing details, preserving its name/value/validation. City/Province and Postcode/Phone use adjacent native row priorities/classes with mobile stacking. District SelectWoo stays authoritative: full-width row-owned dropdown/search and response-shape checks cover name/postcode queries and fail safely on malformed results.
+
+Classic and Blocks use icon-only accessible floating Current location controls and map-overlay checked/unchecked pin badges. The badge turns complete only for accepted address-bound coordinates (and, for Classic, acknowledged pin persistence). Device-location prose and duplicate placed-state paragraph are removed; permission/error/movement feedback remains. No new booking calls, Google Maps, or map CDN are introduced. Ten isolated Chromium E2E regressions cover real Select2 typed search/envelopes/selection, active-row placement, repeated toggles, theme reorder repairs, email preservation, map controls and guarded booking outcomes. Live theme/provider search/geolocation still requires installed-store verification.
+
 ### Legacy checkout asset boundaries
 
 `form-billing-address.js` is now only the small ready-time entry point. Existing behavior lives in `assets/wp/js/checkout/state.js`, `blocks-compatibility.js`, `classic-district.js`, and `shipping-payment.js`. WordPress dependencies enforce that order before the entry; localization belongs to `kiriof-checkout-state`, not the entry. Per-file modification times invalidate browser caches. Existing public function/global names are retained for theme compatibility; this is a mechanical modularization, not a new checkout behavior or production minification step. Blocks compatibility remains its own fallback module and does not own the current native Blocks adapter. Tests execute each actual file in one persistent browser VM and retain Classic/cart/account/Blocks behavior checks.

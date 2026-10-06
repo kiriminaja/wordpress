@@ -345,6 +345,7 @@ class Enqueue extends BaseInit{
                 // Classic checkout does not require Store API registration support.
                 $config['enabled'] = $this->classic_instant_enabled();
                 $config['ownsDistrict'] = false;
+                $config['i18n']['contactInformation'] = __( 'Contact Information', 'kiriminaja-official' );
                 $config['needsShipping'] = function_exists( 'WC' ) && WC() && WC()->cart ? WC()->cart->needs_shipping() : true;
                 wp_localize_script( 'kiriof-classic-checkout', 'kiriofClassicCheckoutConfig', $config );
             }

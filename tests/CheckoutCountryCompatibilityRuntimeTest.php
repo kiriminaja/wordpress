@@ -63,7 +63,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function city_and_province_preserve_native_classes_priorities_and_theme_metadata(): void {
+    public function city_and_province_use_adjacent_native_rows_and_preserve_theme_metadata(): void {
         $overrides = array();
         foreach ( array( 'billing', 'shipping' ) as $group ) {
             $overrides[ $group ] = array(
@@ -79,7 +79,9 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
         $this->assertAddressFields( $result, 'ID', 'US' );
         foreach ( array( 'billing', 'shipping' ) as $group ) {
             $this->assertSame( 70, $result['fields'][ $group ][ $group . '_city' ]['priority'] );
-            $this->assertSame( 90, $result['fields'][ $group ][ $group . '_state' ]['priority'] );
+            $this->assertSame( 71, $result['fields'][ $group ][ $group . '_state' ]['priority'] );
+            $this->assertContains( 'theme-city', $result['fields'][ $group ][ $group . '_city' ]['class'] );
+            $this->assertContains( 'theme-province', $result['fields'][ $group ][ $group . '_state' ]['class'] );
         }
     }
 
@@ -130,12 +132,27 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     private function assertAddressFields( array $result, string $billing, string $shipping ): void {
         foreach ( array( 'billing' => $billing, 'shipping' => $shipping ) as $group => $country ) {
+            $phone = $result['fields'][ $group ][ $group . '_phone' ];
+            $this->assertSame( 91, $phone['priority'] );
+            $this->assertContains( 'form-row-last', $phone['class'] );
+            $this->assertTrue( $phone['required'] );
+            $this->assertSame( $result['original_fields'][ $group ][ $group . '_email' ], $result['fields'][ $group ][ $group . '_email' ], 'Email schema and validation remain native.' );
             foreach ( array( 'state', 'city', 'company', 'postcode' ) as $native ) {
                 $key = $group . '_' . $native;
                 $this->assertArrayHasKey( $key, $result['fields'][ $group ], $key . ' must remain a native WooCommerce field.' );
                 $original = $result['original_fields'][ $group ][ $key ];
                 $field = $result['fields'][ $group ][ $key ];
-                $this->assertSame( $original, $field, $key . ' must remain completely untouched, including native classes and priority.' );
+                if ( 'company' !== $native ) {
+                    $side = 'state' === $native ? 'form-row-last' : 'form-row-first';
+                    $priority = array( 'city' => 70, 'state' => 71, 'postcode' => 90 );
+                    $this->assertContains( $side, $field['class'] );
+                    $this->assertSame( $priority[ $native ], $field['priority'] );
+                    $this->assertFalse( $field['clear'] );
+                    $original['class'] = array_values( array_diff( $original['class'] ?? array(), array( 'form-row-wide', 'form-row-first', 'form-row-last' ) ) );
+                    $field['class'] = array_values( array_diff( $field['class'], array( 'form-row-wide', 'form-row-first', 'form-row-last' ) ) );
+                    unset( $original['priority'], $field['priority'], $original['clear'], $field['clear'] );
+                }
+                $this->assertSame( $original, $field, $key . ' must retain native validation and non-layout metadata.' );
             }
             $countryKey = $group . '_country';
             $this->assertSame( $result['original_fields'][ $group ][ $countryKey ], $result['fields'][ $group ][ $countryKey ], 'Country field must be untouched.' );

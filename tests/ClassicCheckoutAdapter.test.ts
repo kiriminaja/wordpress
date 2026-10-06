@@ -131,13 +131,26 @@ describe('Classic core with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+	test('pin remains directly below active district after theme sorting and repeated separate-address toggles', async () => {
+		const h=adapter({savedDestination:saved()});await h.acknowledge();
+		const panel=h.query('.kiriof-classic-pin');
+		expect(panel.querySelector('h3')).toBeNull();
+		expect(panel.querySelector('label').textContent).toBe('Delivery pin');
+		expect(panel.textContent).not.toContain('Current device location');
+		const locate=panel.querySelector('.kiriof-classic-map-locate');
+		expect(locate.textContent).toBe('');expect(locate.getAttribute('aria-label')).toBe('Current location');expect(locate.querySelector('svg')).not.toBeNull();
+		expect(panel.querySelector('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
+		for(const different of [true,false,true,false]){h.change('ship-to-different-address-checkbox',different);await h.advance(200);await h.acknowledge();const row=h.query(different?'#kiriof_shipping_destination_area_field':'#kiriof_destination_area_field');expect(row.nextElementSibling).toBe(panel);}
+		panel.parentNode.insertBefore(panel,panel.parentNode.firstElementChild);await settle();
+		expect(h.query('#kiriof_destination_area_field').nextElementSibling).toBe(panel);
+	});
 	test('observes existing legacy district and label without adding lookup/select/fee requests or rewriting native fields', async () => {
 		const h = adapter();
 		const ids = ['billing_city', 'billing_state', 'billing_postcode', 'kiriof_destination_area', 'kiriof_destination_area_name', 'kiriof_shipping_destination_area'];
 		const before = ids.map(id => h.query(`#${id}`).outerHTML);
 		const panel = h.query('.kiriof-classic-pin');
-		expect(panel.parentNode.lastElementChild).toBe(panel);
-		expect(panel.getAttribute('data-priority')).toBe('999');
+		expect(h.query('#kiriof_destination_area_field').nextElementSibling).toBe(panel);
+		expect(panel.getAttribute('data-priority')).toBe('61.5');
 		expect(panel.querySelectorAll('select')).toHaveLength(0);
 		expect(h.query('#kiriof-classic-district')).toBeNull();
 		expect(h.geo).toHaveLength(1);
@@ -196,7 +209,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	});
 	test('auto geolocation failure can retry and stale callbacks cannot overwrite changed address', async () => {
 		const h = adapter(); h.geo[0].failure({ code: 1 });
-		expect(h.query('.kiriof-classic-pin [role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
+		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
 		h.query('.kiriof-classic-map-locate').click(); const stale = h.geo[1];
 		h.change('billing_address_1', 'New street'); await h.advance(200);
 		const status = h.query('.kiriof-classic-pin [role="status"]').textContent;
@@ -212,7 +225,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(h.query('#kiriof_destination_area').value).toBe('123');
 		h.choose('456', 'Shipping legacy label', 'shipping');
 		h.change('ship-to-different-address-checkbox', true); await h.advance(200); await h.acknowledge();
-		expect(h.query('.kiriof-classic-pin').parentNode.className).toBe('woocommerce-shipping-fields__field-wrapper');
+		expect(h.query('#kiriof_shipping_destination_area_field').nextElementSibling).toBe(h.query('.kiriof-classic-pin'));
 		expect(h.payload(h.mutations().at(-1))).toMatchObject({ address_scope: 'shipping', destination: { district_id: '456', district_label: 'Shipping legacy label' } });
 		expect(h.hidden().destination_latitude).toBeUndefined();
 	});

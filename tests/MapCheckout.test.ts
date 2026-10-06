@@ -310,11 +310,11 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 		} else f.locations.push({ success, failure, options: requestOptions });
 	} } });
 	root.kiriofMapCheckoutConfig = { enabled: true, coverage: options.coverage, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
-		mapCoverage: 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.', mapOutsideRadius: 'Outside Instant coverage; Express is allowed', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
+		pinLocation: 'Pin Location', needPinLocation: 'Need Pin Location', mapCoverage: 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.', mapOutsideRadius: 'Outside Instant coverage; Express is allowed', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
 	} };
 	root.kiriofBuyerCheckout = {
 		getCoordinates: (address: any) => coordinates.get(JSON.stringify(address)) || null,
-		setCoordinates: (address: any, point: any) => { writes.push({ address, point }); coordinates.clear(); if (point) coordinates.set(JSON.stringify(address), { ...point }); return true; },
+		setCoordinates: (address: any, point: any) => { if (options.rejectCoordinates) return false; writes.push({ address, point }); coordinates.clear(); if (point) coordinates.set(JSON.stringify(address), { ...point }); return true; },
 	};
 	// Controlled bridge double isolates the map lifecycle from native DOM discovery.
 	// The production hook is resolved before MapControl mounts, just like this double.
@@ -326,7 +326,7 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 	renderer ||= loadRenderer!();
 	const reactRoot = renderer.createRoot(container);
 	const render = () => React.act(() => reactRoot.render(React.createElement(registrations[0].component)));
-	const button = (text: string) => [...container.querySelectorAll('button')].find((item: any) => item.textContent === text) as any;
+	const button = (text: string) => [...container.querySelectorAll('button')].find((item: any) => (item.getAttribute('aria-label') || item.textContent) === text) as any;
 	const click = (text: string) => React.act(() => { const target = button(text); expect(target).toBeDefined(); target.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
 	const cleanup = () => { React.act(() => reactRoot.unmount()); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } };
 	render();
@@ -366,7 +366,7 @@ describe('shared location authorization gate', () => {
 });
 
 describe('MapControl: permission-gated actual React commit/ref runtime', () => {
-	uiTest('saved outside pin warning remains visible while permission is denied and device notice is translated', () => {
+	uiTest('saved outside pin warning remains visible while permission is denied; device notice is removed', () => {
 		const h = uiHarness({ autoLocation: false, savedPoint: {latitude: 1, longitude: 0}, coverage: {origin: {latitude: 0, longitude: 0}, radiusMeters: 40000} });
 		try {
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).not.toBeNull();
@@ -376,7 +376,7 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			expect(h.writes).toHaveLength(0);
 		} finally { h.cleanup(); }
 		const granted = uiHarness();
-		try { expect(granted.container.querySelector('.kiriof-buyer-map__device-notice')).not.toBeNull(); } finally { granted.cleanup(); }
+		try { expect(granted.container.querySelector('.kiriof-buyer-map__device-notice')).toBeNull(); } finally { granted.cleanup(); }
 	});
 	uiTest('Store API package coverage overrides the initial circle and explicit unknown never falls back', () => {
 		const h = uiHarness({ coverage: {origin: {latitude: 0, longitude: 0}, radiusMeters: 40000} });
@@ -395,8 +395,8 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 0 } }));
 			expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.writes).toHaveLength(1);
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning').getAttribute('role')).toBe('note'); expect(h.container.textContent).toContain('Outside Instant coverage');
-			React.act(() => h.tiles[0].fire('tileerror')); expect(h.container.querySelector('[role="status"]').textContent).toBe('Map unavailable'); expect(h.container.textContent).toContain('Outside Instant coverage');
-			h.click('Locate me'); React.act(() => h.locations[0].failure({ code: 1 })); expect(h.container.querySelector('[role="status"]').textContent).toBe('Permission denied');
+			React.act(() => h.tiles[0].fire('tileerror')); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Map unavailable'); expect(h.container.textContent).toContain('Outside Instant coverage');
+			h.click('Locate me'); React.act(() => h.locations[0].failure({ code: 1 })); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Permission denied');
 			React.act(() => h.maps[0].fire('click', { latlng: { lat: 0, lng: 0 } })); expect(h.writes).toHaveLength(2); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull();
 		} finally { h.cleanup(); } expect(h.circles[0].removed).toBe(1);
 	});
@@ -414,7 +414,7 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 		const h = uiHarness({ autoLocation: false }); try {
 			expect(h.initialRequests).toHaveLength(1); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]);
 			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull(); expect(h.container.querySelector('.kiriof-buyer-map__canvas')).toBeNull(); expect(h.button('Locate me')).toBeUndefined();
-			expect(h.container.querySelector('[role="status"]').textContent).toContain('Requesting location permission'); h.render(); expect(h.initialRequests).toHaveLength(1);
+			expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toContain('Requesting location permission'); h.render(); expect(h.initialRequests).toHaveLength(1);
 			React.act(() => h.initialRequests[0].success({ coords: { latitude: 0, longitude: 0 } }));
 			expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes[0].point).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
 			expect(h.maps[0].container.isConnected).toBe(true); h.render(); expect(h.writes).toHaveLength(1); expect(h.initialRequests).toHaveLength(1);
@@ -424,7 +424,7 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 		const pin = { latitude: '0.0000000', longitude: '0.0000000' };
 		const h = uiHarness({ autoLocation: false, savedPoint: pin }); try {
 			React.act(() => h.initialRequests[0].failure({ code }));
-			expect(h.container.querySelector('[role="status"]').textContent).toBe(code === 1 ? 'Permission denied' : 'Location failed');
+			expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe(code === 1 ? 'Permission denied' : 'Location failed');
 			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull(); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]); expect([...h.coordinates.values()]).toEqual([pin]);
 			h.render(); expect(h.initialRequests).toHaveLength(1);
 			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(0);
@@ -470,10 +470,28 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			expect(h.button('Clear pin')).toBeUndefined(); expect(h.button('Load map')).toBeUndefined(); expect(h.container.querySelectorAll('input')).toHaveLength(0);
 		} finally { h.cleanup(); }
 	});
+	uiTest('floating pin badge reflects accepted coordinates only and locate is icon-only with a translated accessible name', () => {
+		for (const rejectCoordinates of [false, true]) {
+			const h = uiHarness({ rejectCoordinates }); try {
+				const viewport = h.container.querySelector('.kiriof-buyer-map__viewport');
+				const badge = viewport.querySelector('.kiriof-buyer-map__pin-status');
+				expect(badge.textContent).toBe(rejectCoordinates ? 'Need Pin Location' : 'Pin Location');
+				expect(badge.classList.contains(rejectCoordinates ? 'is-warning' : 'is-complete')).toBe(true);
+				expect(badge.getAttribute('role')).toBe('status'); expect(badge.getAttribute('aria-live')).toBe('polite');
+				expect(badge.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+				expect(badge.querySelector('path').getAttribute('d')).toBe(rejectCoordinates ? 'M5 5h14v14H5Z' : 'm5 12 4 4 10-10');
+				expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull(); expect(h.container.textContent).not.toContain('Pin placed');
+				const locate = viewport.querySelector('button'); expect(locate.textContent).toBe('');
+				expect(locate.getAttribute('aria-label')).toBe('Locate me'); expect(locate.getAttribute('title')).toBe('Locate me');
+				expect(locate.querySelector('svg').getAttribute('aria-hidden')).toBe('true'); expect(locate.querySelector('svg').getAttribute('focusable')).toBe('false');
+				h.click('Locate me'); expect(h.locations).toHaveLength(1);
+			} finally { h.cleanup(); }
+		}
+	});
 	uiTest('camera movement publishes once at moveend and rerenders do not prompt or reset', () => {
 		const h = uiHarness(); try {
-			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(1); expect(h.container.querySelector('[role="status"]').textContent).toBe('Moving pin');
-			React.act(() => h.maps[0].fire('moveend')); h.render(); h.render(); expect(h.writes).toHaveLength(2); expect(h.maps).toHaveLength(1); expect(h.initialRequests).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.container.textContent).toContain('Pin placed');
+			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(1); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Moving pin');
+			React.act(() => h.maps[0].fire('moveend')); h.render(); h.render(); expect(h.writes).toHaveLength(2); expect(h.maps).toHaveLength(1); expect(h.initialRequests).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.container.textContent).toContain('Pin Location'); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
 		} finally { h.cleanup(); }
 	});
 	uiTest('ineligible checkout cancels map and requests; returning requires new authorization', () => {

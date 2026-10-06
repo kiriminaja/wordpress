@@ -328,6 +328,8 @@ function getSearchAreaKelurahan(){
         }
 
         select2.call($field, {
+            width: '100%',
+            dropdownParent: $field.closest('.form-row'),
             minimumInputLength: 3,
             placeholder: kiriofBillingAddressConfig.i18n.selectOption || 'Select Option',
             allowClear: true,
@@ -340,6 +342,7 @@ function getSearchAreaKelurahan(){
                     let term = search && (search.term || search.search || search.q)
                         ? search.term || search.search || search.q
                         : '';
+                    term = String(term).trim();
                     return {
                         data:{
                             term:term,
@@ -351,11 +354,24 @@ function getSearchAreaKelurahan(){
                     };
                 },
                 processResults: function (response) {
-                    let responseData = response && response.success !== false && response.data
-                        ? response.data
-                        : [];
+                    // Current WordPress responses wrap the rows in data; older
+                    // installations return rows at the root or in data.results.
+                    // Never map an error object as though it were a district row.
+                    let responseData = response && response.success !== false ? response : [];
+                    if (!Array.isArray(responseData)) {
+                        responseData = responseData.data || responseData.results || [];
+                    }
+                    if (!Array.isArray(responseData)) {
+                        responseData = responseData.results || responseData.data || [];
+                    }
+                    if (!Array.isArray(responseData)) {
+                        responseData = [];
+                    }
                     return {
                         results: jQuery.map(responseData, function (item) {
+                            if (!item || item.id === undefined || item.id === null || !item.text) {
+                                return null;
+                            }
                             return {
                                 text: item.text,
                                 id: item.id

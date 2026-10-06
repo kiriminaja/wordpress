@@ -149,9 +149,14 @@
 	top: 12px;
 	right: 12px;
 	z-index: 2;
-	max-width: calc(100% - 72px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	min-height: 44px;
 	margin: 0;
-	padding: 8px 12px;
+	padding: 10px;
 	background: #fff;
 	color: #1e1e1e;
 	border: 1px solid #555;
@@ -159,6 +164,40 @@
 	line-height: 1.4;
 	white-space: normal;
 	cursor: pointer;
+}
+
+.kiriof-buyer-map__locate svg {
+	display: block;
+	flex-shrink: 0;
+}
+
+.kiriof-buyer-map__pin-status {
+	position: absolute;
+	top: 12px;
+	left: 54px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	box-sizing: border-box;
+	max-width: calc(100% - 122px);
+	min-height: 32px;
+	padding: 6px 8px;
+	background: #fff;
+	color: #555;
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgb(0 0 0 / 35%);
+	font-size: 13px;
+	line-height: 1.4;
+	pointer-events: none;
+}
+
+.kiriof-buyer-map__pin-status.is-complete {
+	color: #246b35;
+}
+
+.kiriof-buyer-map__pin-status svg {
+	flex-shrink: 0;
 }
 
 .kiriof-buyer-map__locate:focus-visible,

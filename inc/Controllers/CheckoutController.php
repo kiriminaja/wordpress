@@ -1926,8 +1926,28 @@ class CheckoutController
     }
 
     private function kiriof_configure_classic_address_fields( $fields, $fields_selected ) {
-        // Classic native fields belong to WooCommerce/the theme. The plugin adds
-        // only its existing district control and the opt-in Instant pin input.
+        // Retain native country validation and theme metadata; adjust only row
+        // placement so WooCommerce renders adjacent address/contact pairs.
+        $layout = array(
+            'city'     => array( 'form-row-first', 70 ),
+            'state'    => array( 'form-row-last', 71 ),
+            'postcode' => array( 'form-row-first', 90 ),
+            'phone'    => array( 'form-row-last', 91 ),
+        );
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            foreach ( $layout as $name => $placement ) {
+                $key = $group . '_' . $name;
+                if ( ! isset( $fields[ $group ][ $key ] ) ) {
+                    continue;
+                }
+                $classes = isset( $fields[ $group ][ $key ]['class'] ) ? (array) $fields[ $group ][ $key ]['class'] : array();
+                $classes = array_diff( $classes, array( 'form-row-wide', 'form-row-first', 'form-row-last' ) );
+                $classes[] = $placement[0];
+                $fields[ $group ][ $key ]['class']    = array_values( $classes );
+                $fields[ $group ][ $key ]['priority'] = $placement[1];
+                $fields[ $group ][ $key ]['clear']    = false;
+            }
+        }
         return $fields;
     }
     private function kiriof_add_field_subdistrict( $fields ){

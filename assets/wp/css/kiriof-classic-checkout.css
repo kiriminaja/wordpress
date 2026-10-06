@@ -1,7 +1,38 @@
 .kiriof-classic-pin { clear: both; width: 100%; margin: 1rem 0; padding: 0; border: 0; background: transparent; }
-.kiriof-classic-pin h3 { margin: 0 0 0.75rem; }
+.kiriof-classic-pin > label { display: block; margin-bottom: 0.5rem; }
 .kiriof-classic-pin p { margin: 0.75rem 0; }
 .kiriof-classic-pin [hidden], .kiriof-classic-pin[hidden] { display: none !important; }
 .kiriof-classic-pin .kiriof-classic-map-viewport { position: relative; }
 .kiriof-classic-pin .kiriof-classic-map { height: 320px; width: 100%; position: relative; z-index: 0; }
-.kiriof-classic-pin .kiriof-classic-map-locate { position: absolute; right: 0.75rem; top: 0.75rem; z-index: 1; width: auto !important; margin: 0 !important; }
+.kiriof-classic-pin .kiriof-classic-map-locate { position: absolute; right: 0.75rem; top: 0.75rem; z-index: 1; display: inline-flex !important; align-items: center; justify-content: center; width: 44px !important; height: 44px; min-height: 44px; padding: 0 !important; margin: 0 !important; }
+.kiriof-classic-pin-state { position: absolute; left: 0.75rem; bottom: 0.75rem; z-index: 1; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.5rem; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; color: #3c434a; font-size: 13px; box-shadow: 0 1px 4px #0002; }
+.kiriof-classic-pin-state.is-complete { color: #166534; border-color: #86b99a; }
+.woocommerce form.checkout .form-row-first { box-sizing: border-box; }
+.woocommerce form.checkout #billing_city_field, .woocommerce form.checkout #shipping_city_field,
+.woocommerce form.checkout #billing_postcode_field, .woocommerce form.checkout #shipping_postcode_field { width: calc(50% - 0.5rem); float: left; clear: both; }
+.woocommerce form.checkout #billing_state_field, .woocommerce form.checkout #shipping_state_field,
+.woocommerce form.checkout #billing_phone_field, .woocommerce form.checkout #shipping_phone_field { width: calc(50% - 0.5rem); float: right; clear: none; }
+.kiriof-classic-contact { display: flow-root; margin-bottom: 1.5rem; }
+.kiriof-classic-contact #billing_email_field { width: 100%; float: none; }
+.woocommerce form.checkout #kiriof_destination_area_field,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field { position: relative; clear: both; width: 100%; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-container,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-container { width: 100% !important; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection--single,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection--single { display: flex; align-items: center; min-height: 42px; height: auto; position: relative; padding: 8px 42px 8px 12px; box-sizing: border-box; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection__rendered,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection__rendered { line-height: 1.5; padding: 0; width: 100%; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection__arrow,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection__arrow { top: 50%; transform: translateY(-50%); right: 6px; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection__clear,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection__clear { position: absolute; right: 27px; top: 50%; transform: translateY(-50%); }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-dropdown,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-dropdown { z-index: 1000; box-sizing: border-box; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-search__field,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-search__field { box-sizing: border-box; width: 100%; margin: 0; }
+@media (max-width: 480px) {
+ .woocommerce form.checkout #billing_city_field, .woocommerce form.checkout #shipping_city_field,
+ .woocommerce form.checkout #billing_postcode_field, .woocommerce form.checkout #shipping_postcode_field,
+ .woocommerce form.checkout #billing_state_field, .woocommerce form.checkout #shipping_state_field,
+ .woocommerce form.checkout #billing_phone_field, .woocommerce form.checkout #shipping_phone_field { width: 100%; float: none; clear: both; }
+}

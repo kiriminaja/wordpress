@@ -269,6 +269,7 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
 ## Testing
 
 - Test runner: ParaTest
+- ParaTest is the only supported PHP test entry point (`make test` or `composer test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
 - Test files: `tests/` directory
 - Run: `vendor/bin/paratest --configuration paratest.xml` or `make test`
 - Tests cover: access control (`AccessControlTest`), cancel transaction flow (`CancelTransactionFeatureTest`), i18n (`I18nValidationTest`), plugin structure (`PluginStructureTest`), prefix validation (`PrefixValidationTest`), security validation (`SecurityValidationTest`), syntax validation (`SyntaxValidationTest`).

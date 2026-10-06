@@ -186,6 +186,7 @@
 	// Resolve the optional hook once so later bridge availability cannot change hook order.
 	var usePresentation = root.kiriofAddressPresentation && root.kiriofAddressPresentation.usePresentation;
 	var strings = config.i18n || {};
+	var buyerStrings = ( root.kiriofBuyerCheckoutConfig || integration ).i18n || {};
 	function addressSnapshot( address ) {
 		var snapshot = {};
 		[ 'address_1', 'address_2', 'city', 'state', 'postcode', 'country' ].forEach( function( field ) { snapshot[ field ] = String( address[ field ] || '' ).trim(); } );
@@ -264,21 +265,28 @@
 			return function() { mapSession.dispose(); if ( session.current === mapSession ) { session.current = null; } };
 		}, [ addressKey, visible, grant, coverageKey ] );
 		if ( ! visible ) { return null; }
-		var status = error || ( ! granted ? strings.mapLocating : ( moving ? strings.mapMoving : ( selected ? strings.mapPlaced : '' ) ) );
+		var status = error || ( ! granted ? strings.mapLocating : ( moving ? strings.mapMoving : '' ) );
 		var outside = coverageResult && coverageResult.key === coverageKey ? coverageResult.status : coverageStatus( coverage, root.kiriofBuyerCheckout && root.kiriofBuyerCheckout.getCoordinates( address ) );
 		return h( 'section', { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
 			h( 'h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle ),
 			h( 'p', null, strings.mapOptional ),
 			hasCoverage ? h( 'p', { className: 'kiriof-buyer-map__coverage', role: 'note' }, strings.mapCoverage ) : null,
-			granted ? h( 'p', { className: 'kiriof-buyer-map__device-notice', role: 'note' }, strings.mapDeviceNotice ) : null,
 			granted ? h( 'div', { className: 'kiriof-buyer-map__viewport' + ( moving ? ' is-moving' : '' ) },
 				h( 'div', { className: 'kiriof-buyer-map__canvas', ref: node, 'aria-label': strings.mapHelp, 'aria-description': strings.mapKeyboard } ),
+				h( 'div', { className: 'kiriof-buyer-map__pin-status ' + ( selected ? 'is-complete' : 'is-warning' ), role: 'status', 'aria-live': 'polite' },
+					h( 'svg', { viewBox: '0 0 24 24', width: 18, height: 18, fill: 'none', stroke: 'currentColor', strokeWidth: 2, 'aria-hidden': 'true', focusable: 'false' },
+						h( 'path', { d: selected ? 'm5 12 4 4 10-10' : 'M5 5h14v14H5Z' } ) ),
+					selected ? ( strings.pinLocation || buyerStrings.pinLocation ) : ( strings.needPinLocation || buyerStrings.needPinLocation ) ),
 				h( 'div', { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
 					h( 'svg', { viewBox: '0 0 32 44', width: 32, height: 44, focusable: 'false' },
 						h( 'path', { d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z', fill: 'currentColor', stroke: '#fff', strokeWidth: 2 } ),
 						h( 'circle', { cx: 16, cy: 16, r: 5, fill: '#fff' } ) ) ),
-				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', onClick: function() { if ( session.current ) { session.current.locate(); } } }, strings.mapLocate ) ) : null,
-			status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, status ) : null,
+				h( 'button', { type: 'button', className: 'kiriof-buyer-map__locate', 'aria-label': strings.mapLocate, title: strings.mapLocate, onClick: function() { if ( session.current ) { session.current.locate(); } } },
+					h( 'svg', { viewBox: '0 0 24 24', width: 22, height: 22, fill: 'none', stroke: 'currentColor', strokeWidth: 2, 'aria-hidden': 'true', focusable: 'false' },
+						h( 'circle', { cx: 12, cy: 12, r: 7 } ),
+						h( 'circle', { cx: 12, cy: 12, r: 2 } ),
+						h( 'path', { d: 'M12 2v3 M12 19v3 M2 12h3 M19 12h3' } ) ) ) ) : null,
+			status ? h( 'p', { className: 'kiriof-buyer-map__status', role: 'status', 'aria-live': 'polite' }, status ) : null,
 			outside && ! outside.inside ? h( 'p', { className: 'kiriof-buyer-map__coverage-warning', role: 'note', 'aria-live': 'polite' }, strings.mapOutsideRadius ) : null );
 
 	}
