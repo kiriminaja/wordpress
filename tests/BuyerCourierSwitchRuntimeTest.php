@@ -26,6 +26,7 @@ final class BuyerCourierSwitchRuntimeTest extends TestCase {
 		$this->assertSame( array( null, null, null, null, null ), $result['invalid_cache_results'] );
 		$this->assertSame( array( '12345' ), $result['lookup_calls'] );
 		$this->assertSame( array( array(
+			'origin_postcode' => '', 'destination_postcode' => '12345',
 			'subdistrict_origin' => 123, 'subdistrict_destination' => '456',
 			'weight' => 1000, 'length' => 10, 'width' => 10, 'height' => 10,
 			'insurance' => (int) $insured, 'item_value' => 20000, 'courier' => array( 'ninja', 'tiki', 'jne' ),

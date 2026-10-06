@@ -275,7 +275,7 @@ async function checkout(
         await route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify(
-            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : { success: true },
+            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : { success: true, data: { pin_saved: true } },
           ),
         });
         return;

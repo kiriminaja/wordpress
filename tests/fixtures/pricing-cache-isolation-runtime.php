@@ -37,7 +37,7 @@ function pricing(): stdClass {
 		(object) array( 'service' => 'ninja', 'service_type' => 'Standard', 'type' => 'express', 'cost' => 10000 ),
 	) );
 }
-$payload = array( 'subdistrict_origin' => 123, 'subdistrict_destination' => 456, 'weight' => 1000, 'length' => 10, 'width' => 20, 'height' => 30, 'insurance' => 1, 'item_value' => 20000, 'pickup_option' => array( 'PICKUP' ), 'courier' => array( 'jne', 'ninja' ) );
+$payload = array( 'origin_postcode' => '61475', 'destination_postcode' => '55581', 'subdistrict_origin' => 123, 'subdistrict_destination' => 456, 'weight' => 1000, 'length' => 10, 'width' => 20, 'height' => 30, 'insurance' => 1, 'item_value' => 20000, 'pickup_option' => array( 'PICKUP' ), 'courier' => array( 'jne', 'ninja' ) );
 $input = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );
 $result = array();
 switch ( $input['scenario'] ) {
@@ -78,9 +78,9 @@ switch ( $input['scenario'] ) {
 		break;
 	case 'identity':
 		PricingCacheService::put( $payload, pricing() );
-		foreach ( array( 'subdistrict_origin', 'subdistrict_destination', 'weight', 'length', 'width', 'height', 'insurance', 'item_value', 'pickup_option' ) as $field ) {
+		foreach ( array( 'origin_postcode', 'destination_postcode', 'subdistrict_origin', 'subdistrict_destination', 'weight', 'length', 'width', 'height', 'insurance', 'item_value', 'pickup_option' ) as $field ) {
 			$changed = $payload;
-			$changed[ $field ] = 'pickup_option' === $field ? array( 'DROP' ) : $payload[ $field ] + 1;
+			$changed[ $field ] = 'pickup_option' === $field ? array( 'DROP' ) : ( is_string( $payload[ $field ] ) ? (string) ( (int) $payload[ $field ] + 1 ) : $payload[ $field ] + 1 );
 			$result['changed_hits'][] = null !== PricingCacheService::get( $changed );
 		}
 		$normalized = $payload;

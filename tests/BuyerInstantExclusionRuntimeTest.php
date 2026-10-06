@@ -105,7 +105,7 @@ final class BuyerInstantExclusionRuntimeTest extends TestCase {
 			$this->assertSame( 123, $payload['subdistrict_origin'] );
 			$this->assertSame( (int) $flags, $payload['insurance'] );
 			$this->assertContains( 'jne', $payload['courier'] );
-			$this->assertSame( array( 'subdistrict_origin', 'subdistrict_destination', 'weight', 'length', 'width', 'height', 'insurance', 'item_value', 'courier' ), array_keys( $payload ) );
+			$this->assertSame( array( 'origin_postcode', 'destination_postcode', 'subdistrict_origin', 'subdistrict_destination', 'weight', 'length', 'width', 'height', 'insurance', 'item_value', 'courier' ), array_keys( $payload ) );
 		}
 		// Cached raw rows remain mixed; filtering must run on a real cache hit too.
 		$this->assertNotEmpty( $session['kiriof_shipping_price_cache'] );

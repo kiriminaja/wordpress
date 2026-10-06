@@ -159,6 +159,8 @@ class PricingCacheService {
                 array(
                     'subdistrict_origin'      => (int) ( $payload['subdistrict_origin'] ?? 0 ),
                     'subdistrict_destination' => (int) ( $payload['subdistrict_destination'] ?? 0 ),
+                    'origin_postcode'          => (string) ( $payload['origin_postcode'] ?? '' ),
+                    'destination_postcode'     => (string) ( $payload['destination_postcode'] ?? '' ),
                     'weight'                  => (float) ( $payload['weight'] ?? 0 ),
                     'length'                  => (float) ( $payload['length'] ?? 0 ),
                     'width'                   => (float) ( $payload['width'] ?? 0 ),

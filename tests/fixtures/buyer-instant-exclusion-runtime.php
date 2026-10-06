@@ -175,7 +175,7 @@ namespace {
 		$history[$name] = array( 'destination' => WC()->session->get( 'kiriof_buyer_destination' ), 'coordinates' => WC()->session->get( 'kiriof_buyer_destination_coordinates' ) );
 		if ( $input['stage'] === $name ) { break; }
 	}
-	$payload = array( 'subdistrict_origin' => 123, 'subdistrict_destination' => '456', 'weight' => 1000, 'length' => 10, 'width' => 10, 'height' => 10, 'insurance' => (int) $input['flags'], 'item_value' => 20000, 'courier' => $repo->getWhitelistExpeditionIds() );
+	$payload = array( 'origin_postcode' => '', 'destination_postcode' => $address['postcode'], 'subdistrict_origin' => 123, 'subdistrict_destination' => '456', 'weight' => 1000, 'length' => 10, 'width' => 10, 'height' => 10, 'insurance' => (int) $input['flags'], 'item_value' => 20000, 'courier' => $repo->getWhitelistExpeditionIds() );
 	if ( $input['cached'] ) {
 		\KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, buyer_instant_mixed_pricing() );
 	}

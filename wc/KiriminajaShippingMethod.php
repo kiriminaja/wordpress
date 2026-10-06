@@ -168,8 +168,8 @@ function kiriof_shipping_method(){
                 $settingRepository = kiriof_setting_repository();
                 $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
                 $locationOrigin = isset($package['origin']) && is_array($package['origin']) ? $package['origin'] : array();
-                $originSubdistrictId = !empty($locationOrigin['origin_sub_district_id'])
-                    ? (int) $locationOrigin['origin_sub_district_id']
+                $originSubdistrictId = array_key_exists( 'origin', $package )
+                    ? (int) ( $locationOrigin['origin_sub_district_id'] ?? 0 )
                     : (int) ($settingRepo ? $settingRepo->value : 0);
                 if(!$originSubdistrictId){
                     wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
@@ -183,6 +183,8 @@ function kiriof_shipping_method(){
                 ])->call();
 
                 $payload = [
+                    'origin_postcode' => (string) ( array_key_exists( 'origin', $package ) ? ( $locationOrigin['origin_zip_code'] ?? '' ) : ( $settingRepository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ),
+                    'destination_postcode' => (string) ( $package['destination']['postcode'] ?? '' ),
                     'subdistrict_origin' => $originSubdistrictId,
                     'subdistrict_destination'=>$destination_id,
                     'weight' => $cartAttributes->data['weight'],

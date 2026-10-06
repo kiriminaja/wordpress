@@ -38,7 +38,7 @@ final class PricingCacheIsolationRuntimeTest extends TestCase {
 
 	public function test_all_api_pricing_inputs_participate_in_cache_identity(): void {
 		$result = $this->run_fixture( array( 'scenario' => 'identity' ) );
-		$this->assertSame( array_fill( 0, 9, false ), $result['changed_hits'] );
+		$this->assertSame( array_fill( 0, 11, false ), $result['changed_hits'] );
 		$this->assertTrue( $result['normalized_hit'] );
 		$this->assertTrue( $result['pin_hit'] );
 	}

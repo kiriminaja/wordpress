@@ -4,7 +4,7 @@ namespace KiriminAjaOfficial\Base {
 }
 namespace KiriminAjaOfficial\Repositories {
     class SettingRepository {
-        public function getSettingByKey( $key ) { return (object) array( 'value' => 'enable_insurance' === $key ? $GLOBALS['input']['global_insurance'] : 123 ); }
+        public function getSettingByKey( $key ) { return (object) array( 'value' => 'enable_insurance' === $key ? $GLOBALS['input']['global_insurance'] : ( 'origin_zip_code' === $key ? '' : 123 ) ); }
         public function hasEnabledCourierServices() { return true; }
         public function isCourierServiceEnabled( $courier, $service ) { return 'jne' === strtolower( $courier ) && 'REG' === strtoupper( $service ) && empty( $GLOBALS['input']['disabled'] ); }
         public function validateWhiteListExpedition( $rows ) { return array_values( array_filter( $rows, function( $row ) { return $this->isCourierServiceEnabled( $row->service, $row->service_type ); } ) ); }

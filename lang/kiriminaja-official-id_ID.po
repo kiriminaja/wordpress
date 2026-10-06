@@ -5732,3 +5732,55 @@ msgstr "Desa / Kelurahan KiriminAja"
 #: blocks/checkout-district/edit.js blocks/checkout-district/block.json
 msgid "Searchable shipping destination subdistrict."
 msgstr "Desa / Kelurahan tujuan pengiriman yang dapat dicari."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Instant delivery is not enabled."
+msgstr "Pengiriman Instant tidak diaktifkan."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin destination is invalid. Please select it again."
+msgstr "Tujuan pin pengiriman tidak valid. Silakan pilih kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin address scope is invalid."
+msgstr "Jenis alamat pin pengiriman tidak valid."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin country or postcode does not match the checkout address. Please select the pin again."
+msgstr "Negara atau kode pos pin pengiriman tidak sesuai dengan alamat checkout. Silakan pilih pin kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin coordinates or address snapshot are invalid. Please select the pin again."
+msgstr "Koordinat atau data alamat pin pengiriman tidak valid. Silakan pilih pin kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The selected subdistrict has changed. Please select the delivery pin again."
+msgstr "Desa / Kelurahan yang dipilih telah berubah. Silakan pilih pin pengiriman kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Could not verify the delivery pin subdistrict. Please try again."
+msgstr "Desa / Kelurahan pin pengiriman tidak dapat diverifikasi. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The selected subdistrict does not belong to the delivery pin postcode. Please select the subdistrict again."
+msgstr "Desa / Kelurahan yang dipilih tidak sesuai dengan kode pos pin pengiriman. Silakan pilih Desa / Kelurahan kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The selected subdistrict changed while verifying the delivery pin. Please try again."
+msgstr "Desa / Kelurahan yang dipilih berubah saat pin pengiriman diverifikasi. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The checkout session is not available for a delivery pin. Please refresh checkout."
+msgstr "Sesi checkout tidak tersedia untuk pin pengiriman. Silakan muat ulang checkout."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin address has changed. Please select the pin again."
+msgstr "Alamat pin pengiriman telah berubah. Silakan pilih pin kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Could not save the delivery pin. Please retry."
+msgstr "Pin pengiriman tidak dapat disimpan. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Saving delivery pin…"
+msgstr "Menyimpan pin pengiriman…"

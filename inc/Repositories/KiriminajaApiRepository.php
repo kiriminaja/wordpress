@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 use KiriminAja\Services\KiriminAja;
 use KiriminAjaOfficial\Base\KiriminAjaApi;
 use KiriminAjaOfficial\Infrastructure\AddressApiTransport;
+use KiriminAjaOfficial\Services\AddressHierarchyResolver;
 
 const DEFAULT_PICKUP_OPTION = array( 'PICKUP' );
 
@@ -108,6 +109,7 @@ class KiriminajaApiRepository extends KiriminAjaApi {
         if ( null !== $postcode ) {
             $rows = array_filter( $rows, static fn( $row ) => $postcode === $row['zip_code'] );
         }
+        AddressHierarchyResolver::remember( $rows );
         return array( 'status' => true, 'data' => (object) array( 'status' => true, 'result' => array_map( static fn( $row ) => (object) $row, array_values( $rows ) ) ) );
     }
 
@@ -223,9 +225,19 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function getPricing( $payload ) {
+        $origin = AddressHierarchyResolver::resolve( $payload['subdistrict_origin'] ?? null, $payload['origin_postcode'] ?? '', array( $this, 'sub_district_search' ) );
+        if ( null === $origin ) {
+            return array( 'status' => false, 'data' => 'Could not resolve shipping address hierarchy.' );
+        }
+        $destination = AddressHierarchyResolver::resolve( $payload['subdistrict_destination'] ?? null, $payload['destination_postcode'] ?? '', array( $this, 'sub_district_search' ) );
+        if ( null === $destination ) {
+            return array( 'status' => false, 'data' => 'Could not resolve shipping address hierarchy.' );
+        }
         return $this->post(
             '/api/mitra/v6.1/shipping_price',
             array(
+                'origin'                  => $origin['district_id'],
+                'destination'             => $destination['district_id'],
                 'subdistrict_origin'      => (int) $payload['subdistrict_origin'],
                 'subdistrict_destination' => (int) $payload['subdistrict_destination'],
                 'weight'                  => (int) $payload['weight'],

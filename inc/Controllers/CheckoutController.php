@@ -2474,6 +2474,29 @@ class CheckoutController
         }
     }
 
+    /** Fixed, private diagnostics: never expose buyer input or upstream exception text. */
+    private function kiriof_classic_pin_error_details( int $reason ): array {
+        $errors = array(
+            1 => array( 'kiriof_pin_instant_disabled', __( 'Instant delivery is not enabled.', 'kiriminaja-official' ), 409 ),
+            2 => array( 'kiriof_pin_invalid_destination', __( 'The delivery pin destination is invalid. Please select it again.', 'kiriminaja-official' ), 422 ),
+            3 => array( 'kiriof_pin_invalid_scope', __( 'The delivery pin address scope is invalid.', 'kiriminaja-official' ), 422 ),
+            4 => array( 'kiriof_pin_address_mismatch', __( 'The delivery pin country or postcode does not match the checkout address. Please select the pin again.', 'kiriminaja-official' ), 409 ),
+            5 => array( 'kiriof_pin_invalid_coordinates', __( 'The delivery pin coordinates or address snapshot are invalid. Please select the pin again.', 'kiriminaja-official' ), 422 ),
+            6 => array( 'kiriof_pin_district_mismatch', __( 'The selected subdistrict has changed. Please select the delivery pin again.', 'kiriminaja-official' ), 409 ),
+            7 => array( 'kiriof_pin_lookup_unavailable', __( 'Could not verify the delivery pin subdistrict. Please try again.', 'kiriminaja-official' ), 503 ),
+            8 => array( 'kiriof_pin_district_not_mapped', __( 'The selected subdistrict does not belong to the delivery pin postcode. Please select the subdistrict again.', 'kiriminaja-official' ), 422 ),
+            9 => array( 'kiriof_pin_district_changed', __( 'The selected subdistrict changed while verifying the delivery pin. Please try again.', 'kiriminaja-official' ), 409 ),
+            10 => array( 'kiriof_pin_checkout_unavailable', __( 'The checkout session is not available for a delivery pin. Please refresh checkout.', 'kiriminaja-official' ), 409 ),
+            11 => array( 'kiriof_pin_snapshot_mismatch', __( 'The delivery pin address has changed. Please select the pin again.', 'kiriminaja-official' ), 409 ),
+        );
+        return $errors[$reason] ?? $errors[7];
+    }
+
+    private function kiriof_classic_pin_error( int $reason ): void {
+        $details = $this->kiriof_classic_pin_error_details( $reason );
+        throw new \InvalidArgumentException( $details[1], $reason );
+    }
+
     /** Classic pin updates never own the production district or fee state. */
     private function kiriof_sync_classic_pin( array $data ): void {
         $quotes = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService(
@@ -2481,30 +2504,63 @@ class CheckoutController
             new \KiriminAjaOfficial\Services\ShipmentLocationService()
         );
         if ( empty( $quotes->enabledInstant() ) ) {
-            throw new \InvalidArgumentException( 'Instant delivery is not enabled.' );
+            $this->kiriof_classic_pin_error( 1 );
         }
         if ( ! $this->kiriof_cart_needs_shipping() || ! WC()->session ) {
-            $this->kiriof_destination_error();
+            $this->kiriof_classic_pin_error( 10 );
         }
         $scope = $data['address_scope'] ?? $data['scope'] ?? null;
         if ( ! in_array( $scope, array( 'billing', 'shipping' ), true ) ) {
-            $this->kiriof_destination_error();
+            $this->kiriof_classic_pin_error( 3 );
         }
-        $destination = $this->kiriof_normalize_buyer_destination( $data['destination'] ?? null );
-        $address = BuyerDestination::address( $data['effective_address'] ?? null );
+        $value = $data['destination'] ?? null;
+        // Validate identity separately so coordinate/schema failures have their own reason.
+        $identity = $value;
+        if ( is_array( $identity ) && in_array( $identity['version'] ?? null, array( 1, 2 ), true ) ) {
+            $identity['version'] = 1;
+            unset( $identity['destination_latitude'], $identity['destination_longitude'], $identity['shipping_address'] );
+        }
+        try {
+            BuyerDestination::normalize( $identity );
+            $address = BuyerDestination::address( $data['effective_address'] ?? null );
+        } catch ( \InvalidArgumentException $error ) {
+            $this->kiriof_classic_pin_error( 2 );
+        }
+        try {
+            $destination = BuyerDestination::normalize( $value );
+        } catch ( \InvalidArgumentException $error ) {
+            $this->kiriof_classic_pin_error( 5 );
+        }
         if ( $address['postcode'] !== $destination['postcode'] || $address['country'] !== $destination['country']
-            || ( 2 === $destination['version'] && $address !== $destination['shipping_address'] ) ) {
-            $this->kiriof_destination_error();
+            || ( '' !== $destination['district_id'] && 'ID' !== $destination['country'] ) ) {
+            $this->kiriof_classic_pin_error( 4 );
+        }
+        if ( 2 === $destination['version'] && $address !== $destination['shipping_address'] ) {
+            $this->kiriof_classic_pin_error( 11 );
         }
         $key = 'shipping' === $scope ? 'shipping_destination_id' : 'destination_id';
         if ( '' !== $destination['district_id'] && $destination['district_id'] !== (string) WC()->session->get( $key, '' ) ) {
-            $this->kiriof_destination_error();
+            $this->kiriof_classic_pin_error( 6 );
         }
         if ( '' !== $destination['district_id'] ) {
-            $destination = $this->kiriof_resolve_buyer_destination( $destination );
+            try {
+                $destination = $this->kiriof_resolve_buyer_destination( $destination );
+            } catch ( \Throwable $error ) {
+                $rows = $this->kiriof_district_lookup_cache[$destination['postcode']] ?? null;
+                if ( null === $rows ) {
+                    $this->kiriof_classic_pin_error( 7 );
+                }
+                foreach ( $rows as $row ) {
+                    if ( $destination['district_id'] === (string) ( ( (object) $row )->id ?? '' ) ) {
+                        // A malformed authoritative result is unavailable, not buyer error.
+                        $this->kiriof_classic_pin_error( 7 );
+                    }
+                }
+                $this->kiriof_classic_pin_error( 8 );
+            }
             // Recheck after the lookup: a delayed pin must not adopt a new district.
             if ( $destination['district_id'] !== (string) WC()->session->get( $key, '' ) ) {
-                $this->kiriof_destination_error();
+                $this->kiriof_classic_pin_error( 9 );
             }
         }
         WC()->session->set( 'kiriof_buyer_destination', '' === $destination['district_id'] ? null : $destination );
@@ -2792,7 +2848,13 @@ class CheckoutController
             }
 
             if ( isset( $data['action'] ) && 'sync_classic_pin' === $data['action'] ) {
-                $this->kiriof_sync_classic_pin( $data );
+                try {
+                    $this->kiriof_sync_classic_pin( $data );
+                } catch ( \Throwable $error ) {
+                    $details = $this->kiriof_classic_pin_error_details( $error instanceof \InvalidArgumentException ? $error->getCode() : 7 );
+                    wp_send_json_error( array( 'code' => $details[0], 'msg' => esc_html( $details[1] ), 'message' => esc_html( $details[1] ) ), $details[2] );
+                    return;
+                }
                 wp_send_json_success( array( 'pin_saved' => true ) );
                 wp_die();
             }

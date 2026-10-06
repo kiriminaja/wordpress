@@ -75,7 +75,7 @@ function adapter(options: any = {}) {
 	const query = (selector: string): any => document.querySelector(selector);
 	const hidden = () => JSON.parse(query('[name="kiriof_buyer_destination_snapshot"]').value);
 	const change = (id: string, value: any, kind = 'change') => { const input = query(`#${id}`); if (typeof value === 'boolean') input.checked = value; else input.value = value; emit(form, kind, input); };
-	const respond = async (request: any, data: any = null, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); };
+	const respond = async (request: any, data: any = { pin_saved: true }, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); };
 	const mutations = () => requests.filter(r => r.body.get('action') === 'kiriof-session-save');
 	const payload = (request: any) => JSON.parse(request.body.get('data'));
 	const lookups = () => requests.filter(r => r.body.get('action') === 'kiriminaja_subdistrict_search');
@@ -131,6 +131,20 @@ describe('Classic core with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+	test('pin postcode rejection explains validation instead of lookup failure and regular pricing remains independent', async()=>{
+		const h=adapter({savedDestination:saved(),pinErrors:{kiriof_pin_district_not_mapped:'Selected subdistrict does not match your postcode.'}});await h.advance();
+		await h.respond(h.mutations()[0],{code:'kiriof_pin_district_not_mapped',message:'private remote details'},false);
+		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Selected subdistrict does not match your postcode.');
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
+		expect(h.emit(h.form,'checkout_place_order')).not.toBe(false);
+		h.query('input.shipping_method').checked=false;h.query('[value="kiriminaja-instant:gosend"]').checked=true;
+		expect(h.emit(h.form,'checkout_place_order')).toBe(false);
+	});
+	test('HTTP-200 success without explicit pin_saved cannot show a confirmed pin',async()=>{
+		const h=adapter({savedDestination:saved()});await h.advance();await h.respond(h.mutations()[0],{});
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
+		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toContain('Could not save the delivery pin');
+	});
 	test('pin remains directly below active district after theme sorting and repeated separate-address toggles', async () => {
 		const h=adapter({savedDestination:saved()});await h.acknowledge();
 		const panel=h.query('.kiriof-classic-pin');

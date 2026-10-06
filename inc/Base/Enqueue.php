@@ -347,6 +347,21 @@ class Enqueue extends BaseInit{
                 // Classic checkout does not require Store API registration support.
                 $config['enabled'] = $this->classic_instant_enabled();
                 $config['ownsDistrict'] = false;
+                $config['i18n']['pinSaveFailed'] = __( 'Could not save the delivery pin. Please retry.', 'kiriminaja-official' );
+                $config['i18n']['pinSaving'] = __( 'Saving delivery pin…', 'kiriminaja-official' );
+                $config['pinErrors'] = array(
+                    'kiriof_pin_instant_disabled' => __( 'Instant delivery is not enabled.', 'kiriminaja-official' ),
+                    'kiriof_pin_address_mismatch' => __( 'The delivery pin country or postcode does not match the checkout address. Please select the pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_snapshot_mismatch' => __( 'The delivery pin address has changed. Please select the pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_district_mismatch' => __( 'The selected subdistrict has changed. Please select the delivery pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_district_changed' => __( 'The selected subdistrict changed while verifying the delivery pin. Please try again.', 'kiriminaja-official' ),
+                    'kiriof_pin_district_not_mapped' => __( 'The selected subdistrict does not belong to the delivery pin postcode. Please select the subdistrict again.', 'kiriminaja-official' ),
+                    'kiriof_pin_lookup_unavailable' => __( 'Could not verify the delivery pin subdistrict. Please try again.', 'kiriminaja-official' ),
+                    'kiriof_pin_invalid_coordinates' => __( 'The delivery pin coordinates or address snapshot are invalid. Please select the pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_invalid_destination' => __( 'The delivery pin destination is invalid. Please select it again.', 'kiriminaja-official' ),
+                    'kiriof_pin_invalid_scope' => __( 'The delivery pin address scope is invalid.', 'kiriminaja-official' ),
+                    'kiriof_pin_checkout_unavailable' => __( 'The checkout session is not available for a delivery pin. Please refresh checkout.', 'kiriminaja-official' ),
+                );
                 $config['i18n']['contactInformation'] = __( 'Contact Information', 'kiriminaja-official' );
                 $config['needsShipping'] = function_exists( 'WC' ) && WC() && WC()->cart ? WC()->cart->needs_shipping() : true;
                 wp_localize_script( 'kiriof-classic-checkout', 'kiriofClassicCheckoutConfig', $config );

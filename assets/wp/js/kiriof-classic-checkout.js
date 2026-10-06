@@ -54,7 +54,16 @@
 			var data = { action: 'sync_classic_pin', address_scope: snapshot.address_scope, effective_address: snapshot.effective_address, destination: snapshot.destination };
 			// Server mutations are serialized, not aborted. This route never writes
 			// the existing district, payment, insurance or shipping-method selection.
-			return root.fetch( config.ajaxUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: new URLSearchParams( { action: 'kiriof-session-save', nonce: config.nonce, data: JSON.stringify(data) } ).toString() } ).then( function( response ) { if ( ! response.ok ) throw new Error(); return response.json(); } ).then( function( response ) { if ( ! response.success ) throw new Error(); if ( ! disposed ) $( root.document.body ).trigger( 'update_checkout' ); } );
+			return root.fetch( config.ajaxUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' }, body: new URLSearchParams( { action: 'kiriof-session-save', nonce: config.nonce, data: JSON.stringify(data) } ).toString() } ).then( function( response ) {
+				return response.json().then(function(payload){
+					if(!response.ok || !payload.success || !payload.data || payload.data.pin_saved !== true){
+						var code=payload.data && payload.data.code;
+						// Use only localized fixed messages, never arbitrary AJAX text.
+						throw new Error(config.pinErrors && config.pinErrors[code] || strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.');
+					}
+					if(!disposed)$(root.document.body).trigger('update_checkout');
+				});
+			});
 		}, onChange: render } );
 		function render( state ) {
 			if ( disposed ) return;
@@ -64,7 +73,7 @@
 			retry.hidden = ! state.queue.error;
 			var checked=Boolean(state.point && !state.queue.pending && !state.queue.inFlight && !state.queue.error);
 			badge.replaceChildren(icon(checked?'m5 12 4 4L19 6':'m7 7 10 10M17 7 7 17'),root.document.createTextNode(checked?(strings.pinLocation || 'Pin Location'):(strings.needPinLocation || 'Need Pin Location')));badge.classList.toggle('is-complete',checked);
-			status.textContent = state.queue.error ? strings.lookupFailed : state.queue.inFlight || state.queue.pending ? strings.checkingDistrict : '';
+			status.textContent = state.queue.error ? state.queue.error.message || strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.' : state.queue.inFlight || state.queue.pending ? strings.pinSaving || 'Saving delivery pin…' : '';
 			status.hidden=!status.textContent;
 			if ( panel.hidden ) { disposeMap(); mapKey = ''; return; }
 			var key = state.scope + JSON.stringify( state.address );

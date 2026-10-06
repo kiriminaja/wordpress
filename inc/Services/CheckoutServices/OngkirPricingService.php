@@ -18,6 +18,7 @@ class OngkirPricingService extends BaseService{
     private array $wc_cart_contents = [];
     private int $origin_sub_district_id = 0;
     private array $package_overrides = [];
+    private array $address_postcodes = [];
     private SettingRepository $setting_repository;
     private KiriminajaApiRepository $api_repository;
     private WpPostMetaRepository $post_meta_repository;
@@ -29,6 +30,7 @@ class OngkirPricingService extends BaseService{
     )
     {
         $this->is_cod               = @$payload['is_cod'];
+        $this->address_postcodes = array_intersect_key( $payload, array_flip( array( 'origin_postcode', 'destination_postcode' ) ) );
         $this->destination_area_id  = @$payload['destination_area_id'];
         $this->wc_cart_contents     = ! empty( $payload['wc_cart_contents'] ) && is_array( $payload['wc_cart_contents'] )
             ? $payload['wc_cart_contents']
@@ -70,6 +72,8 @@ class OngkirPricingService extends BaseService{
         }
         
         $pricingPayload = [
+            'origin_postcode' => (string) ( $this->address_postcodes['origin_postcode'] ?? ( $this->origin_sub_district_id > 0 ? '' : ( $settingRepository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ) ),
+            'destination_postcode' => (string) ( $this->address_postcodes['destination_postcode'] ?? ( function_exists( 'WC' ) && WC() && isset( WC()->customer ) ? WC()->customer->get_shipping_postcode() : '' ) ),
             'subdistrict_origin'        => $this->origin_sub_district_id > 0 ? $this->origin_sub_district_id : (int) $settingRepo->value,
             'subdistrict_destination'   => $this->destination_area_id,
             'weight'                    => $weight,
@@ -95,7 +99,7 @@ class OngkirPricingService extends BaseService{
             }
         }
         
-        if(!$kiriofPricing['data']->status){
+        if ( empty( $kiriofPricing['status'] ) || ! is_object( $kiriofPricing['data'] ?? null ) || empty( $kiriofPricing['data']->status ) ) {
             return self::error([],@$kiriofPricing['data'] ?? 'Terjadi Kesalahan!');
         }
         

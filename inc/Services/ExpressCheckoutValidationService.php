@@ -101,6 +101,7 @@ final class ExpressCheckoutValidationService {
         $origin = self::normalizeOriginSnapshot( $origin );
         $response = $this->factory->calculation( array(
             'destination_area_id' => $district,
+            'destination_postcode' => (string) ( $package['destination']['postcode'] ?? '' ),
             'expedition' => $expedition,
             'is_insurance' => $insurance,
             'is_cod' => 'cod' === $payment,

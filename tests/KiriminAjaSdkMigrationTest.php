@@ -39,6 +39,9 @@ final class KiriminAjaSdkMigrationTest extends TestCase
         $this->assertStringContainsString('AddressApiTransport', $repository);
         $this->assertStringContainsString('api/mitra/v6.1/addresses', $repository);
         $this->assertStringNotContainsString('api/mitra/v2/get_address_by_name', $repository);
+        $this->assertStringContainsString("'origin'                  => \$origin['district_id']", $repository);
+        $this->assertStringContainsString("'destination'             => \$destination['district_id']", $repository);
+        $this->assertStringContainsString('AddressHierarchyResolver::resolve', $repository);
         foreach (
             array(
                 'KiriminAja::setCallback',

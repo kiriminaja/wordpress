@@ -89,6 +89,8 @@ class CheckoutCalculationService extends BaseService{
         // Coupons waive buyer delivery only; always obtain real carrier fees.
         $courier = $this->expeditionParts[0];
         $pricingPayload = [
+            'origin_postcode' => (string) ( ! empty( $this->payload['blocks_quote_validation'] ) ? ( $this->payload['origin']['origin_zip_code'] ?? '' ) : ( $this->setting_repository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ),
+            'destination_postcode' => (string) ( $this->payload['destination_postcode'] ?? ( function_exists( 'WC' ) && WC() && isset( WC()->customer ) ? WC()->customer->get_shipping_postcode() : '' ) ),
             'subdistrict_origin'        => $originDistrict,
             'subdistrict_destination'   => $this->destination_area_id,
             'weight'                    => $cartAttributes->data['weight'],
