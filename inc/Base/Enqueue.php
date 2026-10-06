@@ -201,6 +201,8 @@ class Enqueue extends BaseInit{
             'savedDestination' => ( new \KiriminAjaOfficial\Services\CustomerShippingDestinationService() )->forCheckout( $session ),
             'district' => $district,
             'districtPostcode' => $customer ? (string) $customer->get_shipping_postcode() : '',
+            'billingCountry' => $customer && method_exists( $customer, 'get_billing_country' ) ? (string) $customer->get_billing_country() : '',
+            'shippingCountry' => $customer && method_exists( $customer, 'get_shipping_country' ) ? (string) $customer->get_shipping_country() : '',
             'i18n' => array(
                 'district' => __( 'District', 'kiriminaja-official' ),
                 'districtNotSet' => __( 'District Not Set', 'kiriminaja-official' ),

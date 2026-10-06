@@ -101,17 +101,17 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     public function classic_district_script_uses_edited_address_and_updates_label_before_calculation_guard(): void {
         $script = kiriof_legacy_checkout_source();
         $change = substr( $script, strpos( $script, 'function changeDistrict(){' ) );
-        $change = substr( $change, 0, strpos( $change, 'jQuery.ajax({' ) );
-        $this->assertStringContainsString( "let addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';", $change );
+        $change = substr( $change, 0, strpos( $change, 'function getSearchAreaKelurahan()' ) );
+        $this->assertStringContainsString( "var addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';", $change );
         $this->assertStringNotContainsString( "let addressType = different_address", $change );
-        $this->assertStringContainsString( 'let country = kiriofGetClassicAddressCountry(addressType);', $change );
-        $this->assertStringContainsString( "jQuery('#' + addressType + '_country').val()", $script );
-        $label = strpos( $change, 'kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);' );
-        $guard = strpos( $change, 'if (kiriofBillingAddressConfig.isCheckout && addressType !== destinationAddressType) {' );
+        $this->assertStringContainsString( 'var country = kiriofGetClassicAddressCountry(addressType);', $change );
+        $this->assertStringContainsString( "jQuery('#' + addressType + '_country')", $script );
+        $label = strpos( $change, 'kiriofSetClassicDistrictLabel(root, label, differentAddress);' );
+        $guard = strpos( $change, "if (kiriofBillingAddressConfig.isCheckout && addressType !== (differentAddress ? 'shipping' : 'billing')) {" );
         $this->assertNotFalse( $label );
         $this->assertNotFalse( $guard );
         $this->assertLessThan( $guard, $label, 'Inactive address edits must still update their district label.' );
-        $this->assertMatchesRegularExpression( '/addressType !== destinationAddressType\)\s*\{\s*return;/', $change );
+        $this->assertMatchesRegularExpression( "/addressType !== \\(differentAddress \\? 'shipping' : 'billing'\\)\\)\\s*\\{\\s*return;/", $change );
         $this->assertStringContainsString( "on('country_to_state_changing.kiriofClassicAddress updated_checkout.kiriofClassicAddress', kiriofSyncClassicAddressFields)", $script );
         $this->assertMatchesRegularExpression( '/function kiriofSyncClassicAddressFields\(\)\s*\{\s*if \(!kiriofBillingAddressConfig.isCheckout \|\| kiriofIsBlockCheckoutContext\(\)\)\s*\{\s*return;/', $script );
     }

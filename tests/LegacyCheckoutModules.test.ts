@@ -65,7 +65,8 @@ describe('separate legacy checkout browser modules', () => {
 		expect(settings).toHaveLength(1);
 		const options = settings[0];
 		expect(options.width).toBe('100%');
-		expect(options.dropdownParent).toBe(field);
+		expect(options.dropdownParent).toBe(fields);
+		expect(options.dropdownCssClass).toBe('kiriof-classic-district-dropdown');
 		expect(options.minimumInputLength).toBe(3);
 		for (const [params, term] of [[{ term: '  Gambir  ' }, 'Gambir'], [{ term: ' 10110 ' }, '10110'], [{ q: ' Jakarta ' }, 'Jakarta']] as const) {
 			expect(options.ajax.data(params)).toEqual({ action: 'kiriminaja_subdistrict_search', nonce: 'district-nonce', term, data: { search: term, term } });

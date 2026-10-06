@@ -287,9 +287,16 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             'The selected District label must be stored outside the transient SelectWoo result list'
         );
 
+        $sendStart = strpos($script, 'function kiriofSendClassicDistrictMutation(snapshot)');
         $changeStart = strpos($script, 'function changeDistrict()');
+        $this->assertNotFalse($sendStart, 'Classic District queue sender must exist');
         $this->assertNotFalse($changeStart, 'Classic District change handler must exist');
-        $changeBody = substr($script, $changeStart, 5200);
+        $searchStart = strpos($script, 'function getSearchAreaKelurahan()', $changeStart);
+        $this->assertNotFalse($searchStart, 'Classic District search initializer must delimit the controller');
+        $this->assertLessThan($changeStart, $sendStart, 'The queue sender precedes the input handler');
+        $controller = substr($script, $sendStart, $searchStart - $sendStart);
+        $sendBody = substr($script, $sendStart, $changeStart - $sendStart);
+        $changeBody = substr($script, $changeStart, $searchStart - $changeStart);
 
         $this->assertStringContainsString(
             "jQuery(kelurahanArea).off('change.kiriofClassicDistrict').on('change.kiriofClassicDistrict'",
@@ -298,21 +305,46 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'let selectedDistrictLabel = kiriofGetClassicDistrictLabel(root);',
+            'var label = kiriofGetClassicDistrictLabel(root);',
             $changeBody,
             'Classic District AJAX must send the cached selected label, not only option:selected text'
         );
 
         $this->assertStringContainsString(
-            "'text':selectedDistrictLabel",
+            'text: label',
             $changeBody,
             'The selected District label must be sent to the destination persistence endpoint'
         );
 
         $this->assertStringContainsString(
-            'kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);',
+            'kiriofSetClassicDistrictLabel(root, label, differentAddress);',
             $changeBody,
-            'The hidden District name field must be restored before and after the AJAX response'
+            'The hidden District name field must be updated at input intent, before queueing a mutation'
+        );
+
+        $this->assertSame(
+            1,
+            substr_count($controller, ".on('change.kiriofClassicDistrict'"),
+            'The controller must install only one namespaced District change handler'
+        );
+        $this->assertStringNotContainsString(
+            'kiriofSetClassicDistrictLabel(',
+            $sendBody,
+            'A stale AJAX completion must never overwrite the latest selected District label'
+        );
+        $this->assertStringContainsString('var snapshot = {', $changeBody);
+        $this->assertStringContainsString("val: String(root.val() || '')", $changeBody);
+        $this->assertStringContainsString('different_address: differentAddress', $changeBody);
+        $this->assertStringContainsString('country: country', $changeBody);
+        $this->assertStringContainsString('data: snapshot.data', $sendBody);
+        $this->assertStringContainsString('url: snapshot.url', $sendBody);
+        $this->assertStringNotContainsString('root.', $sendBody, 'The queued request must use captured input, not a stale DOM selection');
+        $this->assertStringContainsString('kiriofClassicDistrictMutation.pending = snapshot;', $changeBody);
+        $this->assertStringContainsString('kiriofSendClassicDistrictMutation(next);', $sendBody);
+        $this->assertLessThan(
+            strpos($changeBody, 'var snapshot = {'),
+            strpos($changeBody, 'kiriofSetClassicDistrictLabel(root, label, differentAddress);'),
+            'Persist the label immediately, before capturing and queueing the request'
         );
     }
 
@@ -320,9 +352,11 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     public function classic_destination_ajax_does_not_alert_system_trouble_for_parseable_200_response(): void
     {
         $script = self::billingAddressScriptContent();
-        $changeStart = strpos($script, 'function changeDistrict()');
-        $this->assertNotFalse($changeStart, 'Classic District change handler must exist');
-        $changeBody = substr($script, $changeStart, 6200);
+        $sendStart = strpos($script, 'function kiriofSendClassicDistrictMutation(snapshot)');
+        $this->assertNotFalse($sendStart, 'Classic District queue sender must exist');
+        $searchStart = strpos($script, 'function getSearchAreaKelurahan()', $sendStart);
+        $this->assertNotFalse($searchStart, 'Classic District search initializer must delimit the controller');
+        $changeBody = substr($script, $sendStart, $searchStart - $sendStart);
         $feeRefreshStart = strpos($script, 'function kiriofCodInsurance()');
         $this->assertNotFalse($feeRefreshStart, 'Classic fee refresh handler must exist');
         $feeRefreshBody = substr($script, $feeRefreshStart);
@@ -334,19 +368,19 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            'dataFilter: function(raw)',
+            'dataFilter: kiriofExtractJsonResponseText',
             $changeBody,
             'Destination persistence must filter raw responses before jQuery JSON parsing'
         );
 
         $this->assertStringContainsString(
-            'return kiriofExtractJsonResponseText(raw);',
+            "dataType: 'JSON'",
             $changeBody,
-            'Destination persistence must use the shared JSON extraction helper'
+            'Destination persistence must retain jQuery JSON parsing after extracting the raw JSON'
         );
 
         $this->assertStringContainsString(
-            "if (String(xhr.status) !== '200')",
+            "if (String(failure.status) !== '200')",
             $changeBody,
             'A parseable HTTP 200 response must not trigger the System Trouble 200 alert'
         );
@@ -3036,19 +3070,25 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            '.kiriof-shipping-methods-list--enhanced',
+            '.kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced',
             $styles,
-            'Classic cart and checkout collapse the fallback radio list when the dropdown is active'
+            'Classic cart and checkout collapse the fallback radio list only when the dropdown is ready'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/\.kiriof-shipping-methods-ready \.kiriof-shipping-methods-list--enhanced\s*,\s*'
+                . '\.kj-cart-total \.kiriof-shipping-methods-ready \.kiriof-shipping-methods-list--enhanced\s*\{\s*display: none !important;\s*\}/',
+            $styles,
+            'Only a ready enhanced dropdown may hide the native courier fallback'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?:^|[},])\s*(?:\.kj-cart-total\s+)?\.kiriof-shipping-methods-list--enhanced\s*[{,]/m',
+            $styles,
+            'Courier fallback must not be hidden before the dropdown is ready'
         );
 
         $this->assertStringContainsString(
-            'display: none !important;',
-            $styles,
-            'Enhanced radio fallback must be fully hidden so buyers do not see duplicate courier controls'
-        );
-
-        $this->assertStringContainsString(
-            '.kj-cart-total .kiriof-shipping-methods-list--enhanced',
+            '.kj-cart-total .kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced',
             $styles,
             'Cart totals hiding should work when themes omit the woocommerce-cart body class'
         );

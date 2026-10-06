@@ -209,8 +209,8 @@ tr.woocommerce-shipping-totals {
   min-height: 42px;
 }
 
-.kiriof-shipping-methods-list--enhanced,
-.kj-cart-total .kiriof-shipping-methods-list--enhanced {
+.kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced,
+.kj-cart-total .kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced {
   display: none !important;
 }
 

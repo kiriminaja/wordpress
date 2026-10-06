@@ -92,6 +92,7 @@ function kiriofInitClassicShippingMethodSelect() {
         }
 
         if ($select.data('select2') || $select.data('selectWoo')) {
+            if ($select.hasClass('kiriof-classic-shipping-method-select--enhanced')) { return; }
             select2.call($select, 'destroy');
         }
 
@@ -101,6 +102,7 @@ function kiriofInitClassicShippingMethodSelect() {
         });
 
         $select.addClass('kiriof-classic-shipping-method-select--enhanced');
+        $select.closest('td').addClass('kiriof-shipping-methods-ready');
     });
 }
 

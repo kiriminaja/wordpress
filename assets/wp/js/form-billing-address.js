@@ -57,6 +57,9 @@ jQuery(document).ready(function($) {
         // it again from updated_checkout creates an endless loading loop.
         jQuery(document.body).on( 'updated_checkout', function() {
             kiriofSyncClassicAddressFields();
+            // Themes may replace address controls along with checkout fragments.
+            // Initialization is idempotent and leaves existing open widgets alone.
+            getSearchAreaKelurahan();
             kiriofRestoreClassicDistrictSelections();
             kiriofChangeCodPayment();
             kiriofChangeDifferentAddress();

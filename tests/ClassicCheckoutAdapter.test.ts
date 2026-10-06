@@ -52,7 +52,7 @@ function adapter(options: any = {}) {
 	for (const scope of ['billing', 'shipping']) {
 		for (const key of ['first_name', 'last_name', 'company', ...Object.keys(binding)]) { const input = document.createElement('input'); input.id = `${scope}_${key}`; input.name = input.id; input.value = (binding as any)[key] || ''; form.querySelector(`.woocommerce-${scope}-fields__field-wrapper`).append(input); }
 		const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
-		const wrapper = document.createElement('div'); wrapper.id = `${id}_field`; wrapper.innerHTML = `<select id="${id}" name="${id}"><option value="123" selected>Gambir</option></select><input id="${id}_name" name="${id}_name" value="Gambir">`; form.append(wrapper);
+		const wrapper = document.createElement('div'); wrapper.className = 'form-row'; wrapper.id = `${id}_field`; wrapper.innerHTML = `<select id="${id}" name="${id}"><option value="123" selected>Gambir</option></select><input id="${id}_name" name="${id}_name" value="Gambir">`; form.querySelector(`.woocommerce-${scope}-fields__field-wrapper`).append(wrapper);
 	}
 	const handlers: any[] = [], events: string[] = [];
 	const emit = (node: any, event: string, target = node) => {

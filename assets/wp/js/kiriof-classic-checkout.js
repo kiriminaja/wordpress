@@ -17,14 +17,17 @@
 		var status = root.document.createElement( 'p' ); status.setAttribute( 'role', 'status' );
 		var retry = button( strings.retry || 'Retry' ); retry.hidden = true;
 		var badge = root.document.createElement( 'span' ); badge.className = 'kiriof-classic-pin-state'; badge.setAttribute('role','status');
+		var indicator=root.document.createElement('span');indicator.className='kiriof-classic-map-indicator';indicator.setAttribute('aria-hidden','true');
+		var marker=icon('M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Z');indicator.append(marker);
 		locate.textContent = ''; locate.setAttribute('aria-label',strings.mapLocate || 'Current location'); locate.title = strings.mapLocate || 'Current location'; locate.append(icon('M12 3v3m0 12v3M3 12h3m12 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8'));
-		viewport.append( canvas, locate, badge ); panel.append( title, viewport, status, retry );
+		viewport.append( canvas, indicator, locate, badge ); panel.append( title, viewport, status, retry );
 		var hidden = root.document.createElement( 'input' ); hidden.type = 'hidden'; hidden.name = 'kiriof_buyer_destination_snapshot'; form.append( hidden );
 		var busy = false, disposed = false, map, gate, mapKey = '', lastDistrict = '', timer, point = null;
 		function button( text ) { var node = root.document.createElement( 'button' ); node.type = 'button'; node.className = 'button'; node.textContent = text; return node; }
 		function field( id ) { return form.querySelector( '#' + id ); }
 		function icon(path) { var svg=root.document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('width','20');svg.setAttribute('height','20');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','2');svg.setAttribute('aria-hidden','true');var p=root.document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',path);svg.append(p);return svg; }
 		function position() {
+			form.querySelectorAll('.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields__field-wrapper').forEach(function(wrapper){wrapper.classList.add('kiriof-classic-address-layout');});
 			var input=field(scope()==='shipping'?'kiriof_shipping_destination_area':'kiriof_destination_area');
 			var row=input && (input.closest('.form-row') || field(input.id+'_field'));
 			if(row && (panel.parentNode!==row.parentNode || row.nextElementSibling!==panel)) row.insertAdjacentElement('afterend',panel);
@@ -96,7 +99,7 @@
 		// Woo/theme scripts sort native form rows and may replace address wrappers.
 		// Repair placement idempotently; do not rebuild the map or its selection.
 		var placementObserver = new root.MutationObserver(function(){if(!disposed){position();contact();}});
-		placementObserver.observe(form,{childList:true,subtree:true});
+		form.querySelectorAll('.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields__field-wrapper').forEach(function(wrapper){placementObserver.observe(wrapper,{childList:true});});
 		$(form).on('checkout_place_order.kiriofClassicPin',function(){changed(); var state=controller.getState(); var instant=form.querySelector('input.shipping_method:checked[value^="kiriminaja-instant:"]'); if(instant && (!state.point || state.queue.pending || state.queue.inFlight || state.queue.error)) {status.textContent=strings.pinRequirement;return false;} return true;});
 		locate.addEventListener('click',function(){if(map)map.locate();else {if(gate)gate.dispose();openMap(controller.getState());}});
 		retry.addEventListener('click',function(){controller.retry();});
