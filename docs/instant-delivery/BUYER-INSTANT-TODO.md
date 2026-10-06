@@ -4,6 +4,10 @@ Status: Buyer quote/order implementation and local regression coverage implement
 
 ## Classic pin-only extension and safe reactivation
 
+### Classic order-review visibility
+
+WC Booster hides `#order_review table.woocommerce-checkout-review-order-table`, which removes product rows, totals and shipping selection together. The plugin's review-order override now adds `kiriof-classic-order-review`; a scoped stylesheet rule restores only that table while retaining Woo's native AJAX fragment class. Front stylesheet modification time invalidates stale CSS independently of plugin version. Native empty-rate feedback remains visible; no rates or prices are fabricated. Actual production review/shipping templates are exercised through isolated PHP and Chromium fixtures with WC Booster's exact hiding rule loaded afterward, at desktop/mobile sizes, both with/without Select2. Pin-save/provider eligibility remains separate from table visibility. Public read-only inspection also confirmed an older deployed pin script still used generic lookup-error text; deploy the current complete ZIP before interpreting that old message.
+
 ### Subdistrict naming, unified search and local Choices
 
 Buyer labels in Classic/Blocks/cart/account/editor now say **Subdistrict**, localized **Desa / Kelurahan**. Internal district field IDs, additional-field schema keys and persisted order/session names remain compatible; admin province/city/kecamatan hierarchy terminology is unchanged.

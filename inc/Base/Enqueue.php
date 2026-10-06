@@ -390,7 +390,8 @@ class Enqueue extends BaseInit{
 
         wp_enqueue_script( 'select2' );
         wp_enqueue_style( 'select2' );
-        wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/wp/css/kj-wp-style.css', array(), KIRIOF_VERSION, 'all' );
+        $front_style = KIRIOF_DIR . 'assets/wp/css/kj-wp-style.css';
+        wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/wp/css/kj-wp-style.css', array(), file_exists( $front_style ) ? (string) filemtime( $front_style ) : KIRIOF_VERSION, 'all' );
         wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style' ), KIRIOF_VERSION, 'all' );
 
         // Tracking shortcode-specific styles. Loaded as a real stylesheet so the

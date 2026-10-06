@@ -450,3 +450,10 @@ body.kiriof-no-district .wp-block-woocommerce-checkout-place-order button {
 .kiriof-virtual-cart-checkout .kiriof-block-district-warning {
   display: none !important;
 }
+.woocommerce form.checkout #order_review table.shop_table.woocommerce-checkout-review-order-table.kiriof-classic-order-review {
+  /* WC Booster hides native review-order tables; this one contains the only
+     shipping selector. Keep Woo's fragment target while restoring visibility. */
+  display: table !important;
+  visibility: visible !important;
+  width: 100%;
+}
