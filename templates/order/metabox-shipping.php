@@ -27,6 +27,14 @@ $kiriof_platform_shipping_discount = max(0.0, $kiriof_discount_raw);
 $kiriof_is_cod        = $kiriof_cod_fee_raw > 0 || strtolower($data['payment_type'] ?? '') === 'cod';
 $kiriof_is_deficit    = ! empty($data['is_deficit']);
 $kiriof_cod_minimum   = (float) ($data['cod_minimum'] ?? 0);
+$kiriof_admin_fee     = max( 0.0, (float) ( $data['admin_fee_raw'] ?? 0 ) );
+$kiriof_is_instant    = 'instant' === ( $data['delivery_type'] ?? 'express' );
+$kiriof_vehicle       = $data['vehicle'] ?? null;
+$kiriof_vehicle_label = 'motor' === $kiriof_vehicle ? __( 'Motor', 'kiriminaja-official' ) : ( 'mobil' === $kiriof_vehicle ? __( 'Mobil', 'kiriminaja-official' ) : __( 'Vehicle unavailable', 'kiriminaja-official' ) );
+$kiriof_carrier_status = (string) ( $data['carrier_payment_status'] ?? '' );
+$kiriof_simple_shipping = $kiriof_shipping_raw === (float) ( $data['buyer_shipping_raw'] ?? $kiriof_shipping_raw )
+    && $kiriof_total_shipping === $kiriof_shipping_raw
+    && $kiriof_insurance_raw <= 0 && $kiriof_cod_fee_raw <= 0;
 
 // COD Paid By Buyer = WC order total; payout = total – total_shipping.
 $kiriof_cod_paid = $wc_total;
@@ -257,7 +265,9 @@ $kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
         <?php esc_html_e('Shipment', 'kiriminaja-official'); ?>
     </div>
     <div class="kiriof-mb-badges">
-        <?php if ($kiriof_is_cod) : ?>
+        <?php if ( $kiriof_is_instant ) : ?>
+            <span class="kiriof-mb-badge"><?php echo esc_html( $kiriof_vehicle_label ); ?></span>
+        <?php elseif ($kiriof_is_cod) : ?>
             <span class="kiriof-mb-badge kiriof-mb-badge--cod">
                 &#8962; <?php esc_html_e('COD', 'kiriminaja-official'); ?>
             </span>
@@ -267,11 +277,11 @@ $kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
                 &#8599; <?php esc_html_e('Pickup', 'kiriminaja-official'); ?>
             </span>
         <?php endif; ?>
-        <?php if ($wc_needs_payment) : ?>
+        <?php if ( 'unpaid' === strtolower( trim( $kiriof_carrier_status ) ) ) : ?>
             <span class="kiriof-mb-badge kiriof-mb-badge--unpaid">
                 &#9675; <?php esc_html_e('Unpaid', 'kiriminaja-official'); ?>
             </span>
-        <?php else : ?>
+        <?php elseif ( 'paid' === strtolower( trim( $kiriof_carrier_status ) ) ) : ?>
             <span class="kiriof-mb-badge kiriof-mb-badge--paid">
                 &#10003; <?php esc_html_e('Paid', 'kiriminaja-official'); ?>
             </span>
@@ -316,22 +326,39 @@ $kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
             </tr>
         <?php endif; ?>
 
+        <?php foreach ( array(
+            __( 'Payment method', 'kiriminaja-official' ) => $data['carrier_payment_method'] ?? '',
+            __( 'Payment status', 'kiriminaja-official' ) => $kiriof_carrier_status,
+            __( 'Payment ID', 'kiriminaja-official' ) => $data['carrier_payment_id'] ?? '',
+        ) as $kiriof_payment_label => $kiriof_payment_value ) : ?>
+            <tr>
+                <td><?php echo esc_html( $kiriof_payment_label ); ?></td>
+                <td><?php echo esc_html( '' !== (string) $kiriof_payment_value ? $kiriof_payment_value : '—' ); ?></td>
+            </tr>
+        <?php endforeach; ?>
+        <tr>
+            <td><?php esc_html_e( 'Buyer Payment Status', 'kiriminaja-official' ); ?></td>
+            <td><?php echo esc_html( $wc_needs_payment ? __( 'Unpaid', 'kiriminaja-official' ) : __( 'Paid', 'kiriminaja-official' ) ); ?></td>
+        </tr>
+
         <tr>
             <td><?php esc_html_e('Sub Total', 'kiriminaja-official'); ?></td>
             <td><?php echo wp_kses_post(wc_price($wc_subtotal)); ?></td>
         </tr>
 
         <tr>
-            <td><?php esc_html_e('Total Shipping', 'kiriminaja-official'); ?></td>
+            <td><?php echo esc_html( $kiriof_simple_shipping ? __( 'Shipping', 'kiriminaja-official' ) : __( 'Total Shipping', 'kiriminaja-official' ) ); ?></td>
             <td><?php echo wp_kses_post(wc_price($kiriof_total_shipping)); ?></td>
         </tr>
 
+        <?php if ( ! $kiriof_simple_shipping ) : ?>
         <tr class="kiriof-mb-row-child">
             <td><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></td>
             <td>
                 <?php echo wp_kses_post(wc_price($kiriof_shipping_raw)); ?>
             </td>
         </tr>
+        <?php endif; ?>
 
         <?php if ($kiriof_insurance_raw > 0) : ?>
             <tr class="kiriof-mb-row-child">
@@ -380,6 +407,13 @@ $kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
             <tr>
                 <td><?php esc_html_e('Discounted Shipping', 'kiriminaja-official'); ?></td>
                 <td><?php echo wp_kses_post(wc_price($kiriof_discounted_shipping)); ?></td>
+            </tr>
+        <?php endif; ?>
+
+        <?php if ( $kiriof_admin_fee > 0 ) : ?>
+            <tr>
+                <td><?php esc_html_e( 'Admin Fee', 'kiriminaja-official' ); ?></td>
+                <td><?php echo wp_kses_post( wc_price( $kiriof_admin_fee ) ); ?></td>
             </tr>
         <?php endif; ?>
 

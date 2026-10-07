@@ -45,6 +45,20 @@
     } = $props();
     let transaction = $derived(bootstrap.transaction);
     let i18n = $derived(bootstrap.i18n);
+    const costs = $derived(transaction.shipment.costs);
+    const adminFee = $derived(costs.adminFee ?? 0);
+    const simpleShipping = $derived(
+        costs.totalShipping === costs.actualShipping &&
+        costs.actualShipping === costs.shipping &&
+        costs.shippingDiscount === 0 &&
+        costs.insurance === 0 &&
+        costs.codFee === 0,
+    );
+    const vehicleLabel = $derived(
+        transaction.vehicle === 'motor' ? (i18n.motor ?? 'Motor') :
+        transaction.vehicle === 'mobil' ? (i18n.mobil ?? 'Mobil') :
+        transaction.vehicle || i18n.vehicleUnavailable,
+    );
     let tracking = $state<TrackingResponse | null>(null);
     let trackingError = $state("");
     let loadingTracking = $state(false);
@@ -379,6 +393,8 @@
                                     ? "warning"
                                     : "success"}
                             />{/if}
+                        {:else}
+                            <StatusBadge label={vehicleLabel} tone="neutral" />
                         {/if}
                     </div>
                 </Card.Header>
@@ -412,13 +428,14 @@
                             />
                         </div>
                     </div>
-                    {#if transaction.deliveryType === 'instant'}
                         <dl class="!grid min-w-0 gap-2 text-sm">
-                            {#each [[i18n.vehicle, transaction.vehicle || i18n.vehicleUnavailable], [i18n.paymentMethod, transaction.shipment.paymentMethod || '—'], [i18n.paymentStatus, transaction.shipment.paymentStatus || '—'], [i18n.paymentId, transaction.shipment.paymentId || '—']] as [label, value]}
+                            {#each [[i18n.paymentMethod, transaction.shipment.paymentMethod || '—'], [i18n.paymentStatus, transaction.shipment.paymentStatus || '—'], [i18n.paymentId, transaction.shipment.paymentId || '—']] as [label, value]}
                                 <div class="!flex min-w-0 !justify-between gap-4 text-muted-foreground"><dt>{label}</dt><dd class="m-0 break-all text-right font-semibold text-foreground">{value}</dd></div>
                             {/each}
+                            {#if transaction.shipment.buyerPaymentStatus}
+                                <div class="!flex min-w-0 !justify-between gap-4 text-muted-foreground"><dt>{i18n.buyerPaymentStatus}</dt><dd class="m-0 break-all text-right font-semibold text-foreground">{transaction.shipment.buyerPaymentStatus}</dd></div>
+                            {/if}
                         </dl>
-                    {/if}
                     <dl class="!grid min-w-0 gap-2 text-sm">
                         <div
                             class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
@@ -443,7 +460,7 @@
                         <div
                             class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"
                         >
-                            <dt class="min-w-0">{i18n.totalShipping}</dt>
+                            <dt class="min-w-0">{simpleShipping ? i18n.shipping : i18n.totalShipping}</dt>
                             <dd
                                 class="m-0 shrink-0 text-right font-semibold text-foreground"
                             >
@@ -452,6 +469,7 @@
                                 )}
                             </dd>
                         </div>
+                        {#if !simpleShipping}
                         <div
                             class="!flex min-w-0 !items-center !justify-between gap-4 pl-4 text-muted-foreground"
                         >
@@ -515,6 +533,13 @@
                                         transaction.shipment.costs.codFee,
                                     )}
                                 </dd>
+                            </div>
+                        {/if}
+                        {/if}
+                        {#if adminFee > 0}
+                            <div class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground">
+                                <dt class="min-w-0">{i18n.adminFee ?? 'Admin Fee'}</dt>
+                                <dd class="m-0 shrink-0 text-right font-semibold text-foreground">{currency(adminFee)}</dd>
                             </div>
                         {/if}
                         <div

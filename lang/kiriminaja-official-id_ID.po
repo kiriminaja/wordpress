@@ -5855,3 +5855,15 @@ msgstr "Pilihan pengiriman telah berubah. Periksa dan pilih kembali kurir sebelu
 #: inc/Base/Enqueue.php
 msgid "Updating shipping options…"
 msgstr "Memperbarui pilihan pengiriman…"
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Motor"
+msgstr "Motor"
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Mobil"
+msgstr "Mobil"
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Buyer Payment Status"
+msgstr "Status Pembayaran Pembeli"

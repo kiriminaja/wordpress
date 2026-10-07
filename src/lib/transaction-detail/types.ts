@@ -39,6 +39,7 @@ export type TransactionDetailBootstrap = {
       paymentStatus: string;
       paymentMethod: string;
       paymentId: string;
+      buyerPaymentStatus?: string;
       costs: {
         orderTotal: number;
         subtotal: number;
@@ -48,6 +49,7 @@ export type TransactionDetailBootstrap = {
         shipping: number;
         insurance: number;
         codFee: number;
+        adminFee?: number;
         itemDiscount: number;
         total: number;
       };

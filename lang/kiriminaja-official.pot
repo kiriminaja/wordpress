@@ -2674,3 +2674,15 @@ msgstr ""
 #: templates/woocommerce/cart/cart-shipping.php
 msgid "Shipping Options"
 msgstr ""
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Motor"
+msgstr ""
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Mobil"
+msgstr ""
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Buyer Payment Status"
+msgstr ""

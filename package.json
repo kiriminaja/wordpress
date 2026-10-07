@@ -20,7 +20,7 @@
     "check:semantic-style-tokens": "node scripts/check-semantic-style-tokens.mjs",
     "build:admin": "vite build",
     "build:buyer": "node scripts/build-buyer.mjs",
-    "test:transactions": "bun test --timeout 20000 tests/TransactionPendingCounts.test.ts tests/TransactionPrintFilterRuntime.test.ts"
+    "test:transactions": "bun test --timeout 20000 tests/TransactionPendingCounts.test.ts tests/TransactionPrintFilterRuntime.test.ts tests/TransactionDetailShipmentRuntime.test.ts"
   },
   "dependencies": {
     "@svelte-put/qr": "^2.1.3",
