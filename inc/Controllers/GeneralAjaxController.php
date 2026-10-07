@@ -61,10 +61,13 @@ class GeneralAjaxController
                 wp_send_json_success( array() );
             }
 
-            // Explicit retries alone bypass the shared postcode cache. Compare
-            // the raw literal, not sanitized input that might coerce a value.
-            $retry = '1' === ( $_POST['retry'] ?? null )
-                || ( isset( $_POST['data'] ) && is_array( $_POST['data'] ) && '1' === ( $_POST['data']['retry'] ?? null ) );
+            // Only the unslashed string '1' or integer 1 can bypass the cache.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; strict literal allowlist below rejects arrays, booleans and coercible strings.
+            $retry_input = wp_unslash( $_POST['retry'] ?? null );
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; preserve type for the strict retry allowlist instead of coercing via text sanitization.
+            $nested_retry_input = isset( $_POST['data'] ) && is_array( $_POST['data'] ) ? wp_unslash( $_POST['data']['retry'] ?? null ) : null;
+            $retry = in_array( $retry_input, array( '1', 1 ), true )
+                || in_array( $nested_retry_input, array( '1', 1 ), true );
             $subdistrict_search = $retry
                 ? $this->checkout_service_factory->districtSearch( $search, true )
                 : $this->checkout_service_factory->districtSearch( $search );

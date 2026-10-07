@@ -39,6 +39,7 @@ class InstantDispatchService {
 	/** Compare-and-delete: an expired/replaced owner must never delete a newer lease. */
 	private function deleteLease( string $key, array $lease ): bool {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Compare-and-delete must match the exact serialized lease so an expired worker cannot delete a newer owner's lock; the option API is not atomic. Cache invalidation follows on success.
 		$deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $key, maybe_serialize( $lease ) ) );
 		if ( 1 === $deleted ) {
 			wp_cache_delete( $key, 'options' );

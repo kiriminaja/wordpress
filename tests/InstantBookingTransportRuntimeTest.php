@@ -9,6 +9,11 @@ final class InstantBookingTransportRuntimeTest extends TestCase {
 namespace {
 	define( 'ABSPATH', ROOT );
 	function wp_json_encode( $value ) { return json_encode( $value ); }
+	function wp_strip_all_tags( $text, $remove_breaks = false ) {
+		$text = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text );
+		$text = strip_tags( $text );
+		return trim( $remove_breaks ? preg_replace( '/[\\r\\n\\t ]+/', ' ', $text ) : $text );
+	}
 	function kiriof_log( ...$args ) { $GLOBALS['logs'][] = $args; }
 	require ROOT . '/vendor/autoload.php';
 	require ROOT . '/inc/Infrastructure/InstantDiagnosticRedactor.php';

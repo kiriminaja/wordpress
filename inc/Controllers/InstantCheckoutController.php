@@ -400,6 +400,7 @@ class InstantCheckoutController {
 			return false;
 		}
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Atomic compare-and-swap prevents a stale checkout worker from acquiring another owner's lease; the option API cannot provide this operation.
 		$claimed = 1 === $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND option_value = %s", $owner, $key, $previous ) );
 		wp_cache_delete( $key, 'options' );
 		return $claimed;
@@ -407,6 +408,7 @@ class InstantCheckoutController {
 
 	private function releaseLock( string $key, string $owner ): void {
 		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Compare-and-delete releases only this worker's lease; delete_option() could remove a newer owner's lock. The option cache is invalidated below.
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name = %s AND option_value = %s", $key, $owner ) );
 		wp_cache_delete( $key, 'options' );
 	}
@@ -421,8 +423,8 @@ class InstantCheckoutController {
 		}
 		$message = __( 'Instant delivery could not be confirmed. Please refresh your shipping quote and try again.', 'kiriminaja-official' );
 		if ( $store_api && class_exists( '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException' ) ) {
-			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'kiriof_instant_checkout_failed', $message, 400 );
+			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'kiriof_instant_checkout_failed', esc_html( $message ), 400 );
 		}
-		throw new \RuntimeException( $message );
+		throw new \RuntimeException( esc_html( $message ) );
 	}
 }

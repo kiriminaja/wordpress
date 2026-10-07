@@ -14,6 +14,7 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
     class RouteException extends \RuntimeException { public int $status; public function __construct($code, $message, $status) { parent::__construct($message); $this->status = $status; } }
 }
 namespace {
+    function esc_html($value) { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
     function wp_unslash($value) { return $value; }
     // Reuse the isolated live quote doubles, with output buffered, not production APIs.
     $argv[1] = json_encode(['scenario' => in_array($argv[2] ?? '', ['example_total', 'zero_admin', 'zero_price'], true) ? $argv[2] : '']);

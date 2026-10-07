@@ -40,6 +40,7 @@ namespace {
         }
         public function esc_like($value) { return addcslashes((string) $value, '_%\\'); }
         public function prepare($sql, ...$args) {
+            if (1 === count($args) && is_array($args[0])) { $args = $args[0]; }
             $index = 0;
             $sql = preg_replace_callback('/%[ids]/', function ($match) use ($args, &$index) {
                 if (!array_key_exists($index, $args)) { throw new RuntimeException('Missing argument'); }

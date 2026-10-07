@@ -212,7 +212,16 @@ class PaymentListRenderService {
                 ? sanitize_text_field( wp_unslash( $_GET[ $name ] ) )
                 : '';
         }
-        $dates = ListDateRangeFilter::normalize( array_merge( $filters, array( 'date_from' => wp_unslash( $_GET['date_from'] ?? '' ), 'date_to' => wp_unslash( $_GET['date_to'] ?? '' ) ) ) );
+        foreach ( array( 'date_from', 'date_to' ) as $name ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Retained only to reject values altered by sanitization, never used in SQL.
+            $original = isset( $_GET[ $name ] ) ? wp_unslash( $_GET[ $name ] ) : '';
+            $clean = is_string( $original ) ? sanitize_text_field( $original ) : '';
+            $filters[ $name ] = $original === $clean ? $clean : '';
+            if ( ! is_string( $original ) || $original !== $clean ) {
+                $filters['date_range_invalid'] = true;
+            }
+        }
+        $dates = ListDateRangeFilter::normalize( $filters );
         return array_merge( $filters, $dates );
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
     }

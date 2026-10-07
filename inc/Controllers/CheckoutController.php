@@ -77,10 +77,10 @@ class CheckoutController
         $message = __( 'Express shipment could not be saved. Please retry checkout or contact the store.', 'kiriminaja-official' );
         $exception = '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException';
         if ( class_exists( $exception ) ) {
-            throw new $exception( 'kiriof_express_transaction_failed', $message, 503 );
+            throw new $exception( 'kiriof_express_transaction_failed', esc_html( $message ), 503 );
         }
 
-        throw new \RuntimeException( $message );
+        throw new \RuntimeException( esc_html( $message ) );
     }
 
     private function checkoutServiceFactory(): CheckoutServiceFactory
@@ -656,6 +656,7 @@ class CheckoutController
             
             $address_type = $this->kiriof_get_classic_destination_address_type();
             $field_key = 'shipping' === $address_type ? $this->field_shipping_destination_key : $field_key;
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies its checkout nonce before the checkout-process hook; this checks only presence after normalization above.
             if ( 'ID' === $this->kiriof_get_classic_address_country( $address_type ) && isset($_POST[$field_key]) && empty($_POST[$field_key]) ) {
                 wc_add_notice( esc_html__('<strong>Subdistrict</strong> is a required field', 'kiriminaja-official'),'error' );
             }
@@ -708,7 +709,7 @@ class CheckoutController
         $type = $this->kiriof_get_classic_destination_address_type();
         $field = 'shipping' === $type ? $this->field_shipping_destination_key : $this->field_destination_key;
         $name = 'shipping' === $type ? 'kiriof_shipping_destination_area_name' : 'kiriof_destination_area_name';
-        // WooCommerce verifies the checkout nonce before invoking these hooks.
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Checkout hooks follow WooCommerce's native nonce check; AJAX review callers verify the plugin nonce before normalization.
         if ( array_key_exists( $field, $_POST ) || array_key_exists( 'kiriof_buyer_destination_snapshot', $_POST ) ) {
             return;
         }
@@ -727,7 +728,9 @@ class CheckoutController
             $address[$field] = (string) $order->$getter();
         }
         $address = BuyerDestination::address( $address );
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Called from woocommerce_checkout_create_order after WooCommerce verifies the native checkout nonce.
         if ( array_key_exists( 'kiriof_buyer_destination_snapshot', $_POST ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.NonceVerification.Missing -- Native checkout nonce verified; JSON is unslashed then strictly validated by BuyerDestination::normalize and bound to the effective address. Text sanitization would mutate the snapshot.
             $raw = wp_unslash( $_POST['kiriof_buyer_destination_snapshot'] );
             $destination = $this->kiriof_normalize_buyer_destination( is_string( $raw ) ? json_decode( $raw, true ) : null );
         } else {
@@ -1049,9 +1052,9 @@ class CheckoutController
             $message = __( 'Your shipping quote has changed or is no longer available. Please refresh checkout and select shipping again.', 'kiriminaja-official' );
             $exception = '\\Automattic\\WooCommerce\\StoreApi\\Exceptions\\RouteException';
             if ( class_exists( $exception ) ) {
-                throw new $exception( 'kiriof_invalid_express_quote', $message, 400 );
+                throw new $exception( 'kiriof_invalid_express_quote', esc_html( $message ), 400 );
             }
-            throw new \InvalidArgumentException( $message );
+            throw new \InvalidArgumentException( esc_html( $message ) );
         }
         $order->update_meta_data( ExpressCheckoutValidationService::META_KEY, $validated );
     }
@@ -2451,10 +2454,10 @@ class CheckoutController
         $message = __( 'Please select a valid shipping subdistrict matching your shipping address.', 'kiriminaja-official' );
         $exception = '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException';
         if ( class_exists( $exception ) ) {
-            throw new $exception( 'kiriof_invalid_destination', $message, 400 );
+            throw new $exception( 'kiriof_invalid_destination', esc_html( $message ), 400 );
         }
         // Old versions without Store API exceptions must still fail closed.
-        throw new \InvalidArgumentException( $message );
+        throw new \InvalidArgumentException( esc_html( $message ) );
     }
 
     private function kiriof_buyer_coordinates( array $destination ) {
@@ -2495,7 +2498,8 @@ class CheckoutController
 
     private function kiriof_classic_pin_error( int $reason ): void {
         $details = $this->kiriof_classic_pin_error_details( $reason );
-        throw new \InvalidArgumentException( $details[1], $reason );
+        // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- $reason is an integer machine code, not output; only the localized message is displayed.
+        throw new \InvalidArgumentException( esc_html( $details[1] ), $reason );
     }
 
     /** Classic pin updates never own the production district or fee state. */
@@ -2615,9 +2619,9 @@ class CheckoutController
             $exception = '\Automattic\WooCommerce\StoreApi\Exceptions\RouteException';
             $message = __( 'Could not verify your shipping subdistrict. Please try again.', 'kiriminaja-official' );
             if ( class_exists( $exception ) ) {
-                throw new $exception( 'kiriof_destination_unavailable', $message, 503 );
+                throw new $exception( 'kiriof_destination_unavailable', esc_html( $message ), 503 );
             }
-            throw new \RuntimeException( $message );
+            throw new \RuntimeException( esc_html( $message ) );
         }
         foreach ( $rows as $row ) {
             $row = (object) $row;
@@ -2853,7 +2857,8 @@ class CheckoutController
         try {
             check_ajax_referer( KIRIOF_NONCE, 'nonce' );
 
-            $raw  = isset( $_POST['data'] ) ? sanitize_textarea_field( wp_unslash( $_POST['data'] ) ) : '';
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- check_ajax_referer verified above; decode JSON without mutating snapshot identity, then strict BuyerDestination/pin normalizers or individual field sanitizers validate it below.
+            $raw  = isset( $_POST['data'] ) && is_string( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
             $data = json_decode( $raw, true );
             if ( ! is_array( $data ) ) {
                 wp_send_json_error( array( 'msg' => 'Invalid data' ) );

@@ -20,6 +20,7 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
     }
 }
 namespace {
+    function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
     define( 'EXPRESS_CONTROLLER_INTEGRATION', true );
     define( 'REST_REQUEST', ! defined( 'CLASSIC_CONTROLLER_INTEGRATION' ) );
     $scenario = $argv[1] ?? 'success';

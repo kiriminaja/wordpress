@@ -28,7 +28,7 @@ final class PostalLookupRecoveryRuntimeTest extends TestCase {
     }
 
     public function test_explicit_verified_retry_replaces_positive_cache(): void {
-        foreach ( array( 'retry', 'nested_retry' ) as $scenario ) {
+        foreach ( array( 'retry', 'nested_retry', 'integer_retry', 'nested_integer_retry' ) as $scenario ) {
             $result = $this->scenario( $scenario );
             $this->assertTrue( $result['response']['success'] );
             $this->assertCount( 2, $result['response']['data'] );
@@ -41,7 +41,7 @@ final class PostalLookupRecoveryRuntimeTest extends TestCase {
     }
 
     public function test_ordinary_and_nonliteral_retries_preserve_cache(): void {
-        foreach ( array( 'ordinary', 'array_retry', 'integer_retry', 'boolean_retry', 'sanitized_retry' ) as $scenario ) {
+        foreach ( array( 'ordinary', 'array_retry', 'boolean_retry', 'sanitized_retry', 'float_retry', 'padded_retry', 'zero_retry', 'nested_boolean_retry' ) as $scenario ) {
             $result = $this->scenario( $scenario );
             $this->assertTrue( $result['response']['success'], $scenario );
             $this->assertCount( 1, $result['response']['data'] );

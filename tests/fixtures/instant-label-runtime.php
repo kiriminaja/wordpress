@@ -5,6 +5,7 @@ namespace {
 	function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 	function esc_html__( $text, $domain = '' ) { return esc_html( __( $text, $domain ) ); }
 	function sanitize_text_field( $text ) { return trim( strip_tags( $text ) ); }
+	function wp_parse_url( $url, $component = -1 ) { return parse_url( $url, $component ); }
 	function number_format_i18n( $number, $decimals = 0 ) { return number_format( $number, $decimals ); }
 	function wc_get_order( $id ) { return empty( $GLOBALS['input']['missing_order'] ) ? new LabelOrder() : false; }
 	function wp_remote_get( ...$args ) { ++$GLOBALS['calls']; throw new \RuntimeException( 'Remote call forbidden' ); }

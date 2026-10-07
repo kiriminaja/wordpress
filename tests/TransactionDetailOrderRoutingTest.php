@@ -23,7 +23,7 @@ final class TransactionDetailOrderRoutingTest extends TestCase {
         $this->assertNull( $r['bootstrap'] );
     }
     public function test_missing_duplicate_or_malformed_order_ids_fail_closed(): void {
-        foreach ( array( '', '0', '-504', '0504', '504x', '504.0', ' 504', '999999999999999999999999', array( '504' ) ) as $id ) {
+        foreach ( array( '', '0', '-504', '0504', '504x', '504.0', ' 504', '504 ', '<b>504</b>', "504\n", '+504', '5.04e2', '999999999999999999999999', array( '504' ) ) as $id ) {
             $r = $this->route( array( 'id' => $id, 'rows' => $this->rows() ) );
             $this->assertSame( 'redirect', $r['outcome'] );
             $this->assertSame( array(), $r['lookups'] );
