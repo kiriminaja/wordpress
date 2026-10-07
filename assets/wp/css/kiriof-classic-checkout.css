@@ -24,7 +24,7 @@
 .woocommerce form.checkout .kiriof-classic-pin button.kiriof-classic-map-locate:focus-visible { outline: 2px solid #1F2937; outline-offset: 2px; }
 .kiriof-classic-map-locate svg { display: block; width: 20px; height: 20px; flex-shrink: 0; }
 .woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-pin-state {
- position: absolute !important; inset: auto auto 30px 12px; z-index: 1000; display: inline-flex; align-items: center;
+ position: absolute !important; inset: auto auto 22px 12px; z-index: 1000; display: inline-flex; align-items: center;
  gap: 5px; max-width: calc(100% - 24px); padding: 5px 8px; box-sizing: border-box; border: 1px solid #CBD5E1;
  border-radius: 4px; background: #FFFFFF; color: #64748B; font-size: 12px; line-height: 1.35;
  font-weight: 500; letter-spacing: normal; box-shadow: 0 1px 4px #0002; pointer-events: none;

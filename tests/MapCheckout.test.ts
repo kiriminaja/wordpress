@@ -509,8 +509,12 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 	});
 	uiTest('camera movement publishes once at moveend and rerenders do not prompt or reset', () => {
 		const h = uiHarness(); try {
-			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(1); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Moving pin');
+			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(1); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
+			expect(h.container.querySelector('.kiriof-buyer-map__information').hidden).toBe(true);
+			expect(h.container.querySelector('.kiriof-buyer-map__pin-status').hidden).toBe(true);
 			React.act(() => h.maps[0].fire('moveend')); h.render(); h.render(); expect(h.writes).toHaveLength(2); expect(h.maps).toHaveLength(1); expect(h.initialRequests).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.container.textContent).toContain('Pin Location'); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
+			expect(h.container.querySelector('.kiriof-buyer-map__information').hidden).toBe(false);
+			expect(h.container.querySelector('.kiriof-buyer-map__pin-status').hidden).toBe(false);
 		} finally { h.cleanup(); }
 	});
 	uiTest('ineligible checkout cancels map and requests; returning requires new authorization', () => {

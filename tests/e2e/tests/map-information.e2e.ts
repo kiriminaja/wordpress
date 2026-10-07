@@ -17,6 +17,12 @@ for (const width of [1200, 390, 320]) {
       return {inside:info.left>=view.left&&info.right<=view.right&&info.top>=view.top&&info.bottom<=view.bottom,zoom:disjoint(info,zoom),locate:disjoint(info,locate),badge:disjoint(info,badge),attribution:disjoint(badge,attribution),font:getComputedStyle(p).fontSize,margin:getComputedStyle(p).marginTop,overflow:document.documentElement.scrollWidth>innerWidth};
     })).toEqual({inside:true,zoom:true,locate:true,badge:true,attribution:true,font:'12px',margin:'0px',overflow:false});
     await app.screenshot(`map-information-${width}`);
+    await browser.evaluate(()=>{document.querySelector('.kiriof-buyer-map__information')!.setAttribute('hidden','');document.querySelector('.kiriof-buyer-map__pin-status')!.setAttribute('hidden','');return true;});
+    await expect(browser.locator('.kiriof-buyer-map__information')).not.toBeVisible();
+    await expect(browser.locator('.kiriof-buyer-map__pin-status')).not.toBeVisible();
+    await browser.evaluate(()=>{document.querySelector('.kiriof-buyer-map__information')!.removeAttribute('hidden');document.querySelector('.kiriof-buyer-map__pin-status')!.removeAttribute('hidden');return true;});
+    await expect(browser.locator('.kiriof-buyer-map__information')).toBeVisible();
+    await expect(browser.locator('.kiriof-buyer-map__pin-status')).toBeVisible();
     await browser.locator('.kiriof-buyer-map__information').tap();
     await browser.keyboard.press('Tab');
     await expect(browser.locator('.kiriof-buyer-map__locate')).toBeVisible();

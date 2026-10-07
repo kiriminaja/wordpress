@@ -5,6 +5,11 @@
 	display: none;
 }
 
+.kiriof-buyer-map__information[hidden],
+.kiriof-buyer-map__pin-status[hidden] {
+	display: none !important;
+}
+
 .kiriof-buyer-map__coverage-warning {
 	border-inline-start: 3px solid currentColor;
 	padding-inline-start: 0.75em;
@@ -173,7 +178,7 @@
 
 .kiriof-buyer-map__pin-status {
 	position: absolute;
-	bottom: 30px;
+	bottom: 22px;
 	left: 12px;
 	z-index: 2;
 	display: inline-flex;

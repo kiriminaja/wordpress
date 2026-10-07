@@ -131,6 +131,14 @@ describe('Classic core with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+	test('drag hides pin status and hints until idle, without writing intermediate map positions', async()=>{
+		const h=adapter({savedDestination:saved()});await h.acknowledge();
+		const badge=h.query('.kiriof-classic-pin-state');const status=h.query('.kiriof-classic-pin > p[role="status"]');
+		const before=h.mutations().length;
+		h.maps[0].listeners.movestart();await settle();expect(badge.hidden).toBe(true);expect(status.hidden).toBe(true);expect(h.mutations()).toHaveLength(before);
+		h.maps[0].listeners.moveend();await h.advance();await h.acknowledge();
+		expect(badge.hidden).toBe(false);expect(h.maps).toHaveLength(1);
+	});
 	test('pin postcode rejection explains validation instead of lookup failure and regular pricing remains independent', async()=>{
 		const h=adapter({savedDestination:saved(),pinErrors:{kiriof_pin_district_not_mapped:'Selected subdistrict does not match your postcode.'}});await h.advance();
 		await h.respond(h.mutations()[0],{code:'kiriof_pin_district_not_mapped',message:'private remote details'},false);

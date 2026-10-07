@@ -22,7 +22,7 @@
 		locate.textContent = ''; locate.setAttribute('aria-label',strings.mapLocate || 'Current location'); locate.title = strings.mapLocate || 'Current location'; locate.append(icon('M12 3v3m0 12v3M3 12h3m12 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8'));
 		viewport.append( canvas, indicator, locate, badge ); panel.append( title, viewport, status, retry );
 		var hidden = root.document.createElement( 'input' ); hidden.type = 'hidden'; hidden.name = 'kiriof_buyer_destination_snapshot'; form.append( hidden );
-		var busy = false, disposed = false, map, gate, mapKey = '', lastDistrict = '', timer, point = null;
+		var busy = false, disposed = false, moving = false, map, gate, mapKey = '', lastDistrict = '', timer, point = null;
 		function button( text ) { var node = root.document.createElement( 'button' ); node.type = 'button'; node.className = 'button'; node.textContent = text; return node; }
 		function field( id ) { return form.querySelector( '#' + id ); }
 		function icon(path) { var svg=root.document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('width','20');svg.setAttribute('height','20');svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','2');svg.setAttribute('aria-hidden','true');var p=root.document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',path);svg.append(p);return svg; }
@@ -73,20 +73,21 @@
 			retry.hidden = ! state.queue.error;
 			var checked=Boolean(state.point && !state.queue.pending && !state.queue.inFlight && !state.queue.error);
 			badge.replaceChildren(icon(checked?'m5 12 4 4L19 6':'m7 7 10 10M17 7 7 17'),root.document.createTextNode(checked?(strings.pinLocation || 'Pin Location'):(strings.needPinLocation || 'Need Pin Location')));badge.classList.toggle('is-complete',checked);
+			badge.hidden = moving;
 			status.textContent = state.queue.error ? state.queue.error.message || strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.' : state.queue.inFlight || state.queue.pending ? strings.pinSaving || 'Saving delivery pin…' : '';
-			status.hidden=!status.textContent;
+			status.hidden=moving || !status.textContent;
 			if ( panel.hidden ) { disposeMap(); mapKey = ''; return; }
 			var key = state.scope + JSON.stringify( state.address );
 			if ( key !== mapKey ) { disposeMap(); mapKey = key; openMap( state ); }
 		}
-		function disposeMap() { if ( gate ) gate.dispose(); gate = null; if ( map ) map.dispose(); map = null; point = null; }
+		function disposeMap() { if ( gate ) gate.dispose(); gate = null; if ( map ) map.dispose(); map = null; point = null; moving = false; }
 		function openMap( state ) {
 			if ( ! config.map || ! config.map.enabled || ! state.address.address_1 || ! state.address.postcode ) return;
 			var expected = state.address;
 			function show( device ) {
 				if ( disposed || panel.hidden || ! core.sameAddress(expected,address()) ) return;
 				canvas.hidden = false;
-				map = maps.createMapSession( { node: canvas, leaflet: root.L, tiles: config.map.tiles, attribution: config.map.attribution, coverage: config.map.coverage, initial: state.point, geolocation: root.navigator.geolocation, onSelect: function( next ) { point = next; return district() ? controller.selectPoint(next,expected) : true; }, onError: function() { status.hidden=false;status.textContent = strings.mapUnavailable; } } );
+				map = maps.createMapSession( { node: canvas, leaflet: root.L, tiles: config.map.tiles, attribution: config.map.attribution, coverage: config.map.coverage, initial: state.point, geolocation: root.navigator.geolocation, onMove: function(next) { moving=next;render(controller.getState()); }, onSelect: function( next ) { point = next; return district() ? controller.selectPoint(next,expected) : true; }, onError: function() { status.hidden=moving;status.textContent = strings.mapUnavailable; } } );
 				if ( device && ! state.point ) map.pick(device.latitude,device.longitude,true);
 			}
 			if ( state.point ) { show(null); return; }
