@@ -83,12 +83,22 @@ PHP;
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
-    public function test_instant_filters_persist_and_ignore_express_only_filters(): void {
+    public function test_instant_filters_persist_print_status_and_ignore_express_only_cod(): void {
         $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant', 'cod' => '1', 'print_status' => '1', 'status' => 'processed']]);
         $this->assertSame('instant', $filters['delivery_type']);
         $this->assertSame('processed', $filters['status']);
         $this->assertSame('', $filters['cod']);
-        $this->assertSame('', $filters['print_status']);
+        $this->assertSame('1', $filters['print_status']);
+        foreach (['0', '1', '', 'all', 'wat', '2', ['1']] as $print_status) {
+            $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant', 'cod' => '0', 'print_status' => $print_status]]);
+            $this->assertSame(in_array($print_status, ['0', '1'], true) ? $print_status : '', $filters['print_status']);
+            $this->assertSame('', $filters['cod']);
+            $this->assertSame('all', $filters['status']);
+            $this->assertSame('instant', $filters['delivery_type']);
+        }
+        $defaults = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant']]);
+        $this->assertSame('', $defaults['print_status']);
+        $this->assertSame('all', $defaults['status']);
         foreach (['Instant', 'unknown', ['instant'], ''] as $value) {
             $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => $value]]);
             $this->assertSame('express', $filters['delivery_type']);

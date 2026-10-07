@@ -507,7 +507,6 @@ class TransactionListRenderService
             : TransactionDeliveryType::normalize($filters["delivery_type"]);
         if ("instant" === $filters["delivery_type"]) {
             $filters["cod"] = "";
-            $filters["print_status"] = "";
         }
         $filters["courier"] = implode(",", WordPressTransactionListQuery::normalizeCourierFilter($filters["courier"]));
         if (!in_array($filters["print_status"], ["0", "1"], true)) {

@@ -301,18 +301,27 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   @apply !w-full !justify-start;
 }
 .kiriof-transactions-filterrow {
-  @apply grid [grid-template-columns:minmax(270px,1.2fr)_repeat(3,minmax(160px,1fr))_minmax(190px,1.1fr)] gap-2 items-center;
+  @apply grid [grid-template-columns:minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.1fr)] gap-2 items-center min-w-0;
 }
 .kiriof-transactions-filterrow:has(.kiriof-clear-filters) {
-  @apply [grid-template-columns:minmax(270px,1.2fr)_repeat(3,minmax(160px,1fr))_minmax(_190px,1.1fr_)_auto];
+  @apply [grid-template-columns:minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.1fr)_auto];
 }
-/* Order Issue hides the status selector, so the row has one fewer control:
-   stretch the remaining four columns evenly instead of leaving a gap. */
-.kiriof-transactions-filterrow.is-order-issue {
-  @apply [grid-template-columns:minmax(270px,1.2fr)_repeat(2,minmax(160px,1fr))_minmax(190px,1.1fr)];
+/* Instant hides payment; Order Issue hides status. Both have four controls.
+   :where keeps modifier specificity low so responsive rules can override it. */
+.kiriof-transactions-filterrow:where(.is-instant, .is-order-issue) {
+  @apply [grid-template-columns:minmax(0,1.2fr)_repeat(2,minmax(0,1fr))_minmax(0,1.1fr)];
 }
-.kiriof-transactions-filterrow.is-order-issue:has(.kiriof-clear-filters) {
-  @apply [grid-template-columns:minmax(270px,1.2fr)_repeat(2,minmax(160px,1fr))_minmax(_190px,1.1fr_)_auto];
+.kiriof-transactions-filterrow:where(.is-instant, .is-order-issue):has(.kiriof-clear-filters) {
+  @apply [grid-template-columns:minmax(0,1.2fr)_repeat(2,minmax(0,1fr))_minmax(0,1.1fr)_auto];
+}
+.kiriof-transactions-filterrow > * {
+  @apply min-w-0;
+}
+.kiriof-transactions-filterrow [data-slot='input-group-control'] {
+  @apply !min-w-0;
+}
+.kiriof-transactions-filterrow [data-slot='select-trigger'] [data-slot='select-value'] {
+  @apply !block !min-w-0 !truncate;
 }
 .kiriof-admin-list-search {
   @apply w-full;
@@ -742,8 +751,9 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 }
 
 @media (max-width: 1200px) {
-  .kiriof-transactions-filterrow {
-    @apply [grid-template-columns:repeat(3,minmax(160px,1fr))];
+  .kiriof-transactions-filterrow,
+  .kiriof-transactions-filterrow:has(.kiriof-clear-filters) {
+    @apply [grid-template-columns:repeat(2,minmax(0,1fr))];
   }
 }
 @media (max-width: 782px) {
@@ -759,8 +769,9 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
   .kiriof-transactions-toolbar__actions [data-slot='button'] {
     @apply flex-1;
   }
-  .kiriof-transactions-filterrow {
-    @apply [grid-template-columns:1fr] max-w-none;
+  .kiriof-transactions-filterrow,
+  .kiriof-transactions-filterrow:has(.kiriof-clear-filters) {
+    @apply [grid-template-columns:minmax(0,1fr)] max-w-none;
   }
   .kiriof-admin-list-scopes {
     @apply items-start flex-col;

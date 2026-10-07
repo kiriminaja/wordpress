@@ -158,7 +158,7 @@
       status: filters.status,
       cod: isInstant || filters.cod === 'all' ? '' : filters.cod,
       courier: filters.courier === 'all' ? '' : filters.courier,
-      print_status: isInstant || filters.print_status === 'all' ? '' : filters.print_status,
+      print_status: filters.print_status === 'all' ? '' : filters.print_status,
       per_page: String(bootstrap.pagination.perPage),
     });
   }
@@ -321,6 +321,7 @@
       <form
         class="kiriof-transactions-filterrow"
         class:is-order-issue={isOrderIssue}
+        class:is-instant={isInstant}
         onsubmit={(event) => {
           event.preventDefault();
           applyFilters();
@@ -356,7 +357,6 @@
             {#snippet prefix()}<IconAdjustmentsHorizontal class="size-4 shrink-0 text-muted-foreground" />{/snippet}
           </KiriofMultiFilter>
         {/if}
-        {#if !isInstant}
         <Select.Root type="single" bind:value={filters.print_status} disabled={refreshing} onValueChange={applySelectFilter}>
           <Select.Trigger hideIcon><IconPrinter /><Select.Value>{printLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
           <Select.Content class="kiriof-shadcn">
@@ -365,7 +365,6 @@
             <Select.Item value="0">{bootstrap.i18n.unprinted}</Select.Item>
           </Select.Content>
         </Select.Root>
-        {/if}
         <KiriofMultiFilter
           value={filters.courier}
           options={courierOptions}
