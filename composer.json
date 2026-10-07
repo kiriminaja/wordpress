@@ -30,7 +30,8 @@
     "php-stubs/wordpress-stubs": "^7.1",
     "phpstan/phpstan": "^2.2",
     "szepeviktor/phpstan-wordpress": "^2.0",
-    "php-stubs/woocommerce-stubs": "^10.0"
+    "php-stubs/woocommerce-stubs": "^10.0",
+    "mockery/mockery": "^1.6"
   },
   "require": {
     "kiriminaja/kiriminaja-php": "^2.1.4"
