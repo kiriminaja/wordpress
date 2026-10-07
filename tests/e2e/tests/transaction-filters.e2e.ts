@@ -95,6 +95,15 @@ async function assertGeometry(browser: any, width: number, scope: string, active
         const css = getComputedStyle(label);
         return { overflow: css.overflow, ellipsis: css.textOverflow, nowrap: css.whiteSpace, clipped: label.scrollWidth > label.clientWidth };
       }),
+      selectAlignment: Array.from(row.querySelectorAll<HTMLElement>('[data-slot="select-trigger"]')).map(trigger => {
+        const label = trigger.querySelector<HTMLElement>('[data-slot="select-value"]')!;
+        const icon = trigger.querySelector<SVGElement>(':scope > svg')!;
+        const chevron = trigger.querySelector<SVGElement>('.kiriof-select-chevron')!;
+        const text = document.createRange(); text.selectNodeContents(label);
+        return { alignment: getComputedStyle(label).textAlign, labelLeft: label.getBoundingClientRect().left,
+          textLeft: text.getBoundingClientRect().left, iconRight: icon.getBoundingClientRect().right,
+          chevronRight: chevron.getBoundingClientRect().right, triggerRight: trigger.getBoundingClientRect().right };
+      }),
     };
   }, rowSelector);
   const count = scope === 'regular' ? 5 : 4;
@@ -104,6 +113,15 @@ async function assertGeometry(browser: any, width: number, scope: string, active
   expect(Boolean(result.clear)).toBe(active);
   expect(result.tracks).toHaveLength(width > 1200 ? count + Number(active) : width > 782 ? 2 : 1);
   expect(result.overflow).toBeLessThanOrEqual(1);
+  // Payment/Print labels inherit centered button text unless explicitly reset.
+  // Assert both computed alignment and real text geometry, not only flex layout.
+  for (const control of result.selectAlignment) {
+    expect(control.alignment).toBe('left');
+    expect(Math.abs(control.textLeft - control.labelLeft)).toBeLessThanOrEqual(1);
+    expect(control.labelLeft - control.iconRight).toBeGreaterThanOrEqual(4);
+    expect(control.labelLeft - control.iconRight).toBeLessThanOrEqual(12);
+    expect(control.triggerRight - control.chevronRight).toBeLessThanOrEqual(16);
+  }
   for (const rect of result.rects) {
     expect(rect.left).toBeGreaterThanOrEqual(result.row.left - 1);
     expect(rect.right).toBeLessThanOrEqual(result.row.right + 1);

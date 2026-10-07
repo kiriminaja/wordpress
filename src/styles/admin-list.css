@@ -321,7 +321,7 @@ body:has([data-kiriof-transactions-page]) #wpbody-content {
   @apply !min-w-0;
 }
 .kiriof-transactions-filterrow [data-slot='select-trigger'] [data-slot='select-value'] {
-  @apply !block !min-w-0 !truncate;
+  @apply !block !min-w-0 !truncate !text-left;
 }
 .kiriof-admin-list-search {
   @apply w-full;
