@@ -4,6 +4,7 @@ namespace KiriminAjaOfficial\Controllers;
 use KiriminAjaOfficial\Repositories\CodFeeApiRepository;
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
@@ -65,6 +66,11 @@ class CodAdjustmentController {
 
         if ( ! $transaction ) {
             wp_send_json_error( [ 'status' => 404, 'message' => __( 'Transaction not found', 'kiriminaja-official' ) ] );
+            wp_die();
+        }
+
+        if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+            wp_send_json_error( [ 'status' => 422, 'message' => __( 'Instant COD adjustment is not available yet.', 'kiriminaja-official' ) ] );
             wp_die();
         }
 
@@ -255,6 +261,11 @@ class CodAdjustmentController {
 
         if ( ! $transaction ) {
             wp_send_json_error( [ 'status' => 404, 'message' => __( 'Transaction not found', 'kiriminaja-official' ) ] );
+            wp_die();
+        }
+
+        if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+            wp_send_json_error( [ 'status' => 422, 'message' => __( 'Instant deficit cancellation is not available yet.', 'kiriminaja-official' ) ] );
             wp_die();
         }
 

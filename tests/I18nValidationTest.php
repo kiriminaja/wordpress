@@ -57,7 +57,6 @@ final class I18nValidationTest extends TestCase
             'esc_attr__'     => 2,
             'esc_attr_e'     => 2,
             'esc_xml__'      => 2,
-            '_x'             => 3, // ($text, $context, $domain)
             '_ex'            => 3,
             'esc_html_x'     => 3,
             'esc_attr_x'     => 3,
@@ -294,7 +293,6 @@ final class I18nValidationTest extends TestCase
             'esc_attr__'     => 2,
             'esc_attr_e'     => 2,
             'esc_xml__'      => 2,
-            '_x'             => 3,
             '_ex'            => 3,
             'esc_html_x'     => 3,
             'esc_attr_x'     => 3,
@@ -343,6 +341,47 @@ final class I18nValidationTest extends TestCase
             $missing,
             "Missing Bahasa translations for source strings:\n" . implode("\n", array_slice($missing, 0, 30))
         );
+    }
+
+    #[Test]
+    public function plugin_does_not_call_contextual_translation_helper(): void
+    {
+        $violations = [];
+        foreach (self::$phpFiles as $filePath) {
+            foreach ($this->extractI18nCalls(file_get_contents($filePath), ['_x']) as $call) {
+                $violations[] = str_replace(PLUGIN_DIR . '/', '', $filePath) . ':' . $call['line'];
+            }
+        }
+
+        $this->assertEmpty($violations, "Use __() for plugin translations:\n" . implode("\n", $violations));
+    }
+
+    #[Test]
+    public function package_categories_and_courier_counts_have_existing_catalog_translations(): void
+    {
+        $expected = [
+            'Category' => 'Kategori',
+            'Select KiriminAja package category for shipping. Defaults to Others.' => 'Pilih kategori paket KiriminAja untuk pengiriman. Default ke Lain-lain.',
+            'Others (Default)' => 'Lain-lain (Default)',
+            'Electronics & Gadgets' => 'Peralatan Elektronik & Gadget',
+            'Clothing' => 'Pakaian',
+            'Fragile' => 'Pecah Belah',
+            'Documents' => 'Dokumen',
+            'Household Appliances' => 'Peralatan Rumah Tangga',
+            'Accessories' => 'Aksesoris',
+            'Others' => 'Lain-lain',
+            'Valuable Documents' => 'Dokumen Berharga',
+            'Health & Beauty' => 'Peralatan Kesehatan & Kecantikan',
+            'Sports & Entertainment' => 'Peralatan Olahraga & Hiburan',
+            '%1$s of %2$s enabled' => '%1$s dari %2$s aktif',
+        ];
+        $translations = $this->parsePoFile(PLUGIN_DIR . '/lang/kiriminaja-official-id_ID.po');
+        $template = $this->parsePoFile(PLUGIN_DIR . '/lang/kiriminaja-official.pot');
+
+        foreach ($expected as $source => $translation) {
+            $this->assertArrayHasKey($source, $template);
+            $this->assertSame($translation, $translations[$source] ?? null, $source);
+        }
     }
 
     private function parsePoFile(string $path): array

@@ -1,0 +1,52 @@
+.woocommerce form.checkout .choices { width: 100%; min-width: 0; margin: 0; font: inherit; color: inherit; overflow: visible; }
+.woocommerce form.checkout .choices .choices__inner { display: flex; align-items: center; width: 100%; min-height: 44px; box-sizing: border-box; padding: 10px 40px 10px 12px; margin: 0; border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; color: inherit; font: inherit; }
+.woocommerce form.checkout .choices .choices__list--single { padding: 0; width: 100%; min-width: 0; }
+.woocommerce form.checkout .choices .choices__list--single > .choices__item { display: block; width: 100%; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.woocommerce form.checkout .choices[data-type*=select-one]:has(.choices__button) .choices__inner { padding-right: 64px; }
+.woocommerce form.checkout .choices .choices__item { margin: 0; font: inherit; line-height: 1.5; }
+.woocommerce form.checkout .choices[data-type*=select-one]::after { right: 14px; border-color: currentColor transparent transparent; }
+.woocommerce form.checkout .choices.is-focused .choices__inner { outline: 2px solid currentColor; outline-offset: 2px; }
+.woocommerce form.checkout .choices .choices__list--dropdown { border: 1px solid #c3c4c7; border-radius: 4px; background: #fff; color: inherit; z-index: 10010; box-sizing: border-box; }
+.woocommerce form.checkout .choices .choices__list--dropdown .choices__input { box-sizing: border-box; width: calc(100% - 16px); margin: 8px; padding: 10px 12px; border: 1px solid #c3c4c7; border-radius: 4px; font: inherit; background: #fff; color: inherit; }
+.woocommerce form.checkout .choices .choices__list--dropdown .choices__item { padding: 10px 12px; }
+.woocommerce form.checkout .choices .choices__list--dropdown .is-highlighted { background: #f0f0f1; color: inherit; }
+.woocommerce form.checkout .choices[data-type*=select-one] .choices__button { position: absolute !important; width: 20px !important; min-width: 20px !important; max-width: 20px; height: 20px !important; min-height: 20px; padding: 0 !important; margin: -10px 0 0 !important; right: 34px; top: 50%; border: 0; background-color: transparent !important; border-radius: 0; }
+.woocommerce form.checkout .choices .kiriof-choices-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.woocommerce form.checkout .form-row:has(> .choices) { overflow: visible !important; }
+.woocommerce form.checkout .choices.is-open { z-index: 10011; }
+.woocommerce form.checkout .choices input[hidden] { display: none !important; }
+.woocommerce form.checkout .choices .kiriof-choice-courier {
+ display: flex !important; align-items: center; justify-content: flex-start !important; gap: 12px;
+ min-width: 0; width: 100%; text-align: left !important; box-sizing: border-box;
+}
+.woocommerce form.checkout .choices .choices__list--single > .choices__item.kiriof-choice-courier { display: flex !important; white-space: normal; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-logo {
+ display: inline-flex; align-items: center; justify-content: center; flex: 0 0 64px; width: 64px; height: 44px;
+ padding: 5px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;
+}
+.woocommerce form.checkout .choices .kiriof-choice-courier-logo img { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important; object-fit: contain; padding: 0 !important; margin: 0 !important; border: 0 !important; box-sizing: border-box; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-copy { display: block; min-width: 0; flex: 1; text-align: left !important; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-label { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left !important; }
+.woocommerce form.checkout .choices .choices__list--dropdown .kiriof-choice-courier-label { white-space: normal; overflow-wrap: anywhere; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-prices { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin-top: 4px; font-size: 0.875em; line-height: 1.4; text-align: left !important; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-current { font-weight: 600; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-prices del { color: #64748b; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-savings { color: #166534; }
+.woocommerce form.checkout .choices .kiriof-choice-courier-note { display: block; margin-top: 3px; font-size: 0.8em; line-height: 1.4; color: #64748b; }
+.woocommerce form.checkout .choices:has(.kiriof-choice-courier) .choices__inner { min-height: 68px; height: auto; text-align: left !important; }
+.woocommerce form.checkout .choices .choices__list--dropdown .kiriof-choice-courier { padding: 12px; }
+.woocommerce form.checkout .kiriof-classic-shipping-options { display: block; width: 100%; clear: none; box-sizing: border-box; margin: 0 0 1.5rem; padding: 0; }
+.woocommerce form.checkout #order_review.kiriof-shipping-options-review-right { clear: right; }
+.woocommerce form.checkout #order_review.kiriof-shipping-options-review-left { clear: left; }
+.woocommerce form.checkout .kiriof-classic-shipping-options > h3 { margin: 0 0 0.75rem; }
+.woocommerce form.checkout .kiriof-classic-shipping-package { width: 100%; min-width: 0; margin-bottom: 0.75rem; }
+.woocommerce form.checkout .kiriof-classic-shipping-package .kiriof-classic-shipping-method-select-wrap { max-width: none; width: 100%; }
+.woocommerce form.checkout .kiriof-shipping-row-relocated[hidden] { display: none !important; }
+.woocommerce form.checkout table.kiriof-classic-order-review tr.kiriof-classic-shipping-summary[hidden] { display: none !important; }
+.woocommerce form.checkout table.kiriof-classic-order-review tr.kiriof-classic-shipping-summary:not([hidden]) { display: table-row !important; }
+.woocommerce form.checkout .kiriof-classic-shipping-insurance #kiriof-classic-insurance-field { margin: 0.75rem 0 0; font-size: inherit; font-weight: normal; line-height: inherit; }
+.woocommerce form.checkout .kiriof-classic-shipping-insurance label { display: flex; align-items: flex-start; gap: 0.5rem; }
+.woocommerce form.checkout .kiriof-classic-shipping-insurance input[type=checkbox] { flex-shrink: 0; margin-top: 0.25em; }
+.woocommerce form.checkout .kiriof-classic-package-label { margin: 0 0 0.5rem; font-weight: 600; }
+.woocommerce form.checkout .kiriof-shipping-selection-error { margin: 0.75rem 0; color: #a12622; }
+.woocommerce form.checkout .kiriof-shipping-selection-error[hidden] { display: none !important; }

@@ -12,14 +12,15 @@ final class AdminCourierShipmentResilienceTest extends TestCase
 
         $this->assertStringContainsString('KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY', $content);
         $this->assertStringContainsString(
-            'get_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY )',
+            'get_transient( $fallback_key )',
             $content
         );
         $this->assertStringContainsString(
-            'set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $data, WEEK_IN_SECONDS )',
+            'set_transient( $fallback_key, $data, WEEK_IN_SECONDS )',
             $content
         );
         $this->assertStringContainsString("'courier_cache_fallback'", $content);
+        $this->assertStringContainsString('KIRIOF_ALL_COURIERS_LAST_SUCCESS_CACHE_KEY', $content);
     }
 
     #[Test]
@@ -86,11 +87,11 @@ final class AdminCourierShipmentResilienceTest extends TestCase
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php');
 
-        $this->assertStringContainsString("in_array( \$filters['status'], array( 'unpaid', 'paid' ), true )", $content);
-        $this->assertStringContainsString('$page > $total_pages && $total_pages > 0', $content);
-        $this->assertStringContainsString('$offset = ( $page - 1 ) * $items_per_page;', $content);
+        $this->assertStringContainsString("in_array( \$filters['status'], array( 'unpaid', 'paid', 'pending', 'refunded' ), true )", $content);
+        $this->assertStringContainsString('$page = min( $page, $total_pages );', $content);
+        $this->assertStringContainsString('( $page - 1 ) * $items_per_page', $content);
         $this->assertLessThan(
-            strpos($content, 'ORDER BY kiriminaja_payments.created_at DESC'),
+            strpos($content, 'ORDER BY created_at DESC, row_key ASC'),
             strpos($content, '$total_pages = (int) ceil'),
             'Payment total and valid page must be resolved before the paginated query runs'
         );

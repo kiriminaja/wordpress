@@ -163,8 +163,7 @@ class SettingController{
                     'saved'                => __( 'Saved.', 'kiriminaja-official' ),
                     'saveFailed'           => __( 'Save failed.', 'kiriminaja-official' ),
                     // Translators: %1$s is the enabled courier count; %2$s is the total courier count.
-                    // Translators: %1$s is the enabled courier count; %2$s is the total courier count.
-                    'courierCount'         => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
+                    'courierCount'         => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
                     'noCouriers'           => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
                     'courierLoadFailed'    => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
                     'courierSaveFailed'    => __( 'Could not save courier settings.', 'kiriminaja-official' ),
@@ -457,7 +456,7 @@ class SettingController{
             }
 
             // Fetch all couriers from API
-            $couriers_service = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers();
+            $couriers_service = (new \KiriminAjaOfficial\Services\KiriminajaApiService())->get_couriers( true );
             if ($couriers_service->status !== 200) {
                 wp_send_json_error($couriers_service);
             }
@@ -471,8 +470,11 @@ class SettingController{
             wp_send_json_success(array(
                 'status'  => 200,
                 'data'    => array(
-                    'couriers'       => \KiriminAjaOfficial\Services\CourierServiceCatalog::enrich( (array) $couriers_service->data ),
-                    'whitelist_ids'  => array_values( array_filter( $repository->getWhitelistExpeditionIds(), array( \KiriminAjaOfficial\Services\CourierServiceCatalog::class, 'isSupportedCourier' ) ) ),
+                    'couriers'       => \KiriminAjaOfficial\Services\CourierServiceCatalog::enrich( (array) $couriers_service->data, null ),
+                    'whitelist_ids'  => array_values( array_filter( $repository->getWhitelistExpeditionIds(), static function ( $code ) {
+                        return \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $code, array(), null );
+                    } ) ),
+                    'legacy_restricted' => $repository->hasLegacyCourierRestriction(),
                     'service_selection' => null === $selection ? null : (object) $selection,
                 ),
             ));
@@ -499,7 +501,7 @@ class SettingController{
             if ( ! array_key_exists( 'service_selection', $data ) ) {
                 foreach ( array_filter( explode( ',', $payload['origin_whitelist_expedition_id'] ) ) as $courier ) {
                     if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier ) ) {
-                        throw new \InvalidArgumentException( 'Unsupported courier: ' . $courier . '. Remove international or instant couriers and save again.' );
+                        throw new \InvalidArgumentException( 'Unsupported courier: ' . $courier . '. Instant couriers require explicit service selections.' );
                     }
                 }
             }
@@ -509,7 +511,9 @@ class SettingController{
                 $previous_selection = $previous_policy ?? array();
                 if ( null === $previous_policy ) {
                     foreach ( $repository->getWhitelistExpeditionIds() as $legacy_courier ) {
-                        $previous_selection[ strtolower( $legacy_courier ) ] = array( '*' );
+                        if ( \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $legacy_courier ) ) {
+                            $previous_selection[ strtolower( $legacy_courier ) ] = array( '*' );
+                        }
                     }
                 }
                 $catalog = \KiriminAjaOfficial\Services\CourierServiceCatalog::available();
@@ -527,8 +531,8 @@ class SettingController{
                 $ids = array();
                 $names = array();
                 foreach ( $selection as $courier => &$services ) {
-                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier ) ) {
-                        throw new \InvalidArgumentException( 'Unsupported courier: ' . $courier . '. Remove international or instant couriers and save again.' );
+                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( $courier, (array) ( $catalog[ $courier ] ?? array() ), null ) ) {
+                        throw new \InvalidArgumentException( 'Unsupported courier: ' . $courier . '. Remove international or unsupported couriers and save again.' );
                     }
                     // Historical couriers may survive an API removal, but cannot inject CSV fields.
                     if ( ! isset( $catalog[ $courier ] ) && ( ! array_key_exists( $courier, $previous_selection ) || ! preg_match( '/^[a-z0-9_-]+$/D', $courier ) ) ) {
@@ -563,6 +567,7 @@ class SettingController{
                 $payload['origin_whitelist_expedition_name'] = implode( ',', $names );
             }
             $this->setting_repository->storeCourierWhitelist( $payload );
+            if ( function_exists( 'do_action' ) ) { do_action( 'kiriof_courier_settings_saved' ); }
 
             wp_send_json_success(['status' => 200, 'message' => 'Saved']);
         }catch (Throwable $e){
@@ -1627,6 +1632,7 @@ class SettingController{
             'kiriminaja_api',
             'kiriminaja_debug',
             'kiriminaja_import',
+            'kiriminaja_instant',
             'kiriminaja_payment',
             'kiriminaja_print',
             'kiriminaja_request_pickup',

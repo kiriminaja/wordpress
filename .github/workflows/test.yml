@@ -16,7 +16,11 @@ concurrency:
 
 jobs:
   static:
-    name: "Static Tests (PHP 8.1)"
+    name: "Static Tests (PHP ${{ matrix.php }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.2", "8.3", "8.5"]
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +30,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.1"
+          php-version: ${{ matrix.php }}
+          extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           tools: composer
 
       - name: Get Composer cache directory
@@ -44,8 +49,15 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
@@ -63,7 +75,7 @@ jobs:
         id: build
         run: |
           make zip
-          ZIP_FILE=$(ls kiriminaja-official*.zip 2>/dev/null | sort | head -1)
+          ZIP_FILE=kiriminaja-official.zip
           test -n "$ZIP_FILE" || { echo "ERROR: build zip not found"; exit 1; }
           echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
 
@@ -71,6 +83,7 @@ jobs:
         run: make test
 
       - name: Upload build artifact for integration tests
+        if: matrix.php == '8.1'
         uses: actions/upload-artifact@v7
         with:
           name: plugin-build
@@ -78,7 +91,15 @@ jobs:
           if-no-files-found: error
 
   wordpress:
-    name: "Integration + Plugin Check (WP latest / WC latest / PHP 8.1)"
+    name: "WP-CLI smoke + Plugin Check (WP ${{ matrix.wp }} / WC ${{ matrix.wc }} / PHP 8.1)"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - wp: "6.8"
+            wc: "8.5.0"
+          - wp: "6.8"
+            wc: "10.6.0"
     runs-on: ubuntu-latest
     needs: static
 
@@ -130,13 +151,13 @@ jobs:
 
       - name: Install WordPress
         run: |
-          wp core download --path=/tmp/wordpress --allow-root
+          wp core download --version=${{ matrix.wp }} --path=/tmp/wordpress --allow-root
           wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --path=/tmp/wordpress --allow-root
           wp core install --url=http://localhost --title="Test" --admin_user=admin --admin_password=admin --admin_email=test@test.com --path=/tmp/wordpress --allow-root
 
       - name: Install WooCommerce
         run: |
-          wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
+          wp plugin install woocommerce --version=${{ matrix.wc }} --activate --path=/tmp/wordpress --allow-root
 
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -234,6 +255,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: plugin-check-results
+          name: plugin-check-results-wp-${{ matrix.wp }}-wc-${{ matrix.wc }}
           path: /tmp/plugin-check-results.json
           overwrite: true

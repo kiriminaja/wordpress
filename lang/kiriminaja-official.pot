@@ -1276,6 +1276,7 @@ msgid "Set your business location for accurate shipping rates."
 msgstr ""
 
 #: templates/setting/setuped/index.php:242
+#: inc/Services/PackageTypeService.php
 msgid "Others"
 msgstr ""
 
@@ -2219,6 +2220,8 @@ msgstr ""
 
 #. translators: %1$s: enabled count, %2$s: total count.
 #: inc/Base/Enqueue.php
+#: inc/Controllers/SettingController.php
+#: inc/Services/SettingsPageData.php
 #: templates/setting/setuped/section-couriers.php:38
 #, php-format
 msgid "%1$s of %2$s enabled"
@@ -2565,4 +2568,109 @@ msgstr ""
 #: inc/Services/TransactionListRenderService.php
 #, php-format
 msgid "%s selected"
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery."
+msgstr ""
+
+msgid "Subdistrict Not Set"
+msgstr ""
+
+msgid "Checking Subdistrict…"
+msgstr ""
+
+msgid "Select Subdistrict"
+msgstr ""
+
+msgid "Enter your shipping postcode to find your subdistrict."
+msgstr ""
+
+msgid "Please select your Subdistrict to view shipping options."
+msgstr ""
+
+msgid "Loading subdistricts…"
+msgstr ""
+
+msgid "No subdistricts found. Check your shipping postcode."
+msgstr ""
+
+msgid "Subdistricts could not be loaded. Please retry."
+msgstr ""
+
+msgid "Subdistrict lookup timed out. Please retry."
+msgstr ""
+
+msgid "Could not verify your shipping subdistrict. Please try again."
+msgstr ""
+
+msgid "Please select a valid shipping subdistrict matching your shipping address."
+msgstr ""
+
+msgid "Please select a Subdistrict."
+msgstr ""
+
+msgid "<strong>Subdistrict</strong> is a required field"
+msgstr ""
+
+msgid "KiriminAja Subdistrict"
+msgstr ""
+
+msgid "Searchable shipping destination subdistrict."
+msgstr ""
+
+#: inc/Controllers/ProductController.php
+msgid "Category"
+msgstr ""
+
+#: inc/Controllers/ProductController.php
+msgid "Select KiriminAja package category for shipping. Defaults to Others."
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Others (Default)"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Electronics & Gadgets"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Clothing"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Fragile"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Documents"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Household Appliances"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Accessories"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Valuable Documents"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Health & Beauty"
+msgstr ""
+
+#: inc/Services/PackageTypeService.php
+msgid "Sports & Entertainment"
+msgstr ""
+
+#: templates/woocommerce/cart/cart-shipping.php
+msgid "Shipping Options"
 msgstr ""

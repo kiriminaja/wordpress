@@ -3,6 +3,7 @@
 namespace KiriminAjaOfficial\Queries;
 
 use KiriminAjaOfficial\Contracts\PaymentListQueryInterface;
+use KiriminAjaOfficial\Services\ListDateRangeFilter;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -29,156 +30,116 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $this->wpdb = $wpdb;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public function getPage( array $filters, int $page, int $items_per_page ): array {
         $wpdb = $this->wpdb;
-        $page           = max( 1, $page );
+        $page = max( 1, $page );
         $items_per_page = max( 1, $items_per_page );
-        $payment_table  = $this->wpdb->prefix . 'kiriminaja_payments';
-        $transaction_table = $this->wpdb->prefix . 'kiriminaja_transactions';
-        $key_enabled    = '' !== $filters['key'] ? 1 : 0;
-        $key_like       = '%' . $wpdb->esc_like( $filters['key'] ) . '%';
-        $month_enabled  = '' !== $filters['month'] ? 1 : 0;
-        $month_like     = '%' . $wpdb->esc_like( $filters['month'] ) . '%';
-        $status_enabled = in_array( $filters['status'], array( 'unpaid', 'paid' ), true ) ? 1 : 0;
-        $status         = $status_enabled ? $filters['status'] : '';
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query; results are request-specific and immediately paginated.
-        $total = count(
-            (array) $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT
-                    kiriminaja_payments.id, kiriminaja_payments.pickup_number
-                    FROM %i as kiriminaja_payments
-                    INNER JOIN %i as kiriminaja_transactions
-                    ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-                    WHERE ( %d = 0 OR kiriminaja_payments.pickup_number LIKE %s )
-                        AND ( %d = 0 OR kiriminaja_payments.created_at LIKE %s )
-                        AND ( %d = 0 OR kiriminaja_payments.status = %s )
-                    GROUP BY kiriminaja_payments.pickup_number",
-                    $payment_table,
-                    $transaction_table,
-                    $key_enabled,
-                    $key_like,
-                    $month_enabled,
-                    $month_like,
-                    $status_enabled,
-                    $status
-                )
-            )
+        $filters = array_merge( $filters, ListDateRangeFilter::normalize( $filters ) );
+        $groups = $this->getPaymentGroupsSql();
+        $status = in_array( $filters['status'], array( 'unpaid', 'paid', 'pending', 'refunded' ), true ) ? $filters['status'] : '';
+        $args = array(
+            '' !== $filters['key'] ? 1 : 0,
+            '%' . $wpdb->esc_like( $filters['key'] ) . '%',
+            '' !== $filters['month'] ? 1 : 0,
+            $wpdb->esc_like( $filters['month'] ) . '%',
+            '' !== $status ? 1 : 0,
+            $status,
         );
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $where = 'WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )';
+        // Filter after aggregation so payment group membership and totals stay intact.
+        $where .= ListDateRangeFilter::sql( $wpdb, 'created_at', $filters );
+        $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM ({$groups}) payment_groups {$where}", ...$args ) );
         $total_pages = (int) ceil( $total / $items_per_page );
-
-        if ( $page > $total_pages && $total_pages > 0 ) {
-            $page = $total_pages;
+        if ( $total_pages > 0 ) {
+            $page = min( $page, $total_pages );
         }
-
-        $offset = ( $page - 1 ) * $items_per_page;
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned admin list query.
-        $results = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT
-                kiriminaja_payments.*,
-                SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
-                FROM %i as kiriminaja_payments
-                INNER JOIN %i as kiriminaja_transactions
-                ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
-                WHERE ( %d = 0 OR kiriminaja_payments.pickup_number LIKE %s )
-                    AND ( %d = 0 OR kiriminaja_payments.created_at LIKE %s )
-                    AND ( %d = 0 OR kiriminaja_payments.status = %s )
-                GROUP BY kiriminaja_payments.pickup_number
-                ORDER BY kiriminaja_payments.created_at DESC
-                LIMIT %d, %d",
-                $payment_table,
-                $transaction_table,
-                $key_enabled,
-                $key_like,
-                $month_enabled,
-                $month_like,
-                $status_enabled,
-                $status,
-                $offset,
-                $items_per_page
-            )
-        );
-
+        $results = $wpdb->get_results( $wpdb->prepare(
+            "SELECT * FROM ({$groups}) payment_groups {$where} ORDER BY created_at DESC, row_key ASC LIMIT %d, %d",
+            ...array_merge( $args, array( ( $page - 1 ) * $items_per_page, $items_per_page ) )
+        ) );
+        // Fetch complete membership separately: GROUP_CONCAT is length limited and
+        // can silently omit orders from the authorized payment refresh request.
+        foreach ( $results as $row ) {
+            $row->order_ids = array();
+            if ( 'instant' !== $row->delivery_type ) {
+                continue;
+            }
+            $members = $wpdb->get_results( $wpdb->prepare(
+                'SELECT order_id FROM %i WHERE delivery_type = %s AND instant_payment_id = %s ORDER BY order_id ASC',
+                $wpdb->prefix . 'kiriminaja_transactions',
+                'instant',
+                $row->instant_payment_id
+            ) );
+            foreach ( $members as $member ) {
+                $row->order_ids[] = (string) $member->order_id;
+            }
+        }
         $this->logDatabaseError();
-
-        return array(
-            'results'        => $results,
-            'page'           => $page,
-            'items_per_page' => $items_per_page,
-            'total_pages'    => $total_pages,
-            'total'          => $total,
-        );
+        return array( 'results' => $results, 'page' => $page, 'items_per_page' => $items_per_page, 'total_pages' => $total_pages, 'total' => $total );
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public function getStatusCounts(): array {
-        return array(
-            'all'    => $this->getCountByStatus( null ),
-            'unpaid' => $this->getCountByStatus( 'unpaid' ),
-            'paid'   => $this->getCountByStatus( 'paid' ),
-        );
+        $counts = array();
+        $groups = $this->getPaymentGroupsSql();
+        foreach ( array( 'all', 'unpaid', 'paid', 'pending', 'refunded' ) as $status ) {
+            $counts[ $status ] = (int) $this->wpdb->get_var( $this->wpdb->prepare(
+                "SELECT COUNT(*) FROM ({$groups}) payment_groups WHERE ( %s = 'all' OR status = %s )",
+                $status,
+                $status
+            ) );
+        }
+        $this->logDatabaseError();
+        return $counts;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    /** {@inheritDoc} */
     public function getOldestCreatedAt(): ?string {
-        $wpdb = $this->wpdb;
-        $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
-        $created_at = $wpdb->get_var(
-            $wpdb->prepare(
-                'SELECT created_at FROM %i WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1',
-                $payment_table
-            )
-        );
+        $groups = $this->getPaymentGroupsSql();
+        $created_at = $this->wpdb->get_var( "SELECT created_at FROM ({$groups}) payment_groups WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1" );
         $this->logDatabaseError();
-
         return null === $created_at || '' === (string) $created_at ? null : (string) $created_at;
     }
 
     /**
-     * Count distinct payments by status.
+     * One read-only identity per payment, before any list filtering or pagination.
+     * Legacy payments retain their original join (including historical delivery
+     * types). Instant never borrows a pickup number or a remote payment amount.
+     * Conflicting/unknown group states are pending, not inferred to be paid.
      */
-    private function getCountByStatus( ?string $status ): int {
-        $wpdb = $this->wpdb;
-        $payment_table = $this->wpdb->prefix . 'kiriminaja_payments';
-
-        if ( null === $status ) {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
-            $count = $wpdb->get_var(
-                $wpdb->prepare(
-                    'SELECT COUNT(DISTINCT pickup_number) FROM %i',
-                    $payment_table
-                )
-            );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        } else {
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read-only plugin-owned table query.
-            $count = $wpdb->get_var(
-                $wpdb->prepare(
-                    'SELECT COUNT(DISTINCT pickup_number) FROM %i WHERE status = %s',
-                    $payment_table,
-                    $status
-                )
-            );
-        }
-
-        $this->logDatabaseError();
-
-        return (int) $count;
+    private function getPaymentGroupsSql(): string {
+        return $this->wpdb->prepare(
+            "SELECT CONCAT('express:', kiriminaja_payments.pickup_number) AS row_key,
+                'express' AS delivery_type, kiriminaja_payments.pickup_number AS payment_identity,
+                kiriminaja_payments.pickup_number, '' AS instant_payment_id,
+                MIN(kiriminaja_payments.created_at) AS created_at,
+                MAX(kiriminaja_payments.pickup_schedule) AS pickup_schedule,
+                MAX(kiriminaja_payments.order_amt) AS order_amt,
+                MAX(kiriminaja_payments.method) AS method,
+                CASE WHEN MAX(LOWER(kiriminaja_payments.method)) = 'top' THEN 'paid' ELSE MAX(kiriminaja_payments.status) END AS status,
+                SUM(CASE WHEN kiriminaja_transactions.cod_fee = 0 THEN kiriminaja_transactions.shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost ELSE 0 END) AS cost
+            FROM %i AS kiriminaja_payments
+            INNER JOIN %i AS kiriminaja_transactions ON kiriminaja_payments.pickup_number = kiriminaja_transactions.pickup_number
+            GROUP BY kiriminaja_payments.pickup_number
+            UNION ALL
+            SELECT CONCAT('instant:', t.instant_payment_id) AS row_key,
+                'instant' AS delivery_type, t.instant_payment_id AS payment_identity,
+                '' AS pickup_number, t.instant_payment_id,
+                MIN(COALESCE(t.request_pickup_at, t.created_at)) AS created_at,
+                NULL AS pickup_schedule, COUNT(*) AS order_amt,
+                CASE WHEN COUNT(DISTINCT COALESCE(t.instant_payment_method, '')) = 1 THEN MAX(t.instant_payment_method) ELSE '' END AS method,
+                CASE WHEN COUNT(DISTINCT COALESCE(t.instant_payment_status, '')) = 1
+                    AND MAX(t.instant_payment_status) IN ('paid','unpaid','pending','refunded')
+                    THEN MAX(t.instant_payment_status) ELSE 'pending' END AS status,
+                SUM(t.shipping_cost - COALESCE(t.discount_amount, 0) + COALESCE(t.insurance_cost, 0)) AS cost
+            FROM %i AS t
+            WHERE t.delivery_type = 'instant' AND t.instant_payment_id IS NOT NULL AND t.instant_payment_id != ''
+            GROUP BY t.instant_payment_id",
+            $this->wpdb->prefix . 'kiriminaja_payments',
+            $this->wpdb->prefix . 'kiriminaja_transactions',
+            $this->wpdb->prefix . 'kiriminaja_transactions'
+        );
     }
 
     /**

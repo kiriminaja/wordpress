@@ -84,16 +84,6 @@ function kiriof_shipping_method(){
                     if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
                         WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
                     }
-                    if ( function_exists( 'kiriof_log' ) ) {
-                        kiriof_log(
-                            'info',
-                            'KiriminAja shipping rates hidden because checkout address is too short.',
-                            array(
-                                'address_length' => $this->kiriof_get_checkout_address_length( $package ),
-                                'minimum_length' => self::KIRIOF_MIN_ADDRESS_LENGTH,
-                            )
-                        );
-                    }
                     return;
                 }
 
@@ -101,27 +91,24 @@ function kiriof_shipping_method(){
                     return;
                 }
 
-                if ($this->hasActiveFreeShippingCoupon()) {
-                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
-                    }
-                    // Add a 0-cost rate so KiriminAja remains a valid shipping option
-                    // rather than leaving the customer with no available shipping methods.
-                    $this->add_rate( array(
-                        'id'    => $this->id . '_free',
-                        'label' => __( 'Free shipping', 'kiriminaja-official' ),
-                        'cost'  => 0,
-                    ) );
-                    return;
-                }
-
                 $destination_id = WC()->session->get( 'shipping_destination_id' );
                 if ( empty( $destination_id ) ) {
                     $destination_id = WC()->session->get( 'destination_id' );
                 }
+                $buyer_destination = WC()->session->get( 'kiriof_buyer_destination', null );
+                if ( is_array( $buyer_destination ) ) {
+                    $destination_id = $buyer_destination['district_id'] ?? '';
+                    $package_destination = $package['destination'] ?? array();
+                    $package_postcode = strtoupper( preg_replace( '/\s+/', '', (string) ( $package_destination['postcode'] ?? '' ) ) );
+                    $package_country = strtoupper( (string) ( $package_destination['country'] ?? '' ) );
+                    if ( ( '' !== $package_postcode && $package_postcode !== ( $buyer_destination['postcode'] ?? '' ) )
+                        || ( '' !== $package_country && $package_country !== ( $buyer_destination['country'] ?? '' ) ) ) {
+                        $destination_id = '';
+                    }
+                }
                 // Fallback: read from customer additional fields in case the
                 // session was not persisted between API requests.
-                if ( empty( $destination_id ) ) {
+                if ( empty( $destination_id ) && ! is_array( $buyer_destination ) ) {
                     try {
                         if ( isset( WC()->customer ) && is_object( WC()->customer ) ) {
                             $meta_keys = array(
@@ -135,30 +122,27 @@ function kiriof_shipping_method(){
                                 $dest = WC()->customer->get_meta( $mk );
                                 if ( ! empty( $dest ) ) {
                                     $destination_id = (int) $dest;
-                                    kiriof_log( 'info', 'Fallback: found destination_id=' . $destination_id . ' from meta key: ' . $mk );
                                     break;
                                 }
                             }
-                            // Dump all customer meta if still not found
+                            // Scan destination-field metadata if still not found
                             if ( empty( $destination_id ) ) {
                                 $all_meta = WC()->customer->get_meta_data();
                                 foreach ( $all_meta as $m ) {
                                     if ( stripos( $m->key, 'kiriof_destination_area' ) !== false ) {
                                         $destination_id = (int) $m->value;
-                                        kiriof_log( 'info', 'Fallback: found via scan meta key=' . $m->key . ' value=' . $m->value );
                                         break;
                                     }
                                 }
                             }
-                        } else {
-                            kiriof_log( 'warning', 'Fallback: WC()->customer not available' );
                         }
-                    } catch ( \Exception $e ) {
-                        kiriof_log( 'error', 'Fallback exception: ' . $e->getMessage() );
+                    } catch ( \Throwable $e ) {
+                        if ( function_exists( 'kiriof_log' ) ) {
+                            kiriof_log( 'error', 'Express destination fallback failed.', array( 'code' => 'destination_fallback_failed', 'backtrace' => false ) );
+                        }
                     }
                 }
 
-                kiriof_log( 'info', 'calculate_shipping destination_id=' . ( is_scalar( $destination_id ) ? (string) $destination_id : wp_json_encode( $destination_id ) ) );
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
 
                 if ( empty( $destination_id ) ) {
@@ -184,8 +168,8 @@ function kiriof_shipping_method(){
                 $settingRepository = kiriof_setting_repository();
                 $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
                 $locationOrigin = isset($package['origin']) && is_array($package['origin']) ? $package['origin'] : array();
-                $originSubdistrictId = !empty($locationOrigin['origin_sub_district_id'])
-                    ? (int) $locationOrigin['origin_sub_district_id']
+                $originSubdistrictId = array_key_exists( 'origin', $package )
+                    ? (int) ( $locationOrigin['origin_sub_district_id'] ?? 0 )
                     : (int) ($settingRepo ? $settingRepo->value : 0);
                 if(!$originSubdistrictId){
                     wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
@@ -199,6 +183,8 @@ function kiriof_shipping_method(){
                 ])->call();
 
                 $payload = [
+                    'origin_postcode' => (string) ( array_key_exists( 'origin', $package ) ? ( $locationOrigin['origin_zip_code'] ?? '' ) : ( $settingRepository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ),
+                    'destination_postcode' => (string) ( $package['destination']['postcode'] ?? '' ),
                     'subdistrict_origin' => $originSubdistrictId,
                     'subdistrict_destination'=>$destination_id,
                     'weight' => $cartAttributes->data['weight'],
@@ -222,15 +208,7 @@ function kiriof_shipping_method(){
                         \KiriminAjaOfficial\Services\CheckoutServices\PricingCacheService::put( $payload, $kiriofPricing['data'] );
                     }
                 }
-                kiriof_log( 'info', 'getPricing result keys=' . ( is_array( $kiriofPricing ) ? implode( ',', array_keys( $kiriofPricing ) ) : gettype( $kiriofPricing ) ) );
-                if ( isset( $kiriofPricing['status'] ) ) {
-                    kiriof_log( 'info', 'getPricing status=' . ( is_scalar( $kiriofPricing['status'] ) ? (string) $kiriofPricing['status'] : wp_json_encode( $kiriofPricing['status'] ) ) );
-                }
-                if ( isset( $kiriofPricing['data'] ) && is_array( $kiriofPricing['data'] ) ) {
-                    kiriof_log( 'info', 'getPricing data count=' . count( $kiriofPricing['data'] ) );
-                }
-                
-                $res_pricing = $kiriofPricing['data']; //object
+                $res_pricing = ! empty( $kiriofPricing['status'] ) ? ( $kiriofPricing['data'] ?? null ) : null;
                 $kiriofRateMetaMap = array();
                 foreach($this->filterOptions($res_pricing, $quantity, $kiriof_insurance) as $row){
                     
@@ -286,29 +264,6 @@ function kiriof_shipping_method(){
                 if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
                     $existingRateMetaMap = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
                     WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array_merge( $existingRateMetaMap, $kiriofRateMetaMap ) );
-                }
-
-                if ( function_exists( 'kiriof_log' ) ) {
-                    $discountedRates = array_filter(
-                        $kiriofRateMetaMap,
-                        static function ( $rateMeta ) {
-                            return isset( $rateMeta['discount_amount'] ) && (float) $rateMeta['discount_amount'] > 0;
-                        }
-                    );
-
-                    kiriof_log(
-                        'info',
-                        'Shipping discount rate metadata refreshed.',
-                        array(
-                            'rate_count' => count( $kiriofRateMetaMap ),
-                            'discounted_rate_count' => count( $discountedRates ),
-                            'discounted_rate_ids' => array_keys( $discountedRates ),
-                            'applied_coupons' => function_exists( 'WC' ) && WC() && isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_applied_coupons' )
-                                ? array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) )
-                                : array(),
-                        ),
-                        'shipping_discount_coupon'
-                    );
                 }
 
             }
@@ -381,6 +336,7 @@ function kiriof_shipping_method(){
                 }
 
                 if ( '' !== $description && method_exists( $this->rates[ $rate_id ], 'set_description' ) ) {
+                    // WooCommerce shows these details beneath the selected courier.
                     $this->rates[ $rate_id ]->set_description( $description );
                 }
 
@@ -415,6 +371,10 @@ function kiriof_shipping_method(){
                 $filteredOptions = [];
                 $allOptions = [];
                 foreach ($options as $option){
+                    // A complete address or map pin does not opt checkout into Instant.
+                    if ( ! \KiriminAjaOfficial\Services\CourierServiceCatalog::isSupportedCourier( (string) ( $option->service ?? '' ), (array) $option, 'express' ) ) {
+                        continue;
+                    }
                     $shipping_cost = $option->cost - $option->discount_amount;
                     $shippingDiscountPricing = $shippingDiscountService->getAdjustedRatePricing($option, (float) $shipping_cost);
 
@@ -535,9 +495,8 @@ function kiriof_shipping_method(){
                     $parts[] = $service_label;
                 }
 
-                if ( ! empty( $kiriof_insurance ) ) {
-                    $parts[] = __( 'Includes insurance', 'kiriminaja-official' );
-                }
+                $insurance_label = \KiriminAjaOfficial\Services\CheckoutRatePresentation::insuranceLabel( $option, ! empty( $kiriof_insurance ) );
+                if ( '' !== $insurance_label ) { $parts[] = $insurance_label; }
 
                 return implode( ' • ', array_filter( $parts ) );
             }
@@ -567,20 +526,6 @@ function kiriof_shipping_method(){
                 return ucwords( strtolower( $service_type ) ) . ' ' . __( 'service', 'kiriminaja-official' );
             }
 
-            private function hasActiveFreeShippingCoupon(){
-                if (!function_exists('WC') || !WC() || !isset(WC()->cart) || !WC()->cart) {
-                    return false;
-                }
-
-                foreach (WC()->cart->get_coupons() as $coupon) {
-                    if ($coupon && method_exists($coupon, 'get_free_shipping') && $coupon->get_free_shipping()) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            
         }
     }
 }

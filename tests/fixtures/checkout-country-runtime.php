@@ -84,7 +84,7 @@ switch ( $input['action'] ) {
     case 'fields':
         $fields = array();
         foreach ( array( 'billing', 'shipping' ) as $group ) {
-            foreach ( array( 'state', 'city', 'company', 'postcode', 'country' ) as $field ) {
+            foreach ( array( 'state', 'city', 'company', 'postcode', 'country', 'phone', 'email' ) as $field ) {
                 $fields[ $group ][ $group . '_' . $field ] = array(
                     'label' => ucfirst( $field ),
                     'required' => 'company' !== $field,

@@ -2,6 +2,7 @@
 namespace KiriminAjaOfficial\Repositories;
 
 use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
@@ -114,6 +115,31 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         );
         return $this->hasError() ? false : $query;
     }
+
+    /**
+     * Find an unambiguous transaction for verified Store API replay.
+     *
+     * @param int|string $id Positive WooCommerce order ID.
+     * @return object|null|false Single transaction, absence, or lookup/ambiguity failure.
+     */
+    public function getUniqueTransactionByWCOrderId( $id ) {
+        if ( ! ( is_int( $id ) || is_string( $id ) ) || ! preg_match( '/^[1-9][0-9]*$/D', (string) $id ) || (int) $id <= 0 || (string) (int) $id !== (string) $id ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Replay must detect duplicate rows instead of accepting the first match.
+        $rows = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                "SELECT * FROM {$this->table} WHERE wp_wc_order_stat_order_id = %d LIMIT 2",
+                (int) $id
+            )
+        );
+        if ( $this->hasError() || ! is_array( $rows ) || count( $rows ) > 1 ) {
+            return false;
+        }
+
+        return empty( $rows ) ? null : ( is_object( $rows[0] ) ? $rows[0] : false );
+    }
     
     public function getTransactionById( int $id ) {
         $id = absint( $id );
@@ -145,6 +171,179 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->hasError() ? false : $query;
     }
     
+    /**
+     * Atomically reserve an unbooked instant shipment before any remote submission.
+     *
+     * @param string $order_id KiriminAja order ID.
+     * @return bool Whether exactly one transaction was claimed.
+     */
+    public function claimInstantDispatch( string $order_id ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic write; invalidate only after a successful claim.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET status = 'pending'
+                WHERE order_id = %s
+                    AND delivery_type = 'instant'
+                    AND service IN ('gosend', 'grab_express')
+                    AND status = 'new'
+                    AND (instant_payment_id IS NULL OR instant_payment_id = '')
+                    AND (awb IS NULL OR awb = '')
+                    AND instant_status_code IS NULL",
+                $order_id
+            )
+        );
+
+        if ( 1 !== $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+
+        $this->invalidateCouriersCache();
+        return true;
+    }
+
+    /**
+     * Release an unbooked claim only when dispatch aborts before calling the API.
+     * Never use this after a remote submission, including an ambiguous response.
+     *
+     * @param string $order_id KiriminAja order ID.
+     * @return bool Whether exactly one pending transaction was released.
+     */
+    public function releaseInstantDispatch( string $order_id ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic write; invalidate only after a successful release.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET status = 'new'
+                WHERE order_id = %s
+                    AND delivery_type = 'instant'
+                    AND service IN ('gosend', 'grab_express')
+                    AND status = 'pending'
+                    AND (instant_payment_id IS NULL OR instant_payment_id = '')
+                    AND (awb IS NULL OR awb = '')
+                    AND instant_status_code IS NULL",
+                $order_id
+            )
+        );
+
+        if ( 1 !== $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+
+        $this->invalidateCouriersCache();
+        return true;
+    }
+
+    /**
+     * Reserve cancellation before DELETE; only reconciliation may resolve code 350.
+     *
+     * @param string $id KiriminAja order ID.
+     * @param int    $expected_code Last confirmed, cancellable remote status code.
+     * @return bool Whether exactly one Instant transaction was claimed.
+     */
+    public function claimInstantCancellation( string $id, int $expected_code ): bool {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic claim; invalidate only after success.
+        $updated = $this->wpdb->query(
+            $this->wpdb->prepare(
+                "UPDATE {$this->table}
+                SET instant_status_code = 350,
+                    rejected_reason = 'Instant cancellation requires reconciliation.'
+                WHERE order_id = %s
+                    AND delivery_type = 'instant'
+                    AND service IN ('gosend', 'grab_express')
+                    AND status IN ('pending', 'request_pickup')
+                    AND instant_status_code IN (100, 101, 105, 110)
+                    AND instant_status_code = %d
+                    AND instant_payment_id IS NOT NULL
+                    AND instant_payment_id <> ''
+                    AND (instant_payment_status IS NULL OR instant_payment_status <> 'refunded')",
+                $id,
+                $expected_code
+            )
+        );
+
+        if ( 1 !== $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+
+        $this->invalidateCouriersCache();
+        return true;
+    }
+
+    /**
+     * Compare and swap Instant lifecycle metadata without changing its identity.
+     * Expected values are a stored snapshot: never sanitize or normalize them.
+     *
+     * @param string $id KiriminAja order ID.
+     * @param array  $expected Stored lifecycle fields, including status and code.
+     * @param array  $changes Incoming lifecycle metadata.
+     * @return bool Whether the guarded write succeeded or its exact final state exists.
+     */
+    public function compareAndSwapInstant( string $id, array $expected, array $changes ): bool {
+        $fields = array(
+            'status', 'instant_status_code', 'instant_payment_status', 'instant_payment_id',
+            'instant_payment_method', 'awb', 'live_tracking_url', 'rejected_reason',
+            'created_at', 'request_pickup_at', 'shipped_at', 'return_finished_at',
+            'finished_at', 'rejected_at', 'returned_at', 'canceled_at',
+            'shipping_info', 'shipment_location_snapshot', 'vehicle', 'shipping_cost',
+        );
+        if ( '' === $id || empty( $changes ) || ! array_key_exists( 'status', $expected ) || ! array_key_exists( 'instant_status_code', $expected ) ) {
+            return false;
+        }
+        $condition = array( 'order_id' => $id, 'delivery_type' => 'instant' );
+        foreach ( $expected as $field => $value ) {
+            if ( array_key_exists( $field, $condition ) ) {
+                if ( $condition[ $field ] !== $value ) {
+                    return false;
+                }
+                continue;
+            }
+            if ( ! in_array( $field, $fields, true ) || ( null !== $value && ! is_scalar( $value ) ) ) {
+                return false;
+            }
+            $condition[ $field ] = $value;
+        }
+        foreach ( $changes as $field => $value ) {
+            if ( ! in_array( $field, $fields, true ) || ( null !== $value && ! is_scalar( $value ) ) ) {
+                return false;
+            }
+        }
+        // Validate incoming metadata only; immutable partitions are not in the allowlist.
+        $changes = $this->normalizeDeliveryChanges( $changes );
+        if ( false === $changes ) {
+            return false;
+        }
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Guarded atomic lifecycle write.
+        $updated = $this->wpdb->update( $this->table, $changes, $condition );
+        if ( false === $updated || ! empty( $this->wpdb->last_error ) ) {
+            return false;
+        }
+        if ( $updated > 0 ) {
+            return true;
+        }
+
+        $transaction = $this->getTransactionByOrderId( $id );
+        if ( ! is_object( $transaction ) ) {
+            return false;
+        }
+        // Replaced expectations must match the new value; every other guard stays
+        // mandatory. In particular, a metadata-only write cannot bypass a status race.
+        foreach ( array_merge( $condition, $changes ) as $field => $value ) {
+            if ( ! property_exists( $transaction, $field ) ) {
+                return false;
+            }
+            $stored = $transaction->{$field};
+            if ( null === $stored || null === $value ) {
+                if ( $stored !== $value ) {
+                    return false;
+                }
+            } elseif ( (string) $stored !== (string) $value ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public function getTransactionByWCOrderNumber($wp_wc_order_stat_order_id){
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
         $query = $this->wpdb->get_row(
@@ -229,11 +428,115 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->hasError() ? false : $query;
     }
     
+    /** Keep courier edits and the indexed partition in the same write. */
+    private function normalizeDeliveryChanges( array $changes, array $condition = array() ): array|false {
+        $changes = $this->normalizeInstantMetadata( $changes );
+        if ( false === $changes ) {
+            return false;
+        }
+        $partition_changed = array_key_exists( 'service', $changes ) || array_key_exists( 'delivery_type', $changes );
+        $existing          = null;
+
+        if ( $partition_changed ) {
+            if ( array_key_exists( 'order_id', $condition ) && '' !== (string) $condition['order_id'] ) {
+                $existing = $this->getTransactionByOrderId( $condition['order_id'] );
+            } elseif ( array_key_exists( 'wp_wc_order_stat_order_id', $condition ) && '' !== (string) $condition['wp_wc_order_stat_order_id'] ) {
+                $existing = $this->getTransactionByWCOrderId( $condition['wp_wc_order_stat_order_id'] );
+            }
+
+            // A lookup error must not turn a partial write into a destructive write.
+            if ( false === $existing ) {
+                return false;
+            }
+        }
+
+        if ( $partition_changed ) {
+            $classification = is_object( $existing ) ? get_object_vars( $existing ) : array();
+            $classification = array_merge( $classification, $changes );
+            // A new courier must not inherit the old courier's explicit partition.
+            if ( array_key_exists( 'service', $changes ) && ! array_key_exists( 'delivery_type', $changes ) ) {
+                unset( $classification['delivery_type'] );
+            }
+            $changes['delivery_type'] = TransactionDeliveryType::resolve( $classification );
+
+            if ( 'instant' === $changes['delivery_type'] && ! array_key_exists( 'vehicle', $changes ) ) {
+                $changes['vehicle'] = is_object( $existing ) ? TransactionDeliveryType::normalizeVehicle( $existing->vehicle ?? null ) : null;
+            } else {
+                $changes['vehicle'] = 'instant' === $changes['delivery_type'] ? TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] ?? null ) : null;
+            }
+            $this->invalidateCouriersCache();
+        } elseif ( array_key_exists( 'vehicle', $changes ) ) {
+            $changes['vehicle'] = TransactionDeliveryType::normalizeVehicle( $changes['vehicle'] );
+        }
+        return $changes;
+    }
+
+    /** Validate only supplied metadata; omitted fields must never clear stored values. */
+    private function normalizeInstantMetadata( array $changes ): array|false {
+        foreach ( array( 'instant_status_code', 'instant_payment_status', 'instant_payment_method', 'instant_payment_id', 'destination_latitude', 'destination_longitude', 'live_tracking_url' ) as $field ) {
+            if ( ! array_key_exists( $field, $changes ) || null === $changes[ $field ] ) {
+                continue;
+            }
+            $value = $changes[ $field ];
+            if ( 'instant_status_code' === $field ) {
+                if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^[0-9]+$/D', $value ) ) ) {
+                    return false;
+                }
+                $digits = ltrim( (string) $value, '0' );
+                // The persisted column is a signed MySQL INT, not a platform-sized PHP integer.
+                if ( $value < 0 || strlen( $digits ) > 10 || ( 10 === strlen( $digits ) && strcmp( $digits, '2147483647' ) > 0 ) ) {
+                    return false;
+                }
+                $changes[ $field ] = (int) $digits;
+            } elseif ( 'destination_latitude' === $field || 'destination_longitude' === $field ) {
+                if ( ! ( is_int( $value ) || is_float( $value ) || is_string( $value ) ) || ! is_numeric( $value ) ) {
+                    return false;
+                }
+                $value = (float) $value;
+                $limit = 'destination_latitude' === $field ? 90 : 180;
+                if ( ! is_finite( $value ) || $value < -$limit || $value > $limit ) {
+                    return false;
+                }
+                $changes[ $field ] = $value;
+            } else {
+                if ( ! is_string( $value ) ) {
+                    return false;
+                }
+                if ( 'instant_payment_id' === $field && ( function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : strlen( $value ) ) > 100 ) {
+                    return false;
+                }
+                if ( 'live_tracking_url' === $field ) {
+                    $value = trim( $value );
+                    if ( '' !== $value && ( ! filter_var( $value, FILTER_VALIDATE_URL ) || ! in_array( strtolower( (string) wp_parse_url( $value, PHP_URL_SCHEME ) ), array( 'https', 'http' ), true ) ) ) {
+                        return false;
+                    }
+                    $changes[ $field ] = esc_url_raw( $value, array( 'https', 'http' ) );
+                    continue;
+                }
+                if ( 'instant_payment_status' === $field || 'instant_payment_method' === $field ) {
+                    $value   = strtolower( trim( $value ) );
+                    $allowed = 'instant_payment_status' === $field ? array( 'paid', 'unpaid', 'pending', 'refunded' ) : array( 'credit', 'qris', 'top' );
+                    if ( ! in_array( $value, $allowed, true ) ) {
+                        return false;
+                    }
+                } else {
+                    $value = sanitize_text_field( $value );
+                }
+                $changes[ $field ] = $value;
+            }
+        }
+        return $changes;
+    }
+
     public function updateTransactionByCallback($payloads){
+        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'], $payloads['condition'] ?? array() );
+        if ( false === $payloads['changes'] ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
+        $updated = $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
         
-        return !$this->hasError();
+        return false !== $updated && !$this->hasError();
     }
 
     /**
@@ -243,6 +546,10 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
      * @return bool
      */
     public function updateTransactionByCallbackVerified( $payloads ) {
+        $payloads['changes'] = $this->normalizeDeliveryChanges( $payloads['changes'], $payloads['condition'] ?? array() );
+        if ( false === $payloads['changes'] ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $updated = $this->wpdb->update( $this->table, $payloads['changes'], $payloads['condition'] );
 
@@ -294,8 +601,12 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     }
     
     public function createTransaction($payload){
+        $payload = $this->normalizeInstantMetadata( $payload );
+        if ( false === $payload ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-        $this->wpdb->query(
+        $inserted = $this->wpdb->query(
             $this->wpdb->prepare(
                 //phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 "INSERT INTO {$this->table} 
@@ -307,6 +618,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     `status`, 
                     `service`, 
                     `service_name`, 
+                    `delivery_type`,
+                    `vehicle`,
                     `weight`, 
                     `width`, 
                     `height`, 
@@ -324,9 +637,16 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     `is_deficit`,
                     `cod_minimum`,
                     `shipment_location_id`,
-                    `shipment_location_snapshot`
+                    `shipment_location_snapshot`,
+                    `instant_status_code`,
+                    `instant_payment_status`,
+                    `instant_payment_method`,
+                    `instant_payment_id`,
+                    `destination_latitude`,
+                    `destination_longitude`,
+                    `live_tracking_url`
                 ) 
-                VALUES (%s, %s, %d, %s, %s, %s, %s, %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s)",
+                VALUES (%s, %s, %d, %s, %s, %s, %s, %s, NULLIF(%s, ''), %d, %f, %f, %f, %f, %f, %f, %f, %s, %d, %f, %f, %f, %s, %d, %f, %d, %s, NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''), NULLIF(%s, ''))",
                 $payload['order_id'],
                 $payload['shipping_info'],
                 $payload['destination_sub_district_id'],
@@ -334,6 +654,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                 $payload['status'],
                 $payload['service'],
                 $payload['service_name'],
+                TransactionDeliveryType::resolve( $payload ),
+                TransactionDeliveryType::normalizeVehicle( $payload['vehicle'] ?? null ) ?? '',
                 $payload['weight'],
                 $payload['width'],
                 $payload['height'],
@@ -351,11 +673,18 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                 $payload['is_deficit'] ?? 0,
                 $payload['cod_minimum'] ?? null,
                 $payload['shipment_location_id'] ?? null,
-                $payload['shipment_location_snapshot'] ?? null
+                $payload['shipment_location_snapshot'] ?? null,
+                $payload['instant_status_code'] ?? '',
+                $payload['instant_payment_status'] ?? '',
+                $payload['instant_payment_method'] ?? '',
+                $payload['instant_payment_id'] ?? '',
+                $payload['destination_latitude'] ?? '',
+                $payload['destination_longitude'] ?? '',
+                $payload['live_tracking_url'] ?? ''
             )
         );
         $this->invalidateCouriersCache();
-        return !$this->hasError();
+        return false !== $inserted && !$this->hasError();
     }
     public function getTransactionByOldestDate(){
         $shippable_order_clause = $this->getShippableOrderExistsSql( 'wp_wc_order_stat_order_id' );
@@ -546,6 +875,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
 
     public function invalidateCouriersCache() {
         delete_transient('kiriof_distinct_couriers');
+        delete_transient('kiriof_distinct_couriers_express');
+        delete_transient('kiriof_distinct_couriers_instant');
     }
 
     /**
@@ -677,9 +1008,13 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         
         $where = ['wp_wc_order_stat_order_id' => $payload['wp_wc_order_stat_order_id']];
         
+        $changes = $this->normalizeDeliveryChanges( array_merge( $updateData, array_intersect_key( $payload, array_flip( array( 'delivery_type', 'vehicle', 'instant_status_code', 'instant_payment_status', 'instant_payment_method', 'instant_payment_id', 'destination_latitude', 'destination_longitude', 'live_tracking_url' ) ) ) ), $where );
+        if ( false === $changes ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        $this->wpdb->update($this->table, $updateData, $where);
+        $updated = $this->wpdb->update($this->table, $changes, $where);
         $this->invalidateCouriersCache();
-        return !$this->hasError();
+        return false !== $updated && !$this->hasError();
     }
 }

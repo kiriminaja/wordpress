@@ -335,7 +335,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
         $reviewOrder = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/checkout/review-order.php');
         $cartShipping = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php');
-        $blockCheckout = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+        $blockCheckout = file_get_contents(PLUGIN_DIR . '/src/buyer/blocks/coupon-notice.ts');
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
         $metabox = file_get_contents(PLUGIN_DIR . '/templates/order/metabox-shipping.php');
         $transactionProcess = file_get_contents(PLUGIN_DIR . '/inc/Controllers/TransactionProcessController.php');

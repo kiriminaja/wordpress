@@ -1,0 +1,27 @@
+{
+  "translation-revision-date": "2026-06-02T08:13:02+00:00",
+  "generator": "KiriminAja editor catalog generator (Python stdlib)",
+  "source": "blocks/checkout-district/edit.js",
+  "domain": "kiriminaja-official",
+  "locale_data": {
+    "messages": {
+      "": {
+        "domain": "messages",
+        "lang": "id_ID",
+        "plural-forms": "nplurals=2; plural=(n > 1);"
+      },
+      "KiriminAja Subdistrict": [
+        "Desa / Kelurahan KiriminAja"
+      ],
+      "Searchable shipping destination subdistrict.": [
+        "Desa / Kelurahan tujuan pengiriman yang dapat dicari."
+      ],
+      "Subdistrict": [
+        "Desa / Kelurahan"
+      ],
+      "Select Subdistrict": [
+        "Pilih Desa / Kelurahan"
+      ]
+    }
+  }
+}

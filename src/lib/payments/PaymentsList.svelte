@@ -1,9 +1,8 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { IconBuildingBank, IconCalendar, IconCalendarClock, IconChevronDown, IconCircleCheck, IconClock, IconCreditCardPay, IconEye, IconQrcode, IconSearch } from '@tabler/icons-svelte';
+  import { IconBuildingBank, IconCalendarClock, IconCircleCheck, IconClock, IconCreditCardPay, IconEye, IconQrcode, IconSearch } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import * as InputGroup from '$lib/components/ui/input-group';
-  import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import StatusBadge from '../admin-list/StatusBadge.svelte';
@@ -12,8 +11,11 @@
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
+  import DateRangeFilter from '$lib/ui/DateRangeFilter.svelte';
   import PaymentScheduleDialog from './PaymentScheduleDialog.svelte';
   import ScanToPayDialog from './ScanToPayDialog.svelte';
+  import InstantScanToPayDialog from './InstantScanToPayDialog.svelte';
+  import { paymentDeepLink } from './payment-deep-link';
   import type { PaymentsBootstrap, PaymentRow } from './types';
 
   let {
@@ -40,24 +42,30 @@
   let schedulePickupNumber = $state('');
   let paymentDialogOpen = $state(false);
   let paymentPickupNumber = $state('');
+  let instantPaymentDialogOpen = $state(false);
+  let instantPaymentId = $state('');
+  let instantOrderIds = $state<string[]>([]);
+
+  function openPayment(row: PaymentRow): void {
+    if (row.deliveryType === 'instant') {
+      instantPaymentId = row.identity; instantOrderIds = [...row.orderIds]; instantPaymentDialogOpen = true;
+    } else { paymentPickupNumber = row.pickupNumber; paymentDialogOpen = true; }
+  }
 
   $effect(() => {
     const params = new URLSearchParams(window.location.search);
-    const number = params.get('pickup_number');
     const open = params.get('open_payment');
-    if (!number || (open !== '1' && open !== 'true')) return;
+    if (open !== '1' && open !== 'true') return;
+    const row = paymentDeepLink(params, bootstrap.rows);
     params.delete('pickup_number');
+    params.delete('instant_payment_id');
     params.delete('open_payment');
     window.history.replaceState(null, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
-    if (bootstrap.rows.some((row) => row.pickupNumber === number && row.actions.some((action) => action.type === 'pay'))) {
-      paymentPickupNumber = number;
-      paymentDialogOpen = true;
-    }
+    if (row) openPayment(row);
   });
 
   const currentStatus = $derived(bootstrap.filters.status || 'all');
   const paymentTabs = $derived(bootstrap.statusTabs.map((tab) => ({ ...tab, value: tab.value || 'all' })));
-  const monthLabel = $derived(month !== 'all' ? bootstrap.monthOptions[month] ?? bootstrap.i18n.allDates : bootstrap.i18n.allDates);
 
   function buildUrl(values: Record<string, string>): URL {
     const url = new URL(window.location.href);
@@ -84,10 +92,6 @@
     void navigate({ key: search, month: month === 'all' ? '' : month });
   }
 
-  function changeMonth(value: string): void {
-    month = value || 'all';
-    if (!refreshing) applyFilters();
-  }
 
   function changeStatus(status: string): void {
     if (!refreshing) void navigate({ status: status === 'all' ? '' : status });
@@ -131,15 +135,7 @@
               <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
             </InputGroup.Root>
           </form>
-          <Select.Root type="single" value={month} disabled={refreshing} onValueChange={changeMonth}>
-            <Select.Trigger hideIcon><IconCalendar /><Select.Value>{monthLabel}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
-            <Select.Content class="kiriof-shadcn">
-              <Select.Item value="all">{bootstrap.i18n.allDates}</Select.Item>
-              {#each Object.entries(bootstrap.monthOptions) as [value, label]}
-                <Select.Item {value}>{label}</Select.Item>
-              {/each}
-            </Select.Content>
-          </Select.Root>
+          <DateRangeFilter dateFrom={bootstrap.filters.date_from} dateTo={bootstrap.filters.date_to} month={bootstrap.filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.allDates} onChange={(range) => { month = ''; void navigate({ ...range, date_range_invalid: '' }); }} />
           <AutoRefresh
             storageKey="kiriof-payments-refresh-interval"
             loading={refreshing}
@@ -158,6 +154,7 @@
             <Table.Head>{bootstrap.i18n.no}</Table.Head>
             <Table.Head>{bootstrap.i18n.pickupNumber}</Table.Head>
             <Table.Head>{bootstrap.i18n.schedule}</Table.Head>
+            <Table.Head>{bootstrap.i18n.deliveryType}</Table.Head>
             <Table.Head>{bootstrap.i18n.fees}</Table.Head>
             <Table.Head>{bootstrap.i18n.orders}</Table.Head>
             <Table.Head>{bootstrap.i18n.paymentMethod}</Table.Head>
@@ -167,27 +164,28 @@
         </Table.Header>
         <Table.Body>
           {#if bootstrap.rows.length === 0}
-            <Table.Row><Table.Cell colspan={8} class="kiriof-empty-cell">{bootstrap.i18n.empty}</Table.Cell></Table.Row>
+            <Table.Row><Table.Cell colspan={9} class="kiriof-empty-cell">{bootstrap.i18n.empty}</Table.Cell></Table.Row>
           {:else}
-            {#each bootstrap.rows as row (row.pickupNumber)}
+            {#each bootstrap.rows as row (row.rowKey)}
               <Table.Row>
                 <Table.Cell><strong>{row.number}</strong></Table.Cell>
-                <Table.Cell><strong>{row.pickupNumber}</strong><small>{bootstrap.i18n.requested}: {row.requestedAt}</small></Table.Cell>
+                <Table.Cell><strong>{row.identity}</strong><small>{bootstrap.i18n.requested}: {row.requestedAt}</small></Table.Cell>
                 <Table.Cell>{row.schedule}</Table.Cell>
+                <Table.Cell>{row.deliveryType === 'instant' ? bootstrap.i18n.instant : bootstrap.i18n.regular}</Table.Cell>
                 <Table.Cell><strong>{row.fees}</strong></Table.Cell>
                 <Table.Cell>{row.orders} {bootstrap.i18n.order}</Table.Cell>
                 <Table.Cell><StatusBadge label={row.method} tone={row.method === 'QRIS' ? 'info' : 'neutral'} icon={row.method === 'QRIS' ? IconQrcode : IconBuildingBank} /></Table.Cell>
-                <Table.Cell><StatusBadge label={row.status === 'paid' ? bootstrap.statusTabs[2].label : bootstrap.statusTabs[1].label} tone={row.status === 'paid' ? 'success' : 'warning'} icon={row.status === 'paid' ? IconCircleCheck : IconClock} /></Table.Cell>
+                <Table.Cell><StatusBadge label={bootstrap.statusTabs.find((tab) => tab.value === row.status)?.label ?? row.status} tone={row.status === 'paid' ? 'success' : 'warning'} icon={row.status === 'paid' ? IconCircleCheck : IconClock} /></Table.Cell>
                 <Table.Cell class="text-right">
                   <div class="kiriof-row-actions">
                     {#each row.actions as action}
                       {@const ActionIcon = actionIcon(action.type)}
                       {#if action.type === 'details'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" href={action.href} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
-                      {:else if action.type === 'reschedule'}
+                      {:else if row.deliveryType === 'express' && action.type === 'reschedule'}
                         <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { schedulePickupNumber = row.pickupNumber; scheduleDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
-                      {:else}
-                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => { paymentPickupNumber = row.pickupNumber; paymentDialogOpen = true; }} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
+                      {:else if action.type === 'pay'}
+                        <ActionTooltip label={action.label}><Button variant="outline" size="icon" type="button" onclick={() => openPayment(row)} aria-label={action.label}><ActionIcon /></Button></ActionTooltip>
                       {/if}
                     {/each}
                   </div>
@@ -210,4 +208,5 @@
   </KiriofCard>
   <PaymentScheduleDialog bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
   <ScanToPayDialog bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+  <InstantScanToPayDialog bind:open={instantPaymentDialogOpen} paymentId={instantPaymentId} orderIds={instantOrderIds} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
 </div>

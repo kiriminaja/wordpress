@@ -91,14 +91,6 @@ class ShippingDiscountCouponController {
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
-            $this->logShippingCouponEvent(
-                'info',
-                'Shipping discount coupon passed cart validation.',
-                $coupon,
-                array(
-                    'hook' => 'woocommerce_coupon_is_valid_for_cart',
-                )
-            );
             $service->clearValidationNotices();
             return true;
         }
@@ -163,14 +155,6 @@ class ShippingDiscountCouponController {
 
         $validation = $service->validateCouponForCart( $coupon );
         if ( $validation['valid'] ) {
-            $this->logShippingCouponEvent(
-                'info',
-                'Applied shipping discount coupon remains valid.',
-                $coupon,
-                array(
-                    'hook' => 'woocommerce_applied_coupon',
-                )
-            );
             $service->clearValidationNotices();
             return;
         }
@@ -263,16 +247,6 @@ class ShippingDiscountCouponController {
             WC()->shipping()->reset_shipping();
         }
 
-        $this->logShippingCouponEvent(
-            'info',
-            'Shipping rates invalidated after coupon change.',
-            null,
-            array(
-                'hook' => current_filter(),
-                'package_count' => count( $packages ),
-                'applied_coupons' => $this->getAppliedCouponCodesForLog(),
-            )
-        );
     }
 
     public function enforceShippingCouponRestrictions( $cart ) {
@@ -298,14 +272,6 @@ class ShippingDiscountCouponController {
 
             $validation = $service->validateCouponForCart( $coupon );
             if ( $validation['valid'] ) {
-                $this->logShippingCouponEvent(
-                    'info',
-                    'Active shipping discount coupon remains valid during totals calculation.',
-                    $coupon,
-                    array(
-                        'hook' => 'woocommerce_before_calculate_totals',
-                    )
-                );
                 $service->clearValidationNotices();
                 continue;
             }

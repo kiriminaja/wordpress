@@ -20,6 +20,7 @@ export default defineConfig({
         'onboarding-progress': 'src/entries/onboarding-progress.ts',
         'order-metabox': 'src/entries/order-metabox.ts',
         'admin-workspace': 'src/entries/admin-workspace.ts',
+        'admin-theme': 'src/entries/admin-theme.ts',
         'kiriof-var': 'src/entries/kiriof-var.css',
         'kiriof-component': 'src/entries/kiriof-component.css',
       },

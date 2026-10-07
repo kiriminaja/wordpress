@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 $kiriof_shipping_discount_service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 $kiriof_current_shipping_discount = $kiriof_shipping_discount_service->getCurrentShippingDiscountTotal();
 ?>
-<table class="shop_table woocommerce-checkout-review-order-table">
+<table class="shop_table woocommerce-checkout-review-order-table kiriof-classic-order-review">
 	<thead>
 		<tr>
 			<th class="product-name"><?php esc_html_e( 'Product', 'kiriminaja-official' ); ?></th>

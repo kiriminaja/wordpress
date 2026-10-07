@@ -20,6 +20,7 @@ This repository is the KiriminAja Official WordPress plugin for WooCommerce. Kee
 ## Testing
 
 - Use ParaTest as the default test runner: `make test`.
+- ParaTest is the only supported PHP test entry point (`make test` or `composer test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
 - For focused checks, run `vendor/bin/paratest --configuration paratest.xml --filter <Name>`.
 - Keep `tests/` string/structure assertions aligned with the current implementation when behavior is intentionally changed.
 

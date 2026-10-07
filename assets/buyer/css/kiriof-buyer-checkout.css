@@ -1,0 +1,307 @@
+/* The additional field remains registered for unsupported Blocks installations. */
+.kiriof-buyer-checkout-active .wc-block-components-address-form .wc-block-components-text-input:has(input[name*="kiriof_destination_area"]),
+.kiriof-buyer-checkout-active .wc-block-components-address-form .wc-block-components-text-input:has(input[id*="kiriof_destination_area"]),
+.kiriof-buyer-checkout-active .wc-block-components-address-form .wc-block-components-text-input:has(input[id*="kiriof-destination-area"]) {
+	display: none;
+}
+
+.kiriof-buyer-map__information[hidden],
+.kiriof-buyer-map__pin-status[hidden] {
+	display: none !important;
+}
+
+.kiriof-buyer-map__coverage-warning {
+	border-inline-start: 3px solid currentColor;
+	padding-inline-start: 0.75em;
+	font-weight: 600;
+}
+
+.kiriof-buyer-map__coverage-warning[hidden],
+.kiriof-buyer-map__coverage-legend[hidden] {
+	display: none !important;
+}
+
+/* Native My Account fields retain theme colors, typography and validation.
+ * A marker scopes the grid to shipping only; billing/checkout stay untouched. */
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1em;
+}
+
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row {
+	grid-column: 1 / -1;
+	float: none;
+	clear: none;
+	width: auto;
+	min-width: 0;
+	margin-inline: 0;
+}
+
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row-first,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_city_field,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_postcode_field {
+	grid-column: 1;
+}
+
+.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row-last,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_state_field,
+.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_phone_field {
+	grid-column: 2;
+}
+
+.kiriof-account-shipping #kiriof-account-district {
+	width: 100%;
+	font: inherit;
+	pointer-events: auto;
+}
+
+.kiriof-account-shipping #kiriof-account-district-retry[hidden] {
+	display: none !important;
+}
+
+@media (max-width: 480px) {
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) > .woocommerce-address-fields__field-wrapper > .form-row,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_city_field,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_postcode_field,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_state_field,
+	.woocommerce-address-fields:has(> .kiriof-account-shipping) #shipping_phone_field {
+		grid-column: 1 / -1;
+	}
+}
+
+/* Keep account forms hidden before JS/permission succeeds, even in themes
+ * that override the browser's default hidden-attribute stylesheet. */
+.kiriof-buyer-map__viewport[hidden] {
+	display: none !important;
+}
+
+/* Only the plugin-owned portal host is added to Woo's native address card. */
+.wc-block-components-address-card:has(> .kiriof-address-status-host) {
+	flex-wrap: wrap;
+}
+
+.kiriof-address-status-host {
+	flex-basis: 100%;
+	min-width: 0;
+}
+
+.kiriof-address-status {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5em;
+	margin-block-start: 0.75em;
+}
+
+.kiriof-address-status__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+	max-width: 100%;
+	padding: 0.25em 0.75em;
+	border-radius: 999px;
+	font-size: 0.875em;
+	font-weight: 500;
+	line-height: 1.5;
+	color: #102016;
+}
+
+.kiriof-address-status__badge.is-complete {
+	background: #50fa7b;
+}
+
+.kiriof-address-status__badge.is-warning {
+	background: #ffab66;
+	color: #231500;
+}
+
+.kiriof-address-status__badge svg {
+	flex-shrink: 0;
+}
+
+@media (forced-colors: active) {
+	.kiriof-address-status__badge {
+		border: 1px solid CanvasText;
+	}
+}
+
+.kiriof-buyer-map {
+	min-width: 0;
+	margin-block: 1em;
+}
+
+.kiriof-buyer-map button {
+	min-height: 44px;
+	font: inherit;
+}
+
+.kiriof-buyer-map button {
+	margin-block: 0.5em;
+	margin-inline-end: 0.5em;
+}
+
+.kiriof-buyer-map__viewport {
+	position: relative;
+	isolation: isolate;
+}
+
+.kiriof-buyer-map .kiriof-buyer-map__locate {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	min-height: 44px;
+	margin: 0;
+	padding: 10px;
+	background: #fff;
+	color: #1e1e1e;
+	border: 1px solid #555;
+	border-radius: 4px;
+	line-height: 1.4;
+	white-space: normal;
+	cursor: pointer;
+}
+
+.kiriof-buyer-map__locate svg {
+	display: block;
+	flex-shrink: 0;
+}
+
+.kiriof-buyer-map__pin-status {
+	position: absolute;
+	bottom: 22px;
+	left: 12px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	box-sizing: border-box;
+	max-width: calc(100% - 24px);
+	min-height: 32px;
+	padding: 6px 8px;
+	background: #fff;
+	color: #555;
+	border-radius: 4px;
+	box-shadow: 0 1px 5px rgb(0 0 0 / 35%);
+	font-size: 13px;
+	line-height: 1.4;
+	pointer-events: none;
+}
+
+.kiriof-buyer-map__information {
+	position: absolute;
+	top: 12px;
+	left: 54px;
+	right: 68px;
+	z-index: 2;
+	box-sizing: border-box;
+	max-width: 460px;
+	max-height: 108px;
+	overflow: auto;
+	padding: 7px 9px;
+	border: 1px solid #cbd5e1;
+	border-radius: 4px;
+	background: #fff;
+	color: #475569;
+	box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
+	font-size: 12px;
+	line-height: 1.4;
+	overscroll-behavior: contain;
+}
+
+.kiriof-buyer-map .kiriof-buyer-map__information p {
+	margin: 0;
+	font: inherit;
+}
+
+.kiriof-buyer-map .kiriof-buyer-map__information p + p {
+	margin-top: 4px;
+}
+
+.kiriof-buyer-map__information:focus-visible {
+	outline: 2px solid #1e1e1e;
+	outline-offset: 2px;
+}
+
+.kiriof-buyer-map__pin-status.is-complete {
+	color: #246b35;
+}
+
+.kiriof-buyer-map__pin-status svg {
+	flex-shrink: 0;
+}
+
+.kiriof-buyer-map__locate:focus-visible,
+.kiriof-buyer-map__canvas:focus-visible {
+	outline: 2px solid #1e1e1e;
+	outline-offset: 3px;
+}
+
+.kiriof-buyer-map__indicator {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 1;
+	width: 32px;
+	height: 44px;
+	color: #a84400;
+	pointer-events: none;
+	transform: translate(-50%, -100%);
+	filter: drop-shadow(0 2px 2px rgb(0 0 0 / 35%));
+}
+
+.kiriof-buyer-map__indicator svg {
+	display: block;
+	width: 32px;
+	height: 44px;
+	overflow: visible;
+}
+
+.kiriof-buyer-map__viewport.is-moving .kiriof-buyer-map__indicator {
+	transform: translate(-50%, -100%);
+}
+
+.kiriof-buyer-district {
+	margin-block: 1em;
+	min-width: 0;
+}
+
+/* The in-address inner block sits with native Postal Code and Phone fields. */
+.kiriof-buyer-district--inner-block {
+	margin-block: 0 1em;
+	width: 100%;
+}
+
+.kiriof-buyer-district p {
+	margin-block: 0.5em;
+}
+
+.kiriof-buyer-district button {
+	min-height: 44px;
+}
+
+.kiriof-buyer-map__canvas {
+	height: 300px;
+	min-height: 240px;
+	width: 100%;
+	z-index: 0;
+}
+
+.kiriof-buyer-map__canvas.leaflet-container {
+	font: inherit;
+	min-height: 240px;
+}
+
+.kiriof-buyer-map__title {
+	font-weight: 600;
+	margin-block: 0.5em;
+}

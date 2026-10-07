@@ -13,6 +13,7 @@ use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessDetail
 use KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment;
 use KiriminAjaOfficial\Services\TransactionProcessServices\GetRequestPickupScheduleService;
 use Throwable;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 class ShippingProcessController
 {
     private TransactionPrintRepositoryInterface $transaction_print_repository;
@@ -197,6 +198,13 @@ class ShippingProcessController
             wp_send_json_error( array( 'message' => __( 'Unable to print resi because the shipment record was not found.', 'kiriminaja-official' ) ), 404 );
         }
 
+        foreach ( $transactions as $transaction ) {
+            if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+                wp_send_json_error( array( 'message' => __( 'Instant label printing is not available yet.', 'kiriminaja-official' ) ), 422 );
+                return;
+            }
+        }
+
         $awbs = array();
         $printed_order_ids = array();
         foreach ( $transactions as $transaction ) {
@@ -245,6 +253,13 @@ class ShippingProcessController
                 'order_ids' => $orderIds,
             ) );
             $this->redirectResiPrintFailure( __( 'Unable to print resi because the shipment record was not found.', 'kiriminaja-official' ) );
+        }
+
+        foreach ( $transactions as $transaction ) {
+            if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+                $this->redirectResiPrintFailure( __( 'Instant label printing is not available yet.', 'kiriminaja-official' ) );
+                return;
+            }
         }
 
         $awbs = [];

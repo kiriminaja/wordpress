@@ -32,7 +32,12 @@ final class TransactionPrintPreviewTest extends TestCase
         $this->assertStringNotContainsString( 'onPrinted', $preview );
         $this->assertStringNotContainsString( 'svelte-pdf', $preview );
         $this->assertStringContainsString( "action: 'kiriof_print_label_preview'", $preview );
-        $this->assertStringContainsString( 'KiriofDialog', $preview );
+        $this->assertStringContainsString( '<Dialog.Content', $preview );
+        $this->assertStringContainsString( '<Dialog.Title class="sr-only">', $preview );
+        $this->assertStringContainsString( '<Dialog.Description class="sr-only">', $preview );
+        $this->assertStringContainsString( 'kiriof-print-preview-actions absolute bottom-4', $preview );
+        $this->assertStringNotContainsString( 'primaryLabel=', $preview );
+        $this->assertStringNotContainsString( '<Dialog.Footer', $preview );
         $this->assertStringContainsString( 'PrintPreviewDialog', $list );
         $this->assertStringContainsString( 'PrintPreviewDialog', $detail );
         $this->assertStringNotContainsString( 'kiriof-print-bulk-form', $template );

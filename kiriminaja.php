@@ -13,7 +13,7 @@
  * Requires Plugins: woocommerce
  * Requires at least: 6.8
  * Requires PHP: 8.1
- * WC requires at least: 8.0.0
+ * WC requires at least: 8.5
  * WC tested up to: 10.6
  */
 
@@ -415,6 +415,7 @@ if ( class_exists( 'KiriminAjaOfficial\\Init' ) ) {
  */
 $kiriof_woo_files = [
     'KiriminajaShippingMethod',
+    'KiriminajaInstantShippingMethod',
     'OverwriteWoocommercePlugin',
     'AdminWoocommerceSetting',
 ];

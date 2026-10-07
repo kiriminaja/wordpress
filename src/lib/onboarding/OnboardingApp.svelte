@@ -20,6 +20,7 @@
     FieldLabel,
     FieldSet,
   } from '$lib/components/ui/field';
+  import * as InputGroup from '$lib/components/ui/input-group';
   import { Input } from '$lib/components/ui/input';
   import { Separator } from '$lib/components/ui/separator';
   import CourierServicePicker from '$lib/couriers/CourierServicePicker.svelte';
@@ -43,6 +44,7 @@
     IconLoader2,
     IconPlugConnected,
     IconRefresh,
+    IconSearch,
     IconX,
   } from '@tabler/icons-svelte';
   import type { OnboardingBootstrap, OnboardingCourier, OnboardingStep } from './types';
@@ -84,6 +86,8 @@
   let account = $state(getInitialAccount());
   let couriers = $state<OnboardingCourier[]>([]);
   let courierState = $state<SelectionState>({ selection: {}, remembered: {} });
+  const prefix = $props.id();
+  let courierSearch = $state('');
   let courierLoadError = $state('');
   let couriersLoading = $state(false);
   let courierLoaded = $state(false);
@@ -747,7 +751,17 @@
             </FieldDescription>
           </div>
         {:else if current === 'couriers'}
-          <div class="mb-4 flex flex-wrap items-center gap-2">
+          <div class="mb-4 flex min-w-0 flex-wrap items-center gap-2">
+            <InputGroup.Root class="!h-8 !w-full !min-w-0 !bg-background sm:!w-auto sm:!flex-1">
+              <InputGroup.Addon align="inline-start"><IconSearch class="size-4" aria-hidden="true" /></InputGroup.Addon>
+              <InputGroup.Input
+                id={`${prefix}-courier-search`}
+                type="search"
+                bind:value={courierSearch}
+                aria-label={bootstrap.couriers.i18n.searchCouriers ?? 'Search couriers or services'}
+                placeholder={bootstrap.couriers.i18n.searchCouriers ?? 'Search couriers or services'}
+              />
+            </InputGroup.Root>
             <Button
               variant="secondary"
               size="sm"
@@ -807,6 +821,8 @@
             <CourierServicePicker
               {couriers}
               compact
+              bind:search={courierSearch}
+              showSearch={false}
               state={courierState}
               i18n={bootstrap.couriers.i18n}
               disabled={busy || couriersLoading || !courierLoaded}

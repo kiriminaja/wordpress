@@ -24,7 +24,7 @@ interface PaymentListQueryInterface {
     /**
      * Get stable totals for the payment status filter pills.
      *
-     * @return array{all:int,unpaid:int,paid:int}
+     * @return array{all:int,unpaid:int,paid:int,pending:int,refunded:int}
      */
     public function getStatusCounts(): array;
 

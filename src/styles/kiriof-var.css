@@ -9,8 +9,8 @@ body.kiriof-admin {
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.48 0.23 292);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: var(--kiriof-admin-primary, oklch(0.48 0.23 292));
+  --primary-foreground: var(--kiriof-admin-primary-foreground, oklch(0.99 0 0));
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -21,7 +21,7 @@ body.kiriof-admin {
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(1 0 0);
-  --ring: oklch(0.48 0.23 292);
+  --ring: var(--primary);
 
   --neutral: oklch(0.35 0 0);
   --neutral-background: oklch(0.95 0 0);

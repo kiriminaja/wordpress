@@ -123,18 +123,13 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
     }
 
     #[Test]
-    public function activation_disables_legacy_hpos_option_through_wordpress_options_api(): void
+    public function activation_does_not_switch_order_storage_or_replace_existing_checkout_pages(): void
     {
-        $admin_post = new AdminPost( new TrackingPageRepositoryFake() );
-        $method     = new ReflectionMethod( $admin_post, 'setLegacyWoocommerceKiriminaja' );
-        $GLOBALS['tracking_page_test_options'] = array();
-
-        $method->invoke( $admin_post );
-
-        $this->assertSame(
-            'no',
-            $GLOBALS['tracking_page_test_options']['woocommerce_custom_orders_table_enabled']
-        );
+        $source = file_get_contents( PLUGIN_DIR . '/inc/Pages/AdminPost.php' );
+        $this->assertStringNotContainsString( 'woocommerce_custom_orders_table_enabled', $source );
+        $this->assertStringNotContainsString( 'setLegacyWoocommerceKiriminaja', $source );
+        $this->assertStringNotContainsString( "self::updatePage(self::checkPageExist('checkout')->ID", $source );
+        $this->assertStringNotContainsString( "self::updatePage(self::checkPageExist('cart')->ID", $source );
     }
 
     #[Test]

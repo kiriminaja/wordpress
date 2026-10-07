@@ -45,7 +45,7 @@ $kiriof_package_title            = $kiriof_is_cart_totals_shipping ? esc_html__(
 $kiriof_shipment_title           = $kiriof_is_cart_totals_shipping ? esc_html__( 'Shipment', 'kiriminaja-official' ) : $package_name;
 $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( 'destination_id' ) );
 ?>
-<tr class="woocommerce-shipping-totals shipping">
+<tr data-kiriof-package-index="<?php echo esc_attr( $index ); ?>" class="woocommerce-shipping-totals shipping">
 	<th><?php echo wp_kses_post( $kiriof_package_title ); ?></th>
 	<td data-title="<?php echo esc_attr( $kiriof_package_title ); ?>">
 		<?php
@@ -153,8 +153,18 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 							<?php foreach ( $available_methods as $kiriof_shipping_method ) : ?>
 								<?php
 								$kiriof_option_label = html_entity_decode( wp_strip_all_tags( $kiriof_get_shipping_method_label_html( $kiriof_shipping_method ) ), ENT_QUOTES, get_bloginfo( 'charset' ) );
+								$kiriof_option_courier = class_exists( \KiriminAjaOfficial\Services\CourierLogoAssets::class )
+									? \KiriminAjaOfficial\Services\CourierLogoAssets::forRate( $kiriof_shipping_method )
+									: '';
+								$kiriof_option_presentation = class_exists( \KiriminAjaOfficial\Services\RateChoicePresentation::class )
+									? \KiriminAjaOfficial\Services\RateChoicePresentation::forRate( $kiriof_shipping_method, $kiriof_session_rate_meta )
+									: array();
 								?>
-								<option value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>" <?php selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method ); ?>>
+								<option value="<?php echo esc_attr( $kiriof_shipping_method->id ); ?>" data-courier="<?php echo esc_attr( $kiriof_option_courier ); ?>"
+									<?php foreach ( $kiriof_option_presentation as $kiriof_attribute => $kiriof_attribute_value ) : ?>
+										data-<?php echo esc_attr( $kiriof_attribute ); ?>="<?php echo esc_attr( $kiriof_attribute_value ); ?>"
+									<?php endforeach; ?>
+									<?php selected( $kiriof_shipping_method->id, $kiriof_display_chosen_method ); ?>>
 									<?php echo esc_html( trim( preg_replace( '/\s+/', ' ', $kiriof_option_label ) ) ); ?>
 								</option>
 							<?php endforeach; ?>
@@ -197,3 +207,27 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 		<?php endif; ?>
 	</td>
 </tr>
+<?php
+// Read-only checkout totals stay with Woo's refreshed fragment, not the relocated controls.
+if ( ! $kiriof_is_cart_totals_shipping && ! empty( $available_methods ) ) :
+	$kiriof_summary_presentation = array();
+	foreach ( $available_methods as $kiriof_summary_rate ) {
+		if ( $kiriof_summary_rate->id === $chosen_method ) {
+			$kiriof_summary_presentation = \KiriminAjaOfficial\Services\RateChoicePresentation::forRate( $kiriof_summary_rate, $kiriof_session_rate_meta ?? array() );
+			break;
+		}
+	}
+	if ( ! empty( $kiriof_summary_presentation ) ) :
+		?>
+<tr class="kiriof-classic-shipping-summary kiriof-classic-shipping-summary-options" data-kiriof-summary-package="<?php echo esc_attr( $index ); ?>" hidden>
+	<th scope="row"><?php esc_html_e( 'Shipping Options', 'kiriminaja-official' ); ?></th>
+	<td data-title="<?php echo esc_attr( __( 'Shipping Options', 'kiriminaja-official' ) ); ?>"><?php echo esc_html( $kiriof_summary_presentation['label'] ); ?></td>
+</tr>
+<tr class="kiriof-classic-shipping-summary kiriof-classic-shipping-summary-cost" data-kiriof-summary-package="<?php echo esc_attr( $index ); ?>" hidden>
+	<th scope="row"><?php esc_html_e( 'Shipping Cost', 'kiriminaja-official' ); ?></th>
+	<td data-title="<?php echo esc_attr( __( 'Shipping Cost', 'kiriminaja-official' ) ); ?>"><?php echo esc_html( $kiriof_summary_presentation['price'] ); ?></td>
+</tr>
+		<?php
+	endif;
+endif;
+?>
