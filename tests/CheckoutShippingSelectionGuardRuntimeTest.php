@@ -5,7 +5,7 @@ use PHPUnit\Framework\TestCase;
 final class CheckoutShippingSelectionGuardRuntimeTest extends TestCase {
 	public static function cases(): iterable {
 		foreach ( array( false, true ) as $classic ) {
-			foreach ( array( 'instant', 'express', 'legacy', 'multi', 'outside', 'changed', 'terms', 'into-plugin', 'away-plugin', 'missing', 'malformed', 'duplicate', 'missing-rate', 'service', 'case', 'instance', 'order-route', 'control', 'overflow', 'negative', 'outside-malformed', 'patch' ) as $case ) {
+			foreach ( array( 'instant', 'express', 'legacy', 'multi', 'outside', 'changed', 'terms', 'into-plugin', 'away-plugin', 'missing', 'malformed', 'duplicate', 'missing-rate', 'service', 'case', 'instance', 'order-route', 'control', 'overflow', 'negative', 'outside-malformed', 'patch', 'opaque', 'translated' ) as $case ) {
 				yield ( $classic ? 'Classic ' : 'StoreAPI ' ) . $case => array( $classic, $case );
 			}
 		}
@@ -18,11 +18,12 @@ final class CheckoutShippingSelectionGuardRuntimeTest extends TestCase {
 		$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 		$this->assertTrue( $result['registered'] );
 		$this->assertSame( array( 5, 10, 20 ), $result['priorities'] );
-		$success = in_array( $case, array( 'instant', 'express', 'legacy', 'multi', 'outside' ), true ) || ( 'patch' === $case && ! $classic );
+		$success = in_array( $case, array( 'instant', 'express', 'legacy', 'multi', 'outside', 'opaque' ), true ) || ( 'patch' === $case && ! $classic );
 		$final = $result['attempts'][count( $result['attempts'] ) - 1];
 		$this->assertSame( $success ? array( 'express-validation', 'instant-validation' ) : array(), $final['writes'] );
 		$this->assertSame( $success || $classic ? 0 : 409, $final['status'] );
-		$this->assertSame( $success ? '' : 'Shipping options changed. Please review and select your courier again before placing the order.', $final['message'] );
+		$expected_message = 'translated' === $case ? '&lt;b&gt;Shipping changed &amp; retry&lt;/b&gt;' : 'Shipping options changed. Please review and select your courier again before placing the order.';
+		$this->assertSame( $success ? '' : $expected_message, $final['message'] );
 		$this->assertCount( 'terms' === $case ? 2 : 1, $result['attempts'] );
 		if ( 'terms' === $case ) {
 			$this->assertSame( array( 'status' => 'terms', 'writes' => array() ), $result['attempts'][0] );

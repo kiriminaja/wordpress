@@ -23,6 +23,22 @@ final class ListDateRangeRuntimeTest extends TestCase {
         $this->assertSame('', $payment['bootstrap']['filters']['month']);
     }
 
+    #[Test]
+    public function renderer_sanitization_never_repairs_malformed_date_endpoints(): void {
+        foreach (['date_from', 'date_to'] as $name) {
+            foreach ([' 2024-02-29', '2024-02-29 ', '<b>2024-02-29</b>', "2024-02-29\n", '2025-02-29', ['2024-02-29']] as $value) {
+                $get = ['month'=>'2020-01', $name=>$value];
+                $transaction = $this->runFixture('transaction-multi-filter-runtime', ['mode'=>'renderer', 'get'=>$get]);
+                $payment = $this->runFixture('payment-list-database-runtime', ['get'=>$get])['bootstrap']['filters'];
+                foreach ([$transaction, $payment] as $filters) {
+                    $this->assertTrue($filters['date_range_invalid']);
+                    $this->assertSame('', $filters['month']);
+                    $this->assertSame('', $filters[$name]);
+                }
+            }
+        }
+    }
+
     private function runFixture(string $name, array $input): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/' . $name . '.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);

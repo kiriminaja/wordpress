@@ -38,7 +38,8 @@ final class CheckoutShippingSelectionGuard {
 
 	public function classic( $order, $data ): void {
 		// WooCommerce verifies the checkout nonce before create_order. Never reuse a session review.
-		$posted = $_POST['kiriof_shipping_selection'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.NonceVerification.Missing -- Native checkout nonce verified; JSON is unslashed below then review() strictly validates version, list shape and bounded exact identifiers against server rates. Text sanitization would mutate opaque rate IDs.
+		$posted = $_POST['kiriof_shipping_selection'] ?? null;
 		$raw = is_string( $posted ) ? json_decode( wp_unslash( $posted ), true ) : null;
 		$this->validate( $order, $raw, false );
 	}
@@ -138,8 +139,8 @@ final class CheckoutShippingSelectionGuard {
 		$message = __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' );
 		$exception = '\\Automattic\\WooCommerce\\StoreApi\\Exceptions\\RouteException';
 		if ( $store_api && class_exists( $exception ) ) {
-			throw new $exception( 'kiriof_shipping_selection_changed', $message, 409 );
+			throw new $exception( 'kiriof_shipping_selection_changed', esc_html( $message ), 409 );
 		}
-		throw new \RuntimeException( $message );
+		throw new \RuntimeException( esc_html( $message ) );
 	}
 }

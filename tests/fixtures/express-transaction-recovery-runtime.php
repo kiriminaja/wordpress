@@ -32,6 +32,7 @@ namespace KiriminAjaOfficial\Services {
     class ShipmentLocationService { public function getDefaultLocation() { throw new \RuntimeException( 'Validated origin must not use current default' ); } public function locationToOrigin( $location ) { return array( 'location_id' => 4 ); } }
 }
 namespace {
+    function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
     define( 'ABSPATH', __DIR__ );
     function __( $text, $domain ) { return $text; }
     function absint( $value ) { return abs( (int) $value ); }

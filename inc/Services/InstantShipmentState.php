@@ -442,7 +442,7 @@ final class InstantShipmentState {
 	}
 
 	private function invalid( int $reason ): void {
-		throw new InvalidArgumentException( esc_html__( 'Invalid Instant shipment state or identity.', 'kiriminaja-official' ), $reason );
+		throw new InvalidArgumentException( esc_html__( 'Invalid Instant shipment state or identity.', 'kiriminaja-official' ), $reason ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- The message is escaped; reason is an internal integer exception code mapped by validationReason(), never HTML.
 	}
 
 	private function failed(): void {

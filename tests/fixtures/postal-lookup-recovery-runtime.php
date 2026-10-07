@@ -70,6 +70,11 @@ switch ( $scenario ) {
     case 'invalid_nonce': $_POST['nonce'] = 'invalid'; $_POST['retry'] = '1'; break;
     case 'array_nonce': $_POST['nonce'] = array( 'valid' ); $_POST['retry'] = '1'; break;
     case 'array_retry': $_POST['retry'] = array( '1' ); $_POST['data']['retry'] = array( '1' ); break;
+    case 'nested_integer_retry': $_POST['data']['retry'] = 1; break;
+    case 'nested_boolean_retry': $_POST['data']['retry'] = true; break;
+    case 'float_retry': $_POST['retry'] = 1.0; break;
+    case 'padded_retry': $_POST['retry'] = ' 1 '; break;
+    case 'zero_retry': $_POST['retry'] = '01'; break;
     case 'integer_retry': $_POST['retry'] = 1; break;
     case 'boolean_retry': $_POST['retry'] = true; break;
     case 'sanitized_retry': $_POST['retry'] = '<b>1</b>'; break;

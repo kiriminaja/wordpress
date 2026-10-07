@@ -5,8 +5,9 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
 	}
 }
 namespace {
+    function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 	define( 'ABSPATH', __DIR__ );
-	function __( $text, $domain ) { return $text; }
+	function __( $text, $domain ) { return ! empty( $GLOBALS['translated'] ) ? '<b>Shipping changed & retry</b>' : $text; }
 	function wp_unslash( $value ) { return stripslashes( $value ); }
 	$GLOBALS['hooks'] = array();
 	function add_action( $hook, $callback, $priority, $args ) { $GLOBALS['hooks'][$hook][$priority][] = $callback; }
@@ -48,12 +49,15 @@ namespace {
 	$express = new GuardRate( 'kiriminaja-official_jne_REG', 'kiriminaja-official', 2, array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG' ) );
 	$other = new GuardRate( 'flat_rate:8', 'flat_rate', 8, array() );
 	$case = $config['case'];
+	$GLOBALS['translated'] = 'translated' === $case;
+	if ( 'opaque' === $case ) { $instant->id .= ':opaque%20<tag>\\\"'; }
 	$actual = in_array( $case, array( 'changed', 'terms', 'into-plugin', 'express', 'service', 'case', 'legacy' ), true ) ? clone $express : clone $instant;
 	if ( in_array( $case, array( 'outside', 'away-plugin' ), true ) ) { $actual = clone $other; }
 	$expected = in_array( $case, array( 'changed', 'terms', 'away-plugin' ), true ) ? $instant : $actual;
 	if ( 'into-plugin' === $case ) { $expected = $other; }
 	$review = array( 'version' => 1, 'packages' => array( array( 'package_id' => '3', 'rate_id' => $expected->id, 'price' => '20000', 'taxes' => '0', 'currency_minor_unit' => 0 ) ) );
 	if ( in_array( $case, array( 'missing', 'outside' ), true ) ) { $review = null; }
+	if ( 'translated' === $case ) { $review = null; }
 	if ( 'malformed' === $case ) { $review['version'] = '1'; }
 	if ( 'duplicate' === $case ) { $review['packages'][] = $review['packages'][0]; }
 	if ( 'control' === $case ) { $review['packages'][0]['rate_id'] .= "\n"; }
