@@ -16,26 +16,60 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 require_once PLUGIN_DIR . '/inc/Contracts/TransactionListQueryInterface.php';
 require_once PLUGIN_DIR . '/inc/Services/TransactionDeliveryType.php';
 require_once PLUGIN_DIR . '/inc/Services/ListDateRangeFilter.php';
+require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionBadgeQuery.php';
 require_once PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php';
+require_once PLUGIN_DIR . '/inc/Contracts/TransactionPrintRepositoryInterface.php';
+require_once PLUGIN_DIR . '/inc/Repositories/TransactionRepository.php';
 
 final class TransactionListQueryRuntimeTest extends TestCase
 {
     #[Test]
-    public function delivery_tab_counts_share_all_order_scope_and_restore_active_partition(): void {
+    public function sidebar_total_equals_the_sum_of_shared_pending_delivery_badges(): void {
+        $previous_wpdb = $GLOBALS['wpdb'] ?? null;
+        $wpdb = new TransactionListQueryWpdbFake();
+        $GLOBALS['wpdb'] = $wpdb;
+        try {
+            $repository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $counts = ( new WordPressTransactionListQuery( $wpdb ) )->getDeliveryCounts();
+            $this->assertSame( array_sum( $counts ), $repository->getCountTransactionProcessNew() );
+            $this->assertSame( $wpdb->queries[0], $wpdb->queries[1] );
+        } finally {
+            $GLOBALS['wpdb'] = $previous_wpdb;
+        }
+    }
+
+    #[Test]
+    public function missing_or_failed_pending_badge_results_return_zero_counts(): void {
+        $wpdb = new TransactionListQueryWpdbFake();
+        $wpdb->badge_result = null;
+        $query = new \KiriminAjaOfficial\Queries\WordPressTransactionBadgeQuery( $wpdb );
+        $empty = array( 'regular' => 0, 'instant' => 0, 'issue' => 0, 'total' => 0 );
+        $this->assertSame( $empty, $query->getCounts() );
+        $wpdb->badge_result = (object) array( 'regular' => 3, 'instant' => 2, 'issue' => 1, 'total' => 6 );
+        $wpdb->last_error = 'Database unavailable';
+        $this->assertSame( $empty, $query->getCounts() );
+    }
+
+    #[Test]
+    public function delivery_tab_counts_share_pending_order_scope_and_preserve_active_partition(): void {
         $wpdb = new TransactionListQueryWpdbFake();
         $query = new WordPressTransactionListQuery( $wpdb );
         $query->getPage( $this->filters('all') + array( 'delivery_type' => 'instant' ), 1, 25 );
         $before = count( $wpdb->queries );
-        $this->assertSame( array( 'regular' => 55, 'instant' => 55 ), $query->getDeliveryCounts() );
+        $this->assertSame( array( 'regular' => 3, 'instant' => 2, 'issue' => 1 ), $query->getDeliveryCounts() );
         $sql = array_slice( $wpdb->queries, $before );
+        $this->assertCount( 1, $sql );
         $this->assertStringContainsString( "delivery_type = 'express'", $sql[0] );
-        $this->assertStringContainsString( "delivery_type = 'instant'", $sql[1] );
-        foreach ( $sql as $statement ) {
-            $this->assertStringContainsString( 'COUNT(DISTINCT', $statement );
-            $this->assertStringContainsString( "NOT IN ('trash','auto-draft')", $statement );
-        }
+        $this->assertStringContainsString( "delivery_type = 'instant'", $sql[0] );
+        $this->assertStringContainsString( "p.post_type = 'shop_order' AND p.post_status = 'wc-processing' AND t.status = 'new'", $sql[0] );
+        $this->assertStringContainsString( 'GROUP BY p.ID', $sql[0] );
+        $this->assertStringContainsString( 'COUNT(*) AS total', $sql[0] );
+        $this->assertStringContainsString( 'pending.has_issue = 0 AND pending.has_instant = 1', $sql[0] );
+        $this->assertStringContainsString( "COALESCE(NULLIF(pm_var.meta_value, ''), pm_prod.meta_value, 'no') <> 'yes'", $sql[0] );
+        $this->assertStringNotContainsString( 'cod_fee', $sql[0] );
+        $this->assertStringNotContainsString( 'post_date', $sql[0] );
         $query->getStatusCounts();
-        $this->assertStringContainsString( "delivery_type = 'instant'", $wpdb->queries[$before + 2] );
+        $this->assertStringContainsString( "delivery_type = 'instant'", $wpdb->queries[$before + 1] );
     }
 
     #[Test]
@@ -332,10 +366,12 @@ final class TransactionListQueryWpdbFake
     public string $last_error = '';
     public array $queries = array();
     public array $list_results;
+    public ?object $badge_result;
 
     public function __construct()
     {
         $this->list_results = array((object) array('wc_order_id' => 10, 'order_id' => 'KA-10'));
+        $this->badge_result = (object) array( 'regular' => '3', 'instant' => '2', 'issue' => '1', 'total' => '6' );
     }
 
     public function esc_like($value): string
@@ -364,6 +400,12 @@ final class TransactionListQueryWpdbFake
             return '2024-03-12 08:00:00';
         }
         return '55';
+    }
+
+    public function get_row($sql)
+    {
+        $this->queries[] = $sql;
+        return $this->badge_result;
     }
 
     public function get_results($sql): array

@@ -107,7 +107,6 @@
   const paymentLabel = $derived(filters.cod === '1' ? bootstrap.i18n.cod : filters.cod === '0' ? bootstrap.i18n.nonCod : bootstrap.i18n.allPayment);
   const printLabel = $derived(filters.print_status === '1' ? bootstrap.i18n.printed : filters.print_status === '0' ? bootstrap.i18n.unprinted : bootstrap.i18n.allPrints);
   const courierOptions = $derived(bootstrap.couriers);
-  const orderIssueOption = $derived(bootstrap.statusOptions.find((option) => option.value === 'order-issue'));
   const visibleStatusOptions = $derived(bootstrap.statusOptions.filter((option) => option.value !== 'order-issue' && option.value !== 'all'));
   const pickupOrderIds = $derived(selectedRows.filter((row) => row.selection.canPickup).map((row) => row.kaOrderId));
   const hasActiveFilters = $derived(
@@ -124,7 +123,7 @@
     { value: 'regular', label: bootstrap.i18n.regularDelivery, count: bootstrap.deliveryCounts?.regular ?? 0 },
     { value: 'instant', label: bootstrap.i18n.instantDelivery, count: bootstrap.deliveryCounts?.instant ?? 0 },
     // Order Issue remains an Express-only local status workspace.
-    { value: 'order-issue', label: bootstrap.i18n.orderIssue, count: orderIssueOption?.count ?? 0 },
+    { value: 'order-issue', label: bootstrap.i18n.orderIssue, count: bootstrap.deliveryCounts?.issue ?? 0 },
   ]);
 
   function buildUrl(values: Record<string, string>): URL {

@@ -142,6 +142,7 @@ class TransactionListRenderService
             "deliveryCounts" => array(
                 "regular" => (int) ($kiriof_deliveryCounts["regular"] ?? 0),
                 "instant" => (int) ($kiriof_deliveryCounts["instant"] ?? 0),
+                "issue" => (int) ($kiriof_deliveryCounts["issue"] ?? 0),
             ),
             "statusOptions" => [
                 [

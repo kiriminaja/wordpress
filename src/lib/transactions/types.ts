@@ -128,7 +128,7 @@ export type TransactionRow = {
 export type TransactionsBootstrap = {
   toolbar: ToolbarConfig;
   filters: TransactionFilters;
-  deliveryCounts?: { regular: number; instant: number };
+  deliveryCounts?: { regular: number; instant: number; issue?: number };
   statusOptions: TransactionStatusOption[];
   monthOptions: Record<string, string>;
   couriers: Array<{ value: string; label: string }>;
