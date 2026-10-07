@@ -14,7 +14,7 @@ function events() {
 	const handlers = new Map<string, any>();
 	return { on(name: string, callback: any) { handlers.set(name, callback); return this; }, off() { handlers.clear(); return this; }, fire(name: string, event?: any) { handlers.get(name)?.(event); } };
 }
-async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean; autoLocation?: boolean; restore?: boolean } = {}) {
+async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean; autoLocation?: boolean; restore?: boolean; address?: any } = {}) {
 	const window = new happy.Window();
 	const document = window.document;
 	const previous = new Map<string, any>();
@@ -28,15 +28,27 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	// Woo 10.6: native card and shipping form are siblings; plugin child
 	// mounts are outside the address wrapper, not inside its hidden card/form.
 	document.body.innerHTML = `<div class="wp-block-woocommerce-checkout wc-block-checkout"><div id="shipping-fields" class="wc-block-checkout__shipping-fields"><div class="wc-block-components-address-address-wrapper${options.editing ? ' is-editing' : ''}">${options.guest ? '' : '<div class="wc-block-components-address-card"><address>Main Road, Jakarta</address><button class="wc-block-components-address-card__edit" aria-controls="shipping" aria-expanded="' + !!options.editing + '">Edit</button></div>'}<div id="shipping" class="wc-block-components-address-form">Native shipping inputs</div></div><div class="wp-block-kiriminaja-official-checkout-district" id="district-mount"></div><div class="wp-block-kiriminaja-official-map-checkout" id="map-mount"></div></div><div id="billing-fields" class="wc-block-checkout__billing-fields"><div class="wc-block-components-address-address-wrapper is-editing"><div class="wc-block-components-address-card"><button class="wc-block-components-address-card__edit" aria-controls="billing" aria-expanded="true">Billing edit</button></div></div></div></div>`;
-	const model = { cart: { needsShipping: true, shippingAddress: { ...address }, shippingRates: [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }] }, payment: 'cod', busy: false, collection: false };
+	const model = { cart: { needsShipping: true, shippingAddress: { ...address, ...options.address }, shippingRates: [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }] }, payment: 'cod', busy: false, customerBusy: false, collection: false };
 	const subscribers = new Set<any>(), publications: any[] = [], validations: any[] = [], sends: any[] = [], lookups: any[] = [], maps: any[] = [], registrations: any[] = [];
 	const locations: any[] = [], tiles: any[] = [], restores: any[] = [];
+	const activeValidation: Record<string, { message: string; hidden: boolean }> = {};
+	const validationSubscribers = new Set<() => void>();
+	const validationDispatch = {
+		setValidationErrors(errors: any) { validations.push(errors); Object.assign(activeValidation, errors); for (const callback of validationSubscribers) callback(); },
+		clearValidationError(id: string) { validations.push({ clear: id }); if (activeValidation[id]) { delete activeValidation[id]; for (const callback of validationSubscribers) callback(); } },
+	};
+	function ValidationDisplay() {
+		const [, update] = React.useState(0);
+		React.useEffect(() => { const callback = () => update((value: number) => value + 1); validationSubscribers.add(callback); return () => { validationSubscribers.delete(callback); }; }, []);
+		return React.createElement('div', { 'data-testid': 'validation-display' }, ...Object.entries(activeValidation).map(([id, error]) => React.createElement('p', { key: id, 'data-validation-id': id, hidden: error.hidden }, error.message)));
+	}
+
 	const cartDispatch = { selectShippingRate(rate: string, packageId: string) { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
 	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(success: any, failure: any, options: any) { locations.push({ success, failure, options }); if (fixtureOptionsAutoLocation) success({ coords: { latitude: -6, longitude: 106 } }); } } });
 	const fixtureOptionsAutoLocation = options.autoLocation !== false;
 	const timers = new Map<number, { callback: any; delay: number }>(); let timerId = 0;
 	const stores: any = {
-		'wc/store/cart': { getCartData: () => model.cart, isShippingRateBeingSelected: () => model.busy, isCustomerDataUpdating: () => false, hasPendingItemsOperations: () => false },
+		'wc/store/cart': { getCartData: () => model.cart, isShippingRateBeingSelected: () => model.busy, isCustomerDataUpdating: () => model.customerBusy, hasPendingItemsOperations: () => false },
 		'wc/store/payment': { getActivePaymentMethod: () => model.payment },
 		'wc/store/checkout': { prefersCollection: () => model.collection },
 	};
@@ -44,11 +56,11 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	window.wp = { element: { ...React, createPortal }, data: {
 		select,
 		useSelect(callback: any) { const [, update] = React.useState(0); React.useEffect(() => { const listener = () => update((value: number) => value + 1); subscribers.add(listener); return () => subscribers.delete(listener); }, []); return callback(select); },
-		dispatch: (name: string) => name === 'wc/store/cart' && options.restore ? cartDispatch : name === 'wc/store/checkout' ? { setExtensionData: (...args: any[]) => publications.push(args) } : { setValidationErrors: (errors: any) => validations.push(errors), clearValidationError: (id: string) => validations.push({ clear: id }) },
+		dispatch: (name: string) => name === 'wc/store/cart' && options.restore ? cartDispatch : name === 'wc/store/checkout' ? { setExtensionData: (...args: any[]) => publications.push(args) } : validationDispatch,
 		subscribe(callback: any) { subscribers.add(callback); return () => subscribers.delete(callback); },
 	} };
 	window.wc = { blocksCheckout: { registerCheckoutBlock: (registration: any) => registrations.push(registration), extensionCartUpdate(request: any) { sends.push(request); return Promise.resolve({}); } } };
-	const strings = { district: 'Subdistrict', districtRequired: 'Subdistrict required', checkingDistrict: 'Checking subdistrict', districtNotSet: 'Subdistrict not set', pinLocation: 'Pin location', needPinLocation: 'Need pin location', pinRequirement: 'Pin required for instant', loading: 'Loading', saving: 'Saving', selectDistrict: 'Select subdistrict', empty: 'Empty', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapHelp: 'Move map', mapPlaced: 'Pin placed', mapLocate: 'Locate', mapClear: 'Clear', mapOptional: 'Optional', mapPermission: 'Permission denied', mapUnavailable: 'Map unavailable', mapLocationFailed: 'Location failed' };
+	const strings = { district: 'Subdistrict', districtRequired: 'Subdistrict required', checkingDistrict: 'Checking subdistrict', districtNotSet: 'Subdistrict not set', pinLocation: 'Pin location', needPinLocation: 'Need pin location', pinRequirement: 'Pin required for instant', loading: 'Loading', saving: 'Saving', selectDistrict: 'Select subdistrict', empty: 'Empty', emptyRetry: 'No subdistricts found. Retry lookup.', lookupFailed: 'Lookup failed', retry: 'Retry', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapHelp: 'Move map', mapPlaced: 'Pin placed', mapLocate: 'Locate', mapClear: 'Clear', mapOptional: 'Optional', mapPermission: 'Permission denied', mapUnavailable: 'Map unavailable', mapLocationFailed: 'Location failed' };
 	window.kiriofBuyerCheckoutConfig = { enabled: true, nonce: 'fixture', ajaxUrl: '/fixture-ajax', savedDestination: options.savedDestination, i18n: strings };
 	window.kiriofMapCheckoutConfig = { enabled: true, tiles: 'https://tiles.example.test/{z}/{x}/{y}.png', i18n: strings };
 	window.fetch = (url: any, init: any) => { const task = deferred(); lookups.push({ url, init, ...task }); return task.promise; };
@@ -63,6 +75,8 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	for (const source of scripts) runInNewContext(source, context);
 	expect(registrations.map(row => row.metadata.name)).toEqual(['kiriminaja-official/checkout-district', 'kiriminaja-official/map-checkout']);
 	const roots = registrations.map((registration, index) => { const root = createRoot(document.getElementById(index ? 'map-mount' : 'district-mount')); return { root, component: registration.component }; });
+	const validationMount = document.createElement('div'); document.body.append(validationMount);
+	roots.push({ root: createRoot(validationMount), component: ValidationDisplay });
 	await act(async () => { for (const item of options.mapFirst ? [...roots].reverse() : roots) item.root.render(React.createElement(item.component)); });
 	// One event-loop turn lets the real MutationObserver deliver its native
 	// mutation batch. We never invoke bridge.refresh or poll bridge timers.
@@ -79,6 +93,33 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 }
 
 describe('combined native address-card UI (real React/DOM, unchanged production VM)', () => {
+	for (const busy of ['customerBusy', 'busy'] as const) {
+		uiTest(`matching GoSend ${busy} billing toggle renders hidden pending without a changed-courier warning`, async () => {
+			const h = await fixture({ restore: true, savedDestination: saved() });
+			try {
+				await h.flush(250); await h.reply(); await h.flush(0);
+				const go = 'kiriminaja-instant:7:gosend:instant';
+				h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }] }];
+				const radio = h.document.createElement('input'); radio.type = 'radio'; radio.checked = true; radio.value = go; h.document.body.append(radio);
+				await h.act(async () => radio.dispatchEvent(new h.window.Event('change', { bubbles: true })));
+				const original = JSON.stringify(h.publications.at(-1)[1].shipping_selection), sends = h.sends.length;
+				const checkbox = h.document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = true; h.document.querySelector('#billing-fields').append(checkbox);
+				h.model[busy] = true;
+				await h.act(async () => checkbox.dispatchEvent(new h.window.Event('change', { bubbles: true }))); await h.notify();
+				const display = h.document.querySelector('[data-testid="validation-display"]');
+				const pending = display.querySelector('[data-validation-id="kiriof-shipping-selection-pending"]');
+				expect(pending).not.toBeNull(); expect(pending.hidden).toBe(true); expect(pending.textContent).toBe('Updating shipping options…');
+				expect(display.textContent).not.toContain('Shipping options changed');
+				expect(display.querySelector('[data-validation-id="kiriof-shipping-selection"]')).toBeNull();
+				expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(original);
+				h.model[busy] = false; await h.notify();
+				expect(display.querySelector('[data-validation-id="kiriof-shipping-selection-pending"]')).toBeNull();
+				expect(display.textContent).not.toContain('Shipping options changed');
+				expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(original);
+				expect(h.restores).toHaveLength(0); expect(h.sends).toHaveLength(sends);
+			} finally { await h.cleanup(); }
+		});
+	}
 	uiTest('real React collapsed native card billing checkbox preserves reviewed selection through asynchronous restoration', async () => {
 		const h = await fixture({ restore: true, savedDestination: saved() });
 		try {
@@ -104,6 +145,67 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			expect(h.validations.filter(row => row['kiriof-shipping-selection'] || row.clear === 'kiriof-shipping-selection').at(-1)).toEqual({ clear: 'kiriof-shipping-selection' });
 			expect(h.sends).toHaveLength(sends); expect(h.restores).toHaveLength(1);
 			expect(h.document.querySelector('.kiriof-buyer-map')).toBeNull(); expect(h.document.querySelector('#billing-fields .kiriof-address-status-host')).toBeNull();
+		} finally { await h.cleanup(); }
+	});
+	for (const failed of [false, true]) {
+		uiTest(`55581 saved pin stays green after ${failed ? 'HTTP failure' : 'genuine empty'}; native Edit performs one fresh retry and canonical recovery`, async () => {
+			const shipping = { ...address, postcode: '55581' };
+			const h = await fixture({ address: shipping, savedDestination: saved({ postcode: '55581', district_id: '123', shipping_address: shipping }) });
+			try {
+				await h.flush(250);
+				if (failed) await h.act(async () => h.lookups[0].resolve({ ok: false, json: () => Promise.resolve({ success: true, data: [] }) }));
+				else await h.reply([]);
+				await h.flush(0);
+				const label = failed ? 'Lookup failed' : 'No subdistricts found. Retry lookup.';
+				expect(h.sends).toHaveLength(0); expect(h.window.kiriofBuyerCheckout.getDestination().district_id).toBe('');
+				expect(h.window.kiriofBuyerCheckout.getCoordinates(shipping)).toMatchObject({ latitude: '0.0000000', longitude: '0.0000000' });
+				expect(h.badges().find(node => node.textContent === 'Pin location').classList.contains('is-complete')).toBe(true);
+				expect(h.badges().filter(node => node.textContent === label)).toHaveLength(1);
+				expect(h.badges().some(node => node.textContent === 'Subdistrict not set')).toBe(false);
+				expect([...h.card().querySelectorAll('.kiriof-address-status button')].map(node => node.textContent)).toEqual(['Retry']);
+				await h.editing(true);
+				expect(h.document.querySelector('.kiriof-buyer-map')).not.toBeNull(); expect(h.maps).toHaveLength(1);
+				expect(h.document.querySelector('select').disabled).toBe(true); expect(h.document.querySelector('select').options).toHaveLength(1);
+				await h.notify(); await h.flush(250); expect(h.lookups).toHaveLength(2);
+				const request = h.lookups[1]; expect(request.init.method).toBe('POST');
+				expect(new URLSearchParams(request.init.body).get('term')).toBe('55581'); expect(new URLSearchParams(request.init.body).get('retry')).toBe('1');
+				expect(h.sends).toHaveLength(0);
+				await h.reply([{ id: 123, text: 'Canonical 55581 district' }]); await h.flush(0);
+				expect(h.document.querySelector('select').value).toBe('123'); expect(h.document.querySelector('select').disabled).toBe(false);
+				expect(h.window.kiriofBuyerCheckout.getDestination()).toMatchObject({ district_id: '123', district_label: 'Canonical 55581 district', destination_latitude: '0.0000000', postcode: '55581' });
+				expect(h.sends).toHaveLength(1); expect(h.sends[0].data.destination.district_label).toBe('Canonical 55581 district');
+				await h.editing(false); await h.editing(true); await h.flush(250); expect(h.lookups).toHaveLength(2);
+			} finally { await h.cleanup(); }
+		});
+	}
+	uiTest('collapsed empty card Retry and editing genuine-empty Retry remain actionable without billing-triggered lookup', async () => {
+		const h = await fixture({ savedDestination: saved() });
+		try {
+			await h.flush(250); await h.reply([]); await h.flush(0);
+			const checkbox = h.document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = true; h.document.querySelector('#billing-fields').append(checkbox);
+			await h.act(async () => checkbox.dispatchEvent(new h.window.Event('change', { bubbles: true }))); await h.notify(); await h.flush(250);
+			expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(0);
+			await h.act(async () => h.card().querySelector('.kiriof-address-status button').click()); await h.flush(250);
+			expect(new URLSearchParams(h.lookups[1].init.body).get('retry')).toBe('1'); await h.reply([]);
+			await h.editing(true); await h.flush(250); await h.reply([]);
+			expect(h.document.querySelector('.kiriof-buyer-district [role="status"]').textContent).toBe('No subdistricts found. Retry lookup.');
+			expect(h.document.querySelector('.kiriof-buyer-district button').textContent).toBe('Retry');
+			await h.act(async () => h.document.querySelector('.kiriof-buyer-district button').click()); await h.flush(250); await h.reply([{ id: 7, text: 'Recovered canonical district' }]); await h.flush(0);
+			expect(h.document.querySelector('select').value).toBe('7'); expect(h.sends).toHaveLength(1);
+		} finally { await h.cleanup(); }
+	});
+	uiTest('failed lookup inside native Edit is an error with Retry, not an empty-results label', async () => {
+		const h = await fixture({ editing: true, savedDestination: saved() });
+		try {
+			await h.flush(250);
+			await h.act(async () => h.lookups[0].resolve({ ok: true, json: () => Promise.resolve({ success: false, data: [] }) }));
+			await h.flush(0);
+			expect(h.document.querySelector('.kiriof-buyer-district [role="status"]').textContent).toBe('Lookup failed');
+			expect(h.document.querySelector('.kiriof-buyer-district button').textContent).toBe('Retry'); expect(h.sends).toHaveLength(0);
+			await h.act(async () => h.document.querySelector('.kiriof-buyer-district button').click()); await h.flush(250);
+			expect(new URLSearchParams(h.lookups[1].init.body).get('retry')).toBe('1');
+			await h.reply([{ id: 7, text: 'Verified district' }]); await h.flush(0);
+			expect(h.document.querySelector('select').value).toBe('7'); expect(h.sends).toHaveLength(1);
 		} finally { await h.cleanup(); }
 	});
 	uiTest('native edit opens permission status only; saved pin survives denial and map awaits an explicit grant on reentry', async () => {
@@ -133,10 +235,10 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			expect(h.badges().map(node => node.textContent)).toEqual(['Checking subdistrict', 'Need pin location']);
 			for (const badge of h.badges()) { expect(h.card().contains(badge)).toBe(true); expect(badge.classList.contains('is-complete')).toBe(false); }
 			expect(h.document.querySelector('#billing-fields .kiriof-address-status-host')).toBeNull();
-			expect(h.publications.length).toBeGreaterThan(0); expect(h.validations.some(value => value['kiriof-buyer-destination']?.message === 'Subdistrict required')).toBe(true);
+			expect(h.publications.length).toBeGreaterThan(0); expect(h.validations.some(value => value['kiriof-buyer-destination']?.message === 'Loading')).toBe(true);
 			await h.flush(250); expect(h.lookups).toHaveLength(1); expect(new URLSearchParams(h.lookups[0].init.body).get('term')).toBe('12345'); await h.reply(); await h.flush(0);
 			expect(h.badges().map(node => node.textContent)).toEqual(['Subdistrict not set', 'Need pin location']); expect(h.badges().every(node => node.classList.contains('is-warning'))).toBe(true);
-			expect(h.sends.at(-1).data.destination.district_id).toBe(''); expect(h.window.kiriofBuyerCheckout.active).toBe(true);
+			expect(h.sends).toHaveLength(0); expect(h.window.kiriofBuyerCheckout.getDestination().district_id).toBe(''); expect(h.window.kiriofBuyerCheckout.active).toBe(true);
 		} finally { await h.cleanup(); }
 	});
 	uiTest('matching saved zero pin is green, edit requests permission before opening native map, close disposes only map and retains destination', async () => {

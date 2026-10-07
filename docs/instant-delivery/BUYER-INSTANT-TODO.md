@@ -4,7 +4,15 @@ Status: Buyer quote/order implementation and local regression coverage implement
 
 ## Classic pin-only extension and safe reactivation
 
+### Blocks saved-address postal recovery
+
+Saved-pin and verified-village readiness are independent. A failed/empty shipping-postcode lookup must not write an empty destination over the saved server state, and visible cached shipping rates are not permission to submit an unverified plugin address. The native address card shows one actionable lookup status/retry rather than duplicate missing-district and choose-pin notices. Opening Edit after completed empty/error retries once; explicit retry sends a nonce-protected `retry=1` to bypass the shared positive postal cache. Billing-checkbox changes do not choose a village or change lookup postcode.
+
+Postal cache v4 ignores older polluted empty entries and stores only bounded nonempty usable options for five minutes. Successful zero matches are not cached, malformed responses remain failures, and failed explicit refresh does not corrupt a good cache. Lookup results reconcile current/restored IDs against every accepted option list and update canonical labels; an invalid preferred stored identity does not prevent trying other valid saved candidates. No village IDs or pin coordinates are invented. Eight real React/Chromium recovery scenarios exercise postcode 55581, saved pins, Edit/card Retry, empty/HTTP/malformed/invalid rows, billing busy updates, effect-owner transfers and stable courier review, using isolated production PHP lookup fixtures rather than live API calls. Actual provider results still require checking the new lookup response if no options return after deployment.
+
 ### Reviewed courier integrity across validation retries
+
+Matching-courier warning correction: native customer/rate busy state is not a courier identity mismatch. When reviewed and selected package/rate IDs match, the changed-courier validation is cleared even while an update is pending; a separate `kiriof-shipping-selection-pending` validation with localized Updating shipping options text blocks submission until settling. Only real mismatches display the review/reselect message. An existing explicit review still reconciles during saved-pin initialization, and scoped clears never remove Terms & Conditions or other native validation. Real React and Chromium regressions verify matching GoSend during billing/rate activity, pending-submit prevention, idle clearing and unchanged final identity protections.
 
 A versioned package/rate-ID review is stored separately from current Woo shipping defaults and posted as Checkout extension `shipping_selection` (Blocks) or native hidden `kiriof_shipping_selection` (Classic). Initial stable rates seed the review once; explicit native buyer choices update it. Terms validation failure, billing-address checkbox updates, temporary missing rates and price/label refreshes do not silently rewrite the reviewed courier.
 

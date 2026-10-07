@@ -61,7 +61,7 @@ final class DistrictSearchCacheRuntimeTest extends TestCase {
             $this->assertSame( 'success', $response->message );
             $this->assertSame( $rows, $response->data );
         }
-        $this->assertSame( array( array( 'kiriof_district_search_v3_' . md5( '12345' ), $rows, 300 ) ), $GLOBALS['district_search_writes'] );
+        $this->assertSame( array( array( 'kiriof_district_search_v4_' . md5( '12345' ), $rows, 300 ) ), $GLOBALS['district_search_writes'] );
     }
 
     #[Test]
@@ -76,14 +76,51 @@ final class DistrictSearchCacheRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function empty_successful_result_is_a_cache_hit(): void {
+    #[DataProvider( 'invalidCachedRows' )]
+    public function unusable_v4_cache_entries_are_not_served( $cached ): void {
+        $key = 'kiriof_district_search_v4_' . md5( '12345' );
+        $GLOBALS['district_search_cache'][$key] = $cached;
+        $rows = array( array( 'id' => 222, 'text' => 'Valid option', 'zip_code' => '12345' ) );
         $repository = $this->repository();
-        $repository->expects( $this->once() )->method( 'sub_district_search' )
+        $repository->expects( $this->once() )->method( 'sub_district_search' )->with( '12345' )
+            ->willReturn( array( 'status' => true, 'data' => (object) array( 'result' => $rows ) ) );
+        $this->assertSame( $rows, $this->factory( $repository )->districtSearch( '12345' )->data );
+        $this->assertSame( array( array( $key, $rows, 300 ) ), $GLOBALS['district_search_writes'] );
+    }
+
+    public static function invalidCachedRows(): array {
+        $row = array( 'id' => 222, 'text' => 'Valid option' );
+        return array(
+            'empty' => array( array() ),
+            'scalar' => array( 'invalid' ),
+            'associative' => array( array( 'row' => $row ) ),
+            'missing_id' => array( array( array( 'text' => 'Invalid' ) ) ),
+            'invalid_id' => array( array( array( 'id' => 0, 'text' => 'Invalid' ) ) ),
+            'blank_label' => array( array( array( 'id' => 222, 'text' => ' ' ) ) ),
+            'wrong_postcode' => array( array( $row + array( 'zip_code' => '99999' ) ) ),
+            'too_many' => array( array_fill( 0, 501, $row ) ),
+        );
+    }
+
+    #[Test]
+    public function valid_array_rows_remain_cache_hits(): void {
+        $rows = array( array( 'id' => '222', 'text' => 'Valid option', 'zip_code' => '12345' ) );
+        $GLOBALS['district_search_cache']['kiriof_district_search_v4_' . md5( '12345' )] = $rows;
+        $repository = $this->repository();
+        $repository->expects( $this->never() )->method( 'sub_district_search' );
+        $this->assertSame( $rows, $this->factory( $repository )->districtSearch( '12345' )->data );
+        $this->assertSame( array(), $GLOBALS['district_search_writes'] );
+    }
+
+    #[Test]
+    public function empty_successful_result_is_not_cached(): void {
+        $repository = $this->repository();
+        $repository->expects( $this->exactly( 2 ) )->method( 'sub_district_search' )
             ->willReturn( array( 'status' => true, 'data' => (object) array( 'result' => array() ) ) );
         $factory = $this->factory( $repository );
         $this->assertSame( array(), $factory->districtSearch( '12345' )->data );
         $this->assertSame( array(), $factory->districtSearch( '12345' )->data );
-        $this->assertCount( 1, $GLOBALS['district_search_writes'] );
+        $this->assertSame( array(), $GLOBALS['district_search_writes'] );
     }
 
     #[Test]

@@ -88,7 +88,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		registerCheckoutBlock: options.inner === false ? undefined : (registration: any) => { registeredBlocks.push(registration); },
 		extensionCartUpdate: (request: any) => { const task = deferred(); sends.push({ request, ...task }); return task.promise; },
 	};
-	const strings = { district: 'Subdistrict', districtRequired: 'Subdistrict required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', lookupTimeout: 'Lookup timed out', saveStalled: 'Save stalled', reloadCheckout: 'Reload checkout', quoteRefreshFailed: 'Quote refresh failed', instantUnavailable: 'Instant unavailable', empty: 'Empty', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select subdistrict', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
+	const strings = { district: 'Subdistrict', districtRequired: 'Subdistrict required', postcodeRequired: 'Postcode required', loading: 'Loading', lookupFailed: 'Lookup failed', lookupTimeout: 'Lookup timed out', saveStalled: 'Save stalled', reloadCheckout: 'Reload checkout', quoteRefreshFailed: 'Quote refresh failed', instantUnavailable: 'Instant unavailable', empty: 'Empty', emptyRetry: 'No subdistricts found. Retry lookup.', saving: 'Saving', updateFailed: 'Update failed', retry: 'Retry', selectDistrict: 'Select subdistrict', mapTitle: 'Delivery pin', mapHelp: 'Tap map', mapPlaced: 'Pin placed', mapLocate: 'Locate me', mapUnavailable: 'No map' };
 	const root: any = {
 		kiriofAddressPresentation: options.collapsed ? { usePresentation: () => ({ editing: false, cardTarget: {} }) } : undefined,
 		wp, wc: { blocksCheckout: blocks }, setTimeout, clearTimeout, location: { reload: () => { root.reloaded = true; } },
@@ -187,6 +187,57 @@ function options(node: any): {value: string; label: string}[] { return node.chil
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
 describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
+	for (const busy of ['customerBusy', 'rateBusy'] as const) {
+		test(`matching reviewed GoSend clears conflict during ${busy} billing toggle and keeps only hidden pending validation`, async () => {
+			const h = harness({ restore: true }); h.mount();
+			const go = 'kiriminaja-instant:7:gosend:instant';
+			h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }] }];
+			h.shippingChange(go);
+			const sends = h.sends.length, lookups = h.lookups.length;
+			const original = JSON.stringify(h.publications.at(-1)[1].shipping_selection);
+			for (let attempt = 0; attempt < 3; attempt++) {
+				h.validations.push({ terms: { message: `Please accept terms ${attempt}`, hidden: false }, payment: { message: 'Payment error', hidden: false } });
+				h.model[busy] = true; h.billingChange(); h.notify(); await h.settle();
+				expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+				expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ 'kiriof-shipping-selection-pending': { message: 'Updating shipping options…', hidden: true } });
+				expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(original);
+				h.model[busy] = false; h.notify(); await h.settle();
+				expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
+				expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+				expect(latestValidation(h, 'terms').terms.message).toBe(`Please accept terms ${attempt}`);
+				expect(latestValidation(h, 'payment').payment).toEqual({ message: 'Payment error', hidden: false });
+				expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(original);
+			}
+			expect(h.restores).toHaveLength(0); expect(h.sends).toHaveLength(sends); expect(h.lookups).toHaveLength(lookups);
+			expect(h.validations.filter(value => value.clear && !value.clear.startsWith('kiriof-'))).toEqual([]);
+		});
+	}
+	test('existing explicit GoSend review reconciles even while saved-pin initialization awaits a busy customer', async () => {
+		const h = harness({ restore: true, config: { savedDestination: { version: 2, district_id: '7', postcode: '12345', country: 'ID', destination_latitude: '0', destination_longitude: '0', shipping_address: { postcode: '12345', country: 'ID' } } } });
+		const go = 'kiriminaja-instant:7:gosend:instant';
+		h.model.customerBusy = true;
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }] }];
+		h.mount(); h.shippingChange(go); h.billingChange(); h.notify(); await h.settle();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ 'kiriof-shipping-selection-pending': { message: 'Updating shipping options…', hidden: true } });
+		h.model.customerBusy = false; h.notify(); await h.settle();
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go)); expect(h.restores).toHaveLength(0);
+	});
+	test('genuine Cargo snapshot mismatch stays visible while customer is busy and after settling without replacing reviewed GoSend', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', cargo = 'kiriminaja:jne:cargo';
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }] }]; h.shippingChange(go);
+		h.model.customerBusy = true;
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: cargo, method_id: 'kiriminaja-official', selected: true }] }]; h.billingChange(); h.notify(); await h.settle();
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection']).toEqual({ message: 'Shipping options changed. Please review and select your courier again before placing the order.', hidden: false });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending']).toEqual({ message: 'Updating shipping options…', hidden: true });
+		h.model.customerBusy = false; h.notify(); await h.settle();
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection'].hidden).toBe(false);
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go)); expect(h.restores).toHaveLength(0); expect(h.sends).toHaveLength(0);
+	});
 	test('billing checkbox cannot review automatic Express; exact available GoSend restores after customer busy settles', async () => {
 		const h = harness({ restore: true }); h.mount();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
@@ -290,7 +341,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 			h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
 			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'available', message: 'Quote expired', expires_at: 0 };
 			h.mount();
-			expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Subdistrict required');
+			expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Loading');
 			await h.flush(250); await h.reply(); await h.flush(0);
 			expect(h.sends[0].request.data.refresh_instant).toBe(false);
 			h.sends[0].resolve(); await h.settle();
@@ -417,6 +468,64 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		await h.flush(0); expect(h.sends).toHaveLength(1);
 		expect(h.sends[0].request.data.destination.version).toBe(2);
 		expect(h.sends[0].request.data.destination.destination_latitude).toBe('-6.2000000');
+	});
+	test('55581 empty lookup retains saved full pin locally and retries without writing empty or stale destination', async () => {
+		const address = { ...savedAddress, postcode: '55581' };
+		const stored = { ...savedDestination, postcode: '55581', district_id: '123', shipping_address: address };
+		const h = harness({ config: { savedDestination: stored } }); Object.assign(h.model.cart.shippingAddress, address);
+		h.mount(); await h.flush(250); await h.reply(0, []); await h.flush(0);
+		expect(h.status()).toBe('No subdistricts found. Retry lookup.'); expect(h.find('button').children[0]).toBe('Retry');
+		expect(h.sends).toHaveLength(0); expect(h.find('select').props.value).toBe('');
+		expect(h.root.kiriofBuyerCheckout.getCoordinates(address)?.latitude).toBe('-6.2000000');
+		h.retry(); await h.flush(250);
+		expect(h.lookups).toHaveLength(2); expect(h.lookups[1].init.method).toBe('POST');
+		expect(new URLSearchParams(h.lookups[1].init.body).get('retry')).toBe('1');
+		await h.reply(1, [{ id: 123, text: 'Canonical 55581 district' }]); await h.flush(0);
+		expect(h.find('select').props.value).toBe('123'); expect(h.sends).toHaveLength(1);
+		expect(h.sends[0].request.data.destination).toEqual({ ...stored, district_label: 'Canonical 55581 district' });
+	});
+	for (const failure of [ { ok: false }, { ok: true, success: false, data: [] }, { ok: true, success: true, data: [{ id: 0, text: 'Invalid' }] }, { ok: true, success: true, data: [{ id: 123, text: '   ' }] } ]) {
+		test(`failed lookup is not genuine empty: ${JSON.stringify(failure)}`, async () => {
+			const h = harness(); h.mount(); await h.flush(250);
+			h.lookups[0].resolve({ ok: failure.ok, json: () => Promise.resolve(failure) }); await h.settle(); await h.flush(0);
+			expect(h.status()).toBe('Lookup failed'); expect(h.find('button').children[0]).toBe('Retry'); expect(h.sends).toHaveLength(0);
+			h.retry(); await h.flush(250); await h.reply(1, []);
+			expect(h.status()).toBe('No subdistricts found. Retry lookup.'); expect(h.sends).toHaveLength(0);
+		});
+	}
+	test('same-postcode refreshed options invalidate stale identity and recover only exact matches with canonical labels', async () => {
+		const h = harness(); await ready(h); h.choose('7'); await h.flush(0); h.sends[0].resolve(); await h.settle();
+		// Native collection transition changes lookup eligibility, not the postcode.
+		h.model.collection = true; h.notify(); h.model.collection = false; h.notify();
+		await h.flush(250); await h.reply(1, []); await h.flush(0);
+		expect(h.find('select').props.value).toBe(''); expect(h.sends).toHaveLength(1);
+		h.retry(); await h.flush(250); await h.reply(2, [{ id: 9, text: 'Replacement' }]); await h.flush(0);
+		expect(h.find('select').props.value).toBe(''); expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe(''); expect(h.sends).toHaveLength(1);
+		h.model.collection = true; h.notify(); h.model.collection = false; h.notify();
+		await h.flush(250); await h.reply(3, [{ id: 7, text: 'Canonical updated label' }]); await h.flush(0);
+		expect(h.find('select').props.value).toBe('7'); expect(h.root.kiriofBuyerCheckout.getDestination().district_label).toBe('Canonical updated label');
+	});
+	test('stale selected label is refreshed even when the same identity remains valid', async () => {
+		const h = harness(); await ready(h); h.choose('7');
+		h.model.collection = true; h.notify(); h.model.collection = false; h.notify();
+		await h.flush(250); await h.reply(1, [{ id: 7, text: 'New canonical label' }]);
+		expect(h.find('select').props.value).toBe('7'); expect(h.root.kiriofBuyerCheckout.getDestination().district_label).toBe('New canonical label');
+	});
+	test('invalid saved identity falls through to valid postcode history then additional configuration', async () => {
+		for (const history of [true, false]) {
+			const h = harness({ config: { savedDestination: { postcode: '12345', country: 'ID', district_id: '99' }, savedDistrictByPostcode: { '12345': { destination_id: history ? '7' : '98' } }, districtPostcode: '12345', district: { id: 8 } } });
+			h.mount(); await h.flush(250); await h.reply(0, [{ id: 7, text: 'History canonical' }, { id: 8, text: 'Config canonical' }]);
+			expect(h.find('select').props.value).toBe(history ? '7' : '8'); expect(h.root.kiriofBuyerCheckout.getDestination().district_label).toBe(history ? 'History canonical' : 'Config canonical');
+		}
+	});
+	test('billing checkbox cannot reuse its value as a changed shipping postcode or retry a completed empty lookup', async () => {
+		const h = harness(); h.mount(); await h.flush(250); await h.reply(0, []);
+		h.billingChange(); await h.flush(250); expect(h.lookups).toHaveLength(1);
+		h.model.cart.shippingAddress.postcode = '55581'; h.model.customerBusy = true; h.billingChange(); h.notify(); await h.flush(250);
+		expect(new URLSearchParams(h.lookups[1].init.body).get('term')).toBe('55581');
+		await h.reply(1, [{ id: 123, text: 'Changed postcode' }]); expect(h.find('select').props.value).toBe('');
+		h.model.customerBusy = false; h.notify(); await h.flush(250); await h.flush(0);
+		expect(h.lookups).toHaveLength(2); expect(h.sends).toHaveLength(0);
 	});
 	test('explicitly cleared restored pin never revives for the same shipping address', async () => {
 		const h = harness({ config: { savedDestination } }); Object.assign(h.model.cart.shippingAddress, savedAddress);
@@ -580,7 +689,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		const experimental = harness({ slot: 'ExperimentalOrderMeta' }); experimental.mount(); expect(experimental.find('select')).toBeDefined();
 		const slotOnly = harness({ missing: 'inner' }); slotOnly.mount(); expect(slotOnly.find('select')).toBeDefined();
 	});
-	test('debounces lookup, validates district, filters bad IDs and publishes canonical selection', async () => {
+	test('debounces lookup, rejects bad rows and publishes canonical selection after retry', async () => {
 		const h = harness(); h.model.cart.shippingAddress.postcode = ' 12 345 '; h.mount();
 		expect(h.status()).toBe('Loading'); expect(h.find('select').props.disabled).toBe(true);
 		await h.flush(0); expect(h.lookups).toHaveLength(0); expect(h.sends).toHaveLength(0);
@@ -589,6 +698,8 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(new URLSearchParams(h.lookups[0].init.body).get('term')).toBe('12345');
 		expect(new URLSearchParams(h.lookups[0].init.body).get('nonce')).toBe('nonce');
 		await h.reply(0, [{ id: 0, text: 'Bad' }, { id: 'abc', text: 'Bad' }, { id: 8, text: '' }, { id: 7, text: 'District Seven' }]);
+		expect(h.status()).toBe('Lookup failed'); expect(options(h.find('select'))).toEqual([]);
+		h.retry(); await h.flush(250); await h.reply(1);
 		expect(options(h.find('select'))).toEqual([{ value: '7', label: 'District Seven' }]);
 		h.choose('7'); expect(h.root.kiriofBuyerCheckout.getDestination()).toEqual({ version: 1, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping' });
 		expect(h.validations.some(errors => errors['kiriof-buyer-destination']?.hidden === false)).toBe(true);
@@ -665,9 +776,9 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		const h = harness();
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:7:gosend:instant', method_id: 'kiriminaja-instant', selected: true };
 		await ready(h);
-		await h.flush(0); h.sends[0].resolve(); await h.settle();
+		await h.flush(0); expect(h.sends).toHaveLength(0);
 		expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Subdistrict required');
-		h.choose('7'); await h.flush(0); h.sends[1].resolve(); await h.settle();
+		h.choose('7'); await h.flush(0); h.sends[0].resolve(); await h.settle();
 		expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 		expect(h.sends[0].request.data.shipping_method).toBeUndefined();
 	});
@@ -728,13 +839,13 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.sends[0].request.data).toEqual({ action: 'sync_checkout', destination, payment_method: 'bacs', insurance: 1, force_insurance: 0, recipient_context: { first_name: 'Buyer', last_name: '', phone: 'private' }, quote_refresh_version: 0, refresh_instant: false });
 		expect(Object.isFrozen(h.sends[0].request.data.destination.shipping_address)).toBe(true);
 	});
-	test('a map-only destination still requires district after its update completes', async () => {
+	test('a map-only destination still requires district and never writes an empty identity', async () => {
 		const h = harness(); await ready(h);
 		expect(h.root.kiriofBuyerCheckout.setCoordinates(h.model.cart.shippingAddress, { latitude: 0, longitude: 106 })).toBe(true); h.render();
 		expect(h.root.kiriofBuyerCheckout.getDestination().version).toBe(2);
 		expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('');
-		await h.flush(0); expect(h.sends).toHaveLength(1); h.sends[0].resolve(); await h.settle();
-		expect(h.validations.at(-1)).toEqual({ 'kiriof-buyer-destination': { message: 'Subdistrict required', hidden: false } });
+		await h.flush(0); expect(h.sends).toHaveLength(0);
+		expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ 'kiriof-buyer-destination': { message: 'Subdistrict required', hidden: false } });
 		expect(h.find('select').props.value).toBe('');
 	});
 	test('changing address_1 invalidates a pin without losing district and rejects stale coordinate callbacks', async () => {

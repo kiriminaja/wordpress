@@ -12,6 +12,33 @@ const instant = 'kiriminaja-instant:7:gosend:instant';
 const cargo = 'kiriminaja-official_jne_REG'; // Guard fixture's automatic Express substitute, displayed as Cargo here.
 const message = 'Shipping options changed. Please review and select your courier again before placing the order.';
 const snapshot = (rate: string, ids = ['3']) => ({ version: 1, packages: ids.map(package_id => ({ package_id, rate_id: rate })) });
+
+test('matching selected GoSend never shows changed-courier warning during customer or rate updates', async ({ app, browser }) => {
+  const { unexpected } = await open(app, browser, true);
+  await expect.poll(() => blocksReview(browser)).toEqual(snapshot(cargo));
+  await browser.locator(`input[value="${instant}"]`).click();
+  await expect.poll(() => blocksReview(browser)).toEqual(snapshot(instant));
+  await expect.poll(() => browser.evaluate(() => (window as any).__rateBusy)).toBe(false);
+  await browser.locator('#terms').click();
+  for (const key of ['__customerBusy', '__rateBusy']) {
+    await browser.evaluate((name: string) => { (window as any)[name] = true; }, key);
+    // Native store update notification uses the public fixture refresh boundary,
+    // without selecting another courier or clearing the reviewed choice.
+    await browser.evaluate(() => { (window as any).__notify(); });
+    await expect(browser.locator('#shipping-error')).not.toBeVisible();
+    await expect.poll(() => browser.evaluate(() => (window as any).__errors['kiriof-shipping-selection-pending'])).toEqual({message:'Updating shipping options…',hidden:true});
+    expect(await blocksReview(browser)).toEqual(snapshot(instant));
+    await browser.locator('#place').click();
+    expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
+    await browser.evaluate((name: string) => { (window as any)[name] = false; (window as any).__notify(); }, key);
+    await expect.poll(() => browser.evaluate(() => Boolean((window as any).__errors['kiriof-shipping-selection-pending']))).toBe(false);
+    await expect(browser.locator('#shipping-error')).not.toBeVisible();
+  }
+  await browser.locator('#place').click();
+  await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
+  expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([]);
+  expect(unexpected).toEqual([]);
+});
 const scripts = (sources: string[]) => sources.map(source => `<script>${source.replace(/<\/script/gi, '<\\/script')}</script>`).join('');
 function table(chosen: string, ids = [3]) {
   return `<table class="kiriof-classic-order-review"><tbody>${ids.map(index => php('classic-shipping-presentation-runtime.php', {
@@ -48,13 +75,13 @@ function reactSource() {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 function blocksHTML() {
-  return `<!doctype html><html><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><label><input type="checkbox" id="terms">Accept terms</label><button id="place">Place order</button><p id="terms-error" role="alert" hidden></p><p id="shipping-error" role="alert" hidden></p><p id="server-error" role="alert" hidden></p></div>${scripts([
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><label><input type="checkbox" id="terms">Accept terms</label><button id="place">Place order</button><p id="terms-error" role="alert" hidden></p><p id="shipping-error" role="alert" hidden></p><p id="server-error" role="alert" hidden></p></div>${scripts([
     reactSource(),
     `const R=window.__React;const listeners=new Set();let version=0;
     window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;
     const rates=[{rate_id:${JSON.stringify(cargo)},method_id:'kiriminaja-official',selected:true,label:'JNE Cargo'},{rate_id:${JSON.stringify(instant)},method_id:'kiriminaja-instant',selected:false,label:'GoSend Instant'}];
     window.__cart={needsShipping:true,shippingAddress:{country:'US',postcode:'90210',first_name:'Test',phone:'123'},extensions:{},shippingRates:[{package_id:3,shipping_rates:rates}]};
-    function emit(){version++;listeners.forEach(fn=>fn());}
+    function emit(){version++;listeners.forEach(fn=>fn());}window.__notify=emit;
     function apply(rate){window.__cart={...window.__cart,shippingRates:[{package_id:3,shipping_rates:rates.filter(r=>!window.__missingQuote||r.rate_id!==${JSON.stringify(instant)}).map(r=>({...r,selected:r.rate_id===rate}))}]};emit();}
     window.__refresh=async function(){window.__customerBusy=true;emit();const response=await fetch('/rates?automatic=1');apply((await response.json()).rate);window.__customerBusy=false;emit();};
     const cartDispatch={selectShippingRate:async(rate,packageId)=>{window.__nativeActions.push([rate,packageId]);window.__rateBusy=true;emit();try{if(window.__holdRestore)await new Promise(resolve=>window.__releaseRestore=resolve);const response=await fetch('/rates?restore='+encodeURIComponent(rate));if(window.__failRestore)throw new Error('Native restore failed');apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}};
@@ -71,7 +98,7 @@ function blocksHTML() {
     `window.__createRoot(document.querySelector('#district')).render(R.createElement(window.__District));
     document.querySelector('#place').onclick=async function(){window.__attempts++;
       if(!document.querySelector('#terms').checked){const p=document.querySelector('#terms-error');p.hidden=false;p.textContent='Please accept terms';return;}
-      if(window.__errors['kiriof-shipping-selection'])return;
+      if(window.__errors['kiriof-shipping-selection'] || window.__errors['kiriof-shipping-selection-pending'])return;
       const response=await fetch('/checkout',{method:'POST',body:JSON.stringify(window.__extensions)});if(response.ok)window.__orders++;
     };`,
   ])}</body></html>`;

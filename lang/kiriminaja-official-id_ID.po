@@ -5709,6 +5709,10 @@ msgid "No subdistricts found. Check your shipping postcode."
 msgstr "Desa / Kelurahan tidak ditemukan. Periksa kode pos pengiriman Anda."
 
 #: inc/Base/Enqueue.php
+msgid "No subdistricts were returned for this postcode. Retry the lookup or check your shipping postcode."
+msgstr "Desa / Kelurahan tidak ditemukan untuk kode pos ini. Coba lagi atau periksa kode pos pengiriman Anda."
+
+#: inc/Base/Enqueue.php
 msgid "Subdistricts could not be loaded. Please retry."
 msgstr "Desa / Kelurahan tidak dapat dimuat. Silakan coba lagi."
 
@@ -5843,3 +5847,7 @@ msgstr "Peralatan Olahraga & Hiburan"
 #: inc/Services/CheckoutShippingSelectionGuard.php inc/Base/Enqueue.php templates/front/partials/form-billing-address-config.php
 msgid "Shipping options changed. Please review and select your courier again before placing the order."
 msgstr "Pilihan pengiriman telah berubah. Periksa dan pilih kembali kurir sebelum membuat pesanan."
+
+#: inc/Base/Enqueue.php
+msgid "Updating shipping options…"
+msgstr "Memperbarui pilihan pengiriman…"

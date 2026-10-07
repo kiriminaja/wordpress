@@ -31,7 +31,7 @@ class GeneralAjaxController
     public function kiriminajaSubdistrictSearch()
     {
         try {
-            if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), KIRIOF_NONCE ) ) {
+            if ( ! isset( $_POST['nonce'] ) || ! is_string( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), KIRIOF_NONCE ) ) {
                 wp_send_json_error(
                     array(
                         'code'    => '401',
@@ -61,7 +61,13 @@ class GeneralAjaxController
                 wp_send_json_success( array() );
             }
 
-            $subdistrict_search = $this->checkout_service_factory->districtSearch( $search );
+            // Explicit retries alone bypass the shared postcode cache. Compare
+            // the raw literal, not sanitized input that might coerce a value.
+            $retry = '1' === ( $_POST['retry'] ?? null )
+                || ( isset( $_POST['data'] ) && is_array( $_POST['data'] ) && '1' === ( $_POST['data']['retry'] ?? null ) );
+            $subdistrict_search = $retry
+                ? $this->checkout_service_factory->districtSearch( $search, true )
+                : $this->checkout_service_factory->districtSearch( $search );
             if ( 200 !== $subdistrict_search->status ) {
                 // The address repository already records the fixed failure reason
                 // and transport metadata. Do not duplicate it per keystroke here.

@@ -93,7 +93,7 @@ namespace {
 	}
 	final class BuyerInstantFactory extends \KiriminAjaOfficial\Services\CheckoutServiceFactory {
 		public function __construct() {}
-		public function districtSearch( string $postcode ): \KiriminAjaOfficial\Utils\ServiceResponse {
+		public function districtSearch( string $postcode, bool $revalidate = false ): \KiriminAjaOfficial\Utils\ServiceResponse {
 			$GLOBALS['buyer_instant_lookups'][] = $postcode;
 			return new \KiriminAjaOfficial\Utils\ServiceResponse( array( array( 'id' => 456, 'text' => 'Canonical district' ) ), 'success', 200 );
 		}

@@ -79,6 +79,7 @@
 	var nextDistrictId = 0;
 	var shippingReview = root.kiriofShippingSelection && root.kiriofShippingSelection.create({ onChange: function() { publishShippingReview(); notify(); } });
 	var shippingSelectionErrorId = 'kiriof-shipping-selection';
+	var shippingSelectionPendingId = 'kiriof-shipping-selection-pending';
 	var restorationKey = '';
 	var restoringShipping = false;
 	function selectedPackages(packages) {
@@ -363,14 +364,18 @@
 		}, [ destinationKey, isOwner, awaitingSavedPin ] );
 
 		useEffect(function(){
-			if(!ownsEffects() || !shippingReview || awaitingSavedPin)return;
-			if(!data.busy && cart.needsShipping && !data.collection && chosenPackages.length===(cart.shippingRates || []).length)shippingReview.seed(chosenPackages);
+			if(!ownsEffects() || !shippingReview)return;
+			if(!awaitingSavedPin && !data.busy && cart.needsShipping && !data.collection && chosenPackages.length===(cart.shippingRates || []).length)shippingReview.seed(chosenPackages);
 			var matches=shippingReview.reconcile(chosenPackages);
 			restoreReviewedShipping(cart.shippingRates || [],chosenPackages,data.busy);
-			publishShippingReview();
-			if(cart.needsShipping && !data.collection && shippingReview.snapshot().packages.length && (!matches || data.busy)){
+			if(!awaitingSavedPin)publishShippingReview();
+			var guarded=cart.needsShipping && !data.collection && shippingReview.snapshot().packages.length;
+			if(guarded && !matches){
 				var errors={};errors[shippingSelectionErrorId]={message:strings.shippingSelectionChanged || 'Shipping options changed. Please review and select your courier again before placing the order.',hidden:false};validationDispatch.setValidationErrors(errors);
 			}else validationDispatch.clearValidationError(shippingSelectionErrorId);
+			if(guarded && data.busy){
+				var pending={};pending[shippingSelectionPendingId]={message:strings.shippingSelectionUpdating || 'Updating shipping options…',hidden:true};validationDispatch.setValidationErrors(pending);
+			}else validationDispatch.clearValidationError(shippingSelectionPendingId);
 		},[chosenPackagesKey,data.busy,cart.needsShipping,data.collection,awaitingSavedPin,pinAddressKey,isOwner,revision[0]]);
 
 		useEffect( function() {
@@ -382,7 +387,7 @@
 				return;
 			}
 			// Restore a saved identity before issuing a mutation with an empty district.
-			if ( required && ( results.key !== addressKey || results.loading || results.error || postcode.length < 3 ) ) {
+			if ( required && ( results.key !== addressKey || results.loading || results.error || !results.options.length || !currentSelection || postcode.length < 3 ) ) {
 				return;
 			}
 			if ( null !== lastRecipientKey && lastRecipientKey !== recipientKey ) { recipientRefreshVersion = quoteVersion; }
@@ -413,6 +418,14 @@
 			return cleanup;
 		}, [ expiresAt, instantSelected, instantStatus.eligible, recoverableQuote, isOwner, cart.needsShipping, data.collection ] );
 
+		var previousEditing = useRef(presentation.editing);
+		useEffect(function(){
+			var opened=presentation.editing && !previousEditing.current;previousEditing.current=presentation.editing;
+			if(opened && ownsEffects() && results.key===addressKey && !results.loading && (results.error || !results.options.length)){
+				setShared('retryLookup',function(previous){return previous+1;});
+			}
+		},[presentation.editing,isOwner,addressKey]);
+
 		useEffect( function() {
 			if ( ! ownsEffects() ) { return; }
 			var lookupKey = addressKey + '|' + required + '|' + retryLookup;
@@ -431,6 +444,7 @@
 						nonce: config.nonce,
 						term: postcode
 					} );
+					if(retryLookup>0)body.set('retry','1');
 					deadline = root.setTimeout( function() {
 						if ( generation !== lookupGeneration.current || controller.signal.aborted || ! ownsEffects() ) { return; }
 						controller.abort();
@@ -448,24 +462,20 @@
 					} ).then( function( response ) {
 						if ( generation !== lookupGeneration.current || controller.signal.aborted ) { return; }
 						if ( ! response.success || ! Array.isArray( response.data ) ) { throw new Error( 'District lookup failed' ); }
-						var options = response.data.filter( function( row ) { return /^[1-9][0-9]*$/.test( String( row.id ) ) && row.text; } ).map( function( row ) {
+						if(response.data.some(function(row){return !row || !/^[1-9][0-9]*$/.test(String(row.id)) || typeof row.text!=='string' || !row.text.trim();}))throw new Error('Invalid subdistrict rows');
+						var options = response.data.map( function( row ) {
 							return { value: String( row.id ), label: String( row.text ) };
 						} );
 						root.clearTimeout( deadline );
 						setResults( { key: addressKey, options: options, loading: false, error: false } );
 						var saved = savedSelections[ postcode ];
 						var stored = config.savedDestination;
-						var savedId = stored && stored.postcode === postcode && stored.country === country ? stored.district_id : ( saved && saved.destination_id );
-						if ( ! savedId && address[ fieldId ] ) { savedId = address[ fieldId ]; }
-						if ( ! savedId && String( config.districtPostcode || '' ).replace( /\s+/g, '' ) === postcode ) {
-							savedId = config.district && config.district.id;
-						}
-						var restored = options.find( function( option ) { return option.value === String( savedId || '' ); } );
-						if ( restored ) {
-							setSelection( function( previous ) {
-								return previous && previous.key === addressKey ? previous : { id: restored.value, label: restored.label, key: addressKey };
-							} );
-						}
+						setSelection(function(previous){
+							var candidates=[previous && previous.key===addressKey ? previous.id : '',stored && stored.postcode===postcode && stored.country===country ? stored.district_id : '',saved && saved.destination_id,address[fieldId],String(config.districtPostcode || '').replace(/\s+/g,'')===postcode && config.district && config.district.id];
+							var restored=null;
+							candidates.some(function(id){restored=options.find(function(option){return option.value===String(id || '');});return Boolean(restored);});
+							return restored ? {id:restored.value,label:restored.label,key:addressKey} : null;
+						});
 					} ).catch( function() {
 						root.clearTimeout( deadline );
 						if ( generation === lookupGeneration.current && ! controller.signal.aborted ) {
@@ -496,7 +506,11 @@
 		var showRetry = instantSelected && quoteStale && ! saving;
 		var quoteFailure = updateState.error && updateState.pending && updateState.pending.refresh_instant;
 		var unavailable = false === instantStatus.eligible ? ( instantStatus.message || strings.instantUnavailable ) : '';
+		var lookupEmpty=results.key===addressKey && !results.loading && !results.error && !results.options.length;
+		var districtUnverified=!currentSelection || results.key!==addressKey || results.loading || results.error || lookupEmpty;
+		var lookupMessage=postcode.length<3 ? strings.postcodeRequired : results.loading || results.key!==addressKey ? strings.loading : results.error ? (results.timedOut ? strings.lookupTimeout : strings.lookupFailed) : lookupEmpty ? (strings.emptyRetry || strings.empty) : strings.districtRequired;
 		var message = updateState.stalled ? strings.saveStalled : ( updateState.error ? ( quoteFailure ? strings.quoteRefreshFailed : strings.updateFailed ) : ( saving ? strings.saving : ( required && ( ! currentSelection || results.key !== addressKey || results.loading || results.error ) ? strings.districtRequired : ( quoteStale ? ( unavailable || strings.quoteRefreshFailed ) : ( instantSelected ? unavailable : '' ) ) ) ) );
+		if(required && districtUnverified)message=lookupMessage;
 		useEffect( function() {
 			if ( ownsEffects() ) { setValidation( required && kiriminajaSelected ? message : '' ); }
 		}, [ message, required, kiriminajaSelected, isOwner ] );
@@ -507,16 +521,17 @@
 			var checking = results.loading || results.key !== addressKey || awaitingSavedPin;
 			var districtReady = currentSelection && ! checking && ! results.error;
 			return element.createPortal( h( 'div', { className: 'kiriof-address-status', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
-				! districtReady ? addressBadge( checking ? strings.checkingDistrict : strings.districtNotSet, false ) : null,
+				! districtReady && (checking || (!results.error && !lookupEmpty)) ? addressBadge( checking ? strings.checkingDistrict : strings.districtNotSet, false ) : null,
 				addressBadge( currentPin ? strings.pinLocation : strings.needPinLocation, Boolean( currentPin ), strings.pinRequirement ),
-				updateState.error || quoteStale ? addressBadge( message, false ) : null,
-				unavailable ? addressBadge( unavailable, false ) : null,
-				updateState.uncertain ? h( 'button', { type: 'button', onClick: function() { root.location.reload(); } }, strings.reloadCheckout ) : ( updateState.error || showRetry ? h( 'button', { type: 'button', onClick: function() {
-					if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); } else { setShared( 'refreshVersion', ++refreshVersion ); }
+				!checking && (results.error || lookupEmpty || updateState.error || quoteStale) ? addressBadge( message, false ) : null,
+				!districtUnverified && !updateState.error && !quoteStale && unavailable ? addressBadge( unavailable, false ) : null,
+				updateState.uncertain ? h( 'button', { type: 'button', onClick: function() { root.location.reload(); } }, strings.reloadCheckout ) : ( results.error || lookupEmpty || updateState.error || showRetry ? h( 'button', { type: 'button', onClick: function() {
+					if(results.error || lookupEmpty){setShared('retryLookup',function(previous){return previous+1;});}
+					else if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); } else { setShared( 'refreshVersion', ++refreshVersion ); }
 				} }, strings.retry ) : null )
 			), presentation.cardTarget );
 		}
-		var status = postcode.length < 3 ? strings.postcodeRequired : ( results.loading ? strings.loading : ( results.error ? ( results.timedOut ? strings.lookupTimeout : strings.lookupFailed ) : ( results.options.length ? message : strings.empty ) ) );
+		var status = districtUnverified ? lookupMessage : message;
 		return h( 'div', { className: 'kiriof-buyer-district kiriof-buyer-district--inner-block' },
 			h( 'div', { className: 'wc-blocks-components-select' },
 				h( 'div', { className: 'wc-blocks-components-select__container' },
@@ -546,16 +561,16 @@
 					h( 'svg', { className: 'wc-blocks-components-select__expand', viewBox: '0 0 24 24', width: 24, height: 24, 'aria-hidden': 'true', focusable: 'false' },
 						h( 'path', { d: 'm6 9 6 6 6-6', fill: 'none', stroke: 'currentColor', strokeWidth: 2 } ) ) ) ),
 			h( 'p', { id: inputId + '-status', role: 'status', 'aria-live': 'polite' }, status ),
-			unavailable ? h( 'p', { role: 'status', 'aria-live': 'polite' }, unavailable ) : null,
+			!districtUnverified && unavailable && unavailable!==status ? h( 'p', { role: 'status', 'aria-live': 'polite' }, unavailable ) : null,
 			updateState.uncertain ? h( 'button', {
 				type: 'button', className: 'wc-block-components-button wp-element-button',
 				onClick: function() { root.location.reload(); }
 			}, strings.reloadCheckout ) : null,
-			results.error || ( ( updateState.error || showRetry ) && ! updateState.uncertain ) ? h( 'button', {
+			results.error || lookupEmpty || ( ( updateState.error || showRetry ) && ! updateState.uncertain ) ? h( 'button', {
 				type: 'button',
 				className: 'wc-block-components-button wp-element-button',
 				onClick: function() {
-					if ( results.error ) { setShared( 'retryLookup', function( previous ) { return previous + 1; } ); }
+					if ( results.error || lookupEmpty ) { setShared( 'retryLookup', function( previous ) { return previous + 1; } ); }
 					if ( showRetry && ! results.error && ! updateState.error ) { setShared( 'refreshVersion', ++refreshVersion ); }
 					if ( updateState.error ) { setShared( 'retryUpdate', state.retryUpdate + 1 ); }
 				}
@@ -591,6 +606,7 @@
 		unsubscribe();
 		if(document.removeEventListener){document.removeEventListener('change',reviewNativeShipping,true);document.removeEventListener('click',reviewNativeShipping,true);}
 		validationDispatch.clearValidationError(shippingSelectionErrorId);
+		validationDispatch.clearValidationError(shippingSelectionPendingId);
 		effectCleanups.forEach( function( cleanup ) { cleanup(); } );
 		queue.dispose();
 	} );
