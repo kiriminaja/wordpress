@@ -9,27 +9,25 @@ use PHPUnit\Framework\TestCase;
 /** Distribution, enqueue, label and read-only transport guards; interaction belongs to the browser suite. */
 final class ClassicChoicesAssetsTest extends TestCase {
 	#[Test]
-	public function manual_vendor_assets_are_pinned_and_include_the_complete_mit_license(): void {
-		$readme = $this->source( 'assets/lib/choices/README.md' );
-		$this->assertStringContainsString( '# Choices.js 11.2.4', $readme );
-		$hashes = array(
-			'choices.min.js' => 'cb6805adda4eaf3251fe5adbde5f2f62c80ea1c29b7999b158546a77d1e191d6',
-			'choices.min.css' => 'a5360f4f5da9db5bcc5bf5c53673e4b91622aadbe3ac5727a605ff9a6b14da0b',
-			'LICENSE' => '38feb3fc5fcbca23433ffaf82140ced496e6a1503636392ac7d640faac18ec1b',
-		);
-		foreach ( $hashes as $file => $hash ) {
-			$this->assertSame( $hash, hash_file( 'sha256', PLUGIN_DIR . '/assets/lib/choices/' . $file ), $file );
-			$this->assertStringContainsString( $hash, $readme, 'Document the exact shipped file, not only its version.' );
-		}
-		$this->assertStringContainsString( 'choices.js v11.2.4', $this->source( 'assets/lib/choices/choices.min.js' ) );
-		$this->assertStringContainsString( 'The MIT License (MIT)', $this->source( 'assets/lib/choices/LICENSE' ) );
-		$this->assertStringContainsString( 'https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/scripts/choices.min.js', $readme );
-		$this->assertStringContainsString( 'https://cdn.jsdelivr.net/npm/choices.js@11.2.4/public/assets/styles/choices.min.css', $readme );
-		$this->assertStringContainsString( 'https://raw.githubusercontent.com/Choices-js/Choices/v11.2.4/LICENSE', $readme );
+	public function classic_selectors_are_owned_by_bits_ui_not_the_obsolete_choices_vendor(): void {
+		$component = $this->source( 'src/buyer/components/BuyerCombobox.svelte' );
+		$bridge = $this->source( 'src/buyer/classic/selector.ts' );
+		$entry = $this->source( 'src/buyer/entries/classic.ts' );
 		$package = json_decode( $this->source( 'package.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$this->assertArrayHasKey( 'bits-ui', $package['dependencies'] );
+		$this->assertStringContainsString( "import { Combobox } from 'bits-ui'", $component );
+		foreach ( array( 'Root', 'Trigger', 'Input', 'Item', 'Portal', 'Content' ) as $part ) {
+			$this->assertStringContainsString( '<Combobox.' . $part, $component );
+		}
+		$this->assertStringContainsString( 'onValueChange={onChoose}', $component );
+		$this->assertStringContainsString( 'mount(BuyerCombobox', $bridge );
+		$this->assertStringContainsString( 'startClassicSelectors', $entry );
+		$this->assertStringContainsString( 'root.kiriofClassicChoices = bridge;', $bridge, 'Legacy callers must resolve to the same selector owner.' );
+		$this->assertStringNotContainsString( 'new Choices', $bridge );
+		$this->assertStringNotContainsString( 'assets/lib/choices/', $this->source( 'inc/Base/Enqueue.php' ) );
 		foreach ( array( 'dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies' ) as $section ) {
 			foreach ( array_keys( $package[ $section ] ?? array() ) as $dependency ) {
-				$this->assertDoesNotMatchRegularExpression( '/choices/i', $dependency, 'Choices is manually vendored, not a Svelte/npm dependency.' );
+				$this->assertDoesNotMatchRegularExpression( '/choices/i', $dependency, 'Bits UI exclusively owns the enhanced selector.' );
 			}
 		}
 	}
@@ -37,14 +35,10 @@ final class ClassicChoicesAssetsTest extends TestCase {
 	#[Test]
 	public function classic_enqueue_executes_with_local_assets_and_preserves_the_legacy_dependency_chain(): void {
 		$result = $this->runtime( 'fixtures/classic-choices-assets-runtime.php', array( 'page' => 'classic' ) );
-		foreach ( array( 'scripts' => 'choices.min.js', 'styles' => 'choices.min.css' ) as $type => $file ) {
-			$asset = $result[ $type ]['kiriof-choices'];
-			$this->assertSame( 'https://shop.example/wp-content/plugins/kiriminaja/assets/lib/choices/' . $file, $asset['src'] );
-			$this->assertSame( '11.2.4', $asset['version'] );
-			$this->assertSame( array(), $asset['deps'] );
-		}
+		$this->assertArrayNotHasKey( 'kiriof-choices', $result['scripts'] );
+		$this->assertArrayNotHasKey( 'kiriof-choices', $result['styles'] );
 		$scripts = $result['scripts'];
-		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-choices', 'wc-country-select' ), $scripts['kiriof-classic-choices']['deps'] );
+		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-buyer-state', 'wc-country-select' ), $scripts['kiriof-classic-choices']['deps'] );
 		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-classic-choices' ), $scripts['kiriof-classic-shipping-options']['deps'] );
 		$this->assertSame( array( 'kiriof-checkout-shipping-payment', 'kiriof-classic-choices', 'kiriof-classic-shipping-options' ), $scripts['kiriof-form-billing-address']['deps'] );
 		$previous = 'kiriof-script';
@@ -54,10 +48,17 @@ final class ClassicChoicesAssetsTest extends TestCase {
 			$previous = $handle;
 		}
 		$this->assertSame( array( 'in_footer' => true ), $scripts['kiriof-classic-choices']['args'] );
-		$this->assertSame( array( 'kiriof-choices', 'kiriof-style' ), $result['styles']['kiriof-classic-choices']['deps'] );
-		$this->assertContains( 'kiriof-classic-choices', $result['enqueued_styles'] );
+		$this->assertSame( array( 'kiriof-style' ), $result['styles']['kiriof-classic-choices']['deps'] );
+		$this->assertContains( 'kiriof-classic-shipping-layout', $result['enqueued_styles'] );
+		$this->assertSame( array( 'kiriof-classic-choices' ), $result['styles']['kiriof-classic-shipping-layout']['deps'] );
+		$this->assertStringEndsWith( 'assets/buyer/dist/kiriminaja-buyer-classic.js', $scripts['kiriof-classic-choices']['src'] );
+		$this->assertStringEndsWith( 'assets/buyer/dist/kiriminaja-buyer-classic.css', $result['styles']['kiriof-classic-choices']['src'] );
+		$this->assertSame( array(), $scripts['kiriof-buyer-state']['deps'] );
+		$this->assertSame( false, $scripts['kiriof-shipping-selection']['src'] );
+		$this->assertSame( array( 'kiriof-buyer-state' ), $scripts['kiriof-shipping-selection']['deps'] );
 		foreach ( array( 'scripts', 'styles' ) as $type ) {
 			foreach ( $result[ $type ] as $asset ) {
+				if ( false === $asset['src'] ) { continue; }
 				$this->assertStringStartsWith( 'https://shop.example/', $asset['src'], 'Frontend assets must not resolve to a CDN.' );
 			}
 		}
@@ -103,18 +104,24 @@ final class ClassicChoicesAssetsTest extends TestCase {
 	}
 
 	#[Test]
-	public function legacy_control_source_only_calls_read_only_same_origin_lookup_without_secrets(): void {
-		$source = $this->source( 'assets/wp/js/checkout/choices-controls.js' );
-		$this->assertStringContainsString( "body.set('action', 'kiriminaja_subdistrict_search')", $source );
-		$this->assertStringContainsString( "body.set('nonce', root.nonce || config.nonce || '')", $source );
-		$this->assertStringContainsString( "window.fetch(root.ajaxurl || config.ajaxUrl || ''", $source );
+	public function typed_control_source_only_calls_read_only_same_origin_lookup_without_secrets(): void {
+		$source = $this->source( 'src/buyer/api/subdistrict.ts' );
+		$bridge = $this->source( 'src/buyer/classic/selector.ts' );
+		$courier = $this->source( 'src/buyer/components/CourierOption.svelte' );
+		$this->assertStringContainsString( "action: 'kiriminaja_subdistrict_search'", $source );
+		$this->assertStringContainsString( "ajax.nonce || config.nonce || ''", $bridge );
+		$this->assertStringContainsString( "ajax.ajaxurl || config.ajaxUrl || ''", $bridge );
+		$this->assertStringContainsString( 'window.fetch(endpoint', $source );
 		$this->assertStringContainsString( "credentials: 'same-origin'", $source );
-		$this->assertStringContainsString( 'url.origin === window.location.origin', $source );
-		$this->assertStringNotContainsString( 'createElementNS(', $source );
-		$this->assertStringContainsString( "img.addEventListener('error'", $source );
-		$this->assertDoesNotMatchRegularExpression( '/(?:create[_-]?order|booking|credit|api[_-]?key|api[_-]?token|Authorization|Bearer|svelte)/i', $source );
-		preg_match_all( '/body\.set\(\s*[\'"]([^\'"]+)/', $source, $matches );
-		$this->assertSame( array( 'action', 'nonce', 'term', 'data[term]', 'data[search]' ), $matches[1], 'Search must never send credentials or mutate booking/order payloads.' );
+		$this->assertStringContainsString( 'url.origin === window.location.origin', $courier );
+		$this->assertStringNotContainsString( 'createElementNS(', $courier );
+		$this->assertStringContainsString( 'onerror={() => failed = source}', $courier );
+		$this->assertDoesNotMatchRegularExpression( '/(?:create[_-]?order|booking|credit|api[_-]?key|api[_-]?token|Authorization|Bearer)/i', $source );
+		$this->assertSame( 1, substr_count( $source, 'window.fetch(' ), 'Search has one read-only transport.' );
+		$this->assertSame( 1, preg_match( '/new URLSearchParams\(\{(.*?)\}\)/s', $source, $matches ) );
+		preg_match_all( '/^\s*(?:\x27([^\x27]+)\x27|([a-z]+))(?:\s*:|\s*,)/m', $matches[1], $fields );
+		$keys = array_map( static fn( $quoted, $plain ) => $quoted ?: $plain, $fields[1], $fields[2] );
+		$this->assertSame( array( 'action', 'nonce', 'term', 'data[term]', 'data[search]' ), $keys, 'Search must never send credentials or mutate booking/order payloads.' );
 	}
 
 	private function source( string $path ): string {

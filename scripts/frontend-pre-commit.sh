@@ -6,12 +6,14 @@ if ! git diff --cached --name-only --diff-filter=ACMRD -- \
 	'bun.lock' \
 	'src/**' \
 	'assets/wp/**' \
+	'assets/buyer/**' \
 	'blocks/**' \
 	'tests/**' \
 	'scripts/**' \
 	'lang/**' \
 	'inc/**' \
 	'vite.config.ts' \
+	'vite.buyer.config.ts' \
 	'svelte.config.js' \
 	'tsconfig.json' \
 	'.oxfmtrc.json' \

@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { buyerRuntimeSource, buyerBrowserContext } from './helpers/buyer-runtime-source';
 import { runInNewContext } from 'node:vm';
 import { React, happy, loadRenderer } from './helpers/ui-runtime';
 
-const source = readFileSync(new URL('../assets/wp/js/kiriof-map-checkout.js', import.meta.url), 'utf8');
+const source = await buyerRuntimeSource('state');
+const mapUiSource = await buyerRuntimeSource('map');
 let renderer: any;
 
 function emitter() {
@@ -62,7 +63,7 @@ function fixture(extra: any = {}, browserRoot?: any) {
 		observe(node: any) { this.nodes.push(node); }
 		disconnect() { this.disconnected++; }
 	};
-	runInNewContext(source, { window: root });
+	runInNewContext(source, buyerBrowserContext(root));
 	const api = root.kiriofMapCheckout;
 	const session = api.createMapSession({ leaflet: L, node, tiles: 'https://tiles.example.test/{z}/{x}/{y}.png', label: 'Delivery pin', geolocation,
 		onSelect: (point: any) => { selections.push(point); return true; }, onError: (code: string) => errors.push(code), ...extra });
@@ -72,7 +73,7 @@ function fixture(extra: any = {}, browserRoot?: any) {
 	};
 }
 
-describe('Map checkout exported session: unchanged production VM, no UI hooks', () => {
+describe('Map checkout exported session: compiled production TypeScript VM, no UI hooks', () => {
 	test('Haversine metres validates full coordinate objects, zero, antipodes and inclusive millimetre boundary', () => {
 		const { api } = fixture(); const origin = { latitude: '0', longitude: 0 };
 		expect(api.coverageDistance(origin, origin)).toBe(0);
@@ -339,11 +340,11 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 	if (options.editing !== undefined) root.kiriofAddressPresentation = { usePresentation: () => presentation };
 	root.wp = { element: React, data: { useSelect: (callback: any) => callback((name: string) => name === 'wc/store/cart' ? { getCartData: () => model.cart } : { prefersCollection: () => model.collection }) }, plugins: { registerPlugin() { throw new Error('Map must not register OrderMeta plugin'); } } };
 	root.wc = { blocksCheckout: { registerCheckoutBlock: (registration: any) => registrations.push(registration), get OrderMeta() { throw new Error('Map must not access OrderMeta'); } } };
-	runInNewContext(source, { window: root });
+	runInNewContext(mapUiSource, buyerBrowserContext(root));
 	const container = window.document.createElement('div'); window.document.body.append(container);
 	renderer ||= loadRenderer!();
 	const reactRoot = renderer.createRoot(container);
-	const render = () => React.act(() => reactRoot.render(React.createElement(registrations[0].component)));
+	const render = () => { React.act(() => reactRoot.render(React.createElement(registrations[0].component))); root.__buyerFlushSync(); };
 	const button = (text: string) => [...container.querySelectorAll('button')].find((item: any) => (item.getAttribute('aria-label') || item.textContent) === text) as any;
 	const click = (text: string) => React.act(() => { const target = button(text); expect(target).toBeDefined(); target.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
 	const cleanup = () => { React.act(() => reactRoot.unmount()); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } };

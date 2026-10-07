@@ -142,10 +142,10 @@ describe('separate legacy checkout browser modules', () => {
 		const enqueue = readFileSync(new URL('../inc/Base/Enqueue.php', import.meta.url), 'utf8');
 		const template = readFileSync(new URL('../templates/front/form-billing-address.php', import.meta.url), 'utf8');
 		expect(enqueue).toContain("foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module )");
-		expect(enqueue).toContain("$relative_path = 'assets/wp/js/checkout/' . $module . '.js';");
+		expect(enqueue).toContain("$relative_path = 'assets/buyer/js/checkout/' . $module . '.js';");
 		expect(enqueue).toContain("wp_register_script( $handle, $this->plugin_url . $relative_path, $legacy_dependencies, (string) filemtime( KIRIOF_DIR . $relative_path ), array( 'in_footer' => true ) );");
 		expect(enqueue).toContain('$legacy_dependencies = array( $handle );');
-		expect(enqueue).toContain("'kiriof-form-billing-address',\n            $this->plugin_url . 'assets/wp/js/form-billing-address.js',\n            $legacy_dependencies,");
+		expect(enqueue).toContain("'kiriof-form-billing-address',\n            $this->plugin_url . 'assets/buyer/js/form-billing-address.js',\n            $legacy_dependencies,");
 		expect(template).toContain("wp_localize_script(\n            'kiriof-checkout-state',\n            'kiriofBillingAddressConfig',");
 		expect(template).not.toContain("wp_localize_script(\n            'kiriof-form-billing-address'");
 		const entry = legacyCheckoutModules.at(-1)!.source;

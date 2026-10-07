@@ -24,7 +24,7 @@ final class CourierChoiceMetadataRuntimeTest extends TestCase {
 		$this->assertStringNotContainsString( 'onerror=', $result['html'] );
 		// Options carry a safe identity, never an arbitrary URL or guessed label asset.
 		$this->assertStringNotContainsString( '<img', $result['html'] );
-		$this->assertStringNotContainsString( 'assets/wp/img/couriers/', $result['html'] );
+		$this->assertStringNotContainsString( 'assets/buyer/img/couriers/', $result['html'] );
 		foreach ( array( 'unknown', 'flat_rate', 'thirdparty', 'jneevil' ) as $code ) {
 			$this->assertArrayNotHasKey( $code, $result['urls'] );
 		}
@@ -36,10 +36,10 @@ final class CourierChoiceMetadataRuntimeTest extends TestCase {
 		$hashes = json_decode( file_get_contents( __DIR__ . '/fixtures/courier-artwork-sha256.json' ), true, 512, JSON_THROW_ON_ERROR );
 		$total = 0;
 		foreach ( $urls as $code => $url ) {
-			$this->assertStringStartsWith( 'https://shop.example/wp-content/plugins/kiriminaja/assets/wp/img/couriers/', $url );
+			$this->assertStringStartsWith( 'https://shop.example/wp-content/plugins/kiriminaja/assets/buyer/img/couriers/', $url );
 			$file = basename( $url );
 			$this->assertMatchesRegularExpression( '/^[a-z0-9-]+\.png$/', $file );
-			$asset = dirname( __DIR__ ) . '/assets/wp/img/couriers/' . $file;
+			$asset = dirname( __DIR__ ) . '/assets/buyer/img/couriers/' . $file;
 			$this->assertFileExists( $asset );
 			$bytes = file_get_contents( $asset );
 			$this->assertSame( "\x89PNG\r\n\x1a\n", substr( $bytes, 0, 8 ) );

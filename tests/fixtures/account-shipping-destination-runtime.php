@@ -17,6 +17,9 @@ namespace KiriminAjaOfficial\Services {
 }
 namespace KiriminAjaOfficial\Base {
     class Enqueue {
+        public function register_buyer_checkout_assets( bool $localize = false ): void {
+            wp_register_script( 'kiriof-buyer-state', '/assets/buyer/dist/kiriminaja-buyer-state.js', array(), 'test', true );
+        }
         public function buyer_checkout_config(): array {
             return array( 'ajaxUrl' => '/wp-admin/admin-ajax.php', 'nonce' => 'lookup-nonce', 'map' => array( 'enabled' => true, 'tiles' => 'https://tiles.example/{z}/{x}/{y}' ), 'i18n' => array( 'selectDistrict' => 'Select Subdistrict', 'district' => 'Subdistrict', 'retry' => 'Try again', 'mapTitle' => 'Pin Location', 'mapOptional' => 'Optional for Express.', 'mapHelp' => 'Move map', 'mapKeyboard' => 'Use arrow keys', 'mapPermission' => 'Allow location', 'mapLocate' => 'Locate me' ) );
         }
@@ -25,6 +28,7 @@ namespace KiriminAjaOfficial\Base {
 namespace {
     define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
     define( 'KIRIOF_DIR', ABSPATH );
+    define( 'KIRIOF_VERSION', 'test' );
     $input = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );
     $GLOBALS['input'] = $input;
     $GLOBALS['current_user'] = $input['current_user'] ?? 7;
@@ -55,6 +59,8 @@ namespace {
     function get_query_var( $key ) { return $GLOBALS['input']['endpoint_type'] ?? 'shipping'; }
     function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/kiriminaja/'; }
     function wp_enqueue_style( ...$args ) { $GLOBALS['styles'][] = $args; }
+    function wp_script_is( $handle, $status = 'registered' ) { return in_array( $handle, array_column( $GLOBALS['scripts'], 0 ), true ); }
+    function wp_register_script( ...$args ) { $GLOBALS['scripts'][] = $args; }
     function wp_enqueue_script( ...$args ) { $GLOBALS['scripts'][] = $args; }
     function wp_localize_script( ...$args ) { $GLOBALS['localized'][] = $args; }
     function woocommerce_form_field( $key, $args, $value ) {

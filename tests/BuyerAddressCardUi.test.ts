@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { buyerRuntimeSource, buyerBrowserContext } from './helpers/buyer-runtime-source';
 import { React, happy, rendererRequire } from './helpers/ui-runtime';
 import { runInNewContext } from 'node:vm';
+import { mutationListeners } from 'happy-dom/lib/PropertySymbol.js';
 
 const uiTest = test;
-const scripts = ['kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-buyer-checkout', 'kiriof-map-checkout'].map(name => readFileSync(new URL(`../assets/wp/js/${name}.js`, import.meta.url), 'utf8'));
+const scripts = [await buyerRuntimeSource('state'), await buyerRuntimeSource('blocks')];
 const address = { address_1: 'Main Road', address_2: '', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' };
 function saved(overrides: any = {}) {
 	return { version: 2, district_id: '7', district_label: 'Old label', postcode: '12345', country: 'ID', destination_latitude: '0', destination_longitude: 0, shipping_address: { ...address }, ...overrides };
@@ -16,6 +17,18 @@ function events() {
 }
 async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean; autoLocation?: boolean; restore?: boolean; address?: any } = {}) {
 	const window = new happy.Window();
+	// Happy DOM 20.8.4 stores only a WeakRef to its listener closure. Retain
+	// the native closure while observed so Bun GC cannot drop live delivery.
+	// Record creation, batching and callbacks still belong to the real observer.
+	const NativeObserver = window.MutationObserver;
+	window.MutationObserver = class extends NativeObserver {
+		callbacks = new Set<any>();
+		observe(node: any, options: any) {
+			super.observe(node, options);
+			for (const listener of node[mutationListeners]) this.callbacks.add(listener.callback.deref());
+		}
+		disconnect() { super.disconnect(); this.callbacks.clear(); }
+	};
 	const document = window.document;
 	const previous = new Map<string, any>();
 	for (const [key, value] of Object.entries({ window, document, navigator: window.navigator, HTMLElement: window.HTMLElement, Node: window.Node, MutationObserver: window.MutationObserver, IS_REACT_ACT_ENVIRONMENT: true })) {
@@ -70,22 +83,43 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 		map(node: any) { expect(node instanceof window.HTMLElement).toBe(true); const map = Object.assign(events(), { node, removed: 0, center: { lat: 0, lng: 0 }, setView(point: any) { this.center = { lat: point[0], lng: point[1] }; this.fire('movestart'); this.fire('moveend'); return this; }, getCenter() { return this.center; }, invalidateSize() {}, remove() { this.removed++; this.off(); } }); maps.push(map); return map; },
 		tileLayer() { const tile = Object.assign(events(), { addTo() { return this; } }); tiles.push(tile); return tile; },
 	};
-	const context = { window, document, AbortController, URLSearchParams, setTimeout: window.setTimeout.bind(window), clearTimeout: window.clearTimeout.bind(window) };
-	runInNewContext(readFileSync(new URL('../assets/wp/js/kiriof-shipping-selection.js', import.meta.url),'utf8'),context);
+	const context = buyerBrowserContext(window, { AbortController, URLSearchParams });
 	for (const source of scripts) runInNewContext(source, context);
 	expect(registrations.map(row => row.metadata.name)).toEqual(['kiriminaja-official/checkout-district', 'kiriminaja-official/map-checkout']);
 	const roots = registrations.map((registration, index) => { const root = createRoot(document.getElementById(index ? 'map-mount' : 'district-mount')); return { root, component: registration.component }; });
 	const validationMount = document.createElement('div'); document.body.append(validationMount);
 	roots.push({ root: createRoot(validationMount), component: ValidationDisplay });
 	await act(async () => { for (const item of options.mapFirst ? [...roots].reverse() : roots) item.root.render(React.createElement(item.component)); });
-	// One event-loop turn lets the real MutationObserver deliver its native
-	// mutation batch. We never invoke bridge.refresh or poll bridge timers.
-	async function mutation(callback: () => void) { await act(async () => { callback(); await new Promise(resolve => setTimeout(resolve, 0)); }); }
+	// Deliver native mutation and host-repair batches inside act, then let act
+	// commit React effects (including the permission-gated map). No timer sleeps
+	// or calls to bridge.refresh: the real observer remains the only authority.
+	async function drainMutations() {
+		await new Promise<void>(resolve => window.queueMicrotask(resolve));
+		await new Promise<void>(resolve => window.queueMicrotask(resolve));
+	}
+	async function mutation(callback: () => void) {
+		await act(async () => { callback(); await drainMutations(); });
+		// React's commit can enqueue further native/Svelte DOM work.
+		await act(async () => { await drainMutations(); });
+	}
 	async function flush(delay: number) { await act(async () => { for (const [id, timer] of [...timers]) if (timer.delay === delay && timers.delete(id)) timer.callback(); }); }
 	async function reply(rows = [{ id: 7, text: 'District Seven' }]) { await act(async () => { lookups.at(-1).resolve({ ok: true, json: () => Promise.resolve({ success: true, data: rows }) }); }); }
 	async function notify() { await act(async () => { for (const callback of subscribers) callback(); }); }
 	async function editing(value: boolean) { await mutation(() => { const wrapper = document.querySelector('#shipping-fields .wc-block-components-address-address-wrapper'); wrapper.classList.toggle('is-editing', value); wrapper.querySelector('button').setAttribute('aria-expanded', String(value)); }); }
-	async function cleanup() { await act(async () => { for (const { root } of roots) root.unmount(); }); expect(document.querySelector('.kiriof-address-status-host')).toBeNull(); expect(maps.every(map => map.removed === 1)).toBe(true); window.dispatchEvent(new window.Event('pagehide')); expect(subscribers.size).toBe(0); window.happyDOM.abort(); for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } }
+	async function cleanup() {
+		try {
+			await act(async () => { for (const { root } of roots) root.unmount(); await drainMutations(); });
+			expect(document.querySelector('.kiriof-address-status-host')).toBeNull();
+			expect(maps.every(map => map.removed === 1)).toBe(true);
+			window.dispatchEvent(new window.Event('pagehide'));
+			expect(subscribers.size).toBe(0);
+		} finally {
+			try { await window.happyDOM.close(); }
+			finally {
+				for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; }
+			}
+		}
+	}
 	return { window, document, model, maps, locations, tiles, restores, publications, validations, sends, lookups, timers, act, mutation, editing, notify, flush, reply, cleanup,
 		card: () => document.querySelector('#shipping-fields .wc-block-components-address-card'),
 		badges: () => [...document.querySelectorAll('#shipping-fields .kiriof-address-status__badge')],

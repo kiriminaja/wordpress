@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { buyerRuntimeSource, buyerBrowserContext } from './helpers/buyer-runtime-source';
 import { runInNewContext } from 'node:vm';
 
 type Package = { package_id: string | number; rate_id: string };
@@ -13,7 +13,7 @@ type Selection = {
 	snapshot(): Snapshot;
 };
 type Library = { create(options?: { onChange?(snapshot: Snapshot): void }): Selection };
-const source = readFileSync(new URL('../assets/wp/js/kiriof-shipping-selection.js', import.meta.url), 'utf8');
+const source = await buyerRuntimeSource('state');
 function load(browser = false): Library {
 	const context: Record<string, any> = browser ? { window: {} } : {};
 	runInNewContext(source, context);

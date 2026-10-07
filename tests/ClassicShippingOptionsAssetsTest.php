@@ -10,7 +10,7 @@ final class ClassicShippingOptionsAssetsTest extends TestCase {
         $start = strpos( $enqueue, 'if ( $this->isClassicCheckoutPage() ) {' );
         $end = strpos( $enqueue, "wp_register_script(\n            'kiriof-form-billing-address'", $start );
         $this->assertStringContainsString( "'kiriof-classic-shipping-options'", substr( $enqueue, $start, $end - $start ) );
-        $source = file_get_contents( PLUGIN_DIR . '/assets/wp/js/checkout/shipping-options.js' );
+        $source = file_get_contents( PLUGIN_DIR . '/assets/buyer/js/checkout/shipping-options.js' );
         $this->assertStringContainsString( "!document.querySelector('.wc-block-checkout')", $source );
         $this->assertStringContainsString( "table.closest('#order_review')", $source );
         $this->assertStringContainsString( 'while (cell.firstChild) { content.append(cell.firstChild); }', $source );

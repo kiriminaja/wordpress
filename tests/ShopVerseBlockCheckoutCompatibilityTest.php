@@ -64,7 +64,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $script = self::billingAddressScriptContent();
 
         $this->assertStringContainsString("wp_register_script(\n            'kiriof-form-billing-address'", $enqueue);
-        $this->assertStringContainsString("assets/wp/js/form-billing-address.js", $enqueue);
+        $this->assertStringContainsString("assets/buyer/js/form-billing-address.js", $enqueue);
         $this->assertStringContainsString("array( 'kiriof-script' )", $enqueue);
         $this->assertStringContainsString("wp_enqueue_script( 'kiriof-form-billing-address' );", $template);
         $this->assertStringContainsString("wp_localize_script(\n            'kiriof-checkout-state'", $template);
@@ -76,7 +76,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function collapsed_address_badges_have_a_plugin_scoped_full_width_row(): void
     {
-        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        $css = file_get_contents( PLUGIN_DIR . '/assets/buyer/css/kiriof-buyer-checkout.css' );
         $this->assertStringContainsString( '.wc-block-components-address-card:has(> .kiriof-address-status-host)', $css );
         $this->assertStringContainsString( 'flex-wrap: wrap;', $css );
         $this->assertStringContainsString( 'flex-basis: 100%;', $css );
@@ -86,14 +86,14 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     #[Test]
     public function modern_district_uses_native_checkout_select_styling_not_admin_combobox(): void
     {
-        $buyer = file_get_contents( PLUGIN_DIR . '/assets/wp/js/kiriof-buyer-checkout.js' );
-        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        $buyer = file_get_contents( PLUGIN_DIR . '/src/buyer/blocks/checkout.ts' );
+        $css = file_get_contents( PLUGIN_DIR . '/assets/buyer/css/kiriof-buyer-checkout.css' );
         foreach ( array( 'wc-blocks-components-select', 'wc-blocks-components-select__container', 'wc-blocks-components-select__label', 'wc-blocks-components-select__select', 'wc-blocks-components-select__expand' ) as $class ) {
             $this->assertStringContainsString( $class, $buyer );
         }
         $this->assertStringNotContainsString( 'ComboboxControl', $buyer );
         $this->assertStringNotContainsString( 'components-combobox-control', $css );
-        $map = file_get_contents( PLUGIN_DIR . '/assets/wp/js/kiriof-map-checkout.js' );
+        $map = file_get_contents( PLUGIN_DIR . '/src/buyer/blocks/map.ts' );
         $this->assertStringNotContainsString( 'kiriof-buyer-map__clear', $map );
         $this->assertStringNotContainsString( 'strings.mapClear', $map );
         $this->assertStringContainsString( "'aria-description': strings.mapKeyboard", $map );
@@ -104,24 +104,27 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
         $script = self::billingAddressScriptContent();
-        $buyer = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-buyer-checkout.js');
+        $buyer = file_get_contents(PLUGIN_DIR . '/src/buyer/blocks/checkout.ts');
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $block = file_get_contents(PLUGIN_DIR . '/blocks/checkout-district/block.json');
 
-        $this->assertStringContainsString("'kiriof-checkout-session'", $enqueue, 'The modern buyer session transport must have its own registered handle');
-        $this->assertStringContainsString('assets/wp/js/kiriof-checkout-session.js', $enqueue);
-        $this->assertStringContainsString("'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) )", $enqueue);
-        foreach ( array( 'kiriof-buyer-checkout', 'kiriof-map-checkout' ) as $handle ) {
-            $this->assertMatchesRegularExpression(
-                '/\x27' . preg_quote( $handle, '/' ) . '\x27 => array\( [^\n]+array\( \x27kiriof-address-presentation\x27/',
-                $enqueue,
-                'Address presentation must load before its consumers to keep hook order stable'
-            );
+        $entry = file_get_contents(PLUGIN_DIR . '/src/buyer/entries/blocks.ts');
+        $stateEntry = file_get_contents(PLUGIN_DIR . '/src/buyer/entries/state.ts');
+        $this->assertStringContainsString("'kiriof-checkout-session'", $enqueue, 'The session compatibility handle must remain registered');
+        $this->assertStringContainsString('assets/buyer/dist/kiriminaja-buyer-state.js', $enqueue);
+        $this->assertStringContainsString("wp_register_script( \$handle, false, array( 'kiriof-buyer-state' )", $enqueue, 'Compatibility state handles must resolve to the single generated state owner');
+        foreach ( array( 'kiriof-buyer-checkout', 'kiriof-map-checkout', 'kiriof-address-presentation', 'kiriof-block-checkout' ) as $handle ) {
+            $this->assertStringContainsString("'" . $handle . "' => array( false, array( 'kiriof-buyer-blocks' ) )", $enqueue, 'Modern consumers must alias the single Blocks entry, not evaluate obsolete implementations');
         }
-        $this->assertStringContainsString("'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
-        $this->assertStringContainsString("'kiriof-checkout-session', 'kiriof-shipping-selection', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
-        $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig'", $enqueue);
-        $this->assertStringContainsString('root.kiriofBuyerCheckoutSession', $buyer, 'The modern buyer must consume the dedicated session transport');
+        $this->assertStringContainsString("'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-leaflet' ) )", $enqueue, 'Generated Blocks entry must retain state, native Blocks APIs and map dependencies');
+        foreach ( array( 'bootBuyerCheckout(root);', 'bootBlocksMap(root);' ) as $consumer ) {
+            $this->assertLessThan(strpos($entry, $consumer), strpos($entry, 'bootAddressPresentation(root);'), 'Presentation must initialize before its hook consumers');
+        }
+        $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig'", $enqueue);
+        $this->assertStringContainsString("import { createQueue } from '../state/checkout-queue'", $buyer, 'The modern buyer must consume the dedicated typed session queue');
+        $this->assertStringContainsString("import { normalizeDestination } from '../state/destination'", $buyer);
+        $this->assertStringContainsString('var session = { createQueue, normalizeDestination };', $buyer);
+        $this->assertStringContainsString('kiriofBuyerCheckoutSession', $stateEntry, 'Fallback flows must retain the session compatibility global');
         $this->assertStringContainsString('register_block_type_from_metadata', $controller, 'District must be registered as a real checkout block, not only a SlotFill');
         $this->assertStringContainsString('kiriof_render_district_checkout_block', $controller, 'District block registration must have a render callback');
         $this->assertStringContainsString('woocommerce/checkout-shipping-address-block', $block, 'District must be parented to the shipping-address step, not the order summary');
@@ -447,7 +450,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     public function block_checkout_no_district_state_must_not_make_place_order_a_dead_button(): void
     {
         $script = self::billingAddressTemplateContent();
-        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/buyer/css/kj-wp-style.css');
 
         $this->assertStringContainsString(
             "data-kiriof-disabled",
@@ -1429,7 +1432,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $content = self::billingAddressTemplateContent();
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $shippingMethod = file_get_contents(PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php');
-        $css = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+        $css = file_get_contents(PLUGIN_DIR . '/assets/buyer/css/kj-wp-style.css');
 
         $this->assertStringContainsString(
             'kiriofEnsureBlockDistrictWarning',
@@ -2686,7 +2689,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     public function block_checkout_does_not_render_optional_insurance_checkbox_but_classic_uses_updated_wording(): void
     {
         $template = self::billingAddressTemplateContent();
-        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/buyer/css/kj-wp-style.css');
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
 
         $this->assertStringNotContainsString(
@@ -2854,7 +2857,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         $cartTotals = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/cart-totals.php');
         $shippingCalculator = file_get_contents(PLUGIN_DIR . '/templates/woocommerce/cart/shipping-calculator.php');
         $script = self::billingAddressScriptContent();
-        $styles = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+        $styles = file_get_contents(PLUGIN_DIR . '/assets/buyer/css/kj-wp-style.css');
 
         $this->assertStringContainsString(
             '$kiriof_is_cart_totals_shipping  = is_cart() || ! empty( $GLOBALS[\'kiriof_rendering_cart_totals_shipping\'] );',
@@ -3310,7 +3313,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
     public function virtual_cart_skips_district_field_script_registration_and_validation(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
-        $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
+        $script = file_get_contents(PLUGIN_DIR . '/src/buyer/blocks/coupon-notice.ts');
 
         foreach (array(
             'function add_custom_select_options_field_and_script' => 'Virtual-only carts must not print the District field/script template',
@@ -4022,8 +4025,8 @@ require_once PLUGIN_DIR . '/inc/Services/ListDateRangeFilter.php';
     public function block_checkout_uses_native_order_summary_fee_rows(): void
     {
         $enqueue = file_get_contents(PLUGIN_DIR . '/inc/Base/Enqueue.php');
-        $script = file_get_contents(PLUGIN_DIR . '/assets/wp/js/kiriof-block-checkout.js');
-        $style = file_get_contents(PLUGIN_DIR . '/assets/wp/css/kj-wp-style.css');
+        $script = file_get_contents(PLUGIN_DIR . '/src/buyer/blocks/coupon-notice.ts');
+        $style = file_get_contents(PLUGIN_DIR . '/assets/buyer/css/kj-wp-style.css');
         $controller = file_get_contents(PLUGIN_DIR . '/inc/Controllers/CheckoutController.php');
         $couponController = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 

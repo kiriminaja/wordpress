@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { buyerRuntimeSource, buyerBrowserContext } from './helpers/buyer-runtime-source';
 import { runInNewContext } from 'node:vm';
 
-const sessionSource = readFileSync(new URL('../assets/wp/js/kiriof-checkout-session.js', import.meta.url), 'utf8');
-const adapterSource = readFileSync(new URL('../assets/wp/js/kiriof-buyer-checkout.js', import.meta.url), 'utf8');
+const sessionSource = await buyerRuntimeSource('state');
+const adapterSource = await buyerRuntimeSource('checkout');
 function deferred() {
 	let resolve!: (value?: any) => void;
 	let reject!: (reason: any) => void;
@@ -14,7 +14,7 @@ type Node = { type: any; props: any; children: any[] };
 
 // A small commit-phase hook runner: effects run after render, changed effects clean
 // up first, setters are stable, and updates during effects cause another render.
-// Both production scripts execute unchanged in the same browser-like VM.
+// The active state and checkout TypeScript modules execute in the same browser-like VM.
 function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean; restore?: boolean } = {}) {
 	const timers = new Map<number, { delay: number; callback: () => void }>();
 	let nextTimer = 0;
@@ -103,10 +103,10 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		documentElement: { classList: { add: (name: string) => { if (!classes.includes(name)) classes.push(name); }, remove: (name: string) => { const index = classes.indexOf(name); if (index >= 0) classes.splice(index, 1); } } },
 		querySelectorAll: forbidden, getElementById: forbidden, createEvent: forbidden,
 	};
+	root.document = document;
 	const context = { window: root, document, setTimeout, clearTimeout, AbortController, URLSearchParams,
 		HTMLInputElement: new Proxy({}, { get: forbidden }), HTMLSelectElement: new Proxy({}, { get: forbidden }), jQuery: forbidden };
 	runInNewContext(sessionSource, context);
-	runInNewContext(readFileSync(new URL('../assets/wp/js/kiriof-shipping-selection.js', import.meta.url), 'utf8'), context);
 	if (options.missing === 'session') delete root.kiriofBuyerCheckoutSession;
 	if (options.missing === 'slot') delete blocks[options.slot || 'OrderMeta'];
 	if (options.missing === 'inner') delete blocks.registerCheckoutBlock;
@@ -171,6 +171,15 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	return { root, model, timers, lookups, sends, publications, validations, classes, queries, subscribers, documentEvents, restores,
 		billingChange: () => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'checkbox', checked: true, value: 'on' } }); render(); },
 		shippingChange: (value: string) => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'radio', checked: true, value } }); render(); },
+		// Document capture runs before React's root-level onChange updates the store.
+		shippingClick: (value: string, nativeChange: () => void = () => {}, container?: any) => {
+			const target = { tagName: 'INPUT', type: 'radio', checked: true, value, closest: () => container };
+			for (const callback of documentEvents.get('click') || []) callback({ type: 'click', isTrusted: true, target });
+			nativeChange(); render();
+		},
+		shippingContainers: (containers: any[]) => { document.querySelectorAll = ((selector: string) => {
+			expect(selector).toBe('.wc-block-components-shipping-rates-control__package'); return containers;
+		}) as any; },
 		plugin: () => plugin, pluginName: () => pluginName, registeredBlocks: () => registeredBlocks,
 		mount, mountRegisteredBlock, render, settle, flush, reply, notify, pagehide, unmount, find, findIn,
 		choose: (id: string | null) => { find('select').props.onChange({ target: { value: id || '' } }); render(); },
@@ -186,7 +195,74 @@ function options(node: any): {value: string; label: string}[] { return node.chil
 
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
-describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
+describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', () => {
+	test('native captured GoSend click reviews intent before Woo updates selected flags and busy state', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+		const rates = [
+			{ rate_id: express, method_id: 'kiriminaja-official', selected: true },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: false },
+		];
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: rates }];
+		h.shippingClick(go, () => { h.model.rateBusy = true; });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection'].hidden).toBe(false);
+		await h.settle(); expect(h.restores).toHaveLength(0);
+		rates[0].selected = false; rates[1].selected = true; h.notify();
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
+		h.model.rateBusy = false; h.notify();
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
+	});
+	// Known production regressions: these assert desired behavior and are expected
+	// to fail until the adapter is corrected. No production workaround is modeled.
+	test.failing('restore preserves the native numeric package ID rather than the serialized review ID', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+		const rates = (selected: string) => [{ package_id: 0, shipping_rates: [
+			{ rate_id: express, method_id: 'kiriminaja-official', selected: selected === express },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: selected === go },
+		] }];
+		h.model.cart.shippingRates = rates(go); h.shippingChange(go);
+		h.model.cart.shippingRates = rates(express); h.notify(); await h.settle();
+		expect(h.restores).toHaveLength(1);
+		// Woo 10.6.0 selectShippingRate uses package.package_id === packageId.
+		expect(h.restores[0].packageId).toBe(h.model.cart.shippingRates[0].package_id);
+	});
+	test.failing('captured explicit Express click invalidates queued GoSend restore before native onChange', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+		const rates = (selected: string) => [{ package_id: 0, shipping_rates: [
+			{ rate_id: express, method_id: 'kiriminaja-official', selected: selected === express },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: selected === go },
+		] }];
+		h.model.cart.shippingRates = rates(go); h.shippingChange(go);
+		// A settled native refresh schedules Promise.then restoration, not a call yet.
+		h.model.cart.shippingRates = rates(express); h.notify(); expect(h.restores).toHaveLength(0);
+		// The next explicit native choice occurs before the queued microtask runs.
+		h.shippingClick(express, () => { h.model.rateBusy = true; });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(express));
+		await h.settle();
+		// Old restore must not dispatch and abort Woo's newer native selection.
+		expect(h.restores).toHaveLength(0);
+	});
+	test.failing('duplicate responsive native package controls review the clicked package, not global DOM ordinal', async () => {
+		const h = harness();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+		const packages = (selected0: string) => [0, 1].map(package_id => ({ package_id, shipping_rates: [
+			{ rate_id: express, method_id: 'kiriminaja-official', selected: package_id === 0 ? selected0 === express : true },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: package_id === 0 && selected0 === go },
+		] }));
+		h.model.cart.shippingRates = packages(express); h.mount();
+		// Native inputs have unique instance-based IDs/names, but duplicate rate
+		// VALUES across packages. Two mounted rate controls each render both packages.
+		const desktop0 = {}, desktop1 = {}, mobile0 = {}, mobile1 = {};
+		h.shippingContainers([desktop0, desktop1, mobile0, mobile1]);
+		h.shippingClick(go, () => { h.model.cart.shippingRates = packages(go); h.model.rateBusy = true; }, mobile0);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [
+			{ package_id: '0', rate_id: go }, { package_id: '1', rate_id: express },
+		] });
+	});
 	for (const busy of ['customerBusy', 'rateBusy'] as const) {
 		test(`matching reviewed GoSend clears conflict during ${busy} billing toggle and keeps only hidden pending validation`, async () => {
 			const h = harness({ restore: true }); h.mount();
@@ -679,9 +755,14 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.find('select').props.value).toBe('7');
 	});
 	test('feature detection fails closed and supports ExperimentalOrderMeta', () => {
-		for (const missing of ['session', 'update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment']) {
+		for (const missing of ['update', 'useSelect', 'validation', 'nativeRateStatus', 'nativeCustomerStatus', 'payment']) {
 			const h = harness({ missing }); expect(h.root.kiriofBuyerCheckout).toBeUndefined(); expect(h.plugin()).toBeUndefined(); expect(h.classes).toEqual([]);
 		}
+		// The queue is an active module import now: deleting its compatibility
+		// global must not disable the adapter or change native fail-closed checks.
+		const withoutGlobal = harness({ missing: 'session' }); withoutGlobal.mount();
+		expect(withoutGlobal.find('select')).toBeDefined();
+		expect(withoutGlobal.root.kiriofBuyerCheckout.active).toBe(true);
 		const innerOnly = harness({ missing: 'plugins' }); innerOnly.mountRegisteredBlock();
 		expect(innerOnly.root.kiriofBuyerCheckout.active).toBe(true); expect(innerOnly.plugin()).toBeUndefined();
 		expect(harness({ enabled: false }).registeredBlocks()).toHaveLength(0);

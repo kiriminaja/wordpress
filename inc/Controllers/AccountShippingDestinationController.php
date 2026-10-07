@@ -140,16 +140,17 @@ final class AccountShippingDestinationController {
             return;
         }
         $url = plugin_dir_url( KIRIOF_DIR . 'kiriminaja.php' );
-        wp_enqueue_style( 'kiriof-account-destination', $url . 'assets/wp/css/kiriof-buyer-checkout.css', array(), (string) filemtime( KIRIOF_DIR . 'assets/wp/css/kiriof-buyer-checkout.css' ) );
+        wp_enqueue_style( 'kiriof-account-destination', $url . 'assets/buyer/css/kiriof-buyer-checkout.css', array(), (string) filemtime( KIRIOF_DIR . 'assets/buyer/css/kiriof-buyer-checkout.css' ) );
         if ( 'shipping' !== get_query_var( 'edit-address' ) ) {
             return;
         }
-        $config = ( new Enqueue() )->buyer_checkout_config();
+        $enqueue = new Enqueue();
+        $config = $enqueue->buyer_checkout_config();
         wp_enqueue_style( 'kiriof-leaflet', $url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
         wp_enqueue_script( 'kiriof-leaflet', $url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
-        // Only the shared map session factory is needed on account pages, not Blocks stores.
-        wp_enqueue_script( 'kiriof-account-map-session', $url . 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-leaflet' ), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/kiriof-map-checkout.js' ), true );
-        wp_enqueue_script( 'kiriof-account-shipping', $url . 'assets/wp/js/kiriof-account-shipping.js', array( 'kiriof-account-map-session' ), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/kiriof-account-shipping.js' ), true );
+        // The account IIFE imports shared map helpers without registering Blocks stores.
+        $account_path = 'assets/buyer/dist/kiriminaja-buyer-account-shipping.js';
+        wp_enqueue_script( 'kiriof-account-shipping', $url . $account_path, array( 'kiriof-leaflet' ), file_exists( KIRIOF_DIR . $account_path ) ? (string) filemtime( KIRIOF_DIR . $account_path ) : KIRIOF_VERSION, true );
         wp_localize_script( 'kiriof-account-shipping', 'kiriofAccountShippingConfig', array( 'ajaxUrl' => $config['ajaxUrl'], 'nonce' => $config['nonce'], 'map' => $config['map'], 'i18n' => $config['i18n'] ) );
     }
 

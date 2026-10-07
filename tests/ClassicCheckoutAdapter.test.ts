@@ -1,9 +1,26 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { compile, compileModule } from 'svelte/compiler';
+import { buyerBrowserContext, buyerRuntimeSource } from './helpers/buyer-runtime-source';
 import { runInNewContext } from 'node:vm';
 import { happy } from './helpers/ui-runtime';
 
-const script = (name: string) => readFileSync(new URL(`../assets/wp/js/${name}.js`, import.meta.url), 'utf8');
+// Compile the active controller and boot entry with their real Svelte runtime.
+const root = resolve(import.meta.dir, '..');
+const directory = mkdtempSync(join(root, 'node_modules/.classic-pin-test-'));
+let pinSource: string;
+try {
+	writeFileSync(join(directory, 'entry.ts'), `import {createClassicPin} from ${JSON.stringify(join(root, 'src/buyer/state/classic-pin.svelte.ts'))}; import {flushSync} from 'svelte'; window.__classicPinTest = {createClassicPin, flushSync}; import ${JSON.stringify(join(root, 'src/buyer/entries/pin.ts'))};`);
+	const result = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], target: 'browser', conditions: ['browser'], format: 'iife', plugins: [{ name: 'classic-pin-svelte', setup(builder) {
+		builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
+		builder.onLoad({ filter: /\.svelte\.ts$/ }, ({ path }) => ({ contents: compileModule(new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(path, 'utf8')), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
+		builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
+	} }] });
+	if (!result.success) throw new Error(result.logs.join('\n'));
+	pinSource = await result.outputs[0].text();
+} finally { rmSync(directory, { recursive: true, force: true }); }
+const stateSource = await buyerRuntimeSource('state');
 const binding = { address_1: 'Jalan Merdeka 1', address_2: 'Unit 2', city: 'Jakarta', state: 'JK', postcode: '10110', country: 'ID' };
 const saved = (overrides: any = {}) => ({ version: 2, district_id: '123', district_label: 'Gambir', country: 'ID', postcode: '10110', destination_latitude: '-6.2000000', destination_longitude: '106.8000000', shipping_address: { ...binding }, ...overrides });
 const cleanups: (() => void)[] = [];
@@ -23,26 +40,26 @@ function runtime() {
 	window.setTimeout = setTimeout; window.clearTimeout = clearTimeout;
 	// happy-dom omits the browser Option convenience constructor.
 	window.Option = function(text = '', value = '') { const option = window.document.createElement('option'); option.textContent = text; option.value = value; return option; };
-	const context = { window, document: window.document, setTimeout, clearTimeout, URLSearchParams, AbortController, Option: window.Option, console };
-	const load = (name: string) => runInNewContext(script(name), context);
-	load('kiriof-checkout-session');
-	load('kiriof-map-checkout'); load('kiriof-classic-checkout-core');
+	const context = buyerBrowserContext(window, { setTimeout, clearTimeout, URLSearchParams, AbortController, Option: window.Option, HTMLInputElement: window.HTMLInputElement, HTMLSelectElement: window.HTMLSelectElement, console });
+	runInNewContext(stateSource, context);
+	const load = () => { runInNewContext(pinSource, context); window.document.dispatchEvent(new window.Event('DOMContentLoaded')); window.__classicPinTest.flushSync(); };
+	const flush = () => window.__classicPinTest?.flushSync();
 	const advance = async (duration = 0) => {
 		const end = now + duration;
 		for (let guard = 0; guard < 100; guard++) {
-			await settle();
+			await settle(); flush();
 			const next = [...timers.entries()].filter(([, timer]) => timer.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
-			if (!next) { now = end; await settle(); return; }
+			if (!next) { now = end; await settle(); flush(); return; }
 			timers.delete(next[0]); now = next[1].at; next[1].callback();
 		}
 		throw new Error('Checkout event/timer cycle');
 	};
 	cleanups.push(() => { timers.clear(); window.happyDOM.abort(); });
-	return { window, load, advance, timers };
+	return { window, load, advance, timers, flush };
 }
 function coreHarness(options: any = {}) {
-	const h = runtime(); const sends: any[] = [];
-	const controller = h.window.kiriofClassicCheckoutCore.create({ address: binding, scope: 'billing', settings: () => ({ payment_method: 'bacs', insurance: false, shipping_methods: ['kiriminaja:regular'] }), send: (snapshot: any) => { const request = deferred(); sends.push({ snapshot, ...request }); return request.promise; }, ...options });
+	const h = runtime(); h.load(); const sends: any[] = [];
+	const controller = h.window.__classicPinTest.createClassicPin({ address: binding, scope: 'billing', send: (snapshot: any) => { const request = deferred(); sends.push({ snapshot, ...request }); return request.promise; }, ...options });
 	return { ...h, controller, sends };
 }
 function adapter(options: any = {}) {
@@ -71,11 +88,11 @@ function adapter(options: any = {}) {
 	window.L = { map() { const listeners: any = {}; const map: any = { listeners, removed: false, setView() { return map; }, on(name: string, callback: any) { listeners[name] = callback; return map; }, invalidateSize() {}, getCenter() { return { lat: -6.2, lng: 106.8 }; }, remove() { map.removed = true; } }; maps.push(map); return map; }, tileLayer() { return { addTo() { return this; }, on() {} }; } };
 	window.HTMLElement.prototype.scrollIntoView = () => {};
 	window.kiriofClassicCheckoutConfig = { enabled: true, ownsDistrict: false, ajaxUrl: '/admin-ajax.php', nonce: 'nonce', needsShipping: true, map: { enabled: true, tiles: 'https://tiles.example/{z}/{x}/{y}.png', i18n: { mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapLocating: 'Locating' } }, ...options };
-	h.load('kiriof-classic-checkout');
+	h.load();
 	const query = (selector: string): any => document.querySelector(selector);
 	const hidden = () => JSON.parse(query('[name="kiriof_buyer_destination_snapshot"]').value);
 	const change = (id: string, value: any, kind = 'change') => { const input = query(`#${id}`); if (typeof value === 'boolean') input.checked = value; else input.value = value; emit(form, kind, input); };
-	const respond = async (request: any, data: any = { pin_saved: true }, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); };
+	const respond = async (request: any, data: any = { pin_saved: true }, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); h.flush(); };
 	const mutations = () => requests.filter(r => r.body.get('action') === 'kiriof-session-save');
 	const payload = (request: any) => JSON.parse(request.body.get('data'));
 	const lookups = () => requests.filter(r => r.body.get('action') === 'kiriminaja_subdistrict_search');
@@ -85,14 +102,16 @@ function adapter(options: any = {}) {
 	return { ...h, form, query, hidden, change, respond, mutations, lookups, acknowledge, choose, requests, payload, emit, events, handlers, geo, maps };
 }
 
-describe('Classic core with real shared session queue', () => {
-	test('serializes address context alongside native settings without changing core queue contract', async () => {
+describe('Typed Classic pin controller with real shared session queue', () => {
+	test('serializes address context without taking ownership of native settings', async () => {
 		const h = coreHarness(); h.controller.sync(); await h.advance();
-		expect(h.sends[0].snapshot).toMatchObject({ action: 'sync_checkout', address_scope: 'billing', effective_address: binding, insurance: false, payment_method: 'bacs', shipping_methods: ['kiriminaja:regular'] });
+		expect(h.sends[0].snapshot).toMatchObject({ action: 'sync_checkout', address_scope: 'billing', effective_address: binding });
+		for (const key of ['insurance', 'payment_method', 'shipping_methods']) expect(h.sends[0].snapshot).not.toHaveProperty(key);
 	});
 	test('boots against the actual session export without a compatibility alias', () => {
-		const h = runtime(); delete h.window.kiriofCheckoutSession;
-		expect(() => h.window.kiriofClassicCheckoutCore.create({ address: binding, settings: () => ({}), send: () => Promise.resolve() })).not.toThrow();
+		const h = runtime(); h.load(); delete h.window.kiriofCheckoutSession;
+		expect(h.window.kiriofBuyerCheckoutSession.createQueue).toBeFunction();
+		expect(() => h.window.__classicPinTest.createClassicPin({ address: binding, send: () => Promise.resolve() })).not.toThrow();
 	});
 	test('restores v2 pins using six delivery binding fields, not recipient metadata', () => {
 		const h = coreHarness({ address: { ...binding, first_name: 'Buyer', company: 'Company' }, savedDestination: saved() });
@@ -135,7 +154,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		const h=adapter({savedDestination:saved()});await h.acknowledge();
 		const badge=h.query('.kiriof-classic-pin-state');const status=h.query('.kiriof-classic-pin > p[role="status"]');
 		const before=h.mutations().length;
-		h.maps[0].listeners.movestart();await settle();expect(badge.hidden).toBe(true);expect(status.hidden).toBe(true);expect(h.mutations()).toHaveLength(before);
+		h.maps[0].listeners.movestart();await settle();h.flush();expect(badge.hidden).toBe(true);expect(status.hidden).toBe(true);expect(h.mutations()).toHaveLength(before);
 		h.maps[0].listeners.moveend();await h.advance();await h.acknowledge();
 		expect(badge.hidden).toBe(false);expect(h.maps).toHaveLength(1);
 	});
@@ -163,7 +182,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(locate.textContent).toBe('');expect(locate.getAttribute('aria-label')).toBe('Current location');expect(locate.querySelector('svg')).not.toBeNull();
 		expect(panel.querySelector('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
 		for(const different of [true,false,true,false]){h.change('ship-to-different-address-checkbox',different);await h.advance(200);await h.acknowledge();const row=h.query(different?'#kiriof_shipping_destination_area_field':'#kiriof_destination_area_field');expect(row.nextElementSibling).toBe(panel);}
-		panel.parentNode.insertBefore(panel,panel.parentNode.firstElementChild);await settle();
+		panel.parentNode.insertBefore(panel,panel.parentNode.firstElementChild);await new Promise(resolve => setTimeout(resolve, 0));h.flush();
 		expect(h.query('#kiriof_destination_area_field').nextElementSibling).toBe(panel);
 	});
 	test('observes existing legacy district and label without adding lookup/select/fee requests or rewriting native fields', async () => {
@@ -214,7 +233,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('seller-disabled map makes no geolocation or tile/map requests', async () => {
 		const h = adapter({ map: { enabled: false } }); await h.acknowledge();
 		expect(h.geo).toHaveLength(0); expect(h.maps).toHaveLength(0); expect(h.lookups()).toHaveLength(0);
-		h.query('.kiriof-classic-map-locate').click(); expect(h.geo).toHaveLength(0);
+		expect(h.query('.kiriof-classic-map-locate')).toBeNull(); expect(h.query('.kiriof-classic-pin')).toBeNull(); expect(h.requests).toHaveLength(0); expect(h.geo).toHaveLength(0);
 		const disabled = adapter({ enabled: false }); await disabled.advance(1000);
 		expect(disabled.query('.kiriof-classic-pin')).toBeNull(); expect(disabled.requests).toHaveLength(0);
 	});
@@ -230,9 +249,9 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(foreign.query('.kiriof-classic-pin').hidden).toBe(true);
 	});
 	test('auto geolocation failure can retry and stale callbacks cannot overwrite changed address', async () => {
-		const h = adapter(); h.geo[0].failure({ code: 1 });
+		const h = adapter(); await h.acknowledge(); h.geo[0].failure({ code: 1 }); h.flush();
 		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
-		h.query('.kiriof-classic-map-locate').click(); const stale = h.geo[1];
+		h.query('.kiriof-classic-map-locate').click(); h.flush(); const stale = h.geo[1];
 		h.change('billing_address_1', 'New street'); await h.advance(200);
 		const status = h.query('.kiriof-classic-pin [role="status"]').textContent;
 		stale.success({ coords: { latitude: -7, longitude: 107 } }); stale.failure({ code: 1 });
@@ -275,10 +294,11 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('pagehide removes pin namespace handlers and map, leaves in-flight save un-aborted', async () => {
 		const h = adapter({ savedDestination: saved() }); await h.advance();
 		expect(h.handlers.every(entry => entry.event.endsWith('.kiriofClassicPin'))).toBe(true);
-		h.window.dispatchEvent(new h.window.Event('pagehide'));
+		const snapshot = h.query('[name="kiriof_buyer_destination_snapshot"]'); const before = JSON.parse(snapshot.value);
+		h.window.dispatchEvent(new h.window.Event('pagehide')); h.flush();
 		expect(h.handlers).toHaveLength(0); expect(h.maps[0].removed).toBe(true);
-		expect(h.mutations()[0].init.signal).toBeUndefined(); const before = h.hidden();
+		expect(h.mutations()[0].init.signal).toBeUndefined(); expect(h.query('[name="kiriof_buyer_destination_snapshot"]')).toBeNull();
 		await h.respond(h.mutations()[0]); await h.advance(200000);
-		expect(h.hidden()).toEqual(before); expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(0);
+		expect(JSON.parse(snapshot.value)).toEqual(before); expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(0);
 	});
 });

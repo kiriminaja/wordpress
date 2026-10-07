@@ -124,10 +124,10 @@ final class AccountShippingDestinationRuntimeTest extends TestCase {
         $this->assertSame( array(), $billing['localized'] );
         $result = $this->runFixture( array( 'operations' => array( 'assets' ) ) );
         $this->assertSame( array( 'kiriof-account-destination', 'kiriof-leaflet' ), array_column( $result['styles'], 0 ) );
-        $this->assertSame( array( 'kiriof-leaflet', 'kiriof-account-map-session', 'kiriof-account-shipping' ), array_column( $result['scripts'], 0 ) );
+        $this->assertSame( array( 'kiriof-leaflet', 'kiriof-account-shipping' ), array_column( $result['scripts'], 0 ) );
         $this->assertSame( array(), $result['scripts'][0][2] );
         $this->assertSame( array( 'kiriof-leaflet' ), $result['scripts'][1][2] );
-        $this->assertSame( array( 'kiriof-account-map-session' ), $result['scripts'][2][2] );
+        $this->assertStringContainsString( 'assets/buyer/dist/kiriminaja-buyer-account-shipping.js', $result['scripts'][1][1] );
         $this->assertSame( array( 'kiriof-account-shipping', 'kiriofAccountShippingConfig' ), array_slice( $result['localized'][0], 0, 2 ) );
         $this->assertSame( 'lookup-nonce', $result['localized'][0][2]['nonce'] );
         $this->assertSame( '/wp-admin/admin-ajax.php', $result['localized'][0][2]['ajaxUrl'] );

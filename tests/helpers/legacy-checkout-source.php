@@ -9,11 +9,11 @@ function kiriof_legacy_checkout_source(): string
 {
     $root = dirname(__DIR__, 2);
     $paths = array(
-        'assets/wp/js/checkout/state.js',
-        'assets/wp/js/checkout/blocks-compatibility.js',
-        'assets/wp/js/checkout/classic-district.js',
-        'assets/wp/js/checkout/shipping-payment.js',
-        'assets/wp/js/form-billing-address.js',
+        'assets/buyer/js/checkout/state.js',
+        'assets/buyer/js/checkout/blocks-compatibility.js',
+        'assets/buyer/js/checkout/classic-district.js',
+        'assets/buyer/js/checkout/shipping-payment.js',
+        'assets/buyer/js/form-billing-address.js',
     );
     $sources = array();
     foreach ($paths as $path) {

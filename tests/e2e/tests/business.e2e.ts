@@ -1,3 +1,4 @@
+import { script, classicCss } from '../fixtures/buyer-source';
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { readFileSync } from 'node:fs';
@@ -76,7 +77,7 @@ const fixtureRates = [
 ];
 
 function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' | 'native' | 'no-select2' = false) {
-  const src = (file: string) => readFileSync(root + '/assets/wp/js/' + file, 'utf8');
+  const src = script;
   const dependency = (file: string) =>
     readFileSync(new URL('../node_modules/' + file, import.meta.url), 'utf8');
   const addressFields = (scope: string) =>
@@ -101,7 +102,6 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     ...(geometry ? [readFileSync(root + '/assets/lib/leaflet/leaflet.js', 'utf8')] : []),
     dependency('jquery/dist/jquery.min.js'),
     dependency('select2/dist/js/select2.full.min.js'),
-    ...(shipping === 'native' ? [] : [readFileSync(root + '/assets/lib/choices/choices.min.js', 'utf8')]),
     `jQuery.fn.selectWoo = jQuery.fn.select2;
     window.wc_country_select_params = { countries: JSON.stringify({ ID: { YO: 'DI Yogyakarta', JT: 'Jawa Tengah' }, US: { CA: 'California', NY: 'New York' }, AQ: {} }), i18n_select_state_text: 'Select a state', i18n_searching: 'Searching…', i18n_no_matches: 'No matches found' };`,
     readFileSync(new URL('../fixtures/country-select.js', import.meta.url), 'utf8'),
@@ -122,7 +122,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
 		window.kiriofBillingAddressConfig = {
 			isCheckout: true, isCart: false, fieldKey: 'kiriof_destination_area',
 			ajaxUrl: '/admin-ajax.php', nonce: 'fixture-search-nonce',
-			courierLogos: { jne: '/assets/wp/img/couriers/jne.png', gosend: '/assets/wp/img/couriers/gosend.png', lion: '/assets/wp/img/couriers/lion.png' },
+			courierLogos: { jne: '/assets/buyer/img/couriers/jne.png', gosend: '/assets/buyer/img/couriers/gosend.png', lion: '/assets/buyer/img/couriers/lion.png' },
 			i18n: { selectOption: 'Select Option' }
 		};
 		// Only the production district module is bootstrapped, not the legacy
@@ -155,11 +155,10 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
 		});`,
     src('checkout/state.js'),
     src('checkout/classic-district.js'),
-    src('checkout/choices-controls.js'),
-    'getSearchAreaKelurahan();',
     src('kiriof-checkout-session.js'),
-    src('kiriof-map-checkout.js'),
-    src('kiriof-classic-checkout-core.js'),
+    ...(shipping === 'native' ? [] : [src('checkout/choices-controls.js')]),
+    'getSearchAreaKelurahan();',
+
     src('kiriof-classic-checkout.js'),
     ...(shipping ? [
       src('checkout/shipping-payment.js'),
@@ -181,8 +180,8 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
   ];
   return `<!DOCTYPE html><html><head>
 		<style>${dependency('select2/dist/css/select2.min.css')}
-			${readFileSync(root + '/assets/lib/choices/choices.min.css', 'utf8')}
-      ${readFileSync(root + '/assets/wp/css/kiriof-classic-choices.css', 'utf8')}
+			${classicCss()}
+      ${readFileSync(root + '/assets/buyer/css/kiriof-classic-choices.css', 'utf8')}
       body { font-family: sans-serif; } form { max-width: 600px; margin: 24px; }
       .woocommerce form.checkout input { font: 700 21px Georgia; padding: 25px; border: 5px solid purple; background: pink; }
 			.form-row { margin: 12px 0; } label { display: block; }
@@ -191,7 +190,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     ${
       geometry
         ? `<style>${readFileSync(root + '/assets/lib/leaflet/leaflet.css', 'utf8')}</style>
-    <style>${readFileSync(root + '/assets/wp/css/kiriof-classic-checkout.css', 'utf8')}</style>
+    <style>${readFileSync(root + '/assets/buyer/css/kiriof-classic-checkout.css', 'utf8')}</style>
     <style>
       /* Adverse Woo/theme rules deliberately follow the plugin styles. */
       .woocommerce button.button { min-width: 125px; width: 145px; height: 50px;
@@ -203,7 +202,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     </style>`
         : ''
     }
-    ${shipping ? `<style>${readFileSync(root + '/assets/wp/css/kj-wp-style.css', 'utf8')}</style>` : ''}
+    ${shipping ? `<style>${readFileSync(root + '/assets/buyer/css/kj-wp-style.css', 'utf8')}</style>` : ''}
     </head><body class="woocommerce${geometry ? ' wc-booster-checkout-customization' : ''}"><main class="woocommerce-checkout"><form class="checkout woocommerce-checkout">
 		<div class="woocommerce-billing-fields">
 			<h3>Billing details</h3>
@@ -255,7 +254,7 @@ async function checkout(
       await route.fulfill({ contentType: 'text/html', body: html(enabled, geometry, shipping) });
       return;
     }
-    if (url.origin === 'https://fixture.test' && /^\/assets\/wp\/img\/couriers\/(jne|gosend|lion)\.png$/.test(url.pathname)) {
+    if (url.origin === 'https://fixture.test' && /^\/assets\/buyer\/img\/couriers\/(jne|gosend|lion)\.png$/.test(url.pathname)) {
       await route.fulfill({ contentType: 'image/png', path: root + url.pathname });
       return;
     }
@@ -343,7 +342,7 @@ test('seller-disabled Instant does not alter Classic district or ask for locatio
   screen,
 }) => {
   const fixture = await checkout(app, browser, false);
-  await expect(browser.locator('#kiriof_destination_area_field .choices')).toBeVisible();
+  await expect(browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox')).toBeVisible();
   await expect(screen.getByLabel('Email address')).toHaveValue('buyer@example.test');
   expect(
     await browser.evaluate(() => ({
@@ -376,7 +375,7 @@ test('Classic pin saves only coordinates context and an address edit invalidates
       ),
     )
     .toBe(true);
-  await expect(browser.locator('#kiriof_destination_area_field .choices')).toBeVisible();
+  await expect(browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox')).toBeVisible();
 
   const request = fixture.saves().at(-1);
   expect(request.body.action).toBe('kiriof-session-save');
@@ -596,8 +595,8 @@ for (const width of [1200, 390]) {
       return {label,errors,select2:Boolean($(select).data('select2'))};
     });
     expect(result).toEqual({label:'Fixture district',errors:[],select2:false});
-    await browser.locator('#kiriof_destination_area_field .choices__list--single > .choices__item').tap();
-    await expect(browser.locator('#kiriof_destination_area_field .choices__list--dropdown')).toBeVisible();
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await expect(browser.locator('.kiriof-buyer-combobox-content')).toBeVisible();
     expect(fixture.unexpected).toEqual([]);
   });
   test(`Classic real Leaflet map resists adverse theme geometry at ${width}px`, async ({
@@ -715,17 +714,17 @@ for (const width of [1200, 390]) {
     for (const id of ['kiriof_destination_area', 'billing_state']) {
       const prefix = `#${id}_field`;
       expect(await browser.evaluate((selector: string) => {
-        const item = document.querySelector(`${selector} .choices__list--single > .choices__item`)!;
-        const inner = document.querySelector(`${selector} .choices__inner`)!;
+        const item = document.querySelector(`${selector} .kiriof-buyer-combobox-trigger > span:first-child`)!;
+        const inner = document.querySelector(`${selector} .kiriof-buyer-combobox-trigger`)!;
         const css = getComputedStyle(item);
         return { nowrap: css.whiteSpace, overflow: css.overflow, ellipsis: css.textOverflow, clipped: item.scrollWidth > item.clientWidth, itemHeight: item.getBoundingClientRect().height, controlHeight: inner.getBoundingClientRect().height };
       }, prefix)).toEqual({ nowrap: 'nowrap', overflow: 'hidden', ellipsis: 'ellipsis', clipped: true, itemHeight: 24, controlHeight: 46 });
-      await browser.locator(`${prefix} .choices__list--single > .choices__item`).tap();
-      await expect(browser.locator(`${prefix} .choices__list--dropdown`)).toBeVisible();
-      await expect.poll(() => browser.evaluate((selector: string) => document.activeElement === document.querySelector(`${selector} .choices__input--cloned`), prefix)).toBe(true);
+      await browser.locator(`${prefix} .kiriof-buyer-combobox-trigger`).tap();
+      await expect(browser.locator(`.kiriof-buyer-combobox-content`)).toBeVisible();
+      await expect.poll(() => browser.evaluate((selector: string) => document.activeElement === document.querySelector(`.kiriof-buyer-combobox-input`), prefix)).toBe(true);
       await browser.keyboard.press('Escape');
-      await browser.locator(`${prefix} .choices__inner`).tap();
-      await expect(browser.locator(`${prefix} .choices__list--dropdown`)).toBeVisible();
+      await browser.locator(`${prefix} .kiriof-buyer-combobox-trigger`).tap();
+      await expect(browser.locator(`.kiriof-buyer-combobox-content`)).toBeVisible();
       await browser.keyboard.press('Escape');
     }
     expect(fixture.unexpected).toEqual([]);
@@ -744,8 +743,8 @@ for (const [envelope, response] of [
     screen,
   }) => {
     const fixture = await checkout(app, browser, true, response);
-    await browser.locator('#kiriof_destination_area_field .choices').tap();
-    const search = browser.locator('.choices.is-open .choices__input--cloned');
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox').tap();
+    const search = browser.locator('.kiriof-buyer-combobox-input');
     await search.fill('Sl');
     await browser.evaluate(
       () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), 350)),
@@ -767,7 +766,7 @@ for (const [envelope, response] of [
     });
     expect(
       await browser.evaluate(
-        () => document.querySelectorAll('#kiriof_destination_area_field .choices__list--dropdown [data-choice-selectable]:not([data-value=""]):not([data-value="123"])').length,
+        () => document.querySelectorAll('.kiriof-buyer-combobox-option:not([data-value=""]):not([data-value="123"])').length,
       ),
     ).toBe(1);
     await screen.getByRole('option', district.text).tap();
@@ -802,14 +801,14 @@ for (const [envelope, response] of [
     browser,
   }) => {
     const fixture = await checkout(app, browser, true, response);
-    await browser.locator('#kiriof_destination_area_field .choices').tap();
-    await browser.locator('.choices.is-open .choices__input--cloned').fill('Sleman');
-    await expect(browser.locator('#kiriof_destination_area_field .kiriof-choices-status')).toContainText('Could not search subdistricts');
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox').tap();
+    await browser.locator('.kiriof-buyer-combobox-input').fill('Sleman');
+    await expect(browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-status')).toContainText('Could not search subdistricts');
     expect(fixture.searches()).toHaveLength(1);
     expect(fixture.searches()[0].body.term).toBe('Sleman');
     expect(
       await browser.evaluate(() => ({
-        options: document.querySelectorAll('#kiriof_destination_area_field .choices__list--dropdown [data-choice-selectable]:not([data-value=""]):not([data-value="123"])').length,
+        options: document.querySelectorAll('.kiriof-buyer-combobox-option:not([data-value=""]):not([data-value="123"])').length,
         value: (document.querySelector('#kiriof_destination_area') as HTMLSelectElement).value,
         fabricated: !!document.querySelector('#kiriof_destination_area option[value="4567"]'),
       })),
@@ -858,7 +857,7 @@ for (const width of [1200, 390]) {
   test(`Classic full district and courier visibility under WC Booster at ${width}px`, async ({ app, browser, screen }) => {
     await browser.setViewport({ width, height: 1000 });
     const fixture = await checkout(app, browser, true, [district], true, 'enhanced');
-    const courier = browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__inner');
+    const courier = browser.locator('.kiriof-classic-shipping-method-select-wrap .kiriof-buyer-combobox-trigger');
     await expect(courier).toBeVisible();
     expect(await browser.evaluate(() => Array.from(document.querySelectorAll('.select2-container')).every(node => !!node.closest('#billing_country_field, #shipping_country_field')))).toBe(true);
     await courier.tap();
@@ -866,12 +865,12 @@ for (const width of [1200, 390]) {
       const $ = (window as any).jQuery;
       const select = $('.kiriof-classic-shipping-method-select');
       const instance = (window as any).kiriofClassicChoices.initShipping(select[0]);
-      const dropdown = document.querySelector('.choices.is-open .choices__list--dropdown');
+      const dropdown = document.querySelector('.kiriof-buyer-combobox-content');
       $(document.body).trigger('updated_checkout');
-      return instance === (window as any).kiriofClassicChoices.initShipping(select[0]) && dropdown === document.querySelector('.choices.is-open .choices__list--dropdown');
+      return instance === (window as any).kiriofClassicChoices.initShipping(select[0]) && dropdown === document.querySelector('.kiriof-buyer-combobox-content');
     })).toBe(true);
     const updatesBefore = await browser.evaluate(() => window.__checkoutUpdates);
-    await browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__list--dropdown [data-choice-selectable]').filter({ hasText: 'Fixture Regular courier' }).tap();
+    await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'Fixture Regular courier' }).tap();
     expect(await browser.evaluate(() => ({
       chosen: (document.querySelector('input.shipping_method:checked') as HTMLInputElement).value,
       events: (window as any).__shippingUpdates,
@@ -882,20 +881,20 @@ for (const width of [1200, 390]) {
       for (const scope of ['billing', 'shipping']) {
         if (scope === 'shipping') await screen.getByLabel('Ship to a different address?').tap();
         const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
-        await browser.locator(`#${id}_field .choices`).tap();
-        await expect(browser.locator('.choices.is-open .choices__list--dropdown')).toBeVisible();
+        await browser.locator(`#${id}_field .kiriof-buyer-combobox`).tap();
+        await expect(browser.locator('.kiriof-buyer-combobox-content')).toBeVisible();
         expect(await browser.evaluate(() => {
           const $ = (window as any).jQuery;
-          const outer = document.querySelector('.choices.is-open');
-          const dropdown = outer.querySelector('.choices__list--dropdown');
+          const outer = document.querySelector('.kiriof-buyer-combobox.is-open');
+          const dropdown = document.querySelector('.kiriof-buyer-combobox-content');
           $(document.body).trigger('updated_checkout');
           (window as any).getSearchAreaKelurahan();
-          return outer.isConnected && dropdown === outer.querySelector('.choices__list--dropdown') && document.querySelectorAll('.choices.is-open').length === 1;
+          return outer.isConnected && dropdown === document.querySelector('.kiriof-buyer-combobox-content') && document.querySelectorAll('.kiriof-buyer-combobox.is-open').length === 1;
         })).toBe(true);
-        await browser.locator('.choices.is-open .choices__input--cloned').fill('Sleman');
+        await browser.locator('.kiriof-buyer-combobox-input').fill('Sleman');
         await expect(screen.getByRole('option', district.text)).toBeVisible();
         expect(await browser.evaluate(() => {
-          const option = document.querySelector('.choices.is-open .choices__list--dropdown [data-choice-selectable]');
+          const option = document.querySelector('.kiriof-buyer-combobox-option');
           const r = option.getBoundingClientRect();
           return r.width > 100 && r.left >= 0 && r.right <= innerWidth && option.contains(document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2));
         })).toBe(true);
@@ -950,9 +949,9 @@ test('Classic Choices uses PHP unified Sariharjo results, cancels stale searches
     }
     return { success: true, data: unified.sari.response };
   });
-  const outer = browser.locator('#kiriof_destination_area_field .choices');
+  const outer = browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox');
   await outer.tap();
-  const search = browser.locator('#kiriof_destination_area_field .choices__input--cloned');
+  const search = browser.locator('.kiriof-buyer-combobox-input');
   await search.fill('old query');
   await expect.poll(() => fixture.searches().length).toBe(1);
   // Instrument the real fetch cancellation signal, not a mocked Choices instance.
@@ -975,7 +974,7 @@ test('Classic Choices uses PHP unified Sariharjo results, cancels stale searches
   await screen.getByRole('option', result.text).tap();
   await expect(browser.locator('#kiriof_destination_area')).toHaveValue(String(result.id));
   await expect(browser.locator('#kiriof_destination_area_name')).toHaveValue(result.text);
-  await browser.locator('#kiriof_destination_area_field .choices__button').tap();
+  await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-clear').tap();
   await expect(browser.locator('#kiriof_destination_area')).toHaveValue('');
   await expect(browser.locator('#kiriof_destination_area_name')).toHaveValue('');
   expect(await browser.evaluate(() => (window as any).__changes)).toEqual([{ id: String(result.id), label: result.text }, { id: '', label: '' }]);
@@ -991,9 +990,9 @@ test('Classic Choices pending, lookup failure and empty results have distinct ac
     }
     return { success: true, data: [] };
   });
-  await browser.locator('#kiriof_destination_area_field .choices').tap();
-  const search = browser.locator('#kiriof_destination_area_field .choices__input--cloned');
-  const status = browser.locator('#kiriof_destination_area_field .kiriof-choices-status');
+  await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox').tap();
+  const search = browser.locator('.kiriof-buyer-combobox-input');
+  const status = browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-status');
   await search.fill('pending');
   await expect.poll(() => fixture.searches().length).toBe(1);
   await expect(status).toContainText('Searching');
@@ -1008,12 +1007,12 @@ test('Classic Choices pending, lookup failure and empty results have distinct ac
 test('Woo country-select owns native state options and select/text/hidden transitions without duplicate Choices', async ({ app, browser, screen }) => {
   const fixture = await checkout(app, browser, false);
   await expect(browser.locator('#billing_country_field .select2-container')).toBeVisible();
-  await expect(browser.locator('#billing_state_field .choices')).toBeVisible();
+  await expect(browser.locator('#billing_state_field .kiriof-buyer-combobox')).toBeVisible();
   expect(await browser.evaluate(() => {
-    const outer = document.querySelector('#billing_state_field .choices');
+    const outer = document.querySelector('#billing_state_field .kiriof-buyer-combobox-trigger');
     const select = document.getElementById('billing_state') as HTMLSelectElement;
     return { required: select.required, aria: outer.getAttribute('aria-required'), labelled: outer.getAttribute('aria-labelledby'), label: document.querySelector('label[for="billing_state"]').id };
-  })).toEqual({ required: true, aria: 'true', labelled: 'billing_state-choices-label', label: 'billing_state-choices-label' });
+  })).toEqual({ required: true, aria: 'true', labelled: 'billing_state-buyer-selector-label', label: 'billing_state-buyer-selector-label' });
   // Native authoritative options change before Woo's published integration event.
   await browser.evaluate(() => {
     const $ = (window as any).jQuery;
@@ -1021,15 +1020,15 @@ test('Woo country-select owns native state options and select/text/hidden transi
     $(document.body).trigger('country_to_state_changed', ['ID']);
     return true;
   });
-  await expect(browser.locator('#billing_state_field .choices__list--single')).toContainText('Jawa Tengah updated');
+  await expect(browser.locator('#billing_state_field .kiriof-buyer-combobox-trigger')).toContainText('Jawa Tengah updated');
   for (const country of ['US', 'GB', 'ID', 'AQ', 'ID', 'US', 'ID']) {
     await browser.evaluate((value: string) => { (window as any).jQuery('#billing_country').val(value).trigger('change'); return true; }, country);
     const kind = country === 'GB' ? 'text' : country === 'AQ' ? 'hidden' : 'select-one';
-    await expect.poll(() => browser.evaluate(() => ({ type: (document.getElementById('billing_state') as HTMLInputElement).type, wrappers: document.querySelectorAll('#billing_state_field .choices').length, nested: document.querySelectorAll('.choices .choices').length }))).toEqual({ type: kind, wrappers: kind === 'select-one' ? 1 : 0, nested: 0 });
+    await expect.poll(() => browser.evaluate(() => ({ type: (document.getElementById('billing_state') as HTMLInputElement).type, wrappers: document.querySelectorAll('#billing_state_field .kiriof-buyer-combobox').length, nested: document.querySelectorAll('.kiriof-buyer-combobox .kiriof-buyer-combobox').length }))).toEqual({ type: kind, wrappers: kind === 'select-one' ? 1 : 0, nested: 0 });
     if (country === 'US') {
-      await browser.locator('#billing_state_field .choices').tap();
-      await browser.locator('#billing_state_field .choices__input--cloned').fill('New');
-      await screen.getByRole('option', 'New York').tap();
+      await browser.locator('#billing_state_field .kiriof-buyer-combobox').tap();
+      await browser.locator('.kiriof-buyer-combobox-input').fill('New');
+      await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'New York' }).tap();
       await expect(browser.locator('#billing_state')).toHaveValue('NY');
     }
     if (country === 'GB') await screen.getByLabel('billing state').fill('London');
@@ -1049,21 +1048,21 @@ for (const width of [1200, 390]) {
         const css = getComputedStyle(node);
         return { height: node.getBoundingClientRect().height, font: css.font, paddingTop: css.paddingTop, paddingLeft: css.paddingLeft, border: css.border, background: css.backgroundColor };
       };
-      return { district: style('#kiriof_destination_area_field .choices__inner'), province: style('#billing_state_field .choices__inner') };
+      return { district: style('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger'), province: style('#billing_state_field .kiriof-buyer-combobox-trigger') };
     })).toEqual(await browser.evaluate(() => {
-      const node = document.querySelector('#billing_state_field .choices__inner');
+      const node = document.querySelector('#billing_state_field .kiriof-buyer-combobox-trigger');
       const css = getComputedStyle(node);
       const style = { height: node.getBoundingClientRect().height, font: css.font, paddingTop: css.paddingTop, paddingLeft: css.paddingLeft, border: css.border, background: css.backgroundColor };
       return { district: style, province: style };
     }));
-    await browser.locator('#billing_state_field .choices').tap();
-    await expect(browser.locator('#billing_state_field .choices__list--dropdown')).toBeVisible();
+    await browser.locator('#billing_state_field .kiriof-buyer-combobox').tap();
+    await expect(browser.locator('.kiriof-buyer-combobox-content')).toBeVisible();
     await browser.keyboard.press('Escape');
-    await expect(browser.locator('#billing_state_field .choices__list--dropdown')).not.toBeVisible();
+    await expect(browser.locator('.kiriof-buyer-combobox-content')).not.toBeVisible();
     await browser.keyboard.press('Enter');
-    await expect(browser.locator('#billing_state_field .choices__list--dropdown')).toBeVisible();
-    await browser.locator('#billing_state_field .choices__input--cloned').fill('Jawa');
-    await screen.getByRole('option', 'Jawa Tengah').tap();
+    await expect(browser.locator('.kiriof-buyer-combobox-content')).toBeVisible();
+    await browser.locator('.kiriof-buyer-combobox-input').fill('Jawa');
+    await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'Jawa Tengah' }).tap();
     await expect(browser.locator('#billing_state')).toHaveValue('JT');
     await app.screenshot(`classic-choices-identity-${width}`);
     expect(fixture.unexpected).toEqual([]);
@@ -1072,10 +1071,10 @@ for (const width of [1200, 390]) {
 
 test('Classic courier Choices is independent of Select2', async ({ app, browser }) => {
   const fixture = await checkout(app, browser, true, [district], true, 'no-select2');
-  await expect(browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__inner')).toBeVisible();
+  await expect(browser.locator('.kiriof-classic-shipping-method-select-wrap .kiriof-buyer-combobox-trigger')).toBeVisible();
   await expect(browser.locator('#shipping_method')).not.toBeVisible();
-  await browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__inner').click();
-  await browser.locator('.kiriof-classic-shipping-method-select-wrap .choices__list--dropdown [data-choice-selectable]').filter({ hasText: 'Fixture Regular courier' }).click();
+  await browser.locator('.kiriof-classic-shipping-method-select-wrap .kiriof-buyer-combobox-trigger').click();
+  await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'Fixture Regular courier' }).click();
   expect(await browser.evaluate(() => ({
     chosen: document.querySelector<HTMLInputElement>('input.shipping_method:checked')!.value,
     events: (window as any).__shippingUpdates,

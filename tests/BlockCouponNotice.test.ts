@@ -1,11 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { buyerRuntimeSource, buyerBrowserContext } from './helpers/buyer-runtime-source';
 import { runInNewContext } from 'node:vm';
 
-const source = readFileSync(
-  new URL('../assets/wp/js/kiriof-block-checkout.js', import.meta.url),
-  'utf8',
-);
+const source = await buyerRuntimeSource('coupon');
 const shipping = { code: 'ongkir', discount_type: 'kiriof_fixed_shipping_discount' };
 const native = { code: 'produk', discount_type: 'percent' };
 const strings = {
@@ -51,6 +48,7 @@ function setup({
   };
   runInNewContext(source, {
     window: {
+      document: { querySelector: () => null, querySelectorAll: () => [] },
       wp,
       wc: modern
         ? {

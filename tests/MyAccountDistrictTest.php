@@ -10,7 +10,7 @@ final class MyAccountDistrictTest extends TestCase
     #[Test]
     public function shipping_layout_styles_are_scoped_and_survive_country_locale_class_changes(): void
     {
-        $css = file_get_contents( PLUGIN_DIR . '/assets/wp/css/kiriof-buyer-checkout.css' );
+        $css = file_get_contents( PLUGIN_DIR . '/assets/buyer/css/kiriof-buyer-checkout.css' );
         $this->assertStringContainsString( '.woocommerce-address-fields:has(> .kiriof-account-shipping)', $css );
         $this->assertStringContainsString( 'grid-template-columns: repeat(2, minmax(0, 1fr))', $css );
         foreach ( array( 'city', 'state', 'postcode', 'phone' ) as $field ) {
@@ -66,7 +66,7 @@ final class MyAccountDistrictTest extends TestCase
     #[Test]
     public function account_district_script_supports_search_selection_and_postcode_invalidation(): void
     {
-        $content = file_get_contents(PLUGIN_DIR . '/assets/wp/js/account-address.js');
+        $content = file_get_contents(PLUGIN_DIR . '/assets/buyer/js/account-address.js');
 
         $this->assertStringContainsString('kiriminaja_subdistrict_search', $content);
         $this->assertStringContainsString('kiriofAjax.nonce', $content);

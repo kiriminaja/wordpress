@@ -10,7 +10,7 @@ describe('shared packaged courier artwork', () => {
     const plugin = 'https://shop.example/wp-content/plugins/kiriminaja/';
     for (const module of ['kiriminaja-admin-workspace.js', 'assets/shared-AbCd.js']) {
       expect(courierAssetUrl('ninja-inter.png', `${plugin}assets/admin/dist/${module}`)).toBe(
-        `${plugin}assets/wp/img/couriers/ninja-inter.png`,
+        `${plugin}assets/buyer/img/couriers/ninja-inter.png`,
       );
     }
   });
@@ -18,7 +18,7 @@ describe('shared packaged courier artwork', () => {
   test('keeps all existing courier codes and display aliases', () => {
     for (const [code, file] of Object.entries(courierFiles)) {
       expect(courierImage(code)?.endsWith(`/couriers/${file}`)).toBe(true);
-      expect(existsSync(resolve(root, 'assets/wp/img/couriers', file))).toBe(true);
+      expect(existsSync(resolve(root, 'assets/buyer/img/couriers', file))).toBe(true);
     }
     expect(new Set(Object.values(courierFiles)).size).toBe(21);
     for (const [alias, code] of [
@@ -54,7 +54,7 @@ describe('shared packaged courier artwork', () => {
     if (!existsSync(dist)) return;
     const originals = new Set(
       Object.values(courierFiles).map(file =>
-        readFileSync(resolve(root, 'assets/wp/img/couriers', file)).toString('base64'),
+        readFileSync(resolve(root, 'assets/buyer/img/couriers', file)).toString('base64'),
       ),
     );
     for (const entry of readdirSync(dist, { recursive: true, withFileTypes: true })) {

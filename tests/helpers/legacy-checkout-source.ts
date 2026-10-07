@@ -3,11 +3,11 @@ import { createContext, runInContext, type Context } from 'node:vm';
 
 /** Match WordPress's dependency chain; these are separate global scripts, not a bundle. */
 export const legacyCheckoutModules = [
-	'assets/wp/js/checkout/state.js',
-	'assets/wp/js/checkout/blocks-compatibility.js',
-	'assets/wp/js/checkout/classic-district.js',
-	'assets/wp/js/checkout/shipping-payment.js',
-	'assets/wp/js/form-billing-address.js',
+	'assets/buyer/js/checkout/state.js',
+	'assets/buyer/js/checkout/blocks-compatibility.js',
+	'assets/buyer/js/checkout/classic-district.js',
+	'assets/buyer/js/checkout/shipping-payment.js',
+	'assets/buyer/js/form-billing-address.js',
 ].map(path => ({ path, source: readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8') }));
 
 export function evaluateLegacyCheckout(context: Context) {

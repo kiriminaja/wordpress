@@ -36,6 +36,8 @@ namespace {
 	function wp_register_script( $handle, $src, $deps = array(), $version = false, $args = false ) {
 		$GLOBALS['choices_assets']['scripts'][ $handle ] = compact( 'src', 'deps', 'version', 'args' );
 	}
+	function wp_script_is( $handle, $status = 'registered' ) { return isset( $GLOBALS['choices_assets']['scripts'][$handle] ); }
+	function wp_style_is( $handle, $status = 'registered' ) { return isset( $GLOBALS['choices_assets']['styles'][$handle] ); }
 	function wp_register_style( $handle, $src, $deps = array(), $version = false ) {
 		$GLOBALS['choices_assets']['styles'][ $handle ] = compact( 'src', 'deps', 'version' );
 	}

@@ -50,9 +50,9 @@ function runtime() {
 	const config: any = { isCheckout: true, isCart: false, billingCountry: 'ID', shippingCountry: 'US', i18n: { selectOption: 'Select Option' }, ajaxUrl: '/fallback', destinationNonce: 'fallback' };
 	let insuranceCallbacks = 0;
 	const context: any = { document, window, console: { warn() {} }, alert: (value: string) => alerts.push(value), jQuery: jquery, kiriofBillingAddressConfig: config, kiriofAjax: { ajaxurl: '/root-ajax', destination_nonce: 'root-nonce' }, kiriofUsesClassicCheckout: () => false, kiriofGetClassicInsuranceValue: () => insurance, kiriofCodInsurance: () => { insuranceCallbacks++; } };
-	const source = readFileSync('assets/wp/js/checkout/classic-district.js', 'utf8');
+	const source = readFileSync('assets/buyer/js/checkout/classic-district.js', 'utf8');
 	runInNewContext(source.slice(0, source.indexOf('function getSearchAreaKelurahan()')), context);
-	const payment = readFileSync('assets/wp/js/checkout/shipping-payment.js', 'utf8');
+	const payment = readFileSync('assets/buyer/js/checkout/shipping-payment.js', 'utf8');
 	runInNewContext(payment.slice(payment.indexOf('function kiriofChangeDifferentAddress()'), payment.indexOf('function kiriofGetClassicInsuranceValue()')), context);
 	context.changeDistrict();
 	context.kiriofChangeDifferentAddress();

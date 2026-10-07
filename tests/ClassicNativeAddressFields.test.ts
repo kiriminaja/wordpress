@@ -4,7 +4,7 @@ import { happy } from './helpers/ui-runtime';
 import { legacyCheckoutSlice } from './helpers/legacy-checkout-source';
 
 const source = legacyCheckoutSlice(
-	'assets/wp/js/checkout/classic-district.js',
+	'assets/buyer/js/checkout/classic-district.js',
 	'function kiriofGetClassicAddressCountry(addressType)',
 	'function kiriofRestoreClassicDistrictSelections()',
 );

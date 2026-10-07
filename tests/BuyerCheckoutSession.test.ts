@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { buyerRuntimeSource, buyerBrowserContext } from './helpers/buyer-runtime-source';
 import { runInNewContext } from 'node:vm';
 
 type Snapshot = Record<string, unknown>;
@@ -9,7 +9,7 @@ type Queue = { update(snapshot: Snapshot): Promise<Result>; retry(): Promise<Res
 type Options = { send(snapshot: Snapshot): unknown; onChange?(state: State): void; isBlocked?(): boolean; schedule?(callback: () => void): unknown; cancel?(handle: unknown): void; setTimeout?(callback: () => void, delay: number): unknown; clearTimeout?(handle: unknown): void };
 type Session = { createQueue(options: Options): Queue; normalizeDestination(input: Snapshot): Snapshot };
 
-const source = readFileSync(new URL('../assets/wp/js/kiriof-checkout-session.js', import.meta.url), 'utf8');
+const source = await buyerRuntimeSource('state');
 function load(withWindow = false): Session {
 	const context: Record<string, any> = { setTimeout, clearTimeout };
 	if (withWindow) context.window = {};

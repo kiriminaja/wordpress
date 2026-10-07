@@ -1,3 +1,4 @@
+import { script, classicCss } from '../fixtures/buyer-source';
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -50,10 +51,10 @@ function html() {
       R.createElement('div',{id:'billing-fields',className:'wc-block-checkout__billing-fields'},R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);window.__customerBusy=true;emit();const response=await fetch('/billing-rates');const result=await response.json();window.__cart={...window.__cart,billingAddress:{...window.__cart.shippingAddress},shippingRates:[{package_id:3,shipping_rates:rates.map(rate=>({...rate,selected:rate.rate_id===result.rate}))}]};window.__customerBusy=false;emit();}}),'Use same address for billing')),
       R.createElement('fieldset',null,window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:()=>{}}),rate.label))));}
     window.__createRoot(document.querySelector('#native')).render(R.createElement(NativeCheckout));`,
-    read('assets/wp/js/kiriof-checkout-session.js'),
-    read('assets/wp/js/kiriof-shipping-selection.js'),
-    read('assets/wp/js/kiriof-address-presentation.js'),
-    read('assets/wp/js/kiriof-buyer-checkout.js'),
+    script('assets/buyer/js/kiriof-checkout-session.js'),
+
+
+    script('assets/buyer/js/kiriof-buyer-checkout.js'),
     `window.__createRoot(document.querySelector('#district')).render(R.createElement(window.__District));window.__createRoot(document.querySelector('#fallback')).render(R.createElement(window.__Fallback));`,
   ])}</body></html>`;
 }

@@ -1,23 +1,47 @@
-import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { afterEach, describe, expect, test } from 'bun:test';
+import { buyerRuntimeSource } from './helpers/buyer-runtime-source';
 import { React, happy, rendererRequire as scoped } from './helpers/ui-runtime';
 import { runInNewContext } from 'node:vm';
+import { mutationListeners } from 'happy-dom/lib/PropertySymbol.js';
 
-const source = readFileSync(new URL('../assets/wp/js/kiriof-address-presentation.js', import.meta.url), 'utf8');
+const source = await buyerRuntimeSource('presentation');
 const domTest = test;
 const uiTest = test;
+const windows: any[] = [];
+afterEach(async () => {
+	for (const window of windows.splice(0)) await window.happyDOM.close();
+});
+// Explicit checkpoints deliver the native observer batch and its host-repair
+// batch without racing Happy DOM's timer-based waitUntilComplete heuristic.
+async function drainMutations(window: any) {
+	await new Promise<void>(resolve => window.queueMicrotask(resolve));
+	await new Promise<void>(resolve => window.queueMicrotask(resolve));
+}
 const step = (scope = 'shipping', editing = false) => `<section id="${scope}-fields"><div class="wc-block-components-address-address-wrapper${editing ? ' is-editing' : ''}"><div class="wc-block-components-address-card"><p>Native address</p><button class="wc-block-components-address-card__edit" aria-controls="${scope}" aria-expanded="${editing}">Edit</button></div><form><input name="${scope}_address_1"></form><div class="kiriof-buyer-map"><div class="leaflet-pane"></div></div><div class="kiriof-buyer-district"></div></div></section>`;
 function fixture(options: { native?: boolean; portal?: boolean; observer?: boolean; html?: string } = {}) {
 	const window = new happy.Window();
+	windows.push(window);
 	window.document.body.innerHTML = options.html ?? `<main class="wp-block-woocommerce-checkout">${step('billing')}${step()}</main>`;
 	const observers: any[] = [];
+	// Happy DOM 20.8.4 weakly owns its internal listener closure. Keep that
+	// closure alive for the subscription, just as a browser keeps observers
+	// alive; otherwise a Bun GC can silently stop native mutation delivery.
+	const NativeObserver = window.MutationObserver;
+	class RetainedNativeObserver extends NativeObserver {
+		callbacks = new Set<any>();
+		observe(node: any, options: any) {
+			super.observe(node, options);
+			for (const listener of node[mutationListeners]) this.callbacks.add(listener.callback.deref());
+		}
+		disconnect() { super.disconnect(); this.callbacks.clear(); }
+	}
 	class Observer {
 		callback: any; disconnected = 0; nodes: any[] = [];
 		constructor(callback: any) { this.callback = callback; observers.push(this); }
 		observe(node: any, options: any) { this.nodes.push({ node, options }); }
 		disconnect() { this.disconnected++; }
 	}
-	window.MutationObserver = options.observer === false ? undefined : options.native ? window.MutationObserver : Observer;
+	window.MutationObserver = options.observer === false ? undefined : options.native ? RetainedNativeObserver : Observer;
 	window.wp = { element: { createPortal: options.portal === false ? undefined : () => {} } };
 	runInNewContext(source, { window });
 	const api = window.kiriofAddressPresentation;
@@ -92,7 +116,7 @@ describe('Address presentation shared native bridge', () => {
 	}
 	domTest('real MutationObserver reacts to async step and whole checkout replacement', async () => {
 		const h = fixture({ native: true }); const clean = h.api.subscribe(() => {});
-		const flush = () => h.window.happyDOM.waitUntilComplete();
+		const flush = () => drainMutations(h.window);
 		try {
 			const oldHost = h.api.getSnapshot().cardTarget;
 			h.document.querySelector('#shipping-fields').outerHTML = step('shipping', true); await flush();
@@ -112,10 +136,11 @@ describe('Address presentation shared native bridge', () => {
 		function District() { const state = h.api.usePresentation(); values[0] = state; return state.cardTarget ? portals.createPortal(React.createElement('span', null, 'District ready'), state.cardTarget) : null; }
 		function MapControl() { const state = h.api.usePresentation(); values[1] = state; return React.createElement('div', { hidden: !state.editing }, 'Map controls'); }
 		try {
-			await React.act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(District), React.createElement(MapControl))); await h.window.happyDOM.waitUntilComplete(); });
+			await React.act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(District), React.createElement(MapControl))); });
+			await React.act(async () => { await drainMutations(h.window); });
 			expect(values[0]).toBe(values[1]); expect(values[0].editing).toBe(false);
 			expect(h.document.querySelector('.kiriof-address-status-host').textContent).toBe('District ready'); expect(mount.querySelector('div').hidden).toBe(true);
-			await React.act(async () => { h.document.querySelector('#shipping-fields button').setAttribute('aria-expanded', 'true'); await h.window.happyDOM.waitUntilComplete(); });
+			await React.act(async () => { h.document.querySelector('#shipping-fields button').setAttribute('aria-expanded', 'true'); await drainMutations(h.window); });
 			expect(mount.querySelector('div').hidden).toBe(false); expect(h.document.querySelector('#shipping-fields form')).not.toBeNull();
 		} finally {
 			await React.act(async () => root.unmount());

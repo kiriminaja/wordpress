@@ -38,8 +38,8 @@ export function courierAssetUrl(file: string, moduleUrl = import.meta.url): stri
   // Keep the base dynamic so Vite does not copy/rewrite the shared PNG artwork.
   const runtimeBase = moduleUrl;
   const relativeRoot = new URL(runtimeBase).pathname.includes('/assets/admin/dist/assets/')
-    ? '../../../wp/img/couriers/'
-    : '../../wp/img/couriers/';
+    ? '../../../buyer/img/couriers/'
+    : '../../buyer/img/couriers/';
   return new URL(relativeRoot + file, runtimeBase).href;
 }
 

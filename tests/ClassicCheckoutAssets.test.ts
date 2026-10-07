@@ -29,15 +29,20 @@ describe('Classic asset registration and legacy ownership', () => {
 		expect(registration).not.toContain('wc-blocks');
 		expect(registration).not.toContain('wp-element');
 		expect(registration).not.toContain('kiriof-buyer-checkout.js');
-		expect(registration).toContain("'kiriof-classic-checkout-core' => array( 'assets/wp/js/kiriof-classic-checkout-core.js', array( 'kiriof-checkout-session' ) )");
-		expect(registration).toContain("'kiriof-map-checkout-classic' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-checkout-session', 'kiriof-leaflet' ) )");
-		expect(registration).toContain("array( 'jquery', 'kiriof-classic-checkout-core', 'kiriof-map-checkout-classic' )");
+		expect(registration).toContain("$this->register_buyer_state_assets();");
+		expect(registration).toContain("'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-leaflet' ) )");
+		expect(registration).not.toContain("assets/buyer/js/");
+		const stateRegistration = enqueue.split("private function register_buyer_state_assets(): void {")[1].split("/** Register once")[0];
+		expect(stateRegistration).toContain("assets/buyer/dist/kiriminaja-buyer-state.js");
+		expect(stateRegistration).toContain("wp_register_script( $handle, false, array( 'kiriof-buyer-state' )");
+		expect(stateRegistration).not.toContain("wp-element");
+		expect(stateRegistration).not.toContain("wc-blocks");
 		expect(registration).toContain("$config = $this->buyer_checkout_config();");
 		expect(registration).toContain("$config['enabled'] = $this->classic_instant_enabled();");
 		expect(registration).toContain("$config['ownsDistrict'] = false;");
 		expect(registration).toContain("'kiriofClassicCheckoutConfig', $config");
 		expect(registration).toContain("'kiriofMapCheckoutConfig', $this->map_checkout_config()");
-		expect(registration).toContain('assets/wp/css/kiriof-classic-checkout.css');
+		expect(registration).toContain('assets/buyer/css/kiriof-classic-checkout.css');
 	});
 
 	test('only editable non-Blocks checkout enqueues Classic; legacy loads after its config', () => {

@@ -272,23 +272,37 @@ class Enqueue extends BaseInit{
         );
     }
 
+    /** Shared IIFE state/map factories have no WordPress or Blocks dependency. */
+    private function register_buyer_state_assets(): void {
+        if ( ! wp_script_is( 'kiriof-buyer-state', 'registered' ) ) {
+            $path = 'assets/buyer/dist/kiriminaja-buyer-state.js';
+            wp_register_script( 'kiriof-buyer-state', $this->plugin_url . $path, array(), file_exists( KIRIOF_DIR . $path ) ? (string) filemtime( KIRIOF_DIR . $path ) : KIRIOF_VERSION, true );
+        }
+        foreach ( array( 'kiriof-checkout-session', 'kiriof-shipping-selection', 'kiriof-map-checkout-classic', 'kiriof-classic-checkout-core' ) as $handle ) {
+            if ( ! wp_script_is( $handle, 'registered' ) ) {
+                wp_register_script( $handle, false, array( 'kiriof-buyer-state' ), KIRIOF_VERSION, true );
+            }
+        }
+    }
+
     /** Register once for native Blocks and the legacy frontend fallback. */
     public function register_buyer_checkout_assets( bool $localize = false ): void {
+        $this->register_buyer_state_assets();
         $scripts = array(
-            'kiriof-shipping-selection' => array( 'assets/wp/js/kiriof-shipping-selection.js', array() ),
-            'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
             'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
-            'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) ),
-            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-shipping-selection', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
-            'kiriof-map-checkout' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-leaflet', 'wp-element', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-leaflet' ) ),
+            'kiriof-buyer-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-map-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-address-presentation' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-block-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
             'kiriof-map-checkout-editor' => array( 'blocks/map-checkout/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
             'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
         );
         foreach ( $scripts as $handle => $asset ) {
             if ( ! wp_script_is( $handle, 'registered' ) ) {
                 $asset_path = KIRIOF_DIR . $asset[0];
-                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
-                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
+                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+                wp_register_script( $handle, false === $asset[0] ? false : $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
             }
         }
         if ( function_exists( 'wp_set_script_translations' ) ) {
@@ -301,42 +315,49 @@ class Enqueue extends BaseInit{
             wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
         }
         if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
-            $style_path = KIRIOF_DIR . 'assets/wp/css/kiriof-buyer-checkout.css';
-            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/wp/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet' ), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
+            $style_path = KIRIOF_DIR . 'assets/buyer/css/kiriof-buyer-checkout.css';
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/buyer/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet' ), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
         }
         if ( $localize ) {
-            $map_data = wp_scripts()->get_data( 'kiriof-map-checkout', 'data' );
+            $map_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
             if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-map-checkout', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
             }
-            $data = wp_scripts()->get_data( 'kiriof-buyer-checkout', 'data' );
+            $data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
             if ( ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+            }
+            $coupon_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
+            if ( ! is_string( $coupon_data ) || false === strpos( $coupon_data, 'kiriofBlockCheckoutStrings' ) ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBlockCheckoutStrings', array(
+                    /* translators: 1: shipping coupon code, 2: other applied coupon codes. */
+                    'couponCombined' => __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
+                    /* translators: %s: shipping coupon code. */
+                    'couponApplied' => __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
+                ) );
             }
         }
     }
 
     /** Register Classic checkout without a dependency on WooCommerce Blocks APIs. */
     public function register_classic_checkout_assets( bool $localize = false ): void {
+        $this->register_buyer_state_assets();
         $scripts = array(
-            'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
             'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
-            'kiriof-classic-checkout-core' => array( 'assets/wp/js/kiriof-classic-checkout-core.js', array( 'kiriof-checkout-session' ) ),
-            'kiriof-map-checkout-classic' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-checkout-session', 'kiriof-leaflet' ) ),
-            'kiriof-classic-checkout' => array( 'assets/wp/js/kiriof-classic-checkout.js', array( 'jquery', 'kiriof-classic-checkout-core', 'kiriof-map-checkout-classic' ) ),
+            'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-leaflet' ) ),
         );
         foreach ( $scripts as $handle => $asset ) {
             if ( ! wp_script_is( $handle, 'registered' ) ) {
                 $asset_path = KIRIOF_DIR . $asset[0];
-                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
-                wp_register_script( $handle, $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
+                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+                wp_register_script( $handle, false === $asset[0] ? false : $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
             }
         }
         if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
             wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
         }
         $styles = array(
-            'kiriof-classic-checkout' => array( 'assets/wp/css/kiriof-classic-checkout.css', array( 'kiriof-leaflet' ) ),
+            'kiriof-classic-checkout' => array( 'assets/buyer/css/kiriof-classic-checkout.css', array( 'kiriof-leaflet' ) ),
         );
         foreach ( $styles as $handle => $asset ) {
             if ( ! wp_style_is( $handle, 'registered' ) ) {
@@ -370,9 +391,9 @@ class Enqueue extends BaseInit{
                 $config['needsShipping'] = function_exists( 'WC' ) && WC() && WC()->cart ? WC()->cart->needs_shipping() : true;
                 wp_localize_script( 'kiriof-classic-checkout', 'kiriofClassicCheckoutConfig', $config );
             }
-            $map_data = wp_scripts()->get_data( 'kiriof-map-checkout-classic', 'data' );
+            $map_data = wp_scripts()->get_data( 'kiriof-classic-checkout', 'data' );
             if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-map-checkout-classic', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+                wp_localize_script( 'kiriof-classic-checkout', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
             }
         }
     }
@@ -394,8 +415,8 @@ class Enqueue extends BaseInit{
 
         wp_enqueue_script( 'select2' );
         wp_enqueue_style( 'select2' );
-        $front_style = KIRIOF_DIR . 'assets/wp/css/kj-wp-style.css';
-        wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/wp/css/kj-wp-style.css', array(), file_exists( $front_style ) ? (string) filemtime( $front_style ) : KIRIOF_VERSION, 'all' );
+        $front_style = KIRIOF_DIR . 'assets/buyer/css/kj-wp-style.css';
+        wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/buyer/css/kj-wp-style.css', array(), file_exists( $front_style ) ? (string) filemtime( $front_style ) : KIRIOF_VERSION, 'all' );
         wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style' ), KIRIOF_VERSION, 'all' );
 
         // Tracking shortcode-specific styles. Loaded as a real stylesheet so the
@@ -406,7 +427,7 @@ class Enqueue extends BaseInit{
         if ( $this->isTrackingPage() ) {
             wp_enqueue_style(
                 'kiriof-tracking-style',
-                $this->plugin_url . 'assets/wp/css/kj-tracking.css',
+                $this->plugin_url . 'assets/buyer/css/kj-tracking.css',
                 array( 'kiriof-style' ),
                 KIRIOF_VERSION,
                 'all'
@@ -419,41 +440,40 @@ class Enqueue extends BaseInit{
         // Option 2: Make wp-util a dependency of your script (usually better).
         wp_enqueue_script(
             'kiriof-script',
-            $this->plugin_url . 'assets/wp/js/kj-wp-script.js',
+            $this->plugin_url . 'assets/buyer/js/kj-wp-script.js',
             array( 'wp-util', 'jquery', 'select2' ),
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
         $legacy_dependencies = $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : ( $this->isClassicCheckoutPage() && $this->classic_instant_enabled() ? array( 'kiriof-script', 'kiriof-classic-checkout' ) : array( 'kiriof-script' ) );
-        wp_register_script( 'kiriof-shipping-selection', $this->plugin_url . 'assets/wp/js/kiriof-shipping-selection.js', array(), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/kiriof-shipping-selection.js' ), true );
+        $this->register_buyer_state_assets();
         if ( $this->isClassicCheckoutPage() ) { $legacy_dependencies[] = 'kiriof-shipping-selection'; }
         foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module ) {
             $handle = 'kiriof-checkout-' . $module;
-            $relative_path = 'assets/wp/js/checkout/' . $module . '.js';
+            $relative_path = 'assets/buyer/js/checkout/' . $module . '.js';
             wp_register_script( $handle, $this->plugin_url . $relative_path, $legacy_dependencies, (string) filemtime( KIRIOF_DIR . $relative_path ), array( 'in_footer' => true ) );
             $legacy_dependencies = array( $handle );
         }
         if ( $this->isClassicCheckoutPage() ) {
-            wp_register_script( 'kiriof-choices', $this->plugin_url . 'assets/lib/choices/choices.min.js', array(), '11.2.4', array( 'in_footer' => true ) );
-            wp_register_style( 'kiriof-choices', $this->plugin_url . 'assets/lib/choices/choices.min.css', array(), '11.2.4' );
-            wp_register_style( 'kiriof-classic-choices', $this->plugin_url . 'assets/wp/css/kiriof-classic-choices.css', array( 'kiriof-choices', 'kiriof-style' ), (string) filemtime( KIRIOF_DIR . 'assets/wp/css/kiriof-classic-choices.css' ) );
-            wp_register_script( 'kiriof-classic-choices', $this->plugin_url . 'assets/wp/js/checkout/choices-controls.js', array_merge( $legacy_dependencies, array( 'kiriof-choices', 'wc-country-select' ) ), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/checkout/choices-controls.js' ), array( 'in_footer' => true ) );
+            wp_register_style( 'kiriof-classic-choices', $this->plugin_url . 'assets/buyer/dist/kiriminaja-buyer-classic.css', array( 'kiriof-style' ), file_exists( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.css' ) ? (string) filemtime( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.css' ) : KIRIOF_VERSION );
+            wp_register_style( 'kiriof-classic-shipping-layout', $this->plugin_url . 'assets/buyer/css/kiriof-classic-choices.css', array( 'kiriof-classic-choices' ), (string) filemtime( KIRIOF_DIR . 'assets/buyer/css/kiriof-classic-choices.css' ) );
+            wp_register_script( 'kiriof-classic-choices', $this->plugin_url . 'assets/buyer/dist/kiriminaja-buyer-classic.js', array_merge( $legacy_dependencies, array( 'kiriof-buyer-state', 'wc-country-select' ) ), file_exists( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.js' ) ? (string) filemtime( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.js' ) : KIRIOF_VERSION, array( 'in_footer' => true ) );
             $legacy_dependencies[] = 'kiriof-classic-choices';
-            wp_register_script( 'kiriof-classic-shipping-options', $this->plugin_url . 'assets/wp/js/checkout/shipping-options.js', $legacy_dependencies, (string) filemtime( KIRIOF_DIR . 'assets/wp/js/checkout/shipping-options.js' ), array( 'in_footer' => true ) );
+            wp_register_script( 'kiriof-classic-shipping-options', $this->plugin_url . 'assets/buyer/js/checkout/shipping-options.js', $legacy_dependencies, (string) filemtime( KIRIOF_DIR . 'assets/buyer/js/checkout/shipping-options.js' ), array( 'in_footer' => true ) );
             $legacy_dependencies[] = 'kiriof-classic-shipping-options';
-            wp_enqueue_style( 'kiriof-classic-choices' );
+            wp_enqueue_style( 'kiriof-classic-shipping-layout' );
         }
         wp_register_script(
             'kiriof-form-billing-address',
-            $this->plugin_url . 'assets/wp/js/form-billing-address.js',
+            $this->plugin_url . 'assets/buyer/js/form-billing-address.js',
             $legacy_dependencies,
-            (string) filemtime( KIRIOF_DIR . 'assets/wp/js/form-billing-address.js' ),
+            (string) filemtime( KIRIOF_DIR . 'assets/buyer/js/form-billing-address.js' ),
             array( 'in_footer' => true )
         );
         if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) && 'shipping' !== get_query_var( 'edit-address' ) ) {
             wp_enqueue_script(
                 'kiriof-account-address',
-                KIRIOF_URL . 'assets/wp/js/account-address.js',
+                KIRIOF_URL . 'assets/buyer/js/account-address.js',
                 array( 'kiriof-script', 'jquery', 'select2' ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
@@ -488,11 +508,12 @@ class Enqueue extends BaseInit{
         );
 
         if ( $this->isTrackingPage() ) {
+            $tracking_path = 'assets/buyer/dist/kiriminaja-buyer-tracking.js';
             wp_enqueue_script(
                 'kiriof-tracking-script',
-                $this->plugin_url . 'assets/wp/js/kj-tracking.js',
-                array( 'jquery', 'kiriof-script' ),
-                KIRIOF_VERSION,
+                $this->plugin_url . $tracking_path,
+                array( 'kiriof-script' ),
+                file_exists( KIRIOF_DIR . $tracking_path ) ? (string) filemtime( KIRIOF_DIR . $tracking_path ) : KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
 
@@ -521,19 +542,6 @@ class Enqueue extends BaseInit{
             wp_enqueue_script( 'kiriof-buyer-checkout' );
             wp_enqueue_script( 'kiriof-map-checkout' );
             wp_enqueue_style( 'kiriof-buyer-checkout' );
-            wp_enqueue_script(
-                'kiriof-block-checkout',
-                $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
-                array( 'kiriof-script', 'kiriof-buyer-checkout', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wp-i18n', 'wc-blocks-checkout' ),
-                KIRIOF_VERSION,
-                array( 'in_footer' => true )
-            );
-            wp_localize_script( 'kiriof-block-checkout', 'kiriofBlockCheckoutStrings', array(
-                /* translators: 1: shipping coupon code, 2: other applied coupon codes. */
-                'couponCombined' => __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
-                /* translators: %s: shipping coupon code. */
-                'couponApplied' => __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
-            ) );
         }
     }
 

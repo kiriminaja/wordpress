@@ -1,3 +1,4 @@
+import { script, classicCss } from '../fixtures/buyer-source';
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -12,6 +13,64 @@ const instant = 'kiriminaja-instant:7:gosend:instant';
 const cargo = 'kiriminaja-official_jne_REG'; // Guard fixture's automatic Express substitute, displayed as Cargo here.
 const message = 'Shipping options changed. Please review and select your courier again before placing the order.';
 const snapshot = (rate: string, ids = ['3']) => ({ version: 1, packages: ids.map(package_id => ({ package_id, rate_id: rate })) });
+
+for (const activation of ['pointer', 'keyboard', 'native radio', 'native select']) {
+  test(`Classic automatic GoSend remains guarded until explicit ${activation} reselect and then submits`, async ({ app, browser }) => {
+    const fallback = activation.startsWith('native');
+    const { unexpected } = await open(app, browser, false, fallback);
+    await expect.poll(() => classicReview(browser)).toEqual(snapshot(cargo));
+    await browser.locator('#terms').click();
+    await browser.evaluate((html: string) => (window as any).__replace(html), table(instant));
+    await expect(browser.locator('.kiriof-shipping-selection-error')).toContainText(message);
+    expect(await classicReview(browser)).toEqual(snapshot(cargo));
+    await browser.locator('button[type="submit"]').click();
+    expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
+    await browser.evaluate(() => {
+      (window as any).__changes = 0;
+      document.addEventListener('change', event => {
+        if ((event.target as Element).matches('select.kiriof-classic-shipping-method-select')) (window as any).__changes++;
+      });
+      (window as any).kiriofBuyerSelectors?.refresh();
+      (window as any).kiriofClassicShippingOptions.refresh();
+    });
+    expect(await classicReview(browser)).toEqual(snapshot(cargo));
+    expect(await browser.evaluate(() => (window as any).__changes)).toBe(0);
+    if (fallback) {
+      if (activation === 'native radio') {
+        await browser.evaluate(() => {
+          // Exercise the native input name fallback, not only PHP's data-index.
+          document.querySelectorAll('input.shipping_method').forEach(input => input.removeAttribute('data-index'));
+        });
+        await browser.locator(`input.shipping_method[value="${instant}"]`).click();
+      } else {
+        // A native select change must be trusted too, without bridge detail.
+        await browser.evaluate(() => document.querySelector<HTMLSelectElement>('select.kiriof-classic-shipping-method-select')!.focus());
+        await browser.keyboard.press('Home');
+        await browser.keyboard.press('Enter');
+        await expect.poll(() => classicReview(browser)).toEqual(snapshot(cargo));
+        await browser.evaluate(() => document.querySelector<HTMLSelectElement>('select.kiriof-classic-shipping-method-select')!.focus());
+        await browser.keyboard.press('End');
+        await browser.keyboard.press('Enter');
+      }
+    } else {
+      await expect(browser.locator('.kiriof-buyer-combobox-trigger')).toContainText('GoSend Instant');
+      await browser.locator('.kiriof-buyer-combobox-trigger').click();
+      if (activation === 'keyboard') {
+        await browser.locator('.kiriof-buyer-combobox-input').fill('GoSend');
+        await browser.keyboard.press('ArrowDown');
+        await browser.keyboard.press('Enter');
+      } else {
+        await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'GoSend Instant' }).click();
+      }
+      expect(await browser.evaluate(() => (window as any).__changes)).toBe(1);
+    }
+    await expect.poll(() => classicReview(browser)).toEqual(snapshot(instant));
+    await expect(browser.locator('.kiriof-shipping-selection-error')).not.toBeVisible();
+    await browser.locator('button[type="submit"]').click();
+    await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+}
 
 test('matching selected GoSend never shows changed-courier warning during customer or rate updates', async ({ app, browser }) => {
   const { unexpected } = await open(app, browser, true);
@@ -45,15 +104,15 @@ function table(chosen: string, ids = [3]) {
     index, chosen, rates: [{ id: cargo, label: 'JNE Cargo', cost: 15000 }, { id: instant, label: 'GoSend Instant', cost: 20000 }],
   }).html).join('')}</tbody></table>`;
 }
-function classicHTML() {
-  return `<!doctype html><html><head><style>${read('assets/lib/choices/choices.min.css')}${read('assets/wp/css/kiriof-classic-choices.css')}</style></head><body>
+function classicHTML(fallback = false) {
+  return `<!doctype html><html><head><style>${classicCss()}${read('assets/buyer/css/kiriof-classic-choices.css')}</style></head><body>
   <form class="checkout"><div id="order_review">${table(cargo)}</div><label><input type="checkbox" id="terms">Accept terms</label><button type="submit">Place order</button></form><p id="terms-error" role="alert" hidden></p>
   ${scripts([
-    readFileSync(new URL('../node_modules/jquery/dist/jquery.min.js', import.meta.url), 'utf8'), read('assets/lib/choices/choices.min.js'),
+    readFileSync(new URL('../node_modules/jquery/dist/jquery.min.js', import.meta.url), 'utf8'),
     `window.kiriofBillingAddressConfig={i18n:{shippingSelectionChanged:${JSON.stringify(message)}}};window.kiriofClassicCheckoutConfig={enabled:true};window.__orders=0;window.__attempts=0;
     window.__replace=function(html){document.querySelector('table').outerHTML=html;jQuery(document.body).trigger('updated_checkout');};`,
-    read('assets/wp/js/checkout/choices-controls.js'), read('assets/wp/js/checkout/state.js'), read('assets/wp/js/checkout/shipping-payment.js'),
-    read('assets/wp/js/kiriof-shipping-selection.js'), read('assets/wp/js/checkout/shipping-options.js'),
+    script('assets/buyer/js/kiriof-checkout-session.js'), ...(fallback ? [] : [script('assets/buyer/js/checkout/choices-controls.js')]), script('assets/buyer/js/checkout/state.js'), script('assets/buyer/js/checkout/shipping-payment.js'),
+     script('assets/buyer/js/checkout/shipping-options.js'),
     `jQuery('form.checkout').on('submit.fixture',function(event){event.preventDefault();window.__attempts++;
       if(jQuery(this).triggerHandler('checkout_place_order')===false)return;
       if(!document.querySelector('#terms').checked){document.querySelector('#terms-error').hidden=false;document.querySelector('#terms-error').textContent='Please accept terms';jQuery(document.body).trigger('checkout_error');return;}
@@ -94,7 +153,7 @@ function blocksHTML() {
     function NativeRates(){R.useSyncExternalStore(subscribe,()=>version);return R.createElement('fieldset',null,R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);if(event.target.checked)await window.__refresh();}}),'Use same address for billing'),R.createElement('input',{id:'billing-address',placeholder:'Billing street'}),window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:()=>{}}),rate.label)));}
     document.addEventListener('click',async event=>{if(event.target.name!=='shipping')return;window.__trusted.push(event.isTrusted);window.__rateBusy=true;emit();try{const response=await fetch('/rates?chosen='+encodeURIComponent(event.target.value));apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}},true);
     window.__createRoot(document.querySelector('#native')).render(R.createElement(NativeRates));`,
-    read('assets/wp/js/kiriof-checkout-session.js'), read('assets/wp/js/kiriof-shipping-selection.js'), read('assets/wp/js/kiriof-buyer-checkout.js'),
+    script('assets/buyer/js/kiriof-checkout-session.js'),  script('assets/buyer/js/kiriof-buyer-checkout.js'),
     `window.__createRoot(document.querySelector('#district')).render(R.createElement(window.__District));
     document.querySelector('#place').onclick=async function(){window.__attempts++;
       if(!document.querySelector('#terms').checked){const p=document.querySelector('#terms-error');p.hidden=false;p.textContent='Please accept terms';return;}
@@ -103,14 +162,14 @@ function blocksHTML() {
     };`,
   ])}</body></html>`;
 }
-async function open(app: any, browser: any, blocks = false) {
+async function open(app: any, browser: any, blocks = false, fallback = false) {
   const unexpected: string[] = [], requests: any[] = []; let selectedRate = cargo;
   await browser.route('**/*', (route: any) => {
     const url = new URL(route.request.url);
-    if (url.pathname === '/selection') return route.fulfill({ contentType: 'text/html', body: blocks ? blocksHTML() : classicHTML() });
+    if (url.pathname === '/selection') return route.fulfill({ contentType: 'text/html', body: blocks ? blocksHTML() : classicHTML(fallback) });
     if (url.pathname === '/rates') { selectedRate = url.searchParams.get('chosen') || url.searchParams.get('restore') || cargo; requests.push(url.search); return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rate: url.searchParams.get('chosen') || url.searchParams.get('restore') || cargo }) }); }
     if (url.pathname === '/checkout') { const payload=JSON.parse(route.request.postData || '{}'); if(payload['kiriminaja-official']?.shipping_selection?.packages?.[0]?.rate_id===selectedRate)return route.fulfill({contentType:'application/json',body:'{}'});unexpected.push('checkout escaped client validation');return route.fulfill({status:409,body:message}); }
-    if (url.pathname.startsWith('/assets/wp/img/couriers/')) return route.fulfill({ contentType: 'image/png', path: root + url.pathname });
+    if (url.pathname.startsWith('/assets/buyer/img/couriers/')) return route.fulfill({ contentType: 'image/png', path: root + url.pathname });
     if (url.pathname !== '/favicon.ico') unexpected.push(url.href);
     return route.fulfill({ status: 409, body: 'No live requests permitted' });
   });
@@ -137,10 +196,10 @@ for (const classic of [true, false]) {
 
 test('Classic Choices GoSend survives unchecked terms then automatic Cargo blocks retry', async ({ app, browser }) => {
   const { unexpected } = await open(app, browser);
-  await expect(browser.locator('.choices__inner')).toBeVisible();
+  await expect(browser.locator('.kiriof-buyer-combobox-trigger')).toBeVisible();
   expect(await classicReview(browser)).toEqual(snapshot(cargo));
-  await browser.locator('.choices__inner').click();
-  await browser.locator('.choices__list--dropdown [data-choice-selectable]').filter({ hasText: 'GoSend Instant' }).click();
+  await browser.locator('.kiriof-buyer-combobox-trigger').click();
+  await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'GoSend Instant' }).click();
   expect(await classicReview(browser)).toEqual(snapshot(instant));
   await browser.locator('button[type="submit"]').click();
   await expect(browser.locator('#terms-error')).toContainText('Please accept terms');
@@ -148,7 +207,7 @@ test('Classic Choices GoSend survives unchecked terms then automatic Cargo block
   expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
   await browser.locator('#terms').click();
   await browser.evaluate((html: string) => (window as any).__replace(html), table(cargo));
-  await expect(browser.locator('.choices__list--single')).toContainText('JNE Cargo');
+  await expect(browser.locator('.kiriof-buyer-combobox-trigger')).toContainText('JNE Cargo');
   await expect(browser.locator('.kiriof-shipping-selection-error')).toContainText(message);
   await browser.locator('button[type="submit"]').click();
   expect(await classicReview(browser)).toEqual(snapshot(instant));
@@ -159,17 +218,17 @@ test('Classic Choices GoSend survives unchecked terms then automatic Cargo block
 
 test('Classic package additions and removals preserve reviewed IDs until a real Choices choice', async ({ app, browser }) => {
   const { unexpected } = await open(app, browser);
-  await expect(browser.locator('.choices__inner')).toBeVisible();
+  await expect(browser.locator('.kiriof-buyer-combobox-trigger')).toBeVisible();
   expect(await classicReview(browser)).toEqual(snapshot(cargo));
   await browser.evaluate((html: string) => (window as any).__replace(html), table(cargo, [3, 9]));
-  await expect.poll(() => browser.evaluate(() => document.querySelectorAll('.choices').length)).toBe(2);
+  await expect.poll(() => browser.evaluate(() => document.querySelectorAll('.kiriof-buyer-combobox').length)).toBe(2);
   expect(await classicReview(browser)).toEqual(snapshot(cargo));
   await expect(browser.locator('.kiriof-shipping-selection-error')).toBeVisible();
-  await browser.locator('.choices__inner').first().click();
-  await browser.locator('.choices__list--dropdown [data-choice-selectable]').filter({ hasText: 'GoSend Instant' }).first().click();
+  await browser.locator('.kiriof-buyer-combobox-trigger').first().click();
+  await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'GoSend Instant' }).first().click();
   expect(await classicReview(browser)).toEqual({ version: 1, packages: [{ package_id: '3', rate_id: instant }, { package_id: '9', rate_id: cargo }] });
   await browser.evaluate((html: string) => (window as any).__replace(html), table(instant));
-  await expect.poll(() => browser.evaluate(() => document.querySelectorAll('.choices').length)).toBe(1);
+  await expect.poll(() => browser.evaluate(() => document.querySelectorAll('.kiriof-buyer-combobox').length)).toBe(1);
   await expect(browser.locator('.kiriof-shipping-selection-error')).toBeVisible();
   expect((await classicReview(browser)).packages.length).toBe(2);
   expect(await browser.evaluate(() => document.querySelectorAll('[name="kiriof_shipping_selection"]').length)).toBe(1);

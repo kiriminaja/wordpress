@@ -54,7 +54,7 @@ final class CourierLogoAssets {
 	public static function urls(): array {
 		$urls = array();
 		foreach ( self::files() as $code => $file ) {
-			$urls[ $code ] = KIRIOF_URL . 'assets/wp/img/couriers/' . $file;
+			$urls[ $code ] = KIRIOF_URL . 'assets/buyer/img/couriers/' . $file;
 		}
 		return $urls;
 	}

@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! wp_script_is( 'kiriof-form-shipping-address', 'registered' ) ) {
     wp_register_script(
         'kiriof-form-shipping-address',
-        KIRIOF_URL . 'assets/wp/js/form-shipping-address.js',
+        KIRIOF_URL . 'assets/buyer/js/form-shipping-address.js',
         array( 'kiriof-script', 'jquery', 'select2', 'wp-util' ),
         KIRIOF_VERSION,
         true
