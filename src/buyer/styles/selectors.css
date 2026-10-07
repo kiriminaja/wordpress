@@ -1,0 +1,207 @@
+.kiriof-buyer-native-select {
+  display: none !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.kiriof-buyer-combobox {
+  position: relative;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  margin-bottom: 0;
+}
+.kiriof-buyer-combobox .kiriof-buyer-combobox-trigger,
+.woocommerce form.checkout .kiriof-buyer-combobox .kiriof-buyer-combobox-trigger,
+.woocommerce form.woocommerce-checkout .kiriof-buyer-combobox .kiriof-buyer-combobox-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 10px 40px 10px 12px;
+  margin: 0;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  background: #fff;
+  color: inherit;
+  text-align: start;
+  font: inherit;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.kiriof-buyer-combobox-trigger:focus-visible,
+.kiriof-buyer-combobox-input:focus-visible {
+  outline: 2px solid #777;
+  outline-offset: 2px;
+}
+.kiriof-buyer-combobox.is-disabled {
+  opacity: 0.6;
+}
+.kiriof-buyer-combobox-arrow {
+  position: absolute;
+  right: 12px;
+  top: 22px;
+  border: 5px solid transparent;
+  border-top-color: #333;
+}
+.kiriof-buyer-combobox.is-open .kiriof-buyer-combobox-arrow {
+  transform: rotate(180deg);
+  top: 16px;
+}
+.kiriof-buyer-combobox-clear {
+  position: absolute;
+  right: 30px;
+  top: 9px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 20px;
+}
+.kiriof-buyer-combobox-status:empty {
+  display: none;
+}
+.kiriof-buyer-combobox-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.kiriof-buyer-combobox-content {
+  z-index: 99999;
+  box-sizing: border-box;
+  width: var(--bits-combobox-anchor-width);
+  max-height: min(400px, var(--bits-combobox-content-available-height));
+  border: 1px solid #c3c4c7;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  border-radius: 4px;
+  overflow: auto;
+}
+.kiriof-buyer-combobox-input {
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  margin: 8px;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+}
+.kiriof-buyer-combobox-results {
+  max-height: 300px;
+  min-height: 0;
+  overflow: auto;
+}
+.kiriof-buyer-combobox-option,
+.kiriof-buyer-combobox-empty {
+  padding: 10px;
+  cursor: pointer;
+}
+.kiriof-buyer-combobox-option[data-highlighted] {
+  background: #f2f2f2;
+}
+.kiriof-buyer-combobox-option[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.kiriof-buyer-courier {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+.kiriof-buyer-courier-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 44px;
+  padding: 5px;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+}
+.kiriof-buyer-courier-logo img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  object-fit: contain;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+.kiriof-buyer-courier-copy {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 3px;
+  min-width: 0;
+}
+.kiriof-buyer-courier-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kiriof-buyer-courier-prices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.kiriof-buyer-courier-prices del {
+  opacity: 0.65;
+  font-size: 12px;
+}
+.kiriof-buyer-courier-current {
+  font-weight: 600;
+}
+.kiriof-buyer-courier-savings {
+  color: #28723c;
+  font-size: 12px;
+}
+.kiriof-buyer-courier-note {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.kiriof-buyer-combobox-trigger:has(.kiriof-buyer-courier) {
+  min-height: 68px;
+  height: auto;
+}
+.kiriof-buyer-combobox-content .kiriof-buyer-courier-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.kiriof-buyer-combobox-trigger > span:not(.kiriof-buyer-combobox-arrow) {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kiriof-buyer-combobox:has(.kiriof-buyer-combobox-clear) .kiriof-buyer-combobox-trigger {
+  padding-right: 64px;
+}

@@ -13,6 +13,38 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Domain: kiriminaja-official\n"
 
+#: inc/Base/Enqueue.php
+msgid "Enter your shipping postcode to find your district."
+msgstr "Masukkan kode pos pengiriman untuk mencari kelurahan Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Loading districts…"
+msgstr "Memuat kelurahan…"
+
+#: inc/Base/Enqueue.php
+msgid "No districts found. Check your shipping postcode."
+msgstr "Kelurahan tidak ditemukan. Periksa kode pos pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Districts could not be loaded. Please retry."
+msgstr "Kelurahan tidak dapat dimuat. Silakan coba lagi."
+
+#: inc/Base/Enqueue.php
+msgid "Updating shipping totals…"
+msgstr "Memperbarui total ongkos kirim…"
+
+#: inc/Base/Enqueue.php
+msgid "Shipping totals could not be updated. Please retry."
+msgstr "Total ongkos kirim tidak dapat diperbarui. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php
+msgid "Please select a valid shipping district matching your shipping address."
+msgstr "Silakan pilih kelurahan yang valid dan sesuai dengan alamat pengiriman Anda."
+
+#: inc/Controllers/CheckoutController.php
+msgid "Could not verify your shipping district. Please try again."
+msgstr "Kelurahan pengiriman Anda tidak dapat diverifikasi. Silakan coba lagi."
+
 #: inc/Services/SettingsPageData.php
 msgid "Saving…"
 msgstr "Menyimpan…"
@@ -1278,8 +1310,9 @@ msgid "Origin Setup"
 msgstr "Pengaturan Origin"
 
 #: templates/setting/setuped/index.php:242
+#: inc/Services/PackageTypeService.php
 msgid "Others"
-msgstr "Lainnya"
+msgstr "Lain-lain"
 
 #: templates/request-pickup-detail/view/index.php:72
 #: templates/transaction-process/view/index.php:122
@@ -1788,7 +1821,7 @@ msgstr "Subtotal"
 #: inc/Controllers/EditOrderController.php:328
 #: inc/Controllers/EditOrderController.php:368
 msgid "Subdistrict"
-msgstr "Kelurahan"
+msgstr "Desa / Kelurahan"
 
 #: templates/woocommerce/cart/cart-totals.php:34
 #: templates/woocommerce/cart/cart-totals.php:35
@@ -2594,6 +2627,8 @@ msgstr "Gagal memuat kurir."
 
 #. translators: %1$s: enabled count, %2$s: total count.
 #: inc/Base/Enqueue.php
+#: inc/Controllers/SettingController.php
+#: inc/Services/SettingsPageData.php
 #: templates/setting/setuped/section-couriers.php:38
 #, php-format
 msgid "%1$s of %2$s enabled"
@@ -4333,6 +4368,78 @@ msgid "Instant delivery is not available yet."
 msgstr "Pengiriman instan belum tersedia."
 
 #: inc/Services/CourierServiceUiData.php
+msgid "International"
+msgstr "Internasional"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Coming soon"
+msgstr "Segera hadir"
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Instant preferences are saved here. Instant checkout and shipment processing are not available yet."
+msgstr "Preferensi pengiriman instan disimpan di sini. Checkout dan pemrosesan pengiriman instan belum tersedia."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Service details are unavailable for this courier. Refresh courier data or contact support before enabling it."
+msgstr "Detail layanan kurir ini tidak tersedia. Muat ulang data kurir atau hubungi dukungan sebelum mengaktifkannya."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "No Instant couriers are available for this account."
+msgstr "Tidak ada kurir instan yang tersedia untuk akun ini."
+
+#: inc/Services/CourierServiceUiData.php
+msgid "Check Instant eligibility for your KiriminAja account, then refresh the courier data."
+msgstr "Periksa kelayakan Instant untuk akun KiriminAja Anda, lalu muat ulang data kurir."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Instant COD adjustment is not available yet."
+msgstr "Penyesuaian COD untuk pengiriman instan belum tersedia."
+
+#: inc/Controllers/CodAdjustmentController.php
+msgid "Instant deficit cancellation is not available yet."
+msgstr "Pembatalan defisit untuk pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant dispatch is not wired yet."
+msgstr "Proses pengiriman instan belum tersedia."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Instant dispatch is not wired yet. This is a read-only list foundation using local status labels; remote status mapping is pending."
+msgstr "Proses pengiriman instan belum tersedia. Daftar ini hanya dapat dilihat dan menggunakan status lokal; pemetaan status API belum diterapkan."
+
+#: inc/Controllers/ShippingProcessController.php
+msgid "Instant label printing is not available yet."
+msgstr "Pencetakan label pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant origin changes are not available yet."
+msgstr "Perubahan asal pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant shipment cancellation is not available yet."
+msgstr "Pembatalan pengiriman instan belum tersedia."
+
+#: inc/Controllers/TransactionProcessController.php
+msgid "Instant shipment processing is not available yet."
+msgstr "Pemrosesan pengiriman instan belum tersedia."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Not specified"
+msgstr "Belum ditentukan"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Regular Delivery"
+msgstr "Pengiriman Reguler"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Transaction scope"
+msgstr "Jenis transaksi"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Vehicle"
+msgstr "Kendaraan"
+
+#: inc/Services/CourierServiceUiData.php
 msgid "Domestic Delivery"
 msgstr "Pengiriman Domestik"
 
@@ -4358,3 +4465,1393 @@ msgstr "Tidak ada pilihan yang cocok."
 #, php-format
 msgid "%s selected"
 msgstr "%s dipilih"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Waiting for Shipment"
+msgstr "Menunggu Pengiriman"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Waiting for Airwaybill"
+msgstr "Menunggu Airwaybill"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Ready for Shipment"
+msgstr "Siap Dikirim"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Find New Driver"
+msgstr "Cari Pengemudi Baru"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "On Delivery"
+msgstr "Dalam Pengiriman"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Shipment Problem"
+msgstr "Masalah Pengiriman"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Return Process"
+msgstr "Proses Retur"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Return Finished"
+msgstr "Retur Selesai"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Cancellation Process"
+msgstr "Proses Pembatalan"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Need Confirmation"
+msgstr "Perlu Konfirmasi"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Unknown"
+msgstr "Tidak Diketahui"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Confirm the delivery location with the buyer and update the buyer address with valid destination coordinates before proceeding."
+msgstr "Konfirmasi lokasi pengiriman dengan pembeli dan perbarui alamat pembeli dengan koordinat tujuan yang valid sebelum melanjutkan."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "The delivery destination coordinates are missing or invalid."
+msgstr "Koordinat tujuan pengiriman tidak ada atau tidak valid."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "The system is automatically finding a new driver for this order. No manual action is required."
+msgstr "Sistem sedang mencari pengemudi baru secara otomatis untuk pesanan ini. Tidak diperlukan tindakan manual."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "There is a problem with this shipment."
+msgstr "Terdapat masalah pada pengiriman ini."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "The shipment return was rejected."
+msgstr "Pengembalian pengiriman ditolak."
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Instant order issue"
+msgstr "Masalah pengiriman instan"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Vehicle unavailable"
+msgstr "Kendaraan belum ditentukan"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Payment method"
+msgstr "Metode pembayaran"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Payment status"
+msgstr "Status pembayaran"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Payment ID"
+msgstr "ID pembayaran"
+
+#: inc/Services/InstantDeliveryStatus.php inc/Services/TransactionDetailPageData.php inc/Services/TransactionListRenderService.php
+msgid "Instant shipment actions are not available yet. Saved shipment and payment statuses are shown below."
+msgstr "Tindakan pengiriman instan belum tersedia. Status pengiriman dan pembayaran yang tersimpan ditampilkan di bawah."
+
+#: inc/Controllers/InstantDeliveryController.php:68
+msgid "Review and confirm the Instant shipping costs before dispatch."
+msgstr "Tinjau dan konfirmasikan biaya pengiriman Instant sebelum memesan pengiriman."
+
+#: inc/Controllers/InstantDeliveryController.php:172
+msgid "Invalid Instant request parameters."
+msgstr "Parameter permintaan Instant tidak valid."
+
+#: inc/Controllers/InstantDeliveryController.php:176
+msgid "Unable to complete the Instant request. Please try again."
+msgstr "Permintaan Instant tidak dapat diselesaikan. Silakan coba lagi."
+
+#: inc/Services/TransactionListViewModelFactory.php:164
+msgid "This Instant shipment cannot be processed or printed. Review its shipment and payment state."
+msgstr "Pengiriman Instant ini tidak dapat diproses atau dicetak. Periksa status pengiriman dan pembayarannya."
+
+#: inc/Services/TransactionListRenderService.php:233
+msgid "Instant shipments are dispatched manually after reviewing current prices and payment. Labels are generated locally for booked shipments; payment status is refreshed manually."
+msgstr "Pengiriman Instant dipesan secara manual setelah harga terkini dan pembayaran ditinjau. Label dibuat secara lokal untuk pengiriman yang sudah dipesan; status pembayaran diperbarui secara manual."
+
+#: inc/Services/TransactionListRenderService.php:234
+msgid "Process Shipment"
+msgstr "Proses Pengiriman"
+
+#: inc/Services/TransactionListRenderService.php:235
+msgid "Review current prices, acknowledge changes, and choose payment before booking. Dispatch cannot be retried blindly."
+msgstr "Tinjau harga terkini, setujui perubahan, dan pilih metode pembayaran sebelum memesan. Jangan mencoba memesan ulang tanpa memeriksa status pengiriman."
+
+#: inc/Services/TransactionListRenderService.php:236
+msgid "Shipment groups"
+msgstr "Kelompok pengiriman"
+
+#: inc/Services/TransactionListRenderService.php:237
+msgid "This quote has expired. Review prices again before confirming."
+msgstr "Penawaran ongkir ini telah kedaluwarsa. Tinjau harga kembali sebelum mengonfirmasi."
+
+#: inc/Services/TransactionListRenderService.php:238
+msgid "Saved price"
+msgstr "Harga tersimpan"
+
+#: inc/Services/TransactionListRenderService.php:239
+msgid "Current price"
+msgstr "Harga terkini"
+
+#: inc/Services/TransactionListRenderService.php:240
+msgid "I accept this price change."
+msgstr "Saya menyetujui perubahan harga ini."
+
+#: inc/Services/TransactionListRenderService.php:241
+msgid "Skip failed or unselected shipments and process only reviewed shipments."
+msgstr "Lewati pengiriman yang gagal atau tidak dipilih dan proses hanya pengiriman yang telah ditinjau."
+
+#: inc/Services/TransactionListRenderService.php:242
+msgid "KA Credit PIN (6 digits)"
+msgstr "PIN KA Credit (6 digit)"
+
+#: inc/Services/TransactionListRenderService.php:243
+msgid "I confirm the reviewed prices, payment method, and shipment terms."
+msgstr "Saya mengonfirmasi harga yang telah ditinjau, metode pembayaran, dan ketentuan pengiriman."
+
+#: inc/Services/TransactionListRenderService.php:244
+msgid "The booking outcome is unknown. Check shipment and payment state before attempting another dispatch."
+msgstr "Hasil pemesanan belum diketahui. Periksa status pengiriman dan pembayaran sebelum mencoba memesan pengiriman kembali."
+
+#: inc/Services/TransactionListRenderService.php:245
+msgid "Refresh payment status"
+msgstr "Perbarui status pembayaran"
+
+#: inc/Services/TransactionListRenderService.php:237 inc/Services/TransactionListRenderService.php:247
+msgid "Review prices again"
+msgstr "Tinjau harga kembali"
+
+#: inc/Services/TransactionListRenderService.php:251
+msgid "Scan this QRIS code to pay"
+msgstr "Pindai kode QRIS ini untuk membayar"
+
+#: inc/Services/TransactionListRenderService.php:252
+msgid "Booked"
+msgstr "Sudah dipesan"
+
+#: inc/Services/TransactionListRenderService.php:254
+msgid "Unknown outcome"
+msgstr "Hasil belum diketahui"
+
+#: inc/Services/TransactionListRenderService.php:255
+msgid "Skipped"
+msgstr "Dilewati"
+
+#: inc/Services/TransactionListRenderService.php:259
+msgid "Pending payment"
+msgstr "Menunggu pembayaran"
+
+#: inc/Services/TransactionListRenderService.php:260
+msgid "Payment failed"
+msgstr "Pembayaran gagal"
+
+#: inc/Services/TransactionListRenderService.php:261
+msgid "Payment expired"
+msgstr "Pembayaran kedaluwarsa"
+
+#: inc/Services/TransactionListRenderService.php:262
+msgid "Unknown payment state"
+msgstr "Status pembayaran tidak diketahui"
+
+#: inc/Services/InstantDispatchService.php:245
+msgid "Select between 1 and 50 Instant shipments."
+msgstr "Pilih antara 1 hingga 50 pengiriman Instant."
+
+#: inc/Services/InstantLabelService.php:70 inc/Services/InstantLabelService.php:74
+msgid "Invalid Instant shipment ID."
+msgstr "ID pengiriman Instant tidak valid."
+
+#: inc/Services/InstantLabelService.php:81
+msgid "Every requested Instant shipment must exist."
+msgstr "Setiap pengiriman Instant yang diminta harus tersedia."
+
+#: inc/Services/InstantLabelService.php:87
+msgid "Every requested Instant shipment must exist exactly once."
+msgstr "Setiap pengiriman Instant yang diminta harus tersedia tepat satu kali."
+
+#: inc/Services/InstantLabelService.php:120
+msgid "Local labels require a booked, non-cancelled GoSend or Grab Instant shipment with an AWB."
+msgstr "Label lokal hanya dapat dibuat untuk pengiriman GoSend atau Grab Instant yang sudah dipesan, tidak dibatalkan, dan memiliki nomor resi (AWB)."
+
+#: inc/Services/InstantLabelService.php:124
+msgid "The WooCommerce order is not eligible for shipping."
+msgstr "Pesanan WooCommerce tidak memenuhi syarat untuk dikirim."
+
+#: inc/Services/InstantLabelService.php:131
+msgid "Booked shipment address snapshots are required for a local label."
+msgstr "Data alamat yang tersimpan saat pemesanan pengiriman diperlukan untuk membuat label lokal."
+
+#: inc/Services/InstantLabelService.php:136
+msgid "The booked destination snapshot is incomplete."
+msgstr "Data alamat tujuan yang tersimpan saat pemesanan tidak lengkap."
+
+#: inc/Services/InstantLabelService.php:141
+msgid "The booked origin snapshot is incomplete."
+msgstr "Data alamat asal yang tersimpan saat pemesanan tidak lengkap."
+
+#: inc/Services/InstantShipmentContext.php:46
+msgid "This Instant shipment cannot be processed or has already been booked."
+msgstr "Pengiriman Instant ini tidak dapat diproses atau sudah dipesan."
+
+#: inc/Services/InstantShipmentContext.php:50
+msgid "The shipment order ID is invalid."
+msgstr "ID pesanan pengiriman tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:54 inc/Services/InstantShipmentContext.php:58
+msgid "The WooCommerce order is unavailable."
+msgstr "Pesanan WooCommerce tidak tersedia."
+
+#: inc/Services/InstantShipmentContext.php:61
+msgid "The WooCommerce order must be paid or processing and not closed."
+msgstr "Pesanan WooCommerce harus sudah dibayar atau berstatus sedang diproses, dan belum ditutup."
+
+#: inc/Services/InstantShipmentContext.php:64
+msgid "Cash on delivery is not supported for Instant shipments."
+msgstr "Pembayaran di tempat (COD) tidak didukung untuk pengiriman Instant."
+
+#: inc/Services/InstantShipmentContext.php:67
+msgid "Insurance is not supported for Instant shipments."
+msgstr "Asuransi tidak didukung untuk pengiriman Instant."
+
+#: inc/Services/InstantShipmentContext.php:72
+msgid "The selected Instant courier service is unavailable."
+msgstr "Layanan kurir Instant yang dipilih tidak tersedia."
+
+#: inc/Services/InstantShipmentContext.php:75
+msgid "Only motor delivery is supported for Instant shipments."
+msgstr "Pengiriman Instant hanya mendukung pengantaran dengan sepeda motor."
+
+#: inc/Services/InstantShipmentContext.php:84
+msgid "The saved shipment origin is incomplete. Configure its address and coordinates before processing."
+msgstr "Data asal pengiriman yang tersimpan tidak lengkap. Atur alamat dan koordinatnya sebelum memproses."
+
+#: inc/Services/InstantShipmentContext.php:113
+msgid "The shipment origin name, phone, address or postcode is invalid."
+msgstr "Nama pengirim, nomor telepon, alamat, atau kode pos asal pengiriman tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:121
+msgid "Configure a supported Indonesian timezone for Instant delivery."
+msgstr "Atur zona waktu Indonesia yang didukung untuk pengiriman Instant."
+
+#: inc/Services/InstantShipmentContext.php:127 inc/Services/InstantShipmentContext.php:133 inc/Services/InstantShipmentContext.php:151
+msgid "The saved recipient address is incomplete. Update the destination coordinates before processing."
+msgstr "Alamat penerima yang tersimpan tidak lengkap. Perbarui koordinat tujuan sebelum memproses."
+
+#: inc/Services/InstantShipmentContext.php:145
+msgid "The saved destination coordinates do not match this shipment."
+msgstr "Koordinat tujuan yang tersimpan tidak sesuai dengan pengiriman ini."
+
+#: inc/Services/InstantShipmentContext.php:158
+msgid "Instant delivery requires a current recipient address in Indonesia."
+msgstr "Pengiriman Instant memerlukan alamat penerima terkini di Indonesia."
+
+#: inc/Services/InstantShipmentContext.php:166
+msgid "The recipient address has changed. Update the destination coordinates before processing."
+msgstr "Alamat penerima telah berubah. Perbarui koordinat tujuan sebelum memproses."
+
+#: inc/Services/InstantShipmentContext.php:172
+msgid "The current recipient name, phone, street, city and postcode are required."
+msgstr "Nama penerima, nomor telepon, alamat jalan, kota, dan kode pos terkini wajib diisi."
+
+#: inc/Services/InstantShipmentContext.php:188
+msgid "An order product is unavailable."
+msgstr "Salah satu produk dalam pesanan tidak tersedia."
+
+#: inc/Services/InstantShipmentContext.php:197
+msgid "An order item value is invalid."
+msgstr "Nilai salah satu item pesanan tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:202
+msgid "An order item name is required."
+msgstr "Nama item pesanan wajib diisi."
+
+#: inc/Services/InstantShipmentContext.php:219
+msgid "Instant shipments require physical items with a total weight of at most 40000 grams."
+msgstr "Pengiriman Instant memerlukan barang fisik dengan berat total maksimal 40000 gram."
+
+#: inc/Services/InstantShipmentContext.php:247
+msgid "The Instant shipment context could not be encoded."
+msgstr "Data pengiriman Instant tidak dapat dikodekan."
+
+#: inc/Services/InstantShipmentContext.php:264
+msgid "Valid origin and destination coordinates are required for Instant delivery."
+msgstr "Pengiriman Instant memerlukan koordinat asal dan tujuan yang valid."
+
+#: inc/Services/InstantShipmentContext.php:271
+msgid "An Instant shipment quantity, price or package type is invalid."
+msgstr "Jumlah barang, harga, atau jenis paket pengiriman Instant tidak valid."
+
+#: inc/Services/InstantShipmentContext.php:278
+msgid "Physical products require positive weight and dimensions for Instant delivery."
+msgstr "Produk fisik harus memiliki berat dan dimensi lebih dari nol untuk pengiriman Instant."
+
+#: inc/Services/InstantDispatchService.php:60
+msgid "This Instant shipment could not be quoted. Check its addresses, items and courier service."
+msgstr "Ongkir pengiriman Instant ini tidak dapat dihitung. Periksa alamat, barang, dan layanan kurirnya."
+
+#: inc/Services/InstantDispatchService.php:67
+msgid "Unable to save the Instant quote."
+msgstr "Penawaran ongkir Instant tidak dapat disimpan."
+
+#: inc/Services/InstantDispatchService.php:74 inc/Services/InstantDispatchService.php:79 inc/Services/InstantDispatchService.php:140
+msgid "The Instant quote is invalid or expired."
+msgstr "Penawaran ongkir Instant tidak valid atau telah kedaluwarsa."
+
+#: inc/Services/InstantDispatchService.php:84
+msgid "Select only eligible shipments from this quote."
+msgstr "Pilih hanya pengiriman yang memenuhi syarat dari penawaran ongkir ini."
+
+#: inc/Services/InstantDispatchService.php:103 inc/Services/InstantDispatchService.php:135
+msgid "An Instant shipment is already being processed."
+msgstr "Salah satu pengiriman Instant sedang diproses."
+
+#: inc/Services/InstantDispatchService.php:114
+msgid "The shipment has changed. Request a new Instant quote."
+msgstr "Data pengiriman telah berubah. Minta penawaran ongkir Instant yang baru."
+
+#: inc/Services/InstantDispatchService.php:120
+msgid "The Instant total is invalid."
+msgstr "Total biaya Instant tidak valid."
+
+#: inc/Services/InstantDispatchService.php:126
+msgid "The selected Instant payment method is unavailable. Request a new quote."
+msgstr "Metode pembayaran Instant yang dipilih tidak tersedia. Minta penawaran ongkir yang baru."
+
+#: inc/Services/InstantDispatchService.php:130
+msgid "Unable to validate KA Credit payment."
+msgstr "Pembayaran KA Credit tidak dapat divalidasi."
+
+#: inc/Services/InstantDispatchService.php:177
+msgid "Check remote state before retrying"
+msgstr "Periksa status di sistem kurir sebelum mencoba lagi"
+
+#: inc/Services/InstantDispatchService.php:185
+msgid "Instant shipment booked."
+msgstr "Pengiriman Instant berhasil dipesan."
+
+#: inc/Services/InstantDispatchService.php:214
+msgid "Invalid Instant payment ID."
+msgstr "ID pembayaran Instant tidak valid."
+
+#: inc/Services/InstantDispatchService.php:218
+msgid "The payment does not belong to every selected Instant shipment."
+msgstr "Pembayaran ini tidak terkait dengan semua pengiriman Instant yang dipilih."
+
+#: inc/Services/InstantDispatchService.php:223
+msgid "Unable to refresh the Instant payment."
+msgstr "Pembayaran Instant tidak dapat diperbarui."
+
+#: inc/Services/InstantDispatchService.php:228
+msgid "The Instant payment response is invalid."
+msgstr "Respons pembayaran Instant tidak valid."
+
+#: inc/Services/InstantDispatchService.php:236
+msgid "Unable to save the Instant payment status."
+msgstr "Status pembayaran Instant tidak dapat disimpan."
+
+#: inc/Services/InstantDispatchService.php:250
+msgid "Invalid or duplicate Instant shipment ID."
+msgstr "ID pengiriman Instant tidak valid atau duplikat."
+
+#: inc/Services/InstantDispatchService.php:256
+msgid "Every selected Instant shipment must exist exactly once."
+msgstr "Setiap pengiriman Instant yang dipilih harus tersedia tepat satu kali."
+
+#: inc/Services/InstantDispatchService.php:262
+msgid "Select only supported Instant shipments."
+msgstr "Pilih hanya pengiriman Instant yang didukung."
+
+#: inc/Services/InstantDispatchService.php:280
+msgid "Unable to verify Instant account payment methods."
+msgstr "Metode pembayaran akun Instant tidak dapat diverifikasi."
+
+#: templates/instant/labels.php:15 templates/instant/labels.php:40
+msgid "Local shipment label"
+msgstr "Label pengiriman lokal"
+
+#: templates/instant/labels.php:43
+msgid "WooCommerce reference"
+msgstr "Referensi WooCommerce"
+
+#: templates/instant/labels.php:55
+msgid "Booked physical items"
+msgstr "Barang fisik yang tercatat saat pemesanan"
+
+#: templates/instant/labels.php:57
+msgid "Weight (g)"
+msgstr "Berat (g)"
+
+#: templates/instant/labels.php:58
+msgid "Payment method / status"
+msgstr "Metode / status pembayaran"
+
+#: templates/instant/labels.php:59
+msgid "Shipping fee (IDR)"
+msgstr "Ongkir (IDR)"
+
+#: templates/instant/labels.php:60
+msgid "Not a courier-issued shipping label. Carrier-issued label availability remains unconfirmed. The AWB is displayed as text only; this local label does not confirm carrier acceptance."
+msgstr "Ini bukan label pengiriman yang diterbitkan oleh kurir. Ketersediaan label resmi kurir belum dapat dipastikan. Nomor resi (AWB) hanya ditampilkan sebagai teks; label lokal ini tidak membuktikan bahwa kiriman telah diterima oleh kurir."
+
+#: inc/Services/TransactionDetailPageData.php:595 inc/Services/TransactionListRenderService.php:264
+msgid "Check remote status"
+msgstr "Periksa status di server"
+
+#: inc/Services/TransactionDetailPageData.php:596 inc/Services/TransactionListRenderService.php:265
+msgid "Cancel Instant shipment"
+msgstr "Batalkan pengiriman Instant"
+
+#: inc/Services/TransactionDetailPageData.php:597 inc/Services/TransactionListRenderService.php:266
+msgid "Confirm cancellation of this Instant shipment only. This does not cancel the WooCommerce order or issue a WooCommerce refund. A cancellation request may still be pending."
+msgstr "Konfirmasikan pembatalan pengiriman Instant ini saja. Tindakan ini tidak membatalkan pesanan WooCommerce atau memproses pengembalian dana WooCommerce. Permintaan pembatalan mungkin masih tertunda."
+
+#: inc/Services/TransactionDetailPageData.php:598 inc/Services/TransactionListRenderService.php:267
+msgid "Check the remote shipment state explicitly. No operation runs until you confirm below."
+msgstr "Periksa secara langsung status pengiriman di server. Tidak ada tindakan yang dijalankan sebelum Anda mengonfirmasikannya di bawah."
+
+#: inc/Services/TransactionDetailPageData.php:599 inc/Services/TransactionListRenderService.php:268
+msgid "The operation outcome is unknown. No automatic retry will occur. Check remote shipment state before attempting another operation."
+msgstr "Hasil tindakan belum diketahui. Tidak akan ada percobaan ulang otomatis. Periksa status pengiriman di server sebelum mencoba tindakan lain."
+
+#: inc/Services/TransactionDetailPageData.php:600 inc/Services/TransactionListRenderService.php:269
+msgid "Tracking available"
+msgstr "Pelacakan tersedia"
+
+#: inc/Services/TransactionDetailPageData.php:601 inc/Services/TransactionListRenderService.php:270
+msgid "Shipment not found"
+msgstr "Pengiriman tidak ditemukan"
+
+#: inc/Services/TransactionDetailPageData.php:602 inc/Services/TransactionListRenderService.php:271
+msgid "Shipment state reconciled"
+msgstr "Status pengiriman telah diselaraskan"
+
+#: inc/Services/TransactionDetailPageData.php:603 inc/Services/TransactionListRenderService.php:272
+msgid "Cancellation requested"
+msgstr "Pembatalan telah diminta"
+
+#: inc/Services/TransactionDetailPageData.php:604 inc/Services/TransactionListRenderService.php:273
+msgid "Shipment canceled"
+msgstr "Pengiriman dibatalkan"
+
+#: inc/Services/InstantOperationsService.php:35
+msgid "Select 1 to 10 Instant shipments; cancellation requires exactly one shipment."
+msgstr "Pilih 1 hingga 10 pengiriman Instant; pembatalan mengharuskan pemilihan tepat satu pengiriman."
+
+#: inc/Services/InstantOperationsService.php:116
+msgid "Instant tracking data was not found. Reconciliation is required before retrying."
+msgstr "Data pelacakan Instant tidak ditemukan. Penyelarasan status diperlukan sebelum mencoba lagi."
+
+#: inc/Services/InstantOperationsService.php:177 inc/Services/InstantOperationsService.php:193
+msgid "This Instant shipment cannot be canceled."
+msgstr "Pengiriman Instant ini tidak dapat dibatalkan."
+
+#: inc/Services/InstantOperationsService.php:243
+msgid "Instant cancellation was requested. Reconcile to confirm the shipment state."
+msgstr "Pembatalan Instant telah diminta. Selaraskan status untuk memastikan status pengiriman."
+
+#: inc/Services/InstantOperationsService.php:300
+msgid "Instant shipment state requires reconciliation. Please wait before checking again."
+msgstr "Status pengiriman Instant perlu diselaraskan. Harap tunggu sebelum memeriksa lagi."
+
+#: inc/Services/InstantOperationsService.php:304
+msgid "Invalid Instant shipment selection or remote identity."
+msgstr "Pilihan pengiriman Instant atau identitas di server tidak valid."
+
+#: inc/Services/TransactionListRenderService.php:233
+msgid "Instant shipments require price and payment review before dispatch. Local labels, remote status checks, live tracking, and eligible shipment cancellation are available; remote outcomes may remain unknown."
+msgstr "Pengiriman Instant memerlukan peninjauan harga dan pembayaran sebelum dikirim. Label lokal, pemeriksaan status di server, pelacakan langsung, dan pembatalan pengiriman yang memenuhi syarat tersedia; hasil tindakan di server mungkin tetap belum diketahui."
+
+#: inc/Services/TransactionListRenderService.php:274
+msgid "Automatic payment checks stopped after the time limit. Refresh payment status manually."
+msgstr "Pemeriksaan pembayaran otomatis dihentikan karena batas waktu tercapai. Perbarui status pembayaran secara manual."
+
+#: inc/Services/TransactionListRenderService.php:275
+msgid "This payment has expired. Automatic payment checks stopped."
+msgstr "Pembayaran ini telah kedaluwarsa. Pemeriksaan pembayaran otomatis dihentikan."
+
+#: inc/Services/TransactionListRenderService.php:276
+msgid "Automatic payment checks stopped after repeated errors. Refresh payment status manually."
+msgstr "Pemeriksaan pembayaran otomatis dihentikan setelah terjadi kesalahan berulang. Perbarui status pembayaran secara manual."
+
+#: inc/Services/TransactionListRenderService.php:277
+msgid "Checking payment status…"
+msgstr "Memeriksa status pembayaran…"
+
+#: inc/Services/InstantShipmentState.php:351
+msgid "Instant shipment delivered."
+msgstr "Pengiriman Instant telah diterima."
+
+#: inc/Services/InstantShipmentState.php:358
+msgid "Instant shipment canceled. The WooCommerce order was not canceled."
+msgstr "Pengiriman Instant dibatalkan. Pesanan WooCommerce tidak dibatalkan."
+
+#: inc/Services/InstantShipmentState.php:372
+msgid "Invalid Instant shipment state or identity."
+msgstr "Status atau identitas pengiriman Instant tidak valid."
+
+#: inc/Services/InstantShipmentState.php:376
+msgid "Unable to verify Instant shipment state. Please retry."
+msgstr "Tidak dapat memverifikasi status pengiriman Instant. Silakan coba lagi."
+
+#: inc/Services/InstantDispatchService.php:160
+msgid "Unable to save the prepared Instant shipment."
+msgstr "Tidak dapat menyimpan pengiriman Instant yang telah disiapkan."
+
+#: inc/Infrastructure/InstantApiTransport.php:24
+msgid "Instant network request failed."
+msgstr "Permintaan jaringan Instant gagal."
+
+#: inc/Infrastructure/InstantApiTransport.php:40 inc/Infrastructure/InstantApiTransport.php:45
+msgid "Instant response exceeds limit."
+msgstr "Respons Instant melebihi batas."
+
+#: inc/Controllers/CallbackController.php:139
+msgid "Unable to process KiriminAja callback. Please retry."
+msgstr "Tidak dapat memproses callback KiriminAja. Silakan coba lagi."
+
+#: inc/Services/InstantWebhookService.php:24
+msgid "Unsupported Instant callback method"
+msgstr "Metode callback Instant tidak didukung"
+
+#: inc/Services/InstantWebhookService.php:27
+msgid "Instant callback requires between 1 and 200 data rows"
+msgstr "Callback Instant memerlukan 1 hingga 200 baris data"
+
+#: inc/Services/InstantWebhookService.php:33
+msgid "Invalid local Instant transaction"
+msgstr "Transaksi Instant lokal tidak valid"
+
+#: inc/Services/InstantWebhookService.php:39
+msgid "Unsupported or duplicate Instant transaction"
+msgstr "Transaksi Instant tidak didukung atau duplikat"
+
+#: inc/Services/InstantWebhookService.php:45
+msgid "Instant data must match every local order exactly once"
+msgstr "Data Instant harus cocok dengan setiap pesanan lokal tepat satu kali"
+
+#: inc/Services/InstantWebhookService.php:50
+msgid "Invalid Instant package metadata"
+msgstr "Metadata paket Instant tidak valid"
+
+#: inc/Services/InstantWebhookService.php:54
+msgid "Instant package metadata contains unknown or duplicate orders"
+msgstr "Metadata paket Instant berisi pesanan yang tidak dikenal atau duplikat"
+
+#: inc/Services/InstantWebhookService.php:60
+msgid "Invalid Instant payment metadata"
+msgstr "Metadata pembayaran Instant tidak valid"
+
+#: inc/Services/InstantWebhookService.php:69
+msgid "Invalid local Instant lifecycle"
+msgstr "Tahapan pengiriman Instant lokal tidak valid"
+
+#: inc/Services/InstantWebhookService.php:79
+msgid "Instant status contradicts callback method"
+msgstr "Status Instant bertentangan dengan metode callback"
+
+#: inc/Services/InstantWebhookService.php:82
+msgid "Conflicting Instant status metadata"
+msgstr "Metadata status Instant saling bertentangan"
+
+#: inc/Services/InstantWebhookService.php:87
+msgid "Invalid Instant AWB"
+msgstr "Nomor resi Instant tidak valid"
+
+#: inc/Services/InstantWebhookService.php:91
+msgid "Instant courier metadata does not match local order"
+msgstr "Metadata kurir Instant tidak cocok dengan pesanan lokal"
+
+#: inc/Services/InstantWebhookService.php:97
+msgid "Instant payment metadata does not match local order"
+msgstr "Metadata pembayaran Instant tidak cocok dengan pesanan lokal"
+
+#: inc/Services/InstantWebhookService.php:101
+msgid "Conflicting Instant payment identifiers"
+msgstr "Identitas pembayaran Instant saling bertentangan"
+
+#: inc/Services/InstantWebhookService.php:104
+msgid "Conflicting Instant AWB metadata"
+msgstr "Metadata nomor resi Instant saling bertentangan"
+
+#: inc/Services/InstantWebhookService.php:119
+msgid "Instant metadata requires a remote status"
+msgstr "Metadata Instant memerlukan status dari server"
+
+#: inc/Services/InstantWebhookService.php:123
+msgid "Instant payment requires a remote status"
+msgstr "Pembayaran Instant memerlukan status dari server"
+
+#: inc/Services/InstantWebhookService.php:147
+msgid "One or more Instant updates could not be verified"
+msgstr "Satu atau lebih pembaruan Instant tidak dapat diverifikasi"
+
+#: inc/Base/Enqueue.php
+msgid "Clear delivery pin"
+msgstr "Hapus pin pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Could not access your location. Choose a pin or enter coordinates manually."
+msgstr "Lokasi Anda tidak dapat diakses. Pilih pin atau masukkan koordinat secara manual."
+
+#: inc/Base/Enqueue.php
+msgid "Delivery pin"
+msgstr "Pin pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Delivery pin placed."
+msgstr "Pin pengiriman telah dipilih."
+
+#: inc/Base/Enqueue.php
+msgid "Enter valid latitude and longitude coordinates."
+msgstr "Masukkan koordinat lintang dan bujur yang valid."
+
+#: inc/Base/Enqueue.php
+msgid "Load the map (connects to the tile provider)"
+msgstr "Muat peta (terhubung ke penyedia peta)"
+
+#: inc/Base/Enqueue.php
+msgid "Map is unavailable in this checkout."
+msgstr "Peta tidak tersedia di checkout ini."
+
+#: inc/Base/Enqueue.php
+msgid "Map unavailable. You can still enter coordinates manually."
+msgstr "Peta tidak tersedia. Anda tetap dapat memasukkan koordinat secara manual."
+
+#: inc/Base/Enqueue.php
+msgid "Optional. A delivery pin helps the courier find your address."
+msgstr "Opsional. Pin pengiriman membantu kurir menemukan alamat Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Set delivery pin"
+msgstr "Tetapkan pin pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Tap the map to place your delivery pin."
+msgstr "Ketuk peta untuk memilih pin pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Tap the map to place your delivery pin. Use the arrow keys to move the map and Enter to select a pin."
+msgstr "Ketuk peta untuk memilih pin pengiriman. Gunakan tombol panah untuk menggeser peta dan Enter untuk memilih pin."
+
+#: inc/Base/Enqueue.php
+msgid "Use my current location"
+msgstr "Gunakan lokasi saya saat ini"
+
+#: inc/Base/Enqueue.php
+msgid "Your browser will ask for location permission. Your location is used only when you choose this option."
+msgstr "Browser akan meminta izin lokasi. Lokasi Anda hanya digunakan ketika Anda memilih opsi ini."
+
+#: inc/Base/Enqueue.php
+msgid "KiriminAja Delivery Map"
+msgstr "Peta Pengiriman KiriminAja"
+
+#: inc/Base/Enqueue.php
+msgid "Optional delivery pin for the shipping address."
+msgstr "Pin pengiriman opsional untuk alamat pengiriman."
+
+#: inc/Base/Enqueue.php
+msgid "Optional. Customers can choose a delivery pin at checkout."
+msgstr "Opsional. Pelanggan dapat memilih pin pengiriman saat checkout."
+
+#: inc/Base/Enqueue.php
+msgid "Move the map to position the pin. Your delivery location saves automatically when you stop."
+msgstr "Geser peta untuk menempatkan pin. Lokasi pengiriman tersimpan otomatis setelah Anda berhenti."
+
+#: inc/Base/Enqueue.php
+msgid "Current location"
+msgstr "Lokasi saat ini"
+
+#: inc/Base/Enqueue.php
+msgid "Could not access your location. Move the map to choose your delivery pin."
+msgstr "Lokasi Anda tidak dapat diakses. Geser peta untuk memilih pin pengiriman."
+
+#: inc/Base/Enqueue.php
+msgid "This map location is invalid. Please choose another location."
+msgstr "Lokasi peta ini tidak valid. Silakan pilih lokasi lain."
+
+#: inc/Base/Enqueue.php
+msgid "Move the map to position your delivery pin…"
+msgstr "Geser peta untuk menempatkan pin pengiriman…"
+
+#: inc/Base/Enqueue.php
+msgid "Map unavailable. You can continue with your shipping address."
+msgstr "Peta tidak tersedia. Anda dapat melanjutkan dengan alamat pengiriman."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "A supported Indonesian timezone is required for Instant delivery."
+msgstr "Zona waktu Indonesia yang didukung diperlukan untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "A valid recipient name, Indonesian phone number and full address are required for Instant delivery."
+msgstr "Nama penerima, nomor telepon Indonesia, dan alamat lengkap yang valid diperlukan untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Add this method to a shipping zone. Instant requires a saved origin map pin and a buyer shipping map pin. COD and shipping insurance are not supported."
+msgstr "Tambahkan metode ini ke zona pengiriman. Instant memerlukan pin lokasi asal dan pin alamat pembeli yang tersimpan. COD dan asuransi pengiriman tidak didukung."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Cash on delivery is not supported for Instant delivery."
+msgstr "COD tidak didukung untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Choose a shipping address and map pin for Instant delivery."
+msgstr "Pilih alamat pengiriman dan pin peta untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Complete your Indonesian shipping address and update its map pin for Instant delivery."
+msgstr "Lengkapi alamat pengiriman Indonesia dan perbarui pin petanya untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery could not be quoted. Please try again."
+msgstr "Tarif pengiriman Instant tidak dapat diperoleh. Silakan coba lagi."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery does not support COD."
+msgstr "Pengiriman Instant tidak mendukung COD."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery does not support shipping insurance."
+msgstr "Pengiriman Instant tidak mendukung asuransi pengiriman."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery is available."
+msgstr "Pengiriman Instant tersedia."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery is not available for this store."
+msgstr "Pengiriman Instant tidak tersedia untuk toko ini."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery is unavailable for this shipment."
+msgstr "Pengiriman Instant tidak tersedia untuk paket ini."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery rates are temporarily unavailable. Please try again."
+msgstr "Tarif pengiriman Instant sementara tidak tersedia. Silakan coba lagi."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Instant delivery requires physical items with valid quantities, weights and dimensions, weighing at most 40000 grams."
+msgstr "Pengiriman Instant memerlukan produk fisik dengan jumlah, berat, dan dimensi yang valid, dengan berat maksimal 40000 gram."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "Insurance is not supported for Instant delivery."
+msgstr "Asuransi tidak didukung untuk pengiriman Instant."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "KiriminAja Instant"
+msgstr "KiriminAja Instant"
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "No Instant courier services are enabled."
+msgstr "Tidak ada layanan kurir Instant yang diaktifkan."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "No Instant delivery rates are available for this address and cart."
+msgstr "Tidak ada tarif pengiriman Instant untuk alamat dan keranjang ini."
+
+#: wc/KiriminajaInstantShippingMethod.php inc/Services/InstantCheckoutQuoteService.php
+msgid "The store pickup address is not ready for Instant delivery."
+msgstr "Alamat penjemputan toko belum siap untuk pengiriman Instant."
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "Additional Insurance Supported"
+msgstr "Asuransi tambahan tersedia"
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "With Insurance"
+msgstr "Dengan asuransi"
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "No Insurance Support"
+msgstr "Asuransi tidak didukung"
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "Admin Fee"
+msgstr "Biaya admin"
+
+msgid "District Not Set"
+msgstr "Kecamatan belum dipilih"
+
+#: inc/Base/Enqueue.php
+msgid "Delivery location map"
+msgstr "Peta lokasi pengiriman"
+
+#: inc/Base/Enqueue.php
+msgid "Use arrow keys to move the map. Press Enter to select the center location."
+msgstr "Gunakan tombol panah untuk menggerakkan peta. Tekan Enter untuk memilih lokasi tengah."
+
+msgid "Checking District…"
+msgstr "Memeriksa kecamatan…"
+
+msgid "Need Pin Location"
+msgstr "Perlu tandai lokasi"
+
+msgid "Optional for Express. Required for Instant delivery."
+msgstr "Opsional untuk Express. Wajib untuk pengiriman Instant."
+
+#: inc/Services/CheckoutRatePresentation.php wc/KiriminajaInstantShippingMethod.php
+msgid "Instant delivery could not be confirmed. Please refresh your shipping quote and try again."
+msgstr "Pengiriman Instant tidak dapat dikonfirmasi. Perbarui tarif pengiriman dan coba lagi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Review the latest courier prices and shipment details before confirming your booking."
+msgstr "Tinjau tarif kurir terbaru dan rincian pengiriman sebelum mengonfirmasi pemesanan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Prices have expired. They will refresh automatically before you can confirm."
+msgstr "Tarif telah kedaluwarsa. Tarif akan diperbarui otomatis sebelum Anda dapat mengonfirmasi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Instant Rates"
+msgstr "Tarif Instant"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Instant courier rates may change at any time. Review updated prices before booking. Shipments are never booked automatically."
+msgstr "Tarif kurir Instant dapat berubah sewaktu-waktu. Tinjau tarif terbaru sebelum memesan. Pengiriman tidak pernah dipesan secara otomatis."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Order Information"
+msgstr "Informasi pesanan"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "orders changed"
+msgstr "pesanan berubah"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Select shipment"
+msgstr "Pilih pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Courier / service"
+msgstr "Kurir / layanan"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Origin"
+msgstr "Asal"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price changed"
+msgstr "Tarif berubah"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Show less"
+msgstr "Tampilkan lebih sedikit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Show more"
+msgstr "Tampilkan lebih banyak"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Shipping Information"
+msgstr "Informasi pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "selected shipments"
+msgstr "pengiriman dipilih"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price Gap"
+msgstr "Selisih tarif"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price increase"
+msgstr "Tarif naik"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Price decrease"
+msgstr "Tarif turun"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Total Shipment"
+msgstr "Total pengiriman"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Totals include selected eligible shipments only and compare carrier shipping charges. Checkout insurance and customer admin fees are not included."
+msgstr "Total hanya mencakup pengiriman terpilih yang memenuhi syarat dan membandingkan ongkos kirim kurir. Asuransi checkout dan biaya admin pelanggan tidak termasuk."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "I confirm the reviewed prices and shipment terms."
+msgstr "Saya mengonfirmasi tarif yang ditinjau dan ketentuan pengiriman."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Prices are valid for 2 minutes and refresh automatically when time runs out. Each refresh clears confirmation, price-change approvals, and any payment PIN."
+msgstr "Tarif berlaku selama 2 menit dan diperbarui otomatis setelah waktunya habis. Setiap pembaruan menghapus konfirmasi, persetujuan perubahan tarif, dan PIN pembayaran."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Prices could not be refreshed. Review prices again to continue; no shipment has been booked."
+msgstr "Tarif tidak dapat diperbarui. Tinjau tarif lagi untuk melanjutkan; belum ada pengiriman yang dipesan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Refreshing prices…"
+msgstr "Memperbarui tarif…"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Confirm & continue to payment"
+msgstr "Konfirmasi & lanjutkan ke pembayaran"
+
+#: inc/Base/Enqueue.php
+msgid "Requesting location permission…"
+msgstr "Meminta izin lokasi…"
+
+#: inc/Base/Enqueue.php
+msgid "Location permission was denied. The map picker is hidden. You can allow location access in your browser settings and reopen this editor."
+msgstr "Izin lokasi ditolak. Pemilih peta disembunyikan. Anda dapat mengizinkan akses lokasi di pengaturan peramban dan membuka kembali formulir ini."
+
+#: inc/Base/Enqueue.php
+msgid "Your location is unavailable or the request timed out. The map picker is hidden."
+msgstr "Lokasi Anda tidak tersedia atau permintaan kehabisan waktu. Pemilih peta disembunyikan."
+
+#: inc/Base/Enqueue.php
+msgid "Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area."
+msgstr "Cakupan Instant: 40 km garis lurus dari lokasi penjemputan. Alamat Express dapat berada di luar area ini."
+
+#: inc/Base/Enqueue.php
+msgid "This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery."
+msgstr "Pin ini berada di luar area cakupan Instant 40 km. Anda tetap dapat menyimpan alamat ini untuk pengiriman Express."
+
+#: inc/Services/InstantDeliveryCoverage.php inc/Services/InstantCheckoutQuoteService.php inc/Services/InstantShipmentContext.php
+msgid "Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address."
+msgstr "Pengiriman Instant hanya tersedia dalam jarak 40 km dari lokasi penjemputan. Anda dapat menggunakan pengiriman Express untuk alamat ini."
+
+msgid "District lookup timed out. Please retry."
+msgstr "Pencarian kecamatan kehabisan waktu. Silakan coba lagi."
+
+msgid "Express shipment could not be saved. Please retry checkout or contact the store."
+msgstr "Pengiriman Express tidak dapat disimpan. Coba checkout lagi atau hubungi toko."
+
+msgid "Your shipping quote has changed or is no longer available. Please refresh checkout and select shipping again."
+msgstr "Tarif pengiriman berubah atau tidak tersedia. Perbarui checkout dan pilih pengiriman lagi."
+
+msgid "Instant delivery is available only for a single shipping package. Please choose another shipping method."
+msgstr "Pengiriman Instant hanya tersedia untuk satu paket pengiriman. Pilih metode pengiriman lain."
+
+msgid "Instant delivery supports only one shipping package."
+msgstr "Pengiriman Instant hanya mendukung satu paket pengiriman."
+
+msgid "Instant delivery requires Indonesian rupiah (IDR)."
+msgstr "Pengiriman Instant memerlukan rupiah Indonesia (IDR)."
+
+msgid "Instant delivery supports IDR checkout currency only. Please choose another shipping method."
+msgstr "Pengiriman Instant hanya mendukung mata uang IDR. Pilih metode pengiriman lain."
+
+msgid "Instant delivery requires valid physical items weighing at most 40000 grams."
+msgstr "Pengiriman Instant memerlukan barang fisik yang valid dengan berat maksimal 40000 gram."
+
+msgid "Complete the shipping recipient name and phone number for Instant delivery."
+msgstr "Lengkapi nama dan nomor telepon penerima untuk pengiriman Instant."
+
+msgid "The items in this cart are not eligible for Instant delivery."
+msgstr "Barang dalam keranjang ini tidak memenuhi syarat pengiriman Instant."
+
+msgid "Instant delivery is unavailable. Choose another method or update the shipping address."
+msgstr "Pengiriman Instant tidak tersedia. Pilih metode lain atau perbarui alamat pengiriman."
+
+msgid "Instant prices could not be refreshed. Please retry before placing your order."
+msgstr "Tarif Instant tidak dapat diperbarui. Coba lagi sebelum membuat pesanan."
+
+msgid "Instant prices have expired. Refresh your shipping quote before placing the order."
+msgstr "Tarif Instant telah kedaluwarsa. Perbarui tarif pengiriman sebelum membuat pesanan."
+
+msgid "Reload checkout"
+msgstr "Muat ulang checkout"
+
+msgid "Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed."
+msgstr "Pembaruan pengiriman terlalu lama. Muat ulang checkout jika tidak selesai; pesanan Anda belum dibuat."
+
+msgid "KiriminAja destination address binding"
+msgstr "Keterikatan alamat tujuan KiriminAja"
+
+msgid "KiriminAja destination coordinates"
+msgstr "Koordinat tujuan KiriminAja"
+
+msgid "KiriminAja retained booking destination"
+msgstr "Tujuan pemesanan KiriminAja yang disimpan"
+
+msgid "KiriminAja retained booking recipient"
+msgstr "Penerima pemesanan KiriminAja yang disimpan"
+
+msgid "KiriminAja shipping destination"
+msgstr "Tujuan pengiriman KiriminAja"
+
+msgid "KiriminAja shipping district"
+msgstr "Kecamatan pengiriman KiriminAja"
+
+msgid "KiriminAja shipping district ID"
+msgstr "ID kecamatan pengiriman KiriminAja"
+
+msgid "KiriminAja account destination metadata has been processed. Order erasure is managed separately by WooCommerce. Durable booking snapshots and shipment transaction records are not erased by this account callback and may contain recipient addresses, phone numbers and coordinates. An administrator must review fulfillment and applicable financial/legal retention requirements before removing those records. No shipment has been cancelled."
+msgstr "Metadata tujuan akun KiriminAja telah diproses. Penghapusan pesanan dikelola terpisah oleh WooCommerce. Snapshot pemesanan dan catatan transaksi pengiriman tidak dihapus oleh callback akun ini dan mungkin berisi alamat, nomor telepon, serta koordinat penerima. Administrator harus meninjau pemenuhan dan persyaratan penyimpanan keuangan/hukum sebelum menghapus catatan tersebut. Tidak ada pengiriman yang dibatalkan."
+
+msgid "Current device location may differ from the delivery address. Check the pin and move it to the intended destination."
+msgstr "Lokasi perangkat saat ini mungkin berbeda dari alamat pengiriman. Periksa pin dan pindahkan ke tujuan pengiriman yang benar."
+
+msgid "KiriminAja District"
+msgstr "Kecamatan KiriminAja"
+
+msgid "Searchable shipping destination district."
+msgstr "Kecamatan tujuan pengiriman yang dapat dicari."
+
+msgid "Review selected shipments and current courier prices."
+msgstr "Tinjau pengiriman yang dipilih dan tarif kurir saat ini."
+
+msgid "Courier prices may change before booking."
+msgstr "Tarif kurir dapat berubah sebelum pemesanan."
+
+msgid "Unable to confirm the Instant booking. Contact support before trying again."
+msgstr "Pemesanan Instant tidak dapat dikonfirmasi. Hubungi dukungan sebelum mencoba lagi."
+
+msgid "Unable to book the Instant shipment. Please try again."
+msgstr "Pengiriman Instant tidak dapat dipesan. Silakan coba lagi."
+
+msgid "Review this shipment before continuing."
+msgstr "Tinjau pengiriman ini sebelum melanjutkan."
+
+msgid "Unable to confirm the operation. Contact support before trying again."
+msgstr "Operasi tidak dapat dikonfirmasi. Hubungi dukungan sebelum mencoba lagi."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Delivery route"
+msgstr "Rute pengiriman"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recorded route data — not live tracking."
+msgstr "Data rute tersimpan — bukan pelacakan langsung."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Illustrative straight-line connection — not a driving route or live tracking."
+msgstr "Ilustrasi garis lurus — bukan rute perjalanan atau pelacakan langsung."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Saved delivery coordinates are unavailable."
+msgstr "Koordinat pengiriman tersimpan tidak tersedia."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Unable to load the delivery map."
+msgstr "Peta pengiriman tidak dapat dimuat."
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Saved pickup location"
+msgstr "Lokasi penjemputan tersimpan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Saved delivery location"
+msgstr "Lokasi pengiriman tersimpan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recorded route start"
+msgstr "Awal rute tersimpan"
+
+#: inc/Services/TransactionDetailPageData.php
+msgid "Recorded route end"
+msgstr "Akhir rute tersimpan"
+
+#. translators: %s: Random diagnostic reference, not a shipment or payment ID.
+#: inc/Services/InstantDispatchService.php
+#, php-format
+msgid "Reference: %s. See WooCommerce → Status → Logs (source: kiriminaja_instant)."
+msgstr "Referensi: %s. Lihat WooCommerce → Status → Logs (sumber: kiriminaja_instant)."
+
+#: inc/Services/InstantDispatchService.php
+msgid "No shipment was booked for this order. Its original data was restored. Close this dialog and request a new quote to try again."
+msgstr "Tidak ada pengiriman yang dipesan untuk pesanan ini. Data awalnya telah dipulihkan. Tutup dialog ini dan minta penawaran baru untuk mencoba lagi."
+
+#: inc/Services/InstantDispatchService.php
+msgid "Unable to verify restoration of this shipment. Contact support before trying again."
+msgstr "Pemulihan data pengiriman ini belum dapat dipastikan. Hubungi dukungan sebelum mencoba lagi."
+
+#: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
+msgid "Recheck booking"
+msgstr "Periksa ulang pemesanan"
+
+#: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
+msgid "Check whether this uncertain booking exists. This does not create another shipment or clear the retry guard. If no shipment is found, contact support to confirm the booking was not accepted."
+msgstr "Periksa apakah pemesanan yang belum pasti ini sudah tercatat. Tindakan ini tidak membuat pengiriman baru atau menghapus pengaman percobaan ulang. Jika pengiriman tidak ditemukan, hubungi dukungan untuk memastikan pemesanan belum diterima."
+
+#: inc/Services/TransactionListRenderService.php inc/Services/TransactionDetailPageData.php
+msgid "Booking evidence checked"
+msgstr "Bukti pemesanan telah diperiksa"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Remaining Credit"
+msgstr "Sisa Kredit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Unable to verify credit balance."
+msgstr "Saldo kredit belum dapat diverifikasi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Insufficient credit balance for this pickup."
+msgstr "Saldo kredit tidak mencukupi untuk penjemputan ini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Set a PIN on your KiriminAja profile to pay with credit."
+msgstr "Atur PIN pada profil KiriminAja untuk membayar dengan kredit."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "KA Credit balance remaining"
+msgstr "Sisa saldo KA Credit"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Unable to verify KA Credit balance. Refresh prices to check again."
+msgstr "Saldo KA Credit belum dapat diverifikasi. Perbarui tarif untuk memeriksa kembali."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Insufficient KA Credit balance for these shipments."
+msgstr "Saldo KA Credit tidak mencukupi untuk pengiriman ini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Scan the QR code after booking to pay for these shipments."
+msgstr "Pindai kode QR setelah pemesanan untuk membayar pengiriman ini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Input PIN & Validation"
+msgstr "Masukkan PIN & Validasi"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Enter your six-digit KA Credit PIN. The server checks your PIN and balance before creating a shipment."
+msgstr "Masukkan PIN KA Credit enam digit. Server memeriksa PIN dan saldo sebelum membuat pengiriman."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Unable to validate KA Credit payment. Check your PIN and try again."
+msgstr "Pembayaran KA Credit belum dapat divalidasi. Periksa PIN dan coba lagi."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Validate PIN & process"
+msgstr "Validasi PIN & proses"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Validating KA Credit payment…"
+msgstr "Memvalidasi pembayaran KA Credit…"
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Back to Summary"
+msgstr "Kembali ke Ringkasan"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Pickup / Payment ID"
+msgstr "ID Pickup / Pembayaran"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Instant Payment ID"
+msgstr "ID Pembayaran Instant"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Delivery Type"
+msgstr "Jenis Pengiriman"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Regular"
+msgstr "Reguler"
+
+#: inc/Services/PaymentListRenderService.php
+msgid "Instant"
+msgstr "Instant"
+
+#: inc/Base/Enqueue.php
+msgid "Contact Information"
+msgstr "Informasi Kontak"
+
+#: templates/front/partials/form-billing-address-config.php
+msgid "Shipping options"
+msgstr "Pilihan pengiriman"
+
+#: templates/woocommerce/cart/cart-shipping.php
+msgid "Shipping Options"
+msgstr "Pilihan Pengiriman"
+
+#: templates/front/partials/form-billing-address-config.php
+msgid "Enter at least 3 characters"
+msgstr "Masukkan minimal 3 karakter"
+
+#: templates/front/partials/form-billing-address-config.php
+msgid "Searching…"
+msgstr "Mencari…"
+
+#: templates/front/partials/form-billing-address-config.php
+msgid "No results found"
+msgstr "Tidak ada hasil ditemukan"
+
+#: inc/Services/InstantLabelService.php
+msgid "Each requested Instant shipment must have a distinct AWB."
+msgstr "Setiap pengiriman Instant yang dipilih harus memiliki AWB berbeda."
+
+#: inc/Services/InstantLabelService.php
+msgid "The carrier label is currently unavailable. This is a local shipment label, not a courier-issued label."
+msgstr "Label kurir saat ini tidak tersedia. Ini adalah label pengiriman lokal, bukan label yang diterbitkan kurir."
+
+#: inc/Base/Enqueue.php inc/Controllers/AccountShippingDestinationController.php
+msgid "Subdistrict Not Set"
+msgstr "Desa / Kelurahan belum dipilih"
+
+#: inc/Base/Enqueue.php
+msgid "Checking Subdistrict…"
+msgstr "Memeriksa Desa / Kelurahan…"
+
+#: inc/Base/Enqueue.php templates/front/partials/form-billing-address-config.php assets/wp/js/checkout/blocks-compatibility.js blocks/checkout-district/edit.js
+msgid "Select Subdistrict"
+msgstr "Pilih Desa / Kelurahan"
+
+#: inc/Base/Enqueue.php
+msgid "Enter your shipping postcode to find your subdistrict."
+msgstr "Masukkan kode pos pengiriman untuk mencari Desa / Kelurahan Anda."
+
+#: inc/Base/Enqueue.php inc/Controllers/AccountShippingDestinationController.php templates/front/partials/form-billing-address-config.php assets/wp/js/checkout/blocks-compatibility.js
+msgid "Please select your Subdistrict to view shipping options."
+msgstr "Silakan pilih Desa / Kelurahan Anda untuk melihat opsi pengiriman."
+
+#: inc/Base/Enqueue.php
+msgid "Loading subdistricts…"
+msgstr "Memuat Desa / Kelurahan…"
+
+#: inc/Base/Enqueue.php
+msgid "No subdistricts found. Check your shipping postcode."
+msgstr "Desa / Kelurahan tidak ditemukan. Periksa kode pos pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "No subdistricts were returned for this postcode. Retry the lookup or check your shipping postcode."
+msgstr "Desa / Kelurahan tidak ditemukan untuk kode pos ini. Coba lagi atau periksa kode pos pengiriman Anda."
+
+#: inc/Base/Enqueue.php
+msgid "Subdistricts could not be loaded. Please retry."
+msgstr "Desa / Kelurahan tidak dapat dimuat. Silakan coba lagi."
+
+#: inc/Base/Enqueue.php
+msgid "Subdistrict lookup timed out. Please retry."
+msgstr "Pencarian Desa / Kelurahan kehabisan waktu. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Controllers/AccountShippingDestinationController.php
+msgid "Could not verify your shipping subdistrict. Please try again."
+msgstr "Tidak dapat memverifikasi Desa / Kelurahan pengiriman Anda. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php
+msgid "Please select a valid shipping subdistrict matching your shipping address."
+msgstr "Silakan pilih Desa / Kelurahan yang valid dan sesuai dengan alamat pengiriman Anda."
+
+#: inc/Controllers/AccountAddressController.php
+msgid "Please select a Subdistrict."
+msgstr "Silakan pilih Desa / Kelurahan."
+
+#: inc/Controllers/CheckoutController.php
+msgid "<strong>Subdistrict</strong> is a required field"
+msgstr "<strong>Desa / Kelurahan</strong> wajib diisi"
+
+#: blocks/checkout-district/edit.js blocks/checkout-district/block.json
+msgid "KiriminAja Subdistrict"
+msgstr "Desa / Kelurahan KiriminAja"
+
+#: blocks/checkout-district/edit.js blocks/checkout-district/block.json
+msgid "Searchable shipping destination subdistrict."
+msgstr "Desa / Kelurahan tujuan pengiriman yang dapat dicari."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Instant delivery is not enabled."
+msgstr "Pengiriman Instant tidak diaktifkan."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin destination is invalid. Please select it again."
+msgstr "Tujuan pin pengiriman tidak valid. Silakan pilih kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin address scope is invalid."
+msgstr "Jenis alamat pin pengiriman tidak valid."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin country or postcode does not match the checkout address. Please select the pin again."
+msgstr "Negara atau kode pos pin pengiriman tidak sesuai dengan alamat checkout. Silakan pilih pin kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin coordinates or address snapshot are invalid. Please select the pin again."
+msgstr "Koordinat atau data alamat pin pengiriman tidak valid. Silakan pilih pin kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The selected subdistrict has changed. Please select the delivery pin again."
+msgstr "Desa / Kelurahan yang dipilih telah berubah. Silakan pilih pin pengiriman kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Could not verify the delivery pin subdistrict. Please try again."
+msgstr "Desa / Kelurahan pin pengiriman tidak dapat diverifikasi. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The selected subdistrict does not belong to the delivery pin postcode. Please select the subdistrict again."
+msgstr "Desa / Kelurahan yang dipilih tidak sesuai dengan kode pos pin pengiriman. Silakan pilih Desa / Kelurahan kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The selected subdistrict changed while verifying the delivery pin. Please try again."
+msgstr "Desa / Kelurahan yang dipilih berubah saat pin pengiriman diverifikasi. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The checkout session is not available for a delivery pin. Please refresh checkout."
+msgstr "Sesi checkout tidak tersedia untuk pin pengiriman. Silakan muat ulang checkout."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "The delivery pin address has changed. Please select the pin again."
+msgstr "Alamat pin pengiriman telah berubah. Silakan pilih pin kembali."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Could not save the delivery pin. Please retry."
+msgstr "Pin pengiriman tidak dapat disimpan. Silakan coba lagi."
+
+#: inc/Controllers/CheckoutController.php inc/Base/Enqueue.php
+msgid "Saving delivery pin…"
+msgstr "Menyimpan pin pengiriman…"
+
+#: inc/Controllers/ProductController.php
+msgid "Category"
+msgstr "Kategori"
+
+#: inc/Controllers/ProductController.php
+msgid "Select KiriminAja package category for shipping. Defaults to Others."
+msgstr "Pilih kategori paket KiriminAja untuk pengiriman. Default ke Lain-lain."
+
+#: inc/Services/PackageTypeService.php
+msgid "Others (Default)"
+msgstr "Lain-lain (Default)"
+
+#: inc/Services/PackageTypeService.php
+msgid "Electronics & Gadgets"
+msgstr "Peralatan Elektronik & Gadget"
+
+#: inc/Services/PackageTypeService.php
+msgid "Clothing"
+msgstr "Pakaian"
+
+#: inc/Services/PackageTypeService.php
+msgid "Fragile"
+msgstr "Pecah Belah"
+
+#: inc/Services/PackageTypeService.php
+msgid "Documents"
+msgstr "Dokumen"
+
+#: inc/Services/PackageTypeService.php
+msgid "Household Appliances"
+msgstr "Peralatan Rumah Tangga"
+
+#: inc/Services/PackageTypeService.php
+msgid "Accessories"
+msgstr "Aksesoris"
+
+#: inc/Services/PackageTypeService.php
+msgid "Valuable Documents"
+msgstr "Dokumen Berharga"
+
+#: inc/Services/PackageTypeService.php
+msgid "Health & Beauty"
+msgstr "Peralatan Kesehatan & Kecantikan"
+
+#: inc/Services/PackageTypeService.php
+msgid "Sports & Entertainment"
+msgstr "Peralatan Olahraga & Hiburan"
+
+#: inc/Services/CheckoutShippingSelectionGuard.php inc/Base/Enqueue.php templates/front/partials/form-billing-address-config.php
+msgid "Shipping options changed. Please review and select your courier again before placing the order."
+msgstr "Pilihan pengiriman telah berubah. Periksa dan pilih kembali kurir sebelum membuat pesanan."
+
+#: inc/Base/Enqueue.php
+msgid "Updating shipping options…"
+msgstr "Memperbarui pilihan pengiriman…"

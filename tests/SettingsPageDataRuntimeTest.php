@@ -38,6 +38,7 @@ require_once PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php';
 require_once PLUGIN_DIR . '/inc/Services/ProductVolumetricReadinessService.php';
 require_once PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php';
 require_once PLUGIN_DIR . '/inc/Services/SettingsPageData.php';
+require_once PLUGIN_DIR . '/inc/Services/CourierServiceUiData.php';
 require_once PLUGIN_DIR . '/inc/Services/RevampAnnouncementService.php';
 if ( ! function_exists( 'current_user_can' ) ) {
 	function current_user_can( $capability ) {
@@ -93,6 +94,21 @@ if ( ! function_exists( 'wp_date' ) ) {
 }
 
 final class SettingsPageDataRuntimeTest extends TestCase {
+	#[Test]
+	public function courier_bootstrap_uses_shared_count_translation_without_context(): void {
+		$provider = new SettingsPageData(
+			$this->createMock( SettingRepository::class ),
+			$this->createMock( ProductVolumetricReadinessService::class ),
+			$this->createMock( KiriminajaApiService::class ),
+			$this->createMock( ShippingDiscountRegionRepository::class ),
+			$this->createMock( ShippingDiscountRegionCacheService::class )
+		);
+		$bootstrap = $provider->prepareCouriersBootstrap();
+
+		$this->assertSame( '%1$s of %2$s enabled', $bootstrap['i18n']['count'] );
+		$this->assertSame( $bootstrap['i18n']['count'], $bootstrap['i18n']['serviceCount'] );
+	}
+
 	#[Test]
 	public function prepares_existing_setting_shapes_and_whitelist_names(): void {
 		$setup_key = (object) array( 'key' => 'setup_key', 'value' => 'setup-123' );

@@ -46,8 +46,8 @@ class ShipmentLocationStructureTest extends TestCase {
         $template   = $this->read( __DIR__ . '/../inc/Services/TransactionListViewModelFactory.php' );
         $pickup     = $this->read( __DIR__ . '/../inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
 
-        $this->assertStringContainsString( '$checkoutOriginLocation  = $shipmentLocationService->getDefaultLocation();', $service );
-        $this->assertStringContainsString( '$checkoutOriginSnapshot  = $shipmentLocationService->locationToOrigin( $checkoutOriginLocation );', $service );
+        $this->assertStringContainsString( "\$this->payload['express_origin_snapshot']", $service );
+        $this->assertStringContainsString( '$shipmentLocationService->locationToOrigin( $shipmentLocationService->getDefaultLocation() )', $service );
         $this->assertStringContainsString( "'shipment_location_id'          => (int) ( \$checkoutOriginSnapshot['location_id'] ?? 0 )", $service );
         $this->assertStringContainsString( "'shipment_location_snapshot'    => ! empty( \$checkoutOriginSnapshot ) ? wp_json_encode( \$checkoutOriginSnapshot )", $service );
         $this->assertStringContainsString( '`shipment_location_id`,', $repository );

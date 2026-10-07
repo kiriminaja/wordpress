@@ -10,7 +10,7 @@ class Helper extends  BaseInit {
     public function transactionStatusLabel($status = ''){
         switch ($status){
             case "new":
-                return __( "New", 'kiriminaja-official' );
+                return __( 'Waiting for Shipment', 'kiriminaja-official' );
             break;
             case "request_pickup":
                 return __( "Request Pickup", 'kiriminaja-official' );
@@ -68,7 +68,7 @@ class Helper extends  BaseInit {
      * Unified badge tones, mirroring the Shopify admin `s-badge` contract
      * (auto | neutral | info | success | caution | warning | critical)
      * plus KiriminAja extensions so every package status owns its color:
-     * primary (New) and teal (In Transit).
+     * primary (accent) and teal (In Transit).
      *
      * @return string[]
      */
@@ -88,13 +88,13 @@ class Helper extends  BaseInit {
 
     /**
      * Package status → badge tone map (mirrors kaj-shopify-plugin getLabelProps).
-     * Every package status owns its color: New = primary, In Transit = teal.
+     * Waiting for Shipment = info (blue), On Hold = warning (amber), In Transit = teal.
      *
      * @return array<string,string>
      */
     public function packageStatusToneMap() {
         return array(
-            'new'            => 'primary',
+             'new'            => 'info',
             'request_pickup' => 'info',
             'pending'        => 'caution',
             'finished'       => 'success',
@@ -162,7 +162,7 @@ class Helper extends  BaseInit {
                 return 'info';
             case 'on-hold':
             case 'pending':
-                return 'caution';
+                return 'warning';
             case 'cancelled':
             case 'canceled':
             case 'refunded':
@@ -206,7 +206,7 @@ class Helper extends  BaseInit {
 
         switch ($status){
             case "new":
-                return "kj-badge primary";
+                return "kj-badge info";
                 break;
             case "request_pickup":
                 return "kj-badge info";

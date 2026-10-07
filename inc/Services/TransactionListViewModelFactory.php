@@ -48,6 +48,8 @@ class TransactionListViewModelFactory {
 	 * @return array<string, mixed>
 	 */
 	private function createRow( object $row, string $status_filter ): array {
+		$delivery_type         = TransactionDeliveryType::resolve( $row );
+		$is_express            = 'express' === $delivery_type;
 		$helper                = kiriof_helper();
 		$shipping_info         = json_decode( (string) ( $row->shipping_info ?? '{}' ) );
 		$wc_order              = function_exists( 'wc_get_order' ) ? wc_get_order( $row->wc_order_id ) : false;
@@ -81,19 +83,43 @@ class TransactionListViewModelFactory {
 		$order_id              = (string) ( $row->order_id ?? '' );
 		$can_request_pickup    = $is_processable && ( ! $is_deficit || $effective_payout >= 0 );
 		$print_capable_filter  = in_array( $status_filter, array( 'all', 'processed' ), true );
-		$can_print             = $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
+		$can_print             = $is_express && $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
 		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
-		$can_cancel            = '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true );
-		$checkbox_disabled     = ! $can_print && ! $can_request_pickup;
+		$can_cancel            = $is_express ? ( '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true ) ) : InstantShipmentState::canCancel( $row );
+		$can_remote_instant    = ! $is_express && 'new' !== (string) $row->status && in_array( strtolower( trim( (string) ( $row->service ?? '' ) ) ), array( 'gosend', 'grab_express' ), true );
+		$can_request_pickup    = $is_express && $can_request_pickup;
+		$can_process_instant   = ! $is_express && InstantShipmentContext::canProcess( $row ) && $wc_order
+			&& ! in_array( $wc_order->get_status(), array( 'cancelled', 'completed', 'refunded', 'failed', 'trash' ), true )
+			&& ( $wc_order->is_paid() || 'processing' === $wc_order->get_status() );
+		$can_print             = $is_express ? $can_print : InstantLabelService::canPrint( $row );
+		$instant_payment_id    = (string) ( $row->instant_payment_id ?? '' );
+		$can_pay_instant       = ! $is_express && 'qris' === ( $row->instant_payment_method ?? '' )
+			&& in_array( $row->instant_payment_status ?? '', array( 'pending', 'unpaid' ), true )
+			&& 1 === preg_match( '/\A[A-Za-z0-9][A-Za-z0-9_-]{0,99}\z/', $instant_payment_id );
+		$checkbox_disabled     = ! $can_print && ! $can_request_pickup && ! $can_process_instant;
 		$origin                = $this->origin_resolver->resolve( $row );
 		$origin_name           = $origin['name'];
 		$origin_address        = $origin['address'];
 		$origin_location_id    = $origin['locationId'];
 		$is_ka_order           = 'wc-processing' === $post_status;
-		$status_label          = $is_deficit
+		$status_label          = $is_express && $is_deficit
 			? __( 'COD Deficit', 'kiriminaja-official' )
 			: ( $is_ka_order ? $helper->transactionStatusLabel( $row->status ) : $helper->wcStatusLabel( $post_status ) );
 		$status_tone           = $this->statusTone( $is_deficit, $post_status, (string) $row->status );
+		$status_presentation   = $is_express
+			? array( 'label' => $status_label, 'tone' => $status_tone, 'deficit' => $is_deficit, 'tooltip' => '', 'issue' => false )
+			: array_merge( InstantDeliveryStatus::describe( $row ), array( 'deficit' => false ) );
+		// An Instant shipment state must not conceal WooCommerce's order hold.
+		// Prefer the live order over a potentially stale query status (legacy/HPOS).
+		$instant_wc_status = $wc_order ? (string) $wc_order->get_status() : preg_replace( '/^wc-/', '', $post_status );
+		if ( ! $is_express && 'on-hold' === $instant_wc_status ) {
+			$status_presentation['key']   = 'wc-on-hold';
+			$status_presentation['label'] = __( 'On Hold', 'kiriminaja-official' );
+			$status_presentation['tone']  = 'warning';
+		}
+		if ( ! $is_express && $is_deficit ) {
+			$status_presentation['issue'] = $status_presentation['issue'] ?: __( 'Instant order issue', 'kiriminaja-official' );
+		}
 		$address_lines         = array_values(
 			array_filter(
 				array(
@@ -107,10 +133,17 @@ class TransactionListViewModelFactory {
 		);
 
 		return array(
+			'deliveryType'    => $delivery_type,
+			'vehicle'         => TransactionDeliveryType::normalizeVehicle( $row->vehicle ?? null ),
+			'instantPayment'  => array(
+				'method' => $is_express ? '' : (string) ( $row->instant_payment_method ?? '' ),
+				'status' => $is_express ? '' : (string) ( $row->instant_payment_status ?? '' ),
+				'id'     => $is_express ? '' : (string) ( $row->instant_payment_id ?? '' ),
+			),
 			'id'              => (int) ( $row->id ?? $row->wc_order_id ),
 			'wcOrderId'       => (int) $row->wc_order_id,
 			'wcOrderUrl'      => admin_url( 'post.php?post=' . (int) $row->wc_order_id . '&action=edit' ),
-			'detailUrl'       => admin_url( 'admin.php?page=kiriminaja-transaction-detail&id=' . absint( $row->id ?? 0 ) ),
+			'detailUrl'       => admin_url( 'admin.php?page=kiriminaja-transaction-detail&id=' . absint( $row->wc_order_id ?? $row->wp_wc_order_stat_order_id ?? 0 ) ),
 			'createdAt'       => wp_date( 'M d, Y H:i', strtotime( (string) $row->wc_date_created ), new DateTimeZone( 'UTC' ) ),
 			'customer'        => array( 'name' => $billing_name, 'phone' => (string) $recipient['phone'] ),
 			'courier'         => array(
@@ -118,7 +151,7 @@ class TransactionListViewModelFactory {
 				'service'      => $helper->formatServiceName( $row->service, $row->service_name ?? '' ),
 				'paymentLabel' => $is_cod ? __( 'COD', 'kiriminaja-official' ) : __( 'NON COD', 'kiriminaja-official' ),
 			),
-			'status'          => array( 'label' => $status_label, 'tone' => $status_tone, 'deficit' => $is_deficit ),
+			'status'          => $status_presentation,
 			'printStatus'     => ! empty( $row->is_printed ) ? 'printed' : 'unprinted',
 			'awb'             => $awb,
 			'kaOrderId'       => $order_id,
@@ -139,17 +172,25 @@ class TransactionListViewModelFactory {
 			'selection'       => array(
 				'disabled'  => $checkbox_disabled,
 				'canPickup' => $can_request_pickup,
+				'canProcess' => (bool) $can_process_instant,
 				'canPrint'  => $can_print,
-				'title'     => $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ),
+				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ),
 			),
 			'actions'         => array(
+				'paymentUrl'   => $can_pay_instant ? add_query_arg( array( 'key' => $instant_payment_id, 'instant_payment_id' => $instant_payment_id, 'open_payment' => '1' ), admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ) : '',
+				'track'        => $can_remote_instant && InstantTrackingPresentation::hasRoute( $row ),
+				'reconcile'    => InstantShipmentState::canRecheck( $row ),
+				'liveTrackingUrl' => $is_express ? '' : InstantTrackingPresentation::trackingUrl( $row ),
 				'preview'      => true,
-				'changeOrigin' => $is_processable,
-				'adjustDeficit'=> $is_deficit,
-				'cancelDeficit'=> $is_deficit,
-				'print'        => '' !== $awb && 'request_pickup' === (string) $row->status,
-				'cancel'       => ! $is_deficit && $can_cancel,
-				'printUrl'     => admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) ),
+				'process'      => (bool) $can_process_instant,
+				'changeOrigin' => $is_express && $is_processable,
+				'adjustDeficit'=> $is_express && $is_deficit,
+				'cancelDeficit'=> $is_express && $is_deficit,
+				'print'        => $is_express ? ( '' !== $awb && 'request_pickup' === (string) $row->status ) : $can_print,
+				'cancel'       => ( ! $is_express || ! $is_deficit ) && $can_cancel,
+				'printUrl'     => $is_express
+					? admin_url( 'admin-post.php?action=kiriof_resi_print&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_resi_print' ) )
+					: ( $can_print ? admin_url( 'admin-post.php?action=kiriof_instant_labels&oids=' . rawurlencode( $order_id ) . '&_wpnonce=' . wp_create_nonce( 'kiriof_instant_labels' ) ) : '' ),
 			),
 			'actionData'      => array(
 				'nonce'                => wp_create_nonce( KIRIOF_NONCE ),
@@ -176,6 +217,9 @@ class TransactionListViewModelFactory {
 		if ( $deficit || in_array( $status, array( 'canceled', 'returned', 'return' ), true ) || 'wc-cancelled' === $post_status ) {
 			return 'danger';
 		}
+		if ( in_array( $post_status, array( 'wc-on-hold', 'wc-pending' ), true ) ) {
+			return 'warning';
+		}
 		if ( in_array( $status, array( 'finished' ), true ) ) {
 			return 'success';
 		}
@@ -183,10 +227,7 @@ class TransactionListViewModelFactory {
 			return 'teal';
 		}
 		if ( 'new' === $status ) {
-			return 'primary';
-		}
-		if ( in_array( $post_status, array( 'wc-on-hold', 'wc-pending' ), true ) ) {
-			return 'warning';
+			return 'info';
 		}
 		return 'info';
 	}

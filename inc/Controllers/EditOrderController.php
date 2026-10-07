@@ -130,7 +130,7 @@ class EditOrderController{
         $data         = $service->data;
         $detail_url = add_query_arg(
             'id',
-            absint( $data['transaction_id'] ?? 0 ),
+            absint( $order_id ),
             admin_url( 'admin.php?page=kiriminaja-transaction-detail' )
         );
 

@@ -57,6 +57,10 @@ function __( $text, $domain = '' ) { return $text; }
 function add_action( ...$args ) {}
 function add_filter( ...$args ) {}
 function kiriof_log( ...$args ) {}
+function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
+function plugin_dir_url( $path ) { return ''; }
+function plugin_basename( $path ) { return basename( $path ); }
+function home_url() { return 'https://example.test'; }
 function set_transient( ...$args ) { return true; }
 function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
 function wc_price( $amount ) { return (string) $amount; }
@@ -93,7 +97,7 @@ $repo = new SettingRepository();
 // Inject an explicit fail-fast API boundary rather than silently allowing network calls.
 $GLOBALS['rate_api'] = new class extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
     public function __construct() {}
-    public function get_pricing( $payload ) { throw new RuntimeException( 'Unexpected pricing request' ); }
+    public function get_pricing( $payload ) { return (object) array( 'status' => false, 'results' => array() ); }
 };
 $GLOBALS['rate_meta'] = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();
 function rate_service( string $class, array $payload ) {
@@ -227,6 +231,27 @@ switch ( $argv[1] ?? '' ) {
 		$result['foreign_country'] = $controller->kiriof_shipping_rate_cache_invalidation( $package )[0]['rate_cache'];
 		$result['network_calls'] = $GLOBALS['rate_network_calls'];
 		break;
+	case 'recipient_cache':
+        $controller = rate_controller();
+        $address = array('address_1' => 'Buyer street', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID');
+        WC()->customer = new class($address) {
+            public array $billing;
+            public function __construct($address) { $this->billing = $address + array('first_name' => '', 'last_name' => '', 'phone' => ''); }
+            public function __call($name, $args) { return str_starts_with($name, 'get_billing_') ? ($this->billing[substr($name, 12)] ?? '') : ''; }
+        };
+        $package = array(array('destination' => $address));
+        $result['invalid'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['first_name'] = 'Buyer';
+        $result['named'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['phone'] = '081234567890';
+        $result['complete'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        $package[0]['destination']['phone'] = '';
+        $result['explicit_empty'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['phone'] = '081234567899';
+        $result['explicit_empty_again'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        $result['returned_destination'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['destination'];
+        $result['network_calls'] = $GLOBALS['rate_network_calls'];
+        break;
 	case 'fees':
 		rate_policy( '{"jne":["REG"]}' );
 		$result['disabled_legacy'] = rate_checkout_fees( 'kiriminaja-official_jne_YES', true );
@@ -265,7 +290,7 @@ switch ( $argv[1] ?? '' ) {
 			'item_value' => 10000,
 			'courier' => array( 'jne' ),
 		);
-		$pricing = (object) array( 'results' => array( (object) array(
+		$pricing = (object) array( 'status' => true, 'results' => array( (object) array(
 			'service' => 'jne',
 			'service_type' => 'REG',
 			'service_name' => 'Regular',

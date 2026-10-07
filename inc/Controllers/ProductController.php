@@ -1,6 +1,8 @@
 <?php 
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Services\PackageTypeService;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -19,6 +21,11 @@ class ProductController{
         add_action( 'woocommerce_product_options_general_product_data', [$this,'kiriof_custom_field_shipping_product'] ); 
         
         /**
+         * Shipping product Tab Custom Field
+         */
+        add_action( 'woocommerce_product_options_shipping', array( $this, 'kiriof_custom_field_shipping_category' ) );
+
+        /**
          * save product custom field
          */ 
         add_action( 'woocommerce_process_product_meta', [$this,'kiriof_save_product_custom_fields'] );
@@ -34,18 +41,63 @@ class ProductController{
         include_once KIRIOF_DIR .'templates/product/general-wc-tab-setting.php'; 
     }
 
+    public function kiriof_custom_field_shipping_category() {
+        global $post;
+
+        if ( ! $post || ! isset( $post->ID ) ) {
+            return;
+        }
+
+        wp_nonce_field( KIRIOF_NONCE, 'kiriof_product_nonce_field' );
+
+        $raw_value     = PackageTypeService::getRawProductPackageTypeId( (int) $post->ID );
+        $current_value = null !== $raw_value ? (string) $raw_value : '';
+
+        echo '<div class="options_group kiriof_product_shipping_category">';
+        woocommerce_wp_select(
+            array(
+                'id'          => PackageTypeService::META_KEY,
+                'name'        => PackageTypeService::META_KEY,
+                'label'       => __( 'Category', 'kiriminaja-official' ),
+                'description' => __( 'Select KiriminAja package category for shipping. Defaults to Others.', 'kiriminaja-official' ),
+                'desc_tip'    => true,
+                'options'     => PackageTypeService::getSelectOptions(),
+                'value'       => $current_value,
+            )
+        );
+        echo '</div>';
+    }
+
     public function kiriof_save_product_custom_fields($post_id){
 
         // Check for nonce security - fail early if missing or invalid.
-        if ( ! isset( $_POST['kiriof_product_nonce_field'] )
-            || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kiriof_product_nonce_field'] ) ), KIRIOF_NONCE )
-        ) {
+        $has_kiriof_nonce = isset( $_POST['kiriof_product_nonce_field'] )
+            && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['kiriof_product_nonce_field'] ) ), KIRIOF_NONCE );
+        $has_wc_nonce     = isset( $_POST['woocommerce_meta_nonce'] )
+            && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['woocommerce_meta_nonce'] ) ), 'woocommerce_save_data' );
+
+        if ( ! $has_kiriof_nonce && ! $has_wc_nonce ) {
             return;
         }
 
         // Capability check — only users who can edit this product may save its meta.
         if ( ! current_user_can( 'edit_post', (int) $post_id ) ) {
             return;
+        }
+
+        if ( array_key_exists( PackageTypeService::META_KEY, $_POST ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $raw_category = sanitize_text_field( wp_unslash( $_POST[ PackageTypeService::META_KEY ] ) );
+            if ( '' === $raw_category || ! is_numeric( $raw_category ) ) {
+                delete_post_meta( $post_id, PackageTypeService::META_KEY );
+            } else {
+                $category_id = (int) $raw_category;
+                if ( PackageTypeService::isValidId( $category_id ) ) {
+                    update_post_meta( $post_id, PackageTypeService::META_KEY, $category_id );
+                } else {
+                    delete_post_meta( $post_id, PackageTypeService::META_KEY );
+                }
+            }
         }
 
         /**

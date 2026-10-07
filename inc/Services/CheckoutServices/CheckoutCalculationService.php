@@ -68,9 +68,15 @@ class CheckoutCalculationService extends BaseService{
         }
         
         /** Origin Data*/
-        $settingRepo = $this->setting_repository->getSettingByKey('origin_sub_district_id');
-        if(!$settingRepo||$settingRepo->value === null){
-            return self::error([],'Terjadi Kesalahan!');
+        if ( ! empty( $this->payload['blocks_quote_validation'] ) && is_array( $this->payload['origin'] ?? null ) ) {
+            $originDistrict = (int) ( $this->payload['origin']['origin_sub_district_id'] ?? 0 );
+            if ( $originDistrict < 1 ) { return self::error( array(), 'Invalid Express checkout origin.' ); }
+        } else {
+            $settingRepo = $this->setting_repository->getSettingByKey('origin_sub_district_id');
+            if(!$settingRepo||$settingRepo->value === null){
+                return self::error([],'Terjadi Kesalahan!');
+            }
+            $originDistrict = (int) $settingRepo->value;
         }
         /** Cart Attribute Data*/
         $cartAttributes = (new GetWCCartAttributeService([
@@ -80,34 +86,12 @@ class CheckoutCalculationService extends BaseService{
             return self::error([],'Terjadi Kesalahan!');
         }
 
-        if ($this->hasActiveFreeShippingCoupon()) {
-            $this->selectedExpedition = (object) [
-                'cost' => 0,
-                'discount_amount' => 0,
-                'discount_percentage' => 0,
-                'service' => $this->expeditionParts[0] ?? '',
-                'service_type' => $this->expeditionParts[1] ?? '',
-                'setting' => (object) [
-                    'cod_fee_amount' => 0,
-                    'minimum_cod_fee' => 0,
-                ],
-            ];
-
-            $checkoutCalculation = $this->checkoutCalculation();
-
-            return self::success([
-                'cart'                  => $this->carts,
-                'pricing'               => null,
-                'payload'               => $this->payload,
-                'calculation_result'    => $checkoutCalculation,
-                'carts_attribute'       => $cartAttributes->data,
-                'pricing_payload'       => [],
-            ]);
-        }
-        
+        // Coupons waive buyer delivery only; always obtain real carrier fees.
         $courier = $this->expeditionParts[0];
         $pricingPayload = [
-            'subdistrict_origin'        => (int) $settingRepo->value,
+            'origin_postcode' => (string) ( ! empty( $this->payload['blocks_quote_validation'] ) ? ( $this->payload['origin']['origin_zip_code'] ?? '' ) : ( $this->setting_repository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ),
+            'destination_postcode' => (string) ( $this->payload['destination_postcode'] ?? ( function_exists( 'WC' ) && WC() && isset( WC()->customer ) ? WC()->customer->get_shipping_postcode() : '' ) ),
+            'subdistrict_origin'        => $originDistrict,
             'subdistrict_destination'   => $this->destination_area_id,
             'weight'                    => $cartAttributes->data['weight'],
             "length"                    => $cartAttributes->data['length'],
@@ -118,7 +102,6 @@ class CheckoutCalculationService extends BaseService{
             'courier'                   => [$courier]
         ];
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
         $cachedPricingData = PricingCacheService::get( $pricingPayload );
         if ( $cachedPricingData ) {
@@ -142,7 +125,6 @@ class CheckoutCalculationService extends BaseService{
 
         $kiriofPricing = $this->api_repository->getPricing($pricingPayload);
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
         if($kiriofPricing['status'] != 200){
             return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');

@@ -1,50 +1,51 @@
-import anteraja from '../../assets/images/kiriminaja-kurir/Anteraja.png';
-import borzo from '../../assets/images/kiriminaja-kurir/Borzo.png';
-import gosend from '../../assets/images/kiriminaja-kurir/Gosend.png';
-import grabExpress from '../../assets/images/kiriminaja-kurir/grab_express.png';
-import idExpress from '../../assets/images/kiriminaja-kurir/ID Express.png';
-import jne from '../../assets/images/kiriminaja-kurir/JNE.png';
-import jntCargo from '../../assets/images/kiriminaja-kurir/J&T Cargo.png';
-import jntExpress from '../../assets/images/kiriminaja-kurir/J&T Express.png';
-import lalamove from '../../assets/images/kiriminaja-kurir/lalamove.png';
-import lionParcel from '../../assets/images/kiriminaja-kurir/Lion Parcel.png';
-import ncs from '../../assets/images/kiriminaja-kurir/NCS.png';
-import ninja from '../../assets/images/kiriminaja-kurir/Ninja.png';
-import ninjaInter from '../../assets/images/kiriminaja-kurir/ninja_inter.png';
-import paxel from '../../assets/images/kiriminaja-kurir/Paxel.png';
-import posIndonesia from '../../assets/images/kiriminaja-kurir/POS IND.png';
-import rpx from '../../assets/images/kiriminaja-kurir/RPX.png';
-import sap from '../../assets/images/kiriminaja-kurir/SAPX.png';
-import sentralCargo from '../../assets/images/kiriminaja-kurir/Sentral Cargo.png';
-import shopeeExpress from '../../assets/images/kiriminaja-kurir/shopee-express.png';
-import sicepat from '../../assets/images/kiriminaja-kurir/Sicepat.png';
-import tiki from '../../assets/images/kiriminaja-kurir/TIKI.png';
-
-export const courierImages: Record<string, string> = {
-  anteraja,
-  borzo,
-  gosend,
-  grab_express: grabExpress,
-  idx: idExpress,
-  idexpress: idExpress,
-  jne,
-  jnt: jntExpress,
-  jntcargo: jntCargo,
-  lalamove,
-  lion: lionParcel,
-  ncs,
-  ninja,
-  ninja_inter: ninjaInter,
-  paxel,
-  posindonesia: posIndonesia,
-  rpx,
-  sap,
-  sentral: sentralCargo,
-  shopee_express: shopeeExpress,
-  sicepat,
-  spx: shopeeExpress,
-  tiki,
+// Keep filenames aligned with CourierLogoAssets.php. Artwork is packaged once,
+// outside Vite's asset pipeline, for both Classic checkout and the admin UI.
+export const courierFiles: Record<string, string> = {
+  anteraja: 'anteraja.png',
+  borzo: 'borzo.png',
+  gosend: 'gosend.png',
+  grab_express: 'grab-express.png',
+  idx: 'id-express.png',
+  idexpress: 'id-express.png',
+  id_express: 'id-express.png',
+  jne: 'jne.png',
+  jnt: 'jnt.png',
+  jntcargo: 'jnt-cargo.png',
+  jnt_cargo: 'jnt-cargo.png',
+  jtcargo: 'jnt-cargo.png',
+  lalamove: 'lalamove.png',
+  lion: 'lion.png',
+  lionparcel: 'lion.png',
+  ncs: 'ncs.png',
+  ninja: 'ninja.png',
+  ninja_inter: 'ninja-inter.png',
+  paxel: 'paxel.png',
+  pos: 'pos.png',
+  posindonesia: 'pos.png',
+  rpx: 'rpx.png',
+  sap: 'sap.png',
+  sapx: 'sap.png',
+  sentral: 'sentral.png',
+  sentral_cargo: 'sentral.png',
+  shopee_express: 'shopee-express.png',
+  sicepat: 'sicepat.png',
+  spx: 'shopee-express.png',
+  tiki: 'tiki.png',
 };
+
+export function courierAssetUrl(file: string, moduleUrl = import.meta.url): string {
+  // Vite puts shared chunks in dist/assets and entry modules directly in dist.
+  // Keep the base dynamic so Vite does not copy/rewrite the shared PNG artwork.
+  const runtimeBase = moduleUrl;
+  const relativeRoot = new URL(runtimeBase).pathname.includes('/assets/admin/dist/assets/')
+    ? '../../../buyer/img/couriers/'
+    : '../../buyer/img/couriers/';
+  return new URL(relativeRoot + file, runtimeBase).href;
+}
+
+export const courierImages: Record<string, string> = Object.fromEntries(
+  Object.entries(courierFiles).map(([code, file]) => [code, courierAssetUrl(file)]),
+);
 
 const courierAliases: Record<string, string> = {
   'grab express': 'grab_express',

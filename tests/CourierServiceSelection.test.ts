@@ -9,6 +9,8 @@ import {
   setAllServices,
   courierSelection,
   hasSelection,
+  courierDeliveryType,
+  supportedCourier,
   type Courier,
   type CourierPayload,
 } from '../src/lib/couriers/selection';
@@ -146,7 +148,7 @@ describe('courier service selection', () => {
     expect(toggleCourier(disabled, couriers[0], true).selection).toEqual(state.selection);
     expect(selectionPayload(disabled.selection, couriers).service_selection).toBe('{}');
   });
-  test('wildcard expands and unsupported instant/international couriers are excluded', () => {
+  test('wildcard expands and saved Instant choices remain editable while international is excluded', () => {
     expect(load({ jne: ['*', 'OLD'] }).state.selection).toEqual({ jne: ['REG', 'YES', 'OLD'] });
     const result = initializeSelection({
       couriers: [
@@ -156,7 +158,114 @@ describe('courier service selection', () => {
       whitelist_ids: [],
       service_selection: { jne: ['REG'], gosend: ['*'], other: ['*'] },
     });
-    expect(result.state.selection).toEqual({ jne: ['REG'] });
-    expect(result.couriers).toHaveLength(1);
+    expect(result.state.selection).toEqual({ jne: ['REG'], gosend: ['*'] });
+    expect(result.couriers).toHaveLength(2);
+    expect(result.couriers[1].unavailable).toBe(true);
+    expect(courierDeliveryType(result.couriers[1])).toBe('instant');
+  });
+  test('legacy unrestricted and CSV policies never automatically activate Instant', () => {
+    const couriers: Courier[] = [
+      ...catalog,
+      {
+        code: 'grab_express',
+        name: 'Grab Express',
+        type: 'instant',
+        services: [{ code: 'instant', name: 'Instant' }],
+      },
+    ];
+    for (const whitelist_ids of [[], ['jne', 'grab_express']]) {
+      const result = initializeSelection({ couriers, whitelist_ids, service_selection: null });
+      expect(result.state.selection).toEqual({ jne: ['REG', 'YES'] });
+      expect(result.couriers).toHaveLength(2);
+    }
+  });
+  test('Instant children persist independently of Express selections and tab-local bulk changes', () => {
+    const couriers: Courier[] = [
+      ...catalog,
+      {
+        code: 'grab_express',
+        name: 'Grab Express',
+        delivery_type: 'instant',
+        services: [
+          { code: 'instant', name: 'Instant' },
+          { code: 'same_day', name: 'Same Day' },
+        ],
+      },
+    ];
+    const result = initializeSelection({
+      couriers,
+      whitelist_ids: [],
+      service_selection: { jne: ['REG'], grab_express: ['instant'] },
+    });
+    const instant = result.couriers.filter((courier) => courierDeliveryType(courier) === 'instant');
+    const disabled = setAllServices(result.state, instant, false);
+    expect(disabled.selection).toEqual({ jne: ['REG'] });
+    expect(result.state.selection).toEqual({ jne: ['REG'], grab_express: ['instant'] });
+    expect(toggleCourier(disabled, instant[0], true).selection).toEqual(result.state.selection);
+    const enabled = setAllServices(disabled, instant, true);
+    expect(enabled.selection).toEqual({ jne: ['REG'], grab_express: ['instant', 'same_day'] });
+    const reloaded = initializeSelection({
+      couriers,
+      whitelist_ids: [],
+      service_selection: JSON.parse(
+        selectionPayload(enabled.selection, couriers).service_selection,
+      ),
+    });
+    expect(reloaded.state.selection).toEqual(enabled.selection);
+  });
+  test('missing Instant children do not invent wildcard services or enable an empty courier', () => {
+    const result = initializeSelection({
+      couriers: [{ code: 'gosend', name: 'GoSend', type: 'instant', services: [] }],
+      whitelist_ids: [],
+      service_selection: null,
+    });
+    expect(result.couriers[0].services).toEqual([]);
+    expect(setAllServices(result.state, result.couriers, true).selection).toEqual({});
+    expect(supportedCourier({ code: 'unknown', type: 'instant' })).toBe(false);
+    expect(supportedCourier({ code: 'borzo', region: 'international' })).toBe(false);
+    expect(supportedCourier({ code: 'gosend' })).toBe(true);
+  });
+  test('retired Borzo is rejected even without Instant metadata or with saved choices', () => {
+    for (const code of ['borzo', ' Borzo ']) {
+      expect(supportedCourier({ code })).toBe(false);
+      expect(supportedCourier({ code, type: 'instant' })).toBe(false);
+      for (const service_selection of [null, { [code]: ['*', 'INSTANT'] }, { [code]: [] }]) {
+        const result = initializeSelection({
+          couriers: [...catalog, { code, name: 'Borzo', services: [{ code: 'INSTANT', name: 'Instant' }] }],
+          whitelist_ids: [code],
+          service_selection,
+        });
+        expect(result.couriers.map((courier) => courier.code)).toEqual(['jne']);
+        expect(result.state.selection).toEqual({});
+        expect(result.state.remembered).toEqual({});
+      }
+      expect(load({ jne: ['REG'], [code]: ['INSTANT'] }).state.selection).toEqual({ jne: ['REG'] });
+    }
+  });
+  test('unsupported-only legacy restrictions do not become unrestricted Express shipping', () => {
+    const result = initializeSelection({
+      couriers: catalog,
+      whitelist_ids: [],
+      service_selection: null,
+      legacy_restricted: true,
+    });
+    expect(result.state.selection).toEqual({});
+    expect(load(null).state.selection).toEqual({ jne: ['REG', 'YES'] });
+  });
+  test('removed unavailable services cannot be newly enabled through switches or bulk actions', () => {
+    const result = load({ jne: ['REG', 'OLD'], retired: ['RETIRED'] });
+    const removed = toggleService(result.state, result.couriers[0], 'OLD', false);
+    expect(toggleService(removed, result.couriers[0], 'OLD', true).selection).toEqual(
+      removed.selection,
+    );
+    expect(setAllServices(removed, result.couriers, true).selection).toEqual({
+      jne: ['REG', 'YES'],
+      retired: ['RETIRED'],
+    });
+    const allRemoved = setAllServices(result.state, result.couriers, false);
+    expect(setAllServices(allRemoved, result.couriers, true).selection).toEqual({
+      jne: ['REG', 'YES'],
+    });
+    expect(toggleCourier(allRemoved, result.couriers[1], true).selection.retired ?? []).toEqual([]);
   });
 });

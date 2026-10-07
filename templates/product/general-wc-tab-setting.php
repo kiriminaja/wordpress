@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="kj-wc-general-shipping">
     <?php 
+    wp_nonce_field( KIRIOF_NONCE, 'kiriof_product_nonce_field' );
     $kiriof_weight_unit = get_option('woocommerce_weight_unit');
     $kiriof_dimension_unit = get_option('woocommerce_dimension_unit');
 

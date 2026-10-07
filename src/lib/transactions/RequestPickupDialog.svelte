@@ -1,14 +1,16 @@
 <script lang="ts">
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Field from '$lib/components/ui/field';
-  import * as InputOTP from '$lib/components/ui/input-otp';
-  import { REGEXP_ONLY_DIGITS } from 'bits-ui';
-  import * as RadioGroup from '$lib/components/ui/radio-group';
+  import CreditPinInput from '$lib/payments/CreditPinInput.svelte';
+  import PaymentMethodSelector from '$lib/payments/PaymentMethodSelector.svelte';
+  import ShipmentSummarySkeleton from '$lib/payments/ShipmentSummarySkeleton.svelte';
+  import ShipmentOperationProgress from '$lib/payments/ShipmentOperationProgress.svelte';
+  import { Spinner } from '$lib/components/ui/spinner';
+  import type { PaymentMethodOption } from '$lib/payments/types';
   import { onDestroy, untrack } from 'svelte';
   import { createPickupDates, pickupFlag, requiresPickupPayment, type PickupDate } from './pickup-schedule';
   import KiriofSelect from '$lib/ui/KiriofSelect.svelte';
   import { Button } from '$lib/components/ui/button';
-  import { IconCreditCard, IconLoader2, IconQrcode } from '@tabler/icons-svelte';
 
   type Summary = { count_non_cod?: number | string; sum_fee_cod?: number | string; sum_fee_non_cod?: number | string };
   type ApiResult = { status?: number; message?: string; data?: Record<string, any> };
@@ -39,7 +41,7 @@
   let creditEnabled = $state(false);
   let creditAvailable = $state(false);
   let hasPin = $state(false);
-  let creditBalance = $state(0);
+  let creditBalance = $state<number | null>(null);
   let qrisDisabled = $state(false);
   let pin = $state('');
   let errorMessage = $state('');
@@ -53,25 +55,27 @@
       (!paymentRequired || Boolean(paymentMethod))
   );
   const canSubmitPin = $derived(phase === 'pin' && /^\d{6}$/.test(pin));
-  const paymentOptions = $derived(
+  const paymentOptions = $derived<PaymentMethodOption[]>(
     paymentRequired
       ? [
           ...(creditEnabled
             ? [
                 {
-                  value: 'credit',
+                  value: 'credit' as const,
                   title: 'KA Credit',
-                  description: creditAvailable
-                    ? label('creditDescription', `Remaining Credit ${money(creditBalance)}`)
-                    : hasPin
-                      ? label('creditInsufficient', 'Insufficient credit balance for this pickup.')
-                      : label('creditNoPin', 'Set a PIN on your KiriminAja profile to pay with credit.'),
-                  icon: IconCreditCard,
+                  description: !hasPin
+                    ? label('creditNoPin', 'Set a PIN on your KiriminAja profile to pay with credit.')
+                    : creditBalance === null
+                      ? label('creditUnavailable', 'Unable to verify credit balance.')
+                      : !creditAvailable
+                        ? label('creditInsufficient', 'Insufficient credit balance for this pickup.')
+                        : '',
+                  balance: creditBalance,
                   disabled: !creditAvailable,
                 },
               ]
             : []),
-          { value: 'qris', title: 'QRIS', description: label('qrisDescription', 'Maximum Transaction Rp10.000.000'), icon: IconQrcode, disabled: qrisDisabled },
+          { value: 'qris', title: 'QRIS', description: label('qrisDescription', 'Maximum Transaction Rp10.000.000'), disabled: qrisDisabled },
         ]
       : [],
   );
@@ -80,6 +84,13 @@
 
   function label(key: string, fallback: string): string {
     return i18n[key] || fallback;
+  }
+
+  function parseCreditBalance(value: unknown): number | null {
+    if (typeof value !== 'number' && typeof value !== 'string') return null;
+    if (typeof value === 'string' && !/^\d+(?:\.\d+)?$/.test(value.trim())) return null;
+    const amount = Number(value);
+    return Number.isFinite(amount) && amount >= 0 ? amount : null;
   }
 
   const selectedDateOption = $derived(pickupDates.find((date) => date.value === selectedDate));
@@ -137,7 +148,7 @@
     creditEnabled = false;
     creditAvailable = false;
     hasPin = false;
-    creditBalance = 0;
+    creditBalance = null;
     qrisDisabled = false;
     pin = '';
 
@@ -157,11 +168,20 @@
       qrisDisabled = totalFee > 10000000;
 
       if (paymentRequired && creditEnabled) {
-        const balanceResult = await call('kiriof_get_credit_balance', { nonce }, false);
-        if (current !== loadId || !open) return;
-        const balanceData = balanceResult.data || {};
-        creditBalance = Number(balanceData.balance || 0);
-        creditAvailable = balanceResult.status === 200 && hasPin && creditBalance >= totalFee;
+        try {
+          // call() unwraps WordPress's data envelope; the service's data contains balance.
+          const balanceResult = await call('kiriof_get_credit_balance', { nonce }, false);
+          if (current !== loadId || !open) return;
+          creditBalance = Number(balanceResult.status) === 200
+            ? parseCreditBalance(balanceResult.data?.balance)
+            : null;
+          creditAvailable = hasPin && creditBalance !== null && creditBalance >= totalFee;
+        } catch {
+          if (current !== loadId || !open) return;
+          // A failed balance lookup must not invent a zero or prevent paying with QRIS.
+          creditBalance = null;
+          creditAvailable = false;
+        }
       }
 
       if (paymentRequired) {
@@ -225,6 +245,13 @@
     if (!submitting) open = false;
   }
 
+  function backToSummary(): void {
+    if (submitting) return;
+    pin = '';
+    errorMessage = '';
+    phase = 'schedule';
+  }
+
   $effect(() => {
     const identity = open ? orderIds.join('|') : '';
     if (identity) untrack(() => void load());
@@ -237,44 +264,22 @@
   <Dialog.Content class="kiriof-shadcn kiriof-transaction-dialog-content max-w-xl" showCloseButton={!submitting} escapeKeydownBehavior={submitting ? 'ignore' : 'close'} interactOutsideBehavior={submitting ? 'ignore' : 'close'} aria-busy={submitting}>
     <Dialog.Header>
       <Dialog.Title>{label('schedulePickupTitle', 'Schedule for Pickup')}</Dialog.Title>
-      <Dialog.Description>
+      <Dialog.Description class="m-0">
         {label('schedulePickupDescription', 'Choose a pickup date and time for the selected transactions.')}
       </Dialog.Description>
     </Dialog.Header>
 
+    {#if submitting}<ShipmentOperationProgress label={label('processing', 'Processing…')} />{/if}
     {#if phase === 'loading'}
-      <div class="flex min-h-32 items-center justify-center text-sm text-muted-foreground" aria-live="polite">
-        <IconLoader2 class="size-5 animate-spin" aria-hidden="true" />
-        {label('loading', 'Loading…')}
-      </div>
+      <ShipmentSummarySkeleton variant="express" label={label('loading', 'Loading…')} />
     {:else if phase === 'error'}
       <div class="flex flex-col gap-3" role="alert">
-        <p class="text-sm text-destructive">{errorMessage}</p>
+        <p class="m-0 text-sm text-destructive">{errorMessage}</p>
         <Button class="kiriof-dialog-secondary" variant="outline" onclick={load}>{label('retry', 'Retry')}</Button>
       </div>
     {:else if phase === 'pin'}
-      <Field.FieldGroup>
-        <Field.Field>
-          <Field.FieldLabel for="kiriof-pickup-pin">{label('enterPin', 'Enter PIN')}</Field.FieldLabel>
-          <InputOTP.Root inputId="kiriof-pickup-pin" type="password" bind:value={pin} disabled={submitting} maxlength={6} pattern={REGEXP_ONLY_DIGITS} inputmode="numeric" autocomplete="one-time-code" aria-label={label('enterPin', 'Enter PIN')} aria-describedby="kiriof-pickup-pin-help">
-            {#snippet children({ cells })}
-              <InputOTP.Group>
-                {#each cells.slice(0, 3) as cell, index (index)}
-                  <InputOTP.Slot {cell} mask />
-                {/each}
-              </InputOTP.Group>
-              <InputOTP.Separator />
-              <InputOTP.Group>
-                {#each cells.slice(3, 6) as cell, index (index)}
-                  <InputOTP.Slot {cell} mask />
-                {/each}
-              </InputOTP.Group>
-            {/snippet}
-          </InputOTP.Root>
-          <Field.FieldDescription id="kiriof-pickup-pin-help">{label('pinDescription', 'Enter the 6-digit PIN configured on your profile.')}</Field.FieldDescription>
-        </Field.Field>
-      </Field.FieldGroup>
-      {#if errorMessage}<p class="text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
+      <CreditPinInput id="kiriof-pickup-pin" bind:value={pin} disabled={submitting} invalid={Boolean(errorMessage)} label={label('enterPin', 'Enter PIN')} description={label('pinDescription', 'Enter the 6-digit PIN configured on your profile.')} />
+      {#if errorMessage}<p class="m-0 text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
     {:else}
       <Field.FieldGroup>
         <div class="kiriof-pickup-summary grid gap-2 rounded-lg border p-3 text-sm">
@@ -296,32 +301,25 @@
         </Field.FieldGroup>
 
         {#if paymentRequired && paymentOptions.length >= 1}
-          <Field.Field>
-            <Field.FieldLabel>{label('paymentMethod', 'Choose Payment Method')}<span class="text-destructive">*</span></Field.FieldLabel>
-            <RadioGroup.Root bind:value={paymentMethod} disabled={submitting} class="kiriof-payment-methods">
-              {#each paymentOptions as option (option.value)}
-                {@const PaymentIcon = option.icon}
-                <label class="kiriof-payment-method-card" class:is-selected={paymentMethod === option.value} class:is-disabled={option.disabled} aria-disabled={option.disabled ? 'true' : undefined}>
-                  <span class="kiriof-payment-method-card__icon"><PaymentIcon /></span>
-                  <span class="kiriof-payment-method-card__copy"><strong>{option.title}</strong><span>{option.description}</span></span>
-                  <RadioGroup.Item value={option.value} aria-label={option.title} disabled={submitting || option.disabled} />
-                </label>
-              {/each}
-            </RadioGroup.Root>
-          </Field.Field>
+          <PaymentMethodSelector idPrefix="pickup-method" bind:value={paymentMethod} options={paymentOptions} label={label('paymentMethod', 'Choose Payment Method')} balanceLabel={label('creditDescription', 'Remaining Credit')} disabled={submitting} required />
         {:else}
-          {#if !paymentRequired}<p class="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{label('noPaymentRequired', 'No payment method is required for this pickup.')}</p>{/if}
+          {#if !paymentRequired}<p class="m-0 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{label('noPaymentRequired', 'No payment method is required for this pickup.')}</p>{/if}
         {/if}
       </Field.FieldGroup>
-      {#if errorMessage}<p class="text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
+      {#if errorMessage}<p class="m-0 text-sm text-destructive" role="alert">{errorMessage}</p>{/if}
     {/if}
 
     <Dialog.Footer>
-      <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={close}>{label('close', 'Close')}</Button>
       {#if phase === 'pin'}
-        <Button class="kiriof-dialog-primary" onclick={submit} loading={submitting} disabled={!canSubmitPin}>{submitting ? label('processing', 'Processing…') : label('confirmPickup', 'Confirm & Process')}</Button>
+        <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={backToSummary}>{label('instantBackSummary', 'Back to Summary')}</Button>
+      {:else}
+        <Button class="kiriof-dialog-secondary" variant="ghost" disabled={submitting} onclick={close}>{label('close', 'Close')}</Button>
+      {/if}
+      {#if phase === 'pin'}
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={submitting || !canSubmitPin}>{#if submitting}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}{submitting ? label('processing', 'Processing…') : label('confirmPickup', 'Confirm & Process')}</Button>
       {:else if phase === 'schedule'}
-        <Button class="kiriof-dialog-primary" onclick={submit} loading={submitting} disabled={!canContinue || !pickupDates.length}>
+        <Button class="kiriof-dialog-primary" onclick={submit} disabled={submitting || !canContinue || !pickupDates.length}>
+          {#if submitting}<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />{/if}
           {submitting ? label('processing', 'Processing…') : label('continueToPayment', 'Continue to Payment')}
         </Button>
       {/if}

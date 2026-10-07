@@ -189,7 +189,7 @@ class SettingsPageData {
 				'loadFailed' => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
 				'saveFailed' => __( 'Could not save courier settings.', 'kiriminaja-official' ),
 				/* translators: %1$s: enabled couriers, %2$s: total couriers. */
-				'count'      => _x( '%1$s of %2$s enabled', 'courier enabled count', 'kiriminaja-official' ),
+				'count'      => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
 				/* translators: %1$s: enabled services, %2$s: total services. */
 				'serviceCount' => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
 				/* translators: %s: courier name. */

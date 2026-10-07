@@ -37,14 +37,6 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         if ( ! $force && $this->isRefreshPending() ) {
-            kiriof_log(
-                'info',
-                'Region cache refresh scheduling was skipped because a refresh job is already pending.',
-                array(
-                    'source' => 'kiriminaja_import',
-                    'force'  => $force,
-                )
-            );
             return false;
         }
 
@@ -57,15 +49,6 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
         $this->updateStatus( 'scheduled' );
         wp_schedule_single_event( time(), self::CRON_HOOK );
-
-        kiriof_log(
-            'notice',
-            'Region cache refresh was scheduled.',
-            array(
-                'source' => 'kiriminaja_import',
-                'force'  => $force,
-            )
-        );
 
         return true;
     }
@@ -94,13 +77,6 @@ class ShippingDiscountRegionCacheService extends BaseService {
 
     public function refreshAll() {
         $this->updateStatus( 'running' );
-        kiriof_log(
-            'notice',
-            'Region cache refresh started.',
-            array(
-                'source' => 'kiriminaja_import',
-            )
-        );
 
         // Allow enough time for sequential API calls across all provinces.
         if ( function_exists( 'set_time_limit' ) ) {
@@ -198,17 +174,6 @@ class ShippingDiscountRegionCacheService extends BaseService {
             'province_count' => $regionRepo->getProvinceCount(),
             'city_count' => $regionRepo->getCityCount(),
             'updated_at' => $regionRepo->getLatestUpdatedAt(),
-        );
-
-        kiriof_log(
-            'notice',
-            'Region cache refresh completed successfully.',
-            array_merge(
-                array(
-                    'source' => 'kiriminaja_import',
-                ),
-                $result
-            )
         );
 
         return self::success(
@@ -413,16 +378,6 @@ class ShippingDiscountRegionCacheService extends BaseService {
         foreach ( $citiesByProvince as $pid => $cities ) {
             $regionRepo->upsertCities( $pid, $cities );
         }
-
-        kiriof_log(
-            'notice',
-            'Bundled region data fallback loaded province and city records successfully.',
-            array(
-                'source'         => 'kiriminaja_import',
-                'province_count' => $regionRepo->getProvinceCount(),
-                'city_count'     => $regionRepo->getCityCount(),
-            )
-        );
 
         return self::success(
             array(

@@ -14,6 +14,7 @@ use KiriminAjaOfficial\Services\TransactionProcessServices\ValidatePinService;
 use KiriminAjaOfficial\Contracts\DatabaseTransactionManagerInterface;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\CheckoutServiceFactory;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 class TransactionProcessController
 {
@@ -155,6 +156,12 @@ class TransactionProcessController
                 ? sanitize_text_field(wp_unslash($_POST['data']['pin']))
                 : ''
             );
+            $preflight_error = $this->requestPickupService->orderIds( $order_ids )->expressPreflight();
+            if ( null !== $preflight_error ) {
+                wp_send_json_success( $preflight_error );
+                return;
+            }
+
             if ($payment_method === 'credit' && ! KIRIOF_ENABLE_KA_CREDIT) {
                 wp_send_json_success(
                     \KiriminAjaOfficial\Base\BaseService::error([], __('KA Credit is temporarily unavailable.', 'kiriminaja-official'))
@@ -229,6 +236,10 @@ class TransactionProcessController
             $transaction     = $transactionRepo->getTransactionByWCOrderId($order_id);
 
             if (! $transaction) {
+                return;
+            }
+
+            if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
                 return;
             }
 
@@ -386,7 +397,7 @@ class TransactionProcessController
             $order_details['kiriof_status_tone']    = kiriof_helper()->packageStatusTone((string) (@$transaction->status ?? ''));
         }
 
-        if (! empty($transaction->awb) && ! empty($transaction->order_id)) {
+        if ( 'express' === TransactionDeliveryType::resolve( $transaction ) && ! empty($transaction->awb) && ! empty($transaction->order_id)) {
             $print_url = admin_url('admin-post.php?action=kiriof_resi_print&oids=' . urlencode($transaction->order_id) . '&_wpnonce=' . wp_create_nonce('kiriof_resi_print'));
 
             $order_details['actions_html'] .= ' <a class="button button-large" href="' . esc_url($print_url) . '" target="_blank">' . esc_html__('Print', 'kiriminaja-official') . '</a>';
@@ -485,21 +496,25 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
-            $kiriof_location         = $kiriof_location_service->repository()->getById( $location_id );
-            if (empty( $kiriof_location ) || empty( $kiriof_location->is_active )) {
-                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Selected shipment location is not available.', 'kiriminaja-official' ) ) );
-                wp_die();
-            }
-
             $kiriof_transaction_repo = $this->transactionRepository;
             $kiriof_transaction      = $kiriof_transaction_repo->getTransactionByOrderId( $order_id );
             if (empty( $kiriof_transaction )) {
                 wp_send_json_error( array( 'status' => 404, 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
+            if ( 'instant' === TransactionDeliveryType::resolve( $kiriof_transaction ) ) {
+                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Instant origin changes are not available yet.', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
             if ('new' !== (string) $kiriof_transaction->status || ! empty( $kiriof_transaction->awb )) {
                 wp_send_json_error( array( 'status' => 422, 'message' => __( 'Origin can only be changed before pickup is requested.', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+
+            $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+            $kiriof_location         = $kiriof_location_service->repository()->getById( $location_id );
+            if (empty( $kiriof_location ) || empty( $kiriof_location->is_active )) {
+                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Selected shipment location is not available.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
 
@@ -694,21 +709,25 @@ class TransactionProcessController
                 wp_die();
             }
 
-            $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
-            $kiriof_location         = $kiriof_location_service->repository()->getById( $location_id );
-            if (empty( $kiriof_location ) || empty( $kiriof_location->is_active )) {
-                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Selected shipment location is not available.', 'kiriminaja-official' ) ) );
-                wp_die();
-            }
-
             $kiriof_transaction_repo = $this->transactionRepository;
             $kiriof_transaction      = $kiriof_transaction_repo->getTransactionByOrderId( $order_id );
             if (empty( $kiriof_transaction )) {
                 wp_send_json_error( array( 'status' => 404, 'message' => __( 'Transaction not found.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
+            if ( 'instant' === TransactionDeliveryType::resolve( $kiriof_transaction ) ) {
+                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Instant origin changes are not available yet.', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
             if ('new' !== (string) $kiriof_transaction->status || ! empty( $kiriof_transaction->awb )) {
                 wp_send_json_error( array( 'status' => 422, 'message' => __( 'Origin can only be changed before pickup is requested.', 'kiriminaja-official' ) ) );
+                wp_die();
+            }
+
+            $kiriof_location_service = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+            $kiriof_location         = $kiriof_location_service->repository()->getById( $location_id );
+            if (empty( $kiriof_location ) || empty( $kiriof_location->is_active )) {
+                wp_send_json_error( array( 'status' => 422, 'message' => __( 'Selected shipment location is not available.', 'kiriminaja-official' ) ) );
                 wp_die();
             }
 

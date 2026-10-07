@@ -4,10 +4,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/helpers/legacy-checkout-source.php';
+
 final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     #[Test]
     #[DataProvider( 'countryPairs' )]
-    public function native_fields_and_district_follow_each_address_country( string $billing, string $shipping ): void {
+    public function native_fields_remain_unchanged_and_district_follows_each_address_country( string $billing, string $shipping ): void {
         $result = $this->runFixture( array(
             'action' => 'fields',
             'post' => array( 'billing_country' => $billing, 'shipping_country' => $shipping, 'ship_to_different_address' => '1' ),
@@ -48,7 +50,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     #[Test]
     #[DataProvider( 'countryPairs' )]
-    public function custom_required_company_is_preserved_only_for_foreign_addresses( string $billing, string $shipping ): void {
+    public function custom_required_company_is_preserved_for_every_country( string $billing, string $shipping ): void {
         $result = $this->runFixture( array(
             'action' => 'fields',
             'post' => array( 'billing_country' => $billing, 'shipping_country' => $shipping ),
@@ -58,6 +60,29 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
             ),
         ) );
         $this->assertAddressFields( $result, $billing, $shipping );
+    }
+
+    #[Test]
+    public function city_and_province_use_adjacent_native_rows_and_preserve_theme_metadata(): void {
+        $overrides = array();
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $overrides[ $group ] = array(
+                $group . '_city' => array( 'priority' => 70, 'class' => array( 'form-row-wide', 'address-field', 'theme-city' ) ),
+                $group . '_state' => array( 'priority' => 90, 'class' => array( 'form-row-wide', 'address-field', 'theme-province' ) ),
+            );
+        }
+        $result = $this->runFixture( array(
+            'action' => 'fields',
+            'post' => array( 'billing_country' => 'ID', 'shipping_country' => 'US' ),
+            'field_overrides' => $overrides,
+        ) );
+        $this->assertAddressFields( $result, 'ID', 'US' );
+        foreach ( array( 'billing', 'shipping' ) as $group ) {
+            $this->assertSame( 70, $result['fields'][ $group ][ $group . '_city' ]['priority'] );
+            $this->assertSame( 71, $result['fields'][ $group ][ $group . '_state' ]['priority'] );
+            $this->assertContains( 'theme-city', $result['fields'][ $group ][ $group . '_city' ]['class'] );
+            $this->assertContains( 'theme-province', $result['fields'][ $group ][ $group . '_state' ]['class'] );
+        }
     }
 
     #[Test]
@@ -74,19 +99,19 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     #[Test]
     public function classic_district_script_uses_edited_address_and_updates_label_before_calculation_guard(): void {
-        $script = file_get_contents( dirname( __DIR__ ) . '/assets/wp/js/form-billing-address.js' );
+        $script = kiriof_legacy_checkout_source();
         $change = substr( $script, strpos( $script, 'function changeDistrict(){' ) );
-        $change = substr( $change, 0, strpos( $change, 'jQuery.ajax({' ) );
-        $this->assertStringContainsString( "let addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';", $change );
+        $change = substr( $change, 0, strpos( $change, 'function getSearchAreaKelurahan()' ) );
+        $this->assertStringContainsString( "var addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';", $change );
         $this->assertStringNotContainsString( "let addressType = different_address", $change );
-        $this->assertStringContainsString( 'let country = kiriofGetClassicAddressCountry(addressType);', $change );
-        $this->assertStringContainsString( "jQuery('#' + addressType + '_country').val()", $script );
-        $label = strpos( $change, 'kiriofSetClassicDistrictLabel(root, selectedDistrictLabel, different_address);' );
-        $guard = strpos( $change, 'if (kiriofBillingAddressConfig.isCheckout && addressType !== destinationAddressType) {' );
+        $this->assertStringContainsString( 'var country = kiriofGetClassicAddressCountry(addressType);', $change );
+        $this->assertStringContainsString( "jQuery('#' + addressType + '_country')", $script );
+        $label = strpos( $change, 'kiriofSetClassicDistrictLabel(root, label, differentAddress);' );
+        $guard = strpos( $change, "if (kiriofBillingAddressConfig.isCheckout && addressType !== (differentAddress ? 'shipping' : 'billing')) {" );
         $this->assertNotFalse( $label );
         $this->assertNotFalse( $guard );
         $this->assertLessThan( $guard, $label, 'Inactive address edits must still update their district label.' );
-        $this->assertMatchesRegularExpression( '/addressType !== destinationAddressType\)\s*\{\s*return;/', $change );
+        $this->assertMatchesRegularExpression( "/addressType !== \\(differentAddress \\? 'shipping' : 'billing'\\)\\)\\s*\\{\\s*return;/", $change );
         $this->assertStringContainsString( "on('country_to_state_changing.kiriofClassicAddress updated_checkout.kiriofClassicAddress', kiriofSyncClassicAddressFields)", $script );
         $this->assertMatchesRegularExpression( '/function kiriofSyncClassicAddressFields\(\)\s*\{\s*if \(!kiriofBillingAddressConfig.isCheckout \|\| kiriofIsBlockCheckoutContext\(\)\)\s*\{\s*return;/', $script );
     }
@@ -107,24 +132,27 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     private function assertAddressFields( array $result, string $billing, string $shipping ): void {
         foreach ( array( 'billing' => $billing, 'shipping' => $shipping ) as $group => $country ) {
+            $phone = $result['fields'][ $group ][ $group . '_phone' ];
+            $this->assertSame( 91, $phone['priority'] );
+            $this->assertContains( 'form-row-last', $phone['class'] );
+            $this->assertTrue( $phone['required'] );
+            $this->assertSame( $result['original_fields'][ $group ][ $group . '_email' ], $result['fields'][ $group ][ $group . '_email' ], 'Email schema and validation remain native.' );
             foreach ( array( 'state', 'city', 'company', 'postcode' ) as $native ) {
                 $key = $group . '_' . $native;
                 $this->assertArrayHasKey( $key, $result['fields'][ $group ], $key . ' must remain a native WooCommerce field.' );
                 $original = $result['original_fields'][ $group ][ $key ];
                 $field = $result['fields'][ $group ][ $key ];
-                $this->assertSame( 'ID' === $country ? false : $original['required'], $field['required'], $key );
-                $this->assertSame( 'ID' === $country, in_array( 'kiriof-classic-address-hidden', $field['class'], true ), $key );
-                $this->assertContains( 'kiriof-native-address-field', $field['class'], $key );
-                foreach ( $original['class'] as $class ) {
-                    $this->assertContains( $class, $field['class'], $key . ' must retain locale classes.' );
+                if ( 'company' !== $native ) {
+                    $side = 'state' === $native ? 'form-row-last' : 'form-row-first';
+                    $priority = array( 'city' => 70, 'state' => 71, 'postcode' => 90 );
+                    $this->assertContains( $side, $field['class'] );
+                    $this->assertSame( $priority[ $native ], $field['priority'] );
+                    $this->assertFalse( $field['clear'] );
+                    $original['class'] = array_values( array_diff( $original['class'] ?? array(), array( 'form-row-wide', 'form-row-first', 'form-row-last' ) ) );
+                    $field['class'] = array_values( array_diff( $field['class'], array( 'form-row-wide', 'form-row-first', 'form-row-last' ) ) );
+                    unset( $original['priority'], $field['priority'], $original['clear'], $field['clear'] );
                 }
-                foreach ( array( 'type', 'label', 'validate', 'priority' ) as $attribute ) {
-                    $this->assertSame( $original[ $attribute ], $field[ $attribute ], $key . ':' . $attribute );
-                }
-                foreach ( $original['custom_attributes'] as $attribute => $value ) {
-                    $this->assertSame( $value, $field['custom_attributes'][ $attribute ], $key . ':' . $attribute );
-                }
-                $this->assertSame( $original['required'] ? '1' : '0', $field['custom_attributes']['data-kiriof-required'], $key );
+                $this->assertSame( $original, $field, $key . ' must retain native validation and non-layout metadata.' );
             }
             $countryKey = $group . '_country';
             $this->assertSame( $result['original_fields'][ $group ][ $countryKey ], $result['fields'][ $group ][ $countryKey ], 'Country field must be untouched.' );
@@ -170,7 +198,8 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     #[DataProvider( 'normalizationCases' )]
     public function normalization_only_populates_indonesian_destinations( array $post, array $session, array $checkout, array $expected ): void {
         $result = $this->runFixture( array( 'action' => 'normalize', 'post' => $post, 'session' => $session, 'checkout_values' => $checkout ) );
-        $this->assertSame( $expected, $result['post'] );
+        // Legacy session history must not populate final posted fields or revive clears.
+        $this->assertSame( $post, $result['post'] );
     }
 
     public static function normalizationCases(): array {
@@ -219,7 +248,7 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
 
     public static function validationCases(): array {
         $required = array(
-            '<strong>District</strong> is a required field',
+            '<strong>Subdistrict</strong> is a required field',
             '<strong>Shipping</strong> is a required field',
             '<strong>Checkout Calculation</strong> is not finished yet',
         );
