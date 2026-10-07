@@ -8,7 +8,7 @@
     "dev": "vite --host 127.0.0.1",
     "format": "oxfmt src vite.config.ts vite.buyer.config.ts svelte.config.js package.json components.json scripts/build-buyer.mjs scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
     "format:check": "oxfmt --check src vite.config.ts vite.buyer.config.ts svelte.config.js package.json components.json scripts/build-buyer.mjs scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
-    "frontend:check": "bun run build:buyer && bun run format:check && bun run lint && bun run check && bun run check:utility-first && bun run check:tailwind-apply && bun run check:semantic-style-tokens && bun run test:payments && bun run test:buyer && bun run test:instant",
+    "frontend:check": "bun run build:buyer && bun run format:check && bun run lint && bun run check && bun run check:utility-first && bun run check:tailwind-apply && bun run check:semantic-style-tokens && bun run test:payments && bun run test:buyer && bun run test:instant && bun run test:transactions",
     "test:instant": "bun test --timeout 20000 tests/InstantProcessSession.test.ts tests/InstantProcessDialogRuntime.test.ts tests/InstantPaymentPoller.test.ts tests/InstantRouteMapRuntime.test.ts tests/InstantOperationDialogRuntime.test.ts tests/RequestPickupDialogRuntime.test.ts",
     "test:payments": "bun test --timeout 20000 tests/ScanToPaySession.test.ts tests/PaymentDeepLink.test.ts tests/InstantScanToPayDialogRuntime.test.ts tests/DateRangeFilterRuntime.test.ts",
     "test:buyer": "bun test tests/ShippingSelection.test.ts tests/CourierImages.test.ts tests/BuyerBuildAssets.test.ts tests/LegacyCheckoutModules.test.ts tests/ClassicCheckoutAdapter.test.ts tests/ClassicDistrictSync.test.ts tests/ClassicCheckoutAssets.test.ts tests/ClassicNativeAddressFields.test.ts tests/BuyerCheckoutSession.test.ts tests/BuyerCheckoutAdapter.test.ts tests/MapCheckout.test.ts tests/AddressPresentation.test.ts tests/BuyerAddressCardUi.test.ts tests/AccountShippingDestination.test.ts tests/BlockCouponNotice.test.ts tests/BuyerStateModules.test.ts tests/MapProviderConfig.test.ts tests/BuyerBlocksModules.test.ts tests/BuyerComboboxRuntime.test.ts tests/BuyerPinRuntime.test.ts tests/BuyerTrackingRuntime.test.ts && oxlint assets/buyer/js/checkout/shipping-options.js blocks/checkout-district/edit.js blocks/map-checkout/edit.js --deny-warnings",
@@ -19,7 +19,8 @@
     "check:tailwind-apply": "node scripts/check-tailwind-apply.mjs",
     "check:semantic-style-tokens": "node scripts/check-semantic-style-tokens.mjs",
     "build:admin": "vite build",
-    "build:buyer": "node scripts/build-buyer.mjs"
+    "build:buyer": "node scripts/build-buyer.mjs",
+    "test:transactions": "bun test tests/TransactionPendingCounts.test.ts"
   },
   "dependencies": {
     "@svelte-put/qr": "^2.1.3",

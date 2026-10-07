@@ -2,6 +2,7 @@
 namespace KiriminAjaOfficial\Repositories;
 
 use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
+use KiriminAjaOfficial\Queries\WordPressTransactionBadgeQuery;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
 
 // Exit if accessed directly
@@ -729,7 +730,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->getTransactionByOrderIds($orderIds);
     }
     public function getCountTransactionProcessNew(){
-        return $this->getCountByPostStatus( 'wc-processing' );
+        return ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts()['total'];
     }
 
     /**
