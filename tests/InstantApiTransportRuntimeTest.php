@@ -186,9 +186,32 @@ final class InstantApiTransportRuntimeTest extends TestCase {
 		$this->assertSame( 'abcd', (string) $stream ); $this->assertIsArray( $stream->getMetadata() );
 		$stream->seek( 3 ); $this->assertSame( 1, $stream->write( 'z' ) );
 		try { $stream->write( 'x' ); $this->fail( 'Must reject overflow.' ); } catch ( \RuntimeException $error ) { $this->assertSame( 4, $stream->getSize() ); }
-		$stream->seek( 100 );
-		try { $stream->write( 'x' ); $this->fail( 'Must reject sparse overflow.' ); } catch ( \RuntimeException $error ) { $this->assertSame( 4, $stream->getSize() ); }
 		$resource = $stream->detach(); $this->assertIsResource( $resource ); fclose( $resource );
 		try { new BoundedResponseStream( ( new Psr17Factory() )->createStream( 'too long' ), 4 ); $this->fail( 'Reject already oversized streams.' ); } catch ( \RuntimeException $error ) { $this->assertNotEmpty( $error->getMessage() ); }
+	}
+
+	public function test_stream_cap_rejects_sparse_file_write_before_storing_bytes(): void {
+		// PHP 8.1/8.2 memory streams reject seeks beyond EOF. A real temporary
+		// file supports sparse seeks on every supported runtime and tests our cap.
+		$resource = tmpfile();
+		$this->assertIsResource( $resource );
+		$stream = new BoundedResponseStream( ( new Psr17Factory() )->createStreamFromResource( $resource ), 4 );
+		try {
+			$this->assertSame( 4, $stream->write( 'abcd' ) );
+			$stream->seek( 100 );
+			$this->assertSame( 100, $stream->tell() );
+			try {
+				$stream->write( 'x' );
+				$this->fail( 'Must reject sparse overflow.' );
+			} catch ( \RuntimeException $error ) {
+				$this->assertSame( 'Instant response exceeds limit.', $error->getMessage() );
+				$this->assertSame( 4, $stream->getSize() );
+				$this->assertSame( 100, $stream->tell() );
+				$stream->rewind();
+				$this->assertSame( 'abcd', $stream->getContents() );
+			}
+		} finally {
+			$stream->close();
+		}
 	}
 }
