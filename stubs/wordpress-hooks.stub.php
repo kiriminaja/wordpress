@@ -83,3 +83,12 @@ function has_filter( string $hook_name, callable|string|array $callback ): int|f
  * @return false|positive-int
  */
 function has_action( string $hook_name, callable|string|array $callback ): int|false {}
+
+/**
+ * Add non-admin site pages using feed
+ *
+ * @param non-empty-string $hook_name
+ * @param callable         $callback
+ * @param positive-int     $priority
+ */
+function add_feed( string $hook_name, callable $callback, int $priority = 10 ): bool {}

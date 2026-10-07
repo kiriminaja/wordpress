@@ -197,6 +197,55 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function reloaded_raw_packages_keep_the_selected_quote_fee_and_transaction_snapshot(): void {
+        foreach (['reload_uniform_type' => 2, 'reload_mixed_type' => 7] as $scenario => $type) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertSame('', $r['processed_error'], $scenario);
+            $this->assertSame('KiriminAjaOfficial\\Services\\InstantCheckoutQuoteService', $r['production_quote_service']);
+            $this->assertSame($type, $r['reload']['quoted_package_type_id']);
+            $this->assertFalse($r['reload']['raw_package_has_type']);
+            $this->assertSame(['cart-key' => 2, 'other-key' => $type === 2 ? 2 : 3], $r['reload']['product_types']);
+            $this->assertTrue($r['reload']['fresh_rate']);
+            $this->assertTrue($r['reload']['fresh_session']);
+            $this->assertSame('kiriminaja-instant:4:gosend:GO-INSTANT', $r['reload']['selected_method']);
+            $this->assertNotEmpty($r['reload']['quote_token']);
+            $this->assertSame(1, $r['reload']['calls_after_quote']);
+            $this->assertSame(1, $r['reload']['calls_after_fees']);
+            $this->assertSame(1, $r['calls']);
+            $this->assertCount(1, $r['cart_fees']);
+            $this->assertSame(['id' => 'kiriof_instant_admin_fee', 'name' => 'Admin Fee', 'amount' => 1000, 'taxable' => false], $r['cart_fees']['kiriof_instant_admin_fee']);
+            $this->assertCount(1, $r['fee_lines']);
+            $this->assertSame(1000, $r['fee_lines'][0]['total']);
+            $this->assertSame(0, $r['fee_lines'][0]['tax']);
+            $this->assertSame('instant_admin_fee', $r['fee_lines'][0]['meta']['_kiriof_fee_type']);
+            $snapshot = $r['meta']['_kiriof_instant_checkout_snapshot'];
+            $this->assertSame($type, $snapshot['context']['package_type_id']);
+            $this->assertSame($r['reload']['quote_token'], $snapshot['rate']['quote_token']);
+            $this->assertSame(18000, $snapshot['rate']['shipping_costs']);
+            $this->assertSame(1000, $snapshot['rate']['admin_fee']);
+            $this->assertSame(19000, $snapshot['rate']['total_price']);
+            $this->assertSame('Buyer', $r['order_address']['first_name']);
+            $this->assertSame('081234567890', $r['order_address']['phone']);
+            $this->assertSame(['latitude' => '-6.3', 'longitude' => '106.9'], $r['meta']['_kiriof_buyer_destination_coordinates']);
+            $this->assertCount(1, $r['rows']);
+            $this->assertSame('instant', $r['rows'][0]['delivery_type']);
+            $this->assertSame('new', $r['rows'][0]['status']);
+            $this->assertSame('gosend', $r['rows'][0]['service']);
+            $this->assertSame('GO-INSTANT', $r['rows'][0]['service_name']);
+            $this->assertSame(18000, $r['rows'][0]['shipping_cost']);
+            $this->assertSame(150000, $r['rows'][0]['transaction_value']);
+            $shipping = json_decode($r['rows'][0]['shipping_info'], true);
+            $this->assertSame(1000, $shipping['_kiriof_instant_admin_fee']);
+            $this->assertSame(19000, $shipping['_kiriof_instant_shipping_total']);
+            $this->assertSame('081234567890', $shipping['_shipping_phone']);
+            $this->assertSame(1, $r['invoice_calls']);
+            $this->assertSame([], $r['locks']);
+            $this->assertSame([], $r['logs']);
+        }
+    }
+
+    #[Test]
     public function durable_receipts_recheck_shipping_tax_and_order_currency(): void {
         foreach (['processed_currency', 'processed_shipping_tax', 'durable_missing_currency'] as $scenario) {
             $r = $this->fixture($scenario);

@@ -61,6 +61,28 @@ final class InstantCheckoutStatusRuntimeTest extends TestCase {
         $this->assertStringNotContainsString( 'PRIVATE', json_encode( $schema ) );
     }
 
+    public function test_refresh_invalidates_fresh_request_cart_package_before_one_shipping_recalculation(): void {
+        $result = $this->fixture();
+        $this->assertSame( array(), $result['fresh_before']['initialized_packages'] );
+        $this->assertSame( 'old-token', $result['fresh_before']['rate']['token'] );
+        $session = $result['fresh_invalidated'];
+        $this->assertFalse( $session['shipping_for_package_7'] );
+        $this->assertSame( array(), $session['kiriof_instant_checkout_quotes'] );
+        $this->assertSame( array(), $session['kiriof_instant_checkout_status'] );
+        $this->assertSame( array( 'preserved-rate' ), $session['shipping_for_package_0'] );
+        $this->assertSame( 'unrelated', $session['shipping_for_package_99'] );
+        $this->assertSame( 0, $result['calculations_during_refresh'] );
+        $fresh = $result['fresh_recalculated'];
+        $this->assertSame( 1, $fresh['calculations'] );
+        $rate = array( 'token' => 'updated-token', 'fee' => 25000 );
+        $this->assertSame( array( $rate ), $fresh['packages'][7]['rates'] );
+        $this->assertSame( array( $rate ), $fresh['session']['shipping_for_package_7']['rates'] );
+        $this->assertSame( $rate, $fresh['session']['kiriof_instant_checkout_quotes']['current'] );
+        foreach ( array( 'chosen_shipping_methods', 'kiriof_chosen_shipping_methods' ) as $key ) {
+            $this->assertSame( array( 'kiriminaja-instant:11:gosend:instant' ), $fresh['session'][$key] );
+        }
+    }
+
     public function test_registered_sync_callback_refreshes_package_caches_and_preserves_native_selection_and_recipient(): void {
         $result = $this->fixture();
         $this->assertSame( 'kiriminaja-official', $result['callback_namespace'] );

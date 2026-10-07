@@ -47,6 +47,31 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function package_type_is_rebuilt_from_current_physical_products_for_quote_and_validation(): void {
+        foreach (['package_type_nondefault' => 3, 'package_type_explicit' => 3, 'package_type_stale' => 3, 'package_type_virtual' => 3, 'package_type_mixed' => 7, 'package_type_invalid' => 7, '' => 7] as $scenario => $type) {
+            $r = $this->runFixture(['scenario' => $scenario]);
+            $this->assertTrue($r['quote']['eligible'], $scenario);
+            $this->assertSame($type, $r['quote']['context']['package_type_id'], $scenario);
+            $this->assertSame('', $r['validation_error'], $scenario);
+            $this->assertSame($r['quote']['context'], $r['validated']['context'], $scenario);
+            $this->assertSame($r['quote'], $r['again'], $scenario);
+            $this->assertSame(1, $r['calls'], $scenario);
+        }
+    }
+
+    #[Test]
+    public function product_package_type_changes_invalidate_selection_even_with_stale_explicit_type(): void {
+        foreach (['mutate_package_type', 'mutate_package_type_stale', 'mutate_package_type_default', 'mutate_package_type_mixed'] as $scenario) {
+            $r = $this->runFixture(['scenario' => $scenario]);
+            $this->assertTrue($r['quote']['eligible'], $scenario);
+            $this->assertSame(3, $r['quote']['context']['package_type_id'], $scenario);
+            $this->assertNull($r['validated'], $scenario);
+            $this->assertSame('quote_expired_or_changed', $r['validation_error'], $scenario);
+            $this->assertSame(1, $r['calls'], $scenario);
+        }
+    }
+
+    #[Test]
     public function context_guards_fail_closed_without_api_calls(): void {
         foreach (['currency', 'packages', 'cod', 'disabled', 'credentials', 'settings_throw', 'no_pin', 'v1', 'country', 'stale_address', 'origin_bad', 'origin_missing', 'timezone_invalid', 'name', 'phone', 'postcode', 'virtual', 'weight_zero', 'dimensions_zero', 'overweight', 'quantity', 'negative_value'] as $scenario) {
             $r = $this->runFixture(['scenario' => $scenario]);

@@ -51,7 +51,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     return;
   }
   function restoreReviewedShipping(packages, chosen, busy) {
-    if (!shippingReview || busy || restoringShipping) return;
+    if (!shippingReview || busy || restoringShipping || nativeReviewTimer !== null) return;
     if (shippingReview.matches(chosen)) {
       restorationKey = '';
       return;
@@ -82,12 +82,38 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     if (!dispatch || typeof dispatch.selectShippingRate !== 'function') return;
     restorationKey = key;
     restoringShipping = true;
+    var generation = shippingIntentGeneration;
     // Restore only an existing exact reviewed ID after native refresh settles.
     // Missing/changed rates stay blocked; no plugin pricing/booking is triggered.
     var promise = Promise.resolve();
     differences.forEach(function (entry) {
       promise = promise.then(function () {
-        if (!api.disabled) return dispatch.selectShippingRate(entry.rate_id, entry.package_id);
+        // A queued restoration must never race Woo's newer native user choice.
+        var store = wp.data.select('wc/store/cart');
+        if (
+          api.disabled ||
+          generation !== shippingIntentGeneration ||
+          nativeReviewTimer !== null ||
+          store.isShippingRateBeingSelected() ||
+          store.isCustomerDataUpdating() ||
+          (store.hasPendingItemsOperations && store.hasPendingItemsOperations())
+        ) {
+          if (generation === shippingIntentGeneration) restorationKey = '';
+          return;
+        }
+        var latest = (store.getCartData() || {}).shippingRates || [];
+        var nativePackage = latest.find(function (pkg) {
+          return String(pkg.package_id) === entry.package_id;
+        });
+        if (
+          !nativePackage ||
+          !(nativePackage.shipping_rates || []).some(function (rate) {
+            return rate.rate_id === entry.rate_id;
+          })
+        )
+          return;
+        if (shippingReview.matches(selectedPackages(latest))) return;
+        return dispatch.selectShippingRate(entry.rate_id, nativePackage.package_id);
       });
     });
     promise
@@ -171,6 +197,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
   var nextDistrictId = 0;
   var shippingReview = createShippingSelection({
     onChange: function () {
+      if (capturingNativeShipping) return;
       publishShippingReview();
       notify();
     },
@@ -179,6 +206,15 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
   var shippingSelectionPendingId = 'kiriof-shipping-selection-pending';
   var restorationKey = '';
   var restoringShipping = false;
+  var shippingIntentGeneration = 0;
+  var capturingNativeShipping = false;
+  var nativeReviewTimer = null;
+  function finishNativeShippingReview() {
+    nativeReviewTimer = null;
+    if (api.disabled) return;
+    publishShippingReview();
+    notify();
+  }
   function selectedPackages(packages) {
     return (packages || []).flatMap(function (pkg) {
       var rate = (pkg.shipping_rates || []).find(function (item) {
@@ -212,9 +248,18 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     if (!pkg && input.closest) {
       var container = input.closest('.wc-block-components-shipping-rates-control__package');
       if (container) {
-        var containers = Array.from(
-          document.querySelectorAll('.wc-block-components-shipping-rates-control__package'),
-        );
+        // Responsive/theme Slots can mount the package list more than once.
+        // Resolve within the clicked native list, not the document-wide ordinal.
+        var scope = container.parentElement;
+        var containers = [];
+        while (scope && scope !== document) {
+          containers = Array.from(
+            scope.querySelectorAll('.wc-block-components-shipping-rates-control__package'),
+          );
+          if (containers.length >= packages.length) break;
+          scope = scope.parentElement;
+        }
+        if (containers.length !== packages.length) return;
         var index = containers.indexOf(container);
         var candidate = packages[index];
         if (matching.includes(candidate)) pkg = candidate;
@@ -222,6 +267,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     }
     if (!pkg) return;
     restorationKey = '';
+    shippingIntentGeneration++;
     var chosen = selectedPackages(packages);
     var found = false;
     chosen = chosen.map(function (entry) {
@@ -232,7 +278,17 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
       return entry;
     });
     if (!found) chosen.push({ package_id: String(pkg.package_id), rate_id: input.value });
-    shippingReview.choose(String(pkg.package_id), input.value, chosen);
+    // Capture intent synchronously, but do not publish/notify in document capture.
+    // React's root onChange has not run yet: an eager external-store render can
+    // replace/reset the radio and swallow Woo's selection handler entirely.
+    capturingNativeShipping = true;
+    try {
+      shippingReview.choose(String(pkg.package_id), input.value, chosen);
+    } finally {
+      capturingNativeShipping = false;
+    }
+    if (nativeReviewTimer !== null) root.clearTimeout(nativeReviewTimer);
+    nativeReviewTimer = root.setTimeout(finishNativeShippingReview, 0);
   }
   var state = {
     refreshVersion: 0,
@@ -263,6 +319,8 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
   var readinessTimer = root.setTimeout(function () {
     api.pending = false;
     api.disabled = true;
+    if (nativeReviewTimer !== null) root.clearTimeout(nativeReviewTimer);
+    nativeReviewTimer = null;
     resolveReady(false);
   }, 2000);
 

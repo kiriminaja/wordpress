@@ -30,7 +30,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		payment: 'cod', rateBusy: false, customerBusy: false, pendingItems: false, collection: false,
 	};
 	const restores: any[] = [];
-	const nativeDispatch = { selectShippingRate: (rate: string, packageId: string) => { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
+	const nativeDispatch = { selectShippingRate: (rate: string, packageId: number | string) => { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
 	const forbidden = () => { throw new Error('Adapter must not call native customer/rate or legacy DOM methods'); };
 	const cartStore: any = {
 		getCartData: () => model.cart,
@@ -166,16 +166,20 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		lookups[index].resolve({ ok: true, json: () => Promise.resolve({ success: true, data: rows }) }); await settle();
 	}
 	function notify() { for (const callback of subscribers) callback(); render(); }
+	function finishNativeEvent() {
+		for (const [id, timer] of [...timers]) if (timer.delay === 0 && timers.delete(id)) timer.callback();
+		render();
+	}
 	function pagehide(persisted = false) { const event = events.pagehide; event?.callback({ persisted }); if (event?.once) delete events.pagehide; }
 	function unmount(index = 0) { const instance = instances[index]; instance.mounted = false; for (const hook of instance.hooks) hook?.cleanup?.(); render(); }
 	return { root, model, timers, lookups, sends, publications, validations, classes, queries, subscribers, documentEvents, restores,
 		billingChange: () => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'checkbox', checked: true, value: 'on' } }); render(); },
-		shippingChange: (value: string) => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'radio', checked: true, value } }); render(); },
+		shippingChange: (value: string) => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'radio', checked: true, value } }); finishNativeEvent(); },
 		// Document capture runs before React's root-level onChange updates the store.
 		shippingClick: (value: string, nativeChange: () => void = () => {}, container?: any) => {
 			const target = { tagName: 'INPUT', type: 'radio', checked: true, value, closest: () => container };
 			for (const callback of documentEvents.get('click') || []) callback({ type: 'click', isTrusted: true, target });
-			nativeChange(); render();
+			nativeChange(); render(); finishNativeEvent();
 		},
 		shippingContainers: (containers: any[]) => { document.querySelectorAll = ((selector: string) => {
 			expect(selector).toBe('.wc-block-components-shipping-rates-control__package'); return containers;
@@ -214,9 +218,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		h.model.rateBusy = false; h.notify();
 		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
 	});
-	// Known production regressions: these assert desired behavior and are expected
-	// to fail until the adapter is corrected. No production workaround is modeled.
-	test.failing('restore preserves the native numeric package ID rather than the serialized review ID', async () => {
+	test('restore preserves the native numeric package ID rather than the serialized review ID', async () => {
 		const h = harness({ restore: true }); h.mount();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
 		const rates = (selected: string) => [{ package_id: 0, shipping_rates: [
@@ -229,7 +231,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		// Woo 10.6.0 selectShippingRate uses package.package_id === packageId.
 		expect(h.restores[0].packageId).toBe(h.model.cart.shippingRates[0].package_id);
 	});
-	test.failing('captured explicit Express click invalidates queued GoSend restore before native onChange', async () => {
+	test('captured explicit Express click invalidates queued GoSend restore before native onChange', async () => {
 		const h = harness({ restore: true }); h.mount();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
 		const rates = (selected: string) => [{ package_id: 0, shipping_rates: [
@@ -246,7 +248,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		// Old restore must not dispatch and abort Woo's newer native selection.
 		expect(h.restores).toHaveLength(0);
 	});
-	test.failing('duplicate responsive native package controls review the clicked package, not global DOM ordinal', async () => {
+	test('duplicate responsive native package controls review the clicked package, not global DOM ordinal', async () => {
 		const h = harness();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
 		const packages = (selected0: string) => [0, 1].map(package_id => ({ package_id, shipping_rates: [
@@ -256,7 +258,8 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		h.model.cart.shippingRates = packages(express); h.mount();
 		// Native inputs have unique instance-based IDs/names, but duplicate rate
 		// VALUES across packages. Two mounted rate controls each render both packages.
-		const desktop0 = {}, desktop1 = {}, mobile0 = {}, mobile1 = {};
+		const desktop0 = {}, desktop1 = {}, mobile0: any = {}, mobile1: any = {};
+		mobile0.parentElement = mobile1.parentElement = { querySelectorAll: () => [mobile0, mobile1] };
 		h.shippingContainers([desktop0, desktop1, mobile0, mobile1]);
 		h.shippingClick(go, () => { h.model.cart.shippingRates = packages(go); h.model.rateBusy = true; }, mobile0);
 		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [
@@ -328,7 +331,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
 		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection']).toBeDefined();
 		h.model.customerBusy = false; h.notify(); await h.settle();
-		expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[go, '0']]);
+		expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[go, 0]]);
 		h.model.rateBusy = true; h.notify(); h.model.pendingItems = true; h.notify(); h.model.pendingItems = false; h.notify();
 		expect(h.restores).toHaveLength(1); expect(h.sends).toHaveLength(sends);
 		h.model.cart.shippingRates = rates(go); h.model.rateBusy = false; h.restores[0].resolve(); await h.settle(); h.notify();

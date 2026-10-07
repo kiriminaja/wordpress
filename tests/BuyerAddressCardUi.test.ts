@@ -56,7 +56,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 		return React.createElement('div', { 'data-testid': 'validation-display' }, ...Object.entries(activeValidation).map(([id, error]) => React.createElement('p', { key: id, 'data-validation-id': id, hidden: error.hidden }, error.message)));
 	}
 
-	const cartDispatch = { selectShippingRate(rate: string, packageId: string) { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
+	const cartDispatch = { selectShippingRate(rate: string, packageId: number | string) { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
 	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(success: any, failure: any, options: any) { locations.push({ success, failure, options }); if (fixtureOptionsAutoLocation) success({ coords: { latitude: -6, longitude: 106 } }); } } });
 	const fixtureOptionsAutoLocation = options.autoLocation !== false;
 	const timers = new Map<number, { callback: any; delay: number }>(); let timerId = 0;
@@ -133,9 +133,22 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			try {
 				await h.flush(250); await h.reply(); await h.flush(0);
 				const go = 'kiriminaja-instant:7:gosend:instant';
-				h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }] }];
+				const rates = [{ rate_id: go, method_id: 'kiriminaja-instant', selected: false }, { rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }];
+				h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: rates }];
 				const radio = h.document.createElement('input'); radio.type = 'radio'; radio.checked = true; radio.value = go; h.document.body.append(radio);
+				const beforeChoice = JSON.stringify(h.publications.at(-1)[1].shipping_selection);
+				// Document capture must leave publication alone until the native
+				// handler has updated Woo's selected flags during event propagation.
+				let nativeChanges = 0;
+				radio.addEventListener('change', () => {
+					expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(beforeChoice);
+					rates[0].selected = true; rates[1].selected = false; nativeChanges++;
+				});
 				await h.act(async () => radio.dispatchEvent(new h.window.Event('change', { bubbles: true })));
+				expect(nativeChanges).toBe(1);
+				expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(beforeChoice);
+				await h.flush(0);
+				expect(h.publications.at(-1)[1].shipping_selection.packages[0].rate_id).toBe(go);
 				const original = JSON.stringify(h.publications.at(-1)[1].shipping_selection), sends = h.sends.length;
 				const checkbox = h.document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = true; h.document.querySelector('#billing-fields').append(checkbox);
 				h.model[busy] = true;
@@ -159,12 +172,21 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 		try {
 			await h.flush(250); await h.reply(); await h.flush(0);
 			const go = 'kiriminaja-instant:7:gosend:instant';
-			const rates = [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }, { rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: false }];
+			const rates = [{ rate_id: go, method_id: 'kiriminaja-instant', selected: false }, { rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }];
 			h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: rates }];
 			// Happy DOM cannot create trusted browser events: this side-event uses the
 			// actual registered listener; Chromium separately verifies trusted input.
 			const radio = h.document.createElement('input'); radio.type = 'radio'; radio.checked = true; radio.value = go; h.document.body.append(radio);
+			const beforeChoice = JSON.stringify(h.publications.at(-1)[1].shipping_selection);
+			let nativeChanges = 0;
+			radio.addEventListener('change', () => {
+				expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(beforeChoice);
+				rates[0].selected = true; rates[1].selected = false; nativeChanges++;
+			});
 			await h.act(async () => radio.dispatchEvent(new h.window.Event('change', { bubbles: true })));
+			expect(nativeChanges).toBe(1);
+			expect(JSON.stringify(h.publications.at(-1)[1].shipping_selection)).toBe(beforeChoice);
+			await h.flush(0);
 			expect(h.publications.at(-1)[1].shipping_selection.packages[0].rate_id).toBe(go);
 			const sends = h.sends.length;
 			const checkbox = h.document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = true; h.document.querySelector('#billing-fields').append(checkbox);
@@ -172,7 +194,7 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			await h.act(async () => checkbox.dispatchEvent(new h.window.Event('change', { bubbles: true }))); await h.notify();
 			expect(h.restores).toHaveLength(0); expect(h.publications.at(-1)[1].shipping_selection.packages[0].rate_id).toBe(go);
 			h.model.busy = false; await h.notify();
-			expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[go, '0']]);
+			expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[go, 0]]);
 			expect(h.validations.filter(row => row['kiriof-shipping-selection'] || row.clear === 'kiriof-shipping-selection').at(-1)['kiriof-shipping-selection']).toBeDefined();
 			rates[0].selected = true; rates[1].selected = false;
 			await h.act(async () => h.restores[0].resolve({})); await h.notify();

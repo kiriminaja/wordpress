@@ -2726,8 +2726,20 @@ class CheckoutController
             // Quote refresh changes only cached amounts/context, never the chosen courier.
             WC()->session->set( 'kiriof_instant_checkout_quotes', array() );
             WC()->session->set( 'kiriof_instant_checkout_status', array() );
+            // A fresh Store API request has not initialized WC_Shipping yet,
+            // but its cart packages can still have rates cached in the session.
+            // Reading cart packages does not calculate shipping or request quotes.
+            $cart_packages = isset( WC()->cart ) && WC()->cart && method_exists( WC()->cart, 'get_shipping_packages' )
+                ? WC()->cart->get_shipping_packages()
+                : array();
             $packages = WC()->shipping()->get_packages();
-            foreach ( array_keys( is_array( $packages ) ? $packages : array() ) as $package_key ) {
+            $package_keys = array_unique(
+                array_merge(
+                    array_keys( is_array( $cart_packages ) ? $cart_packages : array() ),
+                    array_keys( is_array( $packages ) ? $packages : array() )
+                )
+            );
+            foreach ( $package_keys as $package_key ) {
                 WC()->session->set( 'shipping_for_package_' . $package_key, false );
             }
         }

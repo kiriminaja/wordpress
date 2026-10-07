@@ -76,9 +76,12 @@ namespace {
     }
     class QuoteProduct {
         public bool $shipping = true;
+        public $package_type_id = '';
         public $weight = 500;
         public $width = 10;
         public function needs_shipping() { return $this->shipping; }
+        public function is_virtual() { return !$this->shipping; }
+        public function get_meta($key, $single = true) { return '_kiriof_package_type_id' === $key ? $this->package_type_id : ''; }
         public function get_weight() { return $this->weight; }
         public function get_width() { return $this->width; }
         public function get_length() { return 10; }
@@ -90,6 +93,7 @@ namespace {
     require dirname(__DIR__, 2) . '/inc/Services/BuyerDestination.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutRecipient.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantDeliveryCoverage.php';
+    require dirname(__DIR__, 2) . '/inc/Services/PackageTypeService.php';
     require dirname(__DIR__, 2) . '/inc/Services/InstantCheckoutQuoteService.php';
     $input = json_decode($argv[1] ?? '{}', true);
     $scenario = $input['scenario'] ?? '';
@@ -104,6 +108,33 @@ namespace {
     $destination = ['district_id' => '42', 'district_label' => 'Jakarta District', 'postcode' => '12345', 'country' => 'ID', 'address_type' => 'shipping', 'version' => 2, 'destination_latitude' => '-6.3', 'destination_longitude' => '106.9', 'shipping_address' => $address];
     $payment = 'bacs'; $insurance = false;
     switch ($scenario) {
+        case 'package_type_nondefault':
+        case 'package_type_explicit':
+        case 'package_type_stale':
+        case 'package_type_virtual':
+        case 'mutate_package_type':
+        case 'mutate_package_type_stale':
+        case 'mutate_package_type_default':
+        case 'mutate_package_type_mixed':
+            $product->package_type_id = 3;
+            if (in_array($scenario, ['package_type_explicit', 'mutate_package_type_stale'], true)) { $package['package_type_id'] = 3; }
+            if ('package_type_stale' === $scenario) { $package['package_type_id'] = 7; }
+            if ('package_type_virtual' === $scenario) {
+                $virtual = new QuoteProduct(); $virtual->shipping = false; $virtual->package_type_id = 1;
+                $package['contents']['virtual-key'] = ['data' => $virtual, 'quantity' => 1, 'product_id' => 456, 'variation_id' => 0, 'line_total' => 1000];
+            }
+            if ('mutate_package_type_mixed' === $scenario) {
+                $other = new QuoteProduct(); $other->package_type_id = 3;
+                $package['contents']['other-key'] = ['data' => $other, 'quantity' => 1, 'product_id' => 456, 'variation_id' => 0, 'line_total' => 50000];
+            }
+            break;
+        case 'package_type_mixed':
+            $product->package_type_id = 3;
+            $other = new QuoteProduct(); $other->package_type_id = 2;
+            $package['contents']['other-key'] = ['data' => $other, 'quantity' => 1, 'product_id' => 456, 'variation_id' => 0, 'line_total' => 50000];
+            $package['package_type_id'] = 3;
+            break;
+        case 'package_type_invalid': $product->package_type_id = 99; break;
         case 'currency': $GLOBALS['currency'] = 'USD'; break;
         case 'packages': $GLOBALS['wc']->cart = new QuoteCart(); $GLOBALS['wc']->cart->packages = [$package, $package]; break;
         case 'cod': $payment = 'cod'; break;
@@ -161,6 +192,11 @@ namespace {
     if ($quote['eligible']) {
         $rate = $quote['rates'][0];
         switch ($scenario) {
+            case 'package_type_explicit': unset($package['package_type_id']); break;
+            case 'mutate_package_type':
+            case 'mutate_package_type_stale': $product->package_type_id = 2; break;
+            case 'mutate_package_type_default': $product->package_type_id = ''; break;
+            case 'mutate_package_type_mixed': $other->package_type_id = 2; break;
             case 'mutate_currency': $GLOBALS['currency'] = 'USD'; break;
             case 'mutate_packages': $GLOBALS['wc']->cart = new QuoteCart(); $GLOBALS['wc']->cart->packages = [$package, $package]; break;
             case 'mutate_cart': $package['contents']['cart-key']['quantity'] = 3; break;

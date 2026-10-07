@@ -27,6 +27,28 @@ namespace {
     }
     $settings = new OrderSettings();
     $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
+    $reload = in_array($scenario, ['reload_uniform_type', 'reload_mixed_type'], true);
+    $reloadState = [];
+    if ($reload) {
+        // Model the shipping method's enriched quote, then a new request with
+        // only product metadata and the WooCommerce session surviving reload.
+        $product->package_type_id = 2;
+        $other = new QuoteProduct();
+        $other->package_type_id = $scenario === 'reload_mixed_type' ? 3 : 2;
+        $package['contents']['other-key'] = ['data' => $other, 'quantity' => 1, 'product_id' => 456, 'variation_id' => 0, 'line_total' => 50000];
+        WC()->session->data = [];
+        $api->calls = 0;
+        $api->payloads = [];
+        $enrichedPackage = $package;
+        $enrichedPackage['package_type_id'] = \KiriminAjaOfficial\Services\PackageTypeService::resolveForCartPackage($package);
+        $quote = $service->quote($enrichedPackage, $destination, 'bacs', false);
+        $reloadState['quoted_package_type_id'] = $enrichedPackage['package_type_id'];
+        $reloadState['calls_after_quote'] = $api->calls;
+        // Reconstruct products too: no shipping method-local package enrichment.
+        foreach ($package['contents'] as &$item) { $item['data'] = clone $item['data']; }
+        unset($item);
+        $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
+    }
     $GLOBALS['hooks'] = []; $GLOBALS['locks'] = []; $GLOBALS['logs'] = [];
     function add_action($hook, $callback, $priority, $args) { $GLOBALS['hooks'][$hook] = [$priority, $args]; }
     function add_option($key, $value, $deprecated = '', $autoload = false) { if (isset($GLOBALS['locks'][$key])) { return false; } $GLOBALS['locks'][$key] = $value; return true; }
@@ -91,12 +113,13 @@ namespace {
     require dirname(__DIR__, 2) . '/inc/Controllers/InstantCheckoutController.php';
     $savedSession = WC()->session;
     $wc = new OrderWC(); $wc->session = $savedSession; $wc->packages = [$package]; $GLOBALS['wc'] = $wc;
+    if ($reload) { $wc->session = new QuoteSession(); $wc->session->data = $savedSession->data; }
     $line = new OrderShipping($quote['rates'][0]); $order = new OrderFixture($package['destination'], $line);
     $request = new OrderRequest(); $request->params = ['shipping_address' => $order->address, 'payment_method' => 'bacs', 'extensions' => ['kiriminaja-official' => ['destination' => $destination]]];
     $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
     $controller = new \KiriminAjaOfficial\Controllers\InstantCheckoutController($settings, $transactions, $service, $generator = new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId());
     $controller->register(); $error = ''; $processedError = ''; $errorStatus = null;
-    $wc->packages[0]['rates'] = [clone $line];
+    $wc->packages[0]['rates'] = [$reload ? new OrderShipping($quote['rates'][0]) : clone $line];
     $wc->session->set('chosen_shipping_methods', [$line->get_id()]);
     $fee = new OrderFee(); $controller->tagAdminFee($fee, $controller::CART_FEE_ID, $order, null); $order->fees = [$fee];
     switch ($scenario) {
@@ -161,6 +184,23 @@ namespace {
     }
     $controller->addAdminFee($cartFees);
     $controller->addAdminFee($cartFees);
+    if ($reload) {
+        $reloadState['raw_package_has_type'] = array_key_exists('package_type_id', $wc->packages[0]);
+        $reloadState['product_types'] = array_map(static fn($item) => $item['data']->get_meta('_kiriof_package_type_id'), $wc->packages[0]['contents']);
+        $reloadState['fresh_rate'] = $savedRates[0] !== $line;
+        $reloadState['fresh_session'] = $wc->session !== $savedSession;
+        $reloadState['selected_method'] = $wc->session->get('chosen_shipping_methods')[0];
+        $reloadState['quote_token'] = $savedRates[0]->get_meta('kiriof_instant_quote_token');
+        $reloadState['calls_after_fees'] = $api->calls;
+        // The order must contain the fee actually produced by cart totals, not
+        // a synthetic fee that could hide addAdminFee rejecting the quote.
+        $order->fees = [];
+        foreach ($cartFees->fees as $cartFee) {
+            $fee = new OrderFee(); $fee->total = $cartFee['amount']; $fee->name = $cartFee['name'];
+            $controller->tagAdminFee($fee, $cartFee['id'], $order, $cartFees);
+            $order->fees[] = $fee;
+        }
+    }
     $wc->packages[0]['rates'] = $savedRates;
     if (strpos($scenario,'classic_') === 0) {
         $_POST['kiriof_buyer_destination_snapshot'] = json_encode($destination);
@@ -199,5 +239,5 @@ namespace {
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
         }
     }
-    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs']]);
+    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs'], 'reload' => $reloadState]);
 }

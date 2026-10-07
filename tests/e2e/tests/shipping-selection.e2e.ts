@@ -44,13 +44,29 @@ for (const activation of ['pointer', 'keyboard', 'native radio', 'native select'
         await browser.locator(`input.shipping_method[value="${instant}"]`).click();
       } else {
         // A native select change must be trusted too, without bridge detail.
-        await browser.evaluate(() => document.querySelector<HTMLSelectElement>('select.kiriof-classic-shipping-method-select')!.focus());
+        await expect(browser.locator('select.kiriof-classic-shipping-method-select')).toBeVisible();
+        await browser.evaluate(() => {
+          const select = document.querySelector<HTMLSelectElement>('select.kiriof-classic-shipping-method-select')!;
+          // A visible native listbox avoids platform-specific popup key handling.
+          select.size = select.options.length;
+          (window as any).__nativeSelectChanges = [];
+          select.addEventListener('change', event => {
+            (window as any).__nativeSelectChanges.push({ value: select.value, trusted: event.isTrusted, detail: (event as CustomEvent).detail ?? null });
+            // Woo refreshes checkout after the delegated native adapter has
+            // synchronized shipping_method; this isolated fixture has no Woo AJAX.
+            setTimeout(() => (window as any).jQuery(document.body).trigger('updated_checkout'), 0);
+          });
+          select.focus();
+        });
+        expect(await browser.evaluate(() => document.activeElement?.matches('select.kiriof-classic-shipping-method-select'))).toBe(true);
         await browser.keyboard.press('Home');
-        await browser.keyboard.press('Enter');
         await expect.poll(() => classicReview(browser)).toEqual(snapshot(cargo));
         await browser.evaluate(() => document.querySelector<HTMLSelectElement>('select.kiriof-classic-shipping-method-select')!.focus());
         await browser.keyboard.press('End');
-        await browser.keyboard.press('Enter');
+        expect(await browser.evaluate(() => (window as any).__nativeSelectChanges)).toEqual([
+          { value: cargo, trusted: true, detail: null }, { value: instant, trusted: true, detail: null },
+        ]);
+        expect(await browser.evaluate(() => document.querySelector<HTMLInputElement>('input.shipping_method:checked')?.value)).toBe(instant);
       }
     } else {
       await expect(browser.locator('.kiriof-buyer-combobox-trigger')).toContainText('GoSend Instant');
@@ -68,6 +84,36 @@ for (const activation of ['pointer', 'keyboard', 'native radio', 'native select'
     await expect(browser.locator('.kiriof-shipping-selection-error')).not.toBeVisible();
     await browser.locator('button[type="submit"]').click();
     await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+}
+
+for (const activation of ['pointer', 'keyboard']) {
+  test(`Blocks explicit ${activation} GoSend selection runs document capture before native React onChange without plugin restoration`, async ({ app, browser }) => {
+    const { unexpected, requests } = await open(app, browser, true);
+    await expect.poll(() => blocksReview(browser)).toEqual(snapshot(cargo));
+    if (activation === 'keyboard') {
+      await browser.evaluate((rate: string) => document.querySelector<HTMLInputElement>(`input[value="${rate}"]`)!.focus(), cargo);
+      await browser.keyboard.press('ArrowDown');
+    } else {
+      await browser.locator(`input[value="${instant}"]`).click();
+    }
+    await expect.poll(() => blocksReview(browser)).toEqual(snapshot(instant));
+    await expect.poll(() => browser.evaluate(() => (window as any).__rateBusy)).toBe(false);
+    // An eager restoration here can synchronously rerender the native root and
+    // swallow React's onChange before Woo has even started its own selection.
+    expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([]);
+    expect(await browser.evaluate(() => (window as any).__selectionSequence)).toEqual([
+      ['document capture', instant, false], ['native onChange', instant, true],
+    ]);
+    expect(await browser.evaluate(() => (window as any).__trusted)).toEqual([true]);
+    expect(requests).toEqual(['?chosen=' + encodeURIComponent(instant)]);
+    await expect(browser.locator('#shipping-error')).not.toBeVisible();
+    await browser.locator('#terms').click();
+    await browser.locator('#place').click();
+    await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
+    expect(await blocksReview(browser)).toEqual(snapshot(instant));
+    expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([]);
     expect(unexpected).toEqual([]);
   });
 }
@@ -137,7 +183,7 @@ function blocksHTML() {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><label><input type="checkbox" id="terms">Accept terms</label><button id="place">Place order</button><p id="terms-error" role="alert" hidden></p><p id="shipping-error" role="alert" hidden></p><p id="server-error" role="alert" hidden></p></div>${scripts([
     reactSource(),
     `const R=window.__React;const listeners=new Set();let version=0;
-    window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;
+    window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__selectionSequence=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;
     const rates=[{rate_id:${JSON.stringify(cargo)},method_id:'kiriminaja-official',selected:true,label:'JNE Cargo'},{rate_id:${JSON.stringify(instant)},method_id:'kiriminaja-instant',selected:false,label:'GoSend Instant'}];
     window.__cart={needsShipping:true,shippingAddress:{country:'US',postcode:'90210',first_name:'Test',phone:'123'},extensions:{},shippingRates:[{package_id:3,shipping_rates:rates}]};
     function emit(){version++;listeners.forEach(fn=>fn());}window.__notify=emit;
@@ -150,8 +196,10 @@ function blocksHTML() {
     window.wp={element:R,data:{select,subscribe,useSelect:fn=>{R.useSyncExternalStore(subscribe,()=>version);return fn(select);},dispatch:name=>name==='wc/store/checkout'?{setExtensionData:(namespace,data)=>{window.__extensions[namespace]=data;}}:name==='wc/store/cart'?cartDispatch:{setValidationErrors:errors=>{Object.assign(window.__errors,errors);showErrors();},clearValidationError:id=>{delete window.__errors[id];showErrors();}}}};
     window.wc={blocksCheckout:{registerCheckoutBlock:registration=>{window.__District=registration.component;},extensionCartUpdate:()=>{window.__pluginUpdates++;return Promise.resolve();}}};
     window.kiriofBuyerCheckoutConfig={enabled:true,map:{enabled:false},i18n:{shippingSelectionChanged:${JSON.stringify(message)}}};
-    function NativeRates(){R.useSyncExternalStore(subscribe,()=>version);return R.createElement('fieldset',null,R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);if(event.target.checked)await window.__refresh();}}),'Use same address for billing'),R.createElement('input',{id:'billing-address',placeholder:'Billing street'}),window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:()=>{}}),rate.label)));}
-    document.addEventListener('click',async event=>{if(event.target.name!=='shipping')return;window.__trusted.push(event.isTrusted);window.__rateBusy=true;emit();try{const response=await fetch('/rates?chosen='+encodeURIComponent(event.target.value));apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}},true);
+    function NativeRates(){R.useSyncExternalStore(subscribe,()=>version);return R.createElement('fieldset',null,R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);if(event.target.checked)await window.__refresh();}}),'Use same address for billing'),R.createElement('input',{id:'billing-address',placeholder:'Billing street'}),window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:async event=>{const chosen=event.target.value;window.__trusted.push(event.nativeEvent.isTrusted);window.__rateBusy=true;window.__selectionSequence.push(['native onChange',chosen,window.__rateBusy]);emit();try{const response=await fetch('/rates?chosen='+encodeURIComponent(chosen));apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}}),rate.label)));}
+    // Observe only: Woo's React root onChange owns busy state and the request.
+    // Document capture (including the plugin listener registered below) runs first.
+    document.addEventListener('click',event=>{if(event.target.name==='shipping')window.__selectionSequence.push(['document capture',event.target.value,window.__rateBusy]);},true);
     window.__createRoot(document.querySelector('#native')).render(R.createElement(NativeRates));`,
     script('assets/buyer/js/kiriof-checkout-session.js'),  script('assets/buyer/js/kiriof-buyer-checkout.js'),
     `window.__createRoot(document.querySelector('#district')).render(R.createElement(window.__District));
@@ -257,7 +305,7 @@ test('Blocks production React adapter restores available native GoSend through t
   await expect(browser.locator('#shipping-error')).not.toBeVisible();
   await browser.locator('#place').click();
   await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
-  expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, '3']]);
+  expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, 3]]);
   expect(requests).toEqual(['?chosen=' + encodeURIComponent(instant), '?automatic=1', '?restore=' + encodeURIComponent(instant)]);
   assertGuard(false);
   expect(unexpected).toEqual([]);
@@ -277,7 +325,7 @@ test('Blocks exact unchecked billing, fill billing, choose GoSend, accept terms,
   await browser.locator('#terms').click();
   await browser.evaluate(() => { (window as any).__holdRestore = true; });
   await browser.locator('#same-billing').click();
-  await expect.poll(() => browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, '3']]);
+  await expect.poll(() => browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, 3]]);
   await expect(browser.locator('#shipping-error')).toContainText(message);
   expect(await blocksReview(browser)).toEqual(snapshot(instant));
   expect(await browser.evaluate(() => document.querySelector<HTMLInputElement>('input[name="shipping"]:checked')!.value)).toBe(cargo);
@@ -289,7 +337,7 @@ test('Blocks exact unchecked billing, fill billing, choose GoSend, accept terms,
   await browser.locator('#place').click();
   await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
   expect(await blocksReview(browser)).toEqual(snapshot(instant));
-  expect(await browser.evaluate(() => ({ actions:(window as any).__nativeActions, trusted:(window as any).__trusted, updates:(window as any).__pluginUpdates }))).toEqual({actions:[[instant,'3']],trusted:[true,true],updates:1});
+  expect(await browser.evaluate(() => ({ actions:(window as any).__nativeActions, trusted:(window as any).__trusted, updates:(window as any).__pluginUpdates }))).toEqual({actions:[[instant,3]],trusted:[true,true],updates:1});
   expect(requests).toEqual(['?chosen=' + encodeURIComponent(instant), '?automatic=1', '?restore=' + encodeURIComponent(instant)]);
   expect(unexpected).toEqual([]);
 });
@@ -309,9 +357,16 @@ test('Blocks missing COD quote stays blocked after same billing until explicit C
   expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
   expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([]);
   // Clicking the already checked native radio is still an explicit buyer choice.
+  const requestsBeforeReselect = requests.slice();
+  const trustedBeforeReselect = await browser.evaluate(() => (window as any).__trusted.slice());
   await browser.locator(`input[value="${cargo}"]`).click();
   await expect.poll(() => blocksReview(browser)).toEqual(snapshot(cargo));
   await expect(browser.locator('#shipping-error')).not.toBeVisible();
+  // React does not fire onChange or write the native rate for an unchanged radio.
+  expect(await browser.evaluate(() => (window as any).__trusted)).toEqual(trustedBeforeReselect);
+  expect(await browser.evaluate(() => (window as any).__selectionSequence.at(-1))).toEqual(['document capture', cargo, false]);
+  expect(requests).toEqual(requestsBeforeReselect);
+  expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([]);
   await browser.locator('#place').click();
   await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
   expect(requests.some((query: string) => query.includes('restore'))).toBe(false);
@@ -327,14 +382,14 @@ test('Blocks failed native restoration remains blocked without busy-marker retry
   await browser.locator('#terms').click();
   await browser.evaluate(() => { (window as any).__failRestore = true; });
   await browser.locator('#same-billing').click();
-  await expect.poll(() => browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, '3']]);
+  await expect.poll(() => browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, 3]]);
   await expect(browser.locator('#shipping-error')).toContainText(message);
   await expect.poll(() => browser.evaluate(() => (window as any).__rateBusy)).toBe(false);
   await browser.evaluate(async () => { await (window as any).__refresh(); await (window as any).__refresh(); });
   await browser.locator('#place').click();
   expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
   expect(await blocksReview(browser)).toEqual(snapshot(instant));
-  expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, '3']]);
+  expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, 3]]);
   expect(requests.filter((query: string) => query.includes('restore'))).toHaveLength(1);
   expect(unexpected).toEqual([]);
 });

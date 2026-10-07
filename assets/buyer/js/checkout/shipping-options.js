@@ -91,6 +91,9 @@
         rows.forEach(function (row, index) {
             var key = row.getAttribute('data-kiriof-package-index') || String(index);
             current.add(key);
+            table.querySelectorAll('tr.kiriof-classic-shipping-summary').forEach(function(summary) {
+                if (summary.getAttribute('data-kiriof-summary-package') === key && summary.hidden) { summary.hidden = false; }
+            });
             var cell = row.querySelector('td');
             var previous = packages.get(key);
             if (previous && previous.row === row) { return; }

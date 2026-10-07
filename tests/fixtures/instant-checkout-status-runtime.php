@@ -56,7 +56,23 @@ namespace {
     }
     class StatusShipping {
         public array $packages = array();
+        public int $calculations = 0;
         public function get_packages() { return $this->packages; }
+        // Model Woo's session-cache gate and the quote transport boundary.
+        public function calculate_shipping( $packages ) {
+            foreach ( $packages as $key => $package ) {
+                $cached = WC()->session->get( 'shipping_for_package_' . $key );
+                if ( ! $cached ) {
+                    ++$this->calculations;
+                    $quote = WC()->session->get( 'kiriof_instant_checkout_quotes' );
+                    $rate = $quote['current'] ?? array( 'token' => 'updated-token', 'fee' => 25000 );
+                    WC()->session->set( 'kiriof_instant_checkout_quotes', array( 'current' => $rate ) );
+                    $cached = array( 'rates' => array( $rate ) );
+                    WC()->session->set( 'shipping_for_package_' . $key, $cached );
+                }
+                $this->packages[$key] = array_merge( $package, $cached );
+            }
+        }
     }
     class StatusWC {
         public StatusSession $session;
@@ -68,7 +84,7 @@ namespace {
             $this->shipping = new StatusShipping();
             $this->cart = new class {
                 public function needs_shipping() { return true; }
-                public function get_shipping_packages() { return array_fill( 0, $GLOBALS['status_package_count'] ?? 1, array() ); }
+                public function get_shipping_packages() { return $GLOBALS['status_cart_packages'] ?? array_fill( 0, $GLOBALS['status_package_count'] ?? 1, array() ); }
             };
             $this->customer = new class {
                 public function get_shipping_country() { return 'ID'; }
@@ -186,5 +202,20 @@ namespace {
     WC()->session->set( 'shipping_for_package_0', array( 'preserved-rate' ) );
     $callback( array( 'action' => 'sync_checkout', 'refresh_instant' => false ) );
     $out['without_refresh'] = WC()->session->values;
+    // Fresh reload: physical cart package has a nonzero key, while WC_Shipping
+    // is empty and both Woo and the plugin still hold the previous quote.
+    WC()->shipping->packages = array();
+    $GLOBALS['status_cart_packages'] = array( 7 => $package );
+    $old_rate = array( 'token' => 'old-token', 'fee' => 10000 );
+    WC()->session->set( 'shipping_for_package_7', array( 'rates' => array( $old_rate ) ) );
+    WC()->session->set( 'kiriof_instant_checkout_quotes', array( 'current' => $old_rate ) );
+    WC()->session->set( 'kiriof_instant_checkout_status', array( 'old-status' ) );
+    $out['fresh_before'] = array( 'initialized_packages' => WC()->shipping->get_packages(), 'rate' => $old_rate );
+    $callback( array( 'action' => 'sync_checkout', 'refresh_instant' => true ) );
+    $out['fresh_invalidated'] = WC()->session->values;
+    $out['calculations_during_refresh'] = WC()->shipping->calculations;
+    WC()->shipping->calculate_shipping( WC()->cart->get_shipping_packages() );
+    WC()->shipping->calculate_shipping( WC()->cart->get_shipping_packages() );
+    $out['fresh_recalculated'] = array( 'packages' => WC()->shipping->get_packages(), 'session' => WC()->session->values, 'calculations' => WC()->shipping->calculations );
     echo json_encode( $out, JSON_THROW_ON_ERROR );
 }

@@ -11,9 +11,21 @@ const express = 'kiriminaja-official:1:jne:reg';
 const instant = 'kiriminaja-instant:1:gosend:instant';
 const section = '.kiriof-classic-shipping-options';
 const wrap = '.kiriof-classic-shipping-method-select-wrap';
+const summaryRows = '#order_review tr.kiriof-classic-shipping-summary';
 const render = (fixture: string, input: unknown) => JSON.parse(execFileSync('php', [root + 'tests/fixtures/' + fixture, JSON.stringify(input)], { encoding: 'utf8' })).html as string;
 const review = () => render('classic-order-review-runtime.php', { scene: 'discounted' });
 // All rate rows and monetary text come from production PHP templates, not JS reconstructions.
+function replaceShippingRows(table: string, rows: string) {
+  // A Woo fragment owns both native controls and their read-only sibling totals.
+  // Insert once, removing ALL old summary/native rows so stale Lion totals cannot survive.
+  let inserted = false;
+  return table.replace(/<tr[^>]*class="[^"]*(?:woocommerce-shipping-totals|kiriof-classic-shipping-summary)[^"]*"[^>]*>[\s\S]*?<\/tr>/g, () => {
+    if (inserted) return '';
+    inserted = true;
+    return rows;
+  });
+}
+
 function fragment(generation: number, packages = 1, virtual = false) {
   const rows = Array.from({ length: packages }, (_, index) => render('classic-shipping-presentation-runtime.php', {
     index, chosen: instant, rates: [
@@ -21,7 +33,7 @@ function fragment(generation: number, packages = 1, virtual = false) {
       { id: instant, label: `Refresh ${generation} GOSEND package ${index}`, cost: 20000 },
     ],
   })).join('');
-  return review().replace(/<tr[^>]*class="woocommerce-shipping-totals[^"\n]*"[\s\S]*?<\/tr>/, virtual ? '' : rows);
+  return replaceShippingRows(review(), virtual ? '' : rows);
 }
 
 function pageHTML(enhanced = true, mandatory = false, virtual = false, floatLayout?: 'shop-mania' | 'wc-booster') {
@@ -63,7 +75,9 @@ function pageHTML(enhanced = true, mandatory = false, virtual = false, floatLayo
     'kiriofScheduleClassicShippingMethodSelectInit();',
   ];
   let html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-    <style>body{margin:12px;font-family:sans-serif}table{width:100%;table-layout:fixed}th,td{padding:8px;text-align:left}</style>
+    <style>body{margin:12px;font-family:sans-serif}table{width:100%;table-layout:fixed}th,td{padding:8px;text-align:left}
+    /* Hostile theme overrides the browser hidden attribute and hides custom totals. */
+    .woocommerce tr[hidden]{display:table-row!important}.woocommerce tr.kiriof-classic-shipping-summary{display:none!important}</style>
     <style>${classicCss()}${read('assets/buyer/css/kiriof-classic-choices.css')}${read('assets/buyer/css/kj-wp-style.css')}</style>
     </head><body><div class="woocommerce woocommerce-checkout"><form class="checkout woocommerce-checkout">
     <div id="insurance-anchor"><p id="kiriof-classic-insurance-field"><input type="hidden" name="kiriof_insurance" value="${mandatory ? '1' : '0'}"><label for="kiriof_insurance"><input id="kiriof_insurance" type="checkbox" name="kiriof_insurance" value="1" ${mandatory ? 'checked disabled' : ''}>Shipping insurance</label></p></div>
@@ -127,6 +141,23 @@ async function assertInsurance(browser: any, checked: boolean, mandatory = false
   })).toEqual({ field: true, checkbox: true, hidden: true, value: '1', hiddenValue: mandatory ? '1' : '0', checked, disabled: mandatory, fields: 1, inputs: 2 });
 }
 
+async function assertSummary(browser: any, expected: { key: string; label: string; price: string }[]) {
+  await expect.poll(() => browser.evaluate(() => Array.from(document.querySelectorAll('#order_review tr.kiriof-classic-shipping-summary-options')).map(row => {
+    const key = row.getAttribute('data-kiriof-summary-package')!;
+    const cost = document.querySelector(`#order_review tr.kiriof-classic-shipping-summary-cost[data-kiriof-summary-package="${key}"]`)!;
+    return { key, label: row.querySelector('td')!.textContent!.trim(), price: cost.querySelector('td')!.textContent!.trim() };
+  }))).toEqual(expected);
+  expect(await browser.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>('#order_review tr.kiriof-classic-shipping-summary'));
+    return { count: rows.length, visible: rows.every(row => !row.hidden && getComputedStyle(row).display === 'table-row' && row.getBoundingClientRect().height > 0),
+      readonly: rows.every(row => !row.querySelector('input, select, button, .kiriof-buyer-combobox')),
+      headings: rows.map(row => row.querySelector('th')!.textContent!.trim()),
+      nativeInReview: document.querySelectorAll('#order_review input.shipping_method, #order_review .kiriof-classic-shipping-method-select-wrap').length,
+      outside: Array.from(document.querySelectorAll('input.shipping_method')).every(input => !!input.closest('.kiriof-classic-shipping-options') && !input.closest('#order_review')) };
+  })).toEqual({ count: expected.length * 2, visible: true, readonly: true,
+    headings: expected.flatMap(() => ['Shipping Options', 'Shipping Cost']), nativeInReview: 0, outside: true });
+}
+
 async function assertIdle(browser: any) {
   // Count callbacks from REAL native MutationObservers (both production modules), not mocked refresh calls.
   const counts = await browser.evaluate(async () => {
@@ -163,6 +194,7 @@ for (const width of [1200, 390]) {
         rates: shipping.querySelectorAll('input.shipping_method').length, within: rect.left >= 0 && rect.right <= innerWidth };
     })).toEqual({ outside: true, before: true, insuranceAfter: true, inputsInTable: 0, hidden: true, rates: 5, within: true });
     await assertInsurance(browser, false);
+    await assertSummary(browser, [{ key: '0', label: 'Fixture Lion Parcel REG', price: 'Rp 6,000' }]);
     await browser.locator(`${section} ${wrap} .kiriof-buyer-combobox-trigger`).click();
     await browser.locator(`.kiriof-buyer-combobox-option`).filter({ hasText: 'Fixture GOSEND Instant' }).click();
     expect(await browser.evaluate(() => ({ checked: Array.from(document.querySelectorAll<HTMLInputElement>('input.shipping_method:checked')).map(x => x.value), changes: (window as any).__nativeChanges }))).toEqual({ checked: [instant], changes: [{ value: instant, name: 'shipping_method[0]', checked: true }] });
@@ -180,6 +212,7 @@ for (const width of [1200, 390]) {
         payment: document.querySelector('#payment') === (window as any).__payment, summary: document.querySelector('#order_review') === (window as any).__summary,
         total: document.querySelector('.order-total')!.outerHTML === (window as any).__summaryTotal, changes: (window as any).__nativeChanges.length,
         checked: Array.from(document.querySelectorAll<HTMLInputElement>('input.shipping_method:checked')).map(x => x.value) }))).toEqual({ stale: false, sections: 1, choices: packages, rates: packages * 2, payment: true, summary: true, total: true, changes: 1, checked: Array(packages).fill(instant) });
+      await assertSummary(browser, Array.from({ length: packages }, (_, index) => ({ key: String(index), label: `Refresh ${generation} GOSEND package ${index}`, price: 'Rp 20000' })));
       await assertInsurance(browser, false);
     }
     await browser.evaluate((html: string) => { (window as any).__slowFragment = html; }, fragment(3));
@@ -188,6 +221,7 @@ for (const width of [1200, 390]) {
     expect(await browser.evaluate(() => ({ pending: (window as any).__pendingInsurance, payloads: (window as any).__insurancePayloads }))).toEqual({ pending: true, payloads: [[{ name: 'kiriof_insurance', value: '0' }, { name: 'kiriof_insurance', value: '1' }]] });
     await expect(browser.locator(`${section} .kiriof-buyer-combobox-trigger`)).toContainText('Refresh 3 GOSEND');
     await assertInsurance(browser, true);
+    await assertSummary(browser, [{ key: '0', label: 'Refresh 3 GOSEND package 0', price: 'Rp 20000' }]);
     await browser.locator('#kiriof_insurance').click();
     await expect.poll(() => browser.evaluate(() => (window as any).__pendingInsurance)).toBe(false);
     await assertInsurance(browser, false);
@@ -195,6 +229,47 @@ for (const width of [1200, 390]) {
     await assertIdle(browser);
     expect(unexpected).toEqual([]);
     await app.screenshot(`shipping-section-${width}`);
+  });
+}
+
+for (const width of [1200, 390]) {
+  test(`server-owned summaries keep packages independent and deduplicate repeated refresh at ${width}px`, async ({ app, browser }) => {
+    await browser.setViewport({ width, height: 1000 });
+    const unexpected = await openFixture(app, browser);
+    const rows = [0, 1].map(index => render('classic-shipping-presentation-runtime.php', {
+      index, chosen: index === 0 ? instant : express, rates: [
+        { id: express, label: `Server JNE package ${index}`, cost: 15001 + index },
+        { id: instant, label: `Server GoSend package ${index}`, cost: 23001 + index },
+      ],
+    })).join('');
+    const html = replaceShippingRows(review(), rows);
+    const expected = [{ key: '0', label: 'Server GoSend package 0', price: 'Rp 23001' }, { key: '1', label: 'Server JNE package 1', price: 'Rp 15002' }];
+    for (let refresh = 0; refresh < 3; refresh++) {
+      await browser.evaluate((html: string) => (window as any).__replaceReview(html, true), html);
+      await assertSummary(browser, expected);
+      expect(await browser.evaluate(() => ({ packages: document.querySelectorAll('.kiriof-classic-shipping-package').length,
+        checked: Array.from(document.querySelectorAll<HTMLInputElement>('input.shipping_method:checked')).map(input => ({ name: input.name, value: input.value })),
+        rates: document.querySelectorAll('input.shipping_method').length, changes: (window as any).__nativeChanges.length }))).toEqual({ packages: 2,
+        checked: [{ name: 'shipping_method[0]', value: instant }, { name: 'shipping_method[1]', value: express }], rates: 4, changes: 0 });
+    }
+    await browser.locator(`${section} [data-package-index="1"] .kiriof-buyer-combobox-trigger`).click();
+    await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'Server GoSend package 1' }).click();
+    expect(await browser.evaluate(() => (window as any).__nativeChanges)).toEqual([{ name: 'shipping_method[1]', value: instant, checked: true }]);
+    // A local choice must not reconstruct totals: only the next PHP fragment owns them.
+    await assertSummary(browser, expected);
+    const updated = replaceShippingRows(review(), [0, 1].map(index => render('classic-shipping-presentation-runtime.php', {
+      index, chosen: instant, rates: [{ id: express, label: `Updated JNE ${index}`, cost: 11000 }, { id: instant, label: `Updated GoSend ${index}`, cost: 27000 + index }],
+    })).join(''));
+    await browser.evaluate((html: string) => (window as any).__replaceReview(html, true), updated);
+    await assertSummary(browser, [0, 1].map(index => ({ key: String(index), label: `Updated GoSend ${index}`, price: `Rp ${27000 + index}` })));
+    // No available methods must not leave old selected-courier/cost summaries behind.
+    await browser.evaluate((html: string) => (window as any).__replaceReview(html, true), render('classic-order-review-runtime.php', { scene: 'missing-api' }));
+    await expect.poll(() => browser.locator(summaryRows).count()).toBe(0);
+    await expect.poll(() => browser.evaluate(() => document.querySelectorAll('input.shipping_method').length)).toBe(0);
+    expect(await browser.locator('#order_review').textContent()).not.toContain('GoSend');
+    await assertInsurance(browser, false);
+    await assertIdle(browser);
+    expect(unexpected).toEqual([]);
   });
 }
 
@@ -233,6 +308,7 @@ test('virtual checkout has no shipping section and keeps insurance at its origin
   const unexpected = await openFixture(app, browser, true, false, true);
   expect(await browser.evaluate(() => ({ sections: document.querySelectorAll('.kiriof-classic-shipping-options').length, rows: document.querySelectorAll('.woocommerce-shipping-totals').length,
     anchored: document.querySelector('#kiriof-classic-insurance-field')!.parentElement!.id, inputs: document.querySelectorAll('input.shipping_method').length }))).toEqual({ sections: 0, rows: 0, anchored: 'insurance-anchor', inputs: 0 });
+  expect(await browser.locator(summaryRows).count()).toBe(0);
   await assertInsurance(browser, false);
   await assertIdle(browser);
   expect(unexpected).toEqual([]);
@@ -244,6 +320,7 @@ test('removing all shipping packages restores moved insurance to the original an
   await browser.evaluate((html: string) => (window as any).__replaceReview(html, true), fragment(1, 0, true));
   await expect.poll(() => browser.evaluate(() => ({ sections: document.querySelectorAll('.kiriof-classic-shipping-options').length,
     anchored: document.querySelector('#kiriof-classic-insurance-field')?.parentElement?.id || null }))).toEqual({ sections: 0, anchored: 'insurance-anchor' });
+  expect(await browser.locator(summaryRows).count()).toBe(0);
   await assertInsurance(browser, false);
   await assertIdle(browser);
   expect(unexpected).toEqual([]);
@@ -269,6 +346,7 @@ for (const theme of ['shop-mania', 'wc-booster'] as const) {
       anchor: document.querySelector('#kiriof-classic-insurance-field')!.parentElement!.id,
       heading: document.querySelector('#insurance-anchor')!.previousElementSibling!.id,
     }))).toEqual({ sections: 0, anchor: 'insurance-anchor', heading: 'address_heading' });
+    expect(await browser.evaluate(() => Array.from(document.querySelectorAll<HTMLTableRowElement>('.kiriof-classic-shipping-summary')).map(row => ({ hidden: row.hidden, height: row.getBoundingClientRect().height })))).toEqual([{ hidden: true, height: 0 }, { hidden: true, height: 0 }]);
     await app.screenshot(`${theme}-native-before-module`);
     await browser.evaluate((source: string) => { (0, eval)(source); return null; }, script('assets/buyer/js/checkout/shipping-options.js'));
     await expect(browser.locator(`${section} .kiriof-buyer-combobox-trigger`)).toBeVisible();

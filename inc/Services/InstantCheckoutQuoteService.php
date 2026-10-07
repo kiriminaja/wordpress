@@ -272,6 +272,9 @@ class InstantCheckoutQuoteService {
 		if ( empty( $items ) ) {
 			throw new InvalidArgumentException( 'items_invalid' );
 		}
+		// Rebuild from current products for both quoting and validation. A caller's
+		// package_type_id may be a stale shipping snapshot, not a cart override.
+		$package_type_id = PackageTypeService::resolveForCartPackage( $package );
 		usort( $items, static fn( $a, $b ) => strcmp( $a['cart_key'], $b['cart_key'] ) );
 		$pricing = array( 'origin' => array( 'lat' => $origin['latitude'], 'long' => $origin['longitude'], 'address' => $origin['address'] ),
 			'destination' => array( 'lat' => $recipient['latitude'], 'long' => $recipient['longitude'], 'address' => $recipient['address'] ),
@@ -281,7 +284,7 @@ class InstantCheckoutQuoteService {
 			throw new InvalidArgumentException( 'items_invalid' );
 		}
 		$context = array( 'amount_version' => self::AMOUNT_VERSION, 'currency' => $currency, 'coverage_version' => 1, 'package_id' => (string) $package_id, 'origin' => $origin, 'destination' => $destination, 'recipient' => $recipient, 'items' => $items,
-			'weight' => $weight, 'item_value' => $value, 'package_type_id' => $this->integer( $package['package_type_id'] ?? 7, 1 ), 'pricing' => $pricing, 'policy' => $policy, 'payment_method' => $payment, 'insurance' => false );
+			'weight' => $weight, 'item_value' => $value, 'package_type_id' => $package_type_id, 'pricing' => $pricing, 'policy' => $policy, 'payment_method' => $payment, 'insurance' => false );
 		$encoded = wp_json_encode( $this->canonical( $context ) );
 		if ( false === $encoded ) {
 			throw new InvalidArgumentException( 'context_unavailable' );
