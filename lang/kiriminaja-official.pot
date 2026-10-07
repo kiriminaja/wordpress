@@ -2670,3 +2670,7 @@ msgstr ""
 #: inc/Services/PackageTypeService.php
 msgid "Sports & Entertainment"
 msgstr ""
+
+#: templates/woocommerce/cart/cart-shipping.php
+msgid "Shipping Options"
+msgstr ""

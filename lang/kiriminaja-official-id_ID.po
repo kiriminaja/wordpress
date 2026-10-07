@@ -5660,6 +5660,10 @@ msgstr "Informasi Kontak"
 msgid "Shipping options"
 msgstr "Pilihan pengiriman"
 
+#: templates/woocommerce/cart/cart-shipping.php
+msgid "Shipping Options"
+msgstr "Pilihan Pengiriman"
+
 #: templates/front/partials/form-billing-address-config.php
 msgid "Enter at least 3 characters"
 msgstr "Masukkan minimal 3 karakter"
