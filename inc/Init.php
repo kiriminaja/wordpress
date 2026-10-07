@@ -28,6 +28,7 @@ final class Init {
             Controllers\ShippingProcessController::class,
             Controllers\TransactionProcessController::class,
             Controllers\ShippingDiscountCouponController::class,
+            Services\CheckoutShippingSelectionGuard::class,
             Controllers\CheckoutController::class,
             Controllers\AccountAddressController::class,
             Blocks\BuyerCheckoutRegistration::class,

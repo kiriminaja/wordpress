@@ -49,6 +49,8 @@ final class BuyerDestinationRuntimeTest extends TestCase {
         $result = $this->runFixture( array( 'operation' => 'schema' ) );
         $this->assertSame( 'checkout', $result['schema']['endpoint'] );
         $this->assertSame( 'kiriminaja-official', $result['schema']['namespace'] );
+        $this->assertSame( 'object', $result['schema']['schema']['shipping_selection']['type'] );
+        $this->assertSame( array( 'package_id', 'rate_id' ), $result['schema']['schema']['shipping_selection']['properties']['packages']['items']['required'] );
         $properties = $result['schema']['schema']['destination']['properties'];
         $this->assertSame( array( 'string', 'integer' ), $properties['district_id']['type'] );
         $this->assertSame( array( 'shipping' ), $properties['address_type']['enum'] );

@@ -50,7 +50,7 @@ final class ClassicChoicesAssetsTest extends TestCase {
 		$previous = 'kiriof-script';
 		foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module ) {
 			$handle = 'kiriof-checkout-' . $module;
-			$this->assertSame( array( $previous ), $scripts[ $handle ]['deps'] );
+			$this->assertSame( 'state' === $module ? array( $previous, 'kiriof-shipping-selection' ) : array( $previous ), $scripts[ $handle ]['deps'] );
 			$previous = $handle;
 		}
 		$this->assertSame( array( 'in_footer' => true ), $scripts['kiriof-classic-choices']['args'] );

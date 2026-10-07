@@ -15,7 +15,7 @@ type Node = { type: any; props: any; children: any[] };
 // A small commit-phase hook runner: effects run after render, changed effects clean
 // up first, setters are stable, and updates during effects cause another render.
 // Both production scripts execute unchanged in the same browser-like VM.
-function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean } = {}) {
+function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean; restore?: boolean } = {}) {
 	const timers = new Map<number, { delay: number; callback: () => void }>();
 	let nextTimer = 0;
 	const setTimeout = (callback: () => void, delay = 0) => { timers.set(++nextTimer, { callback, delay }); return nextTimer; };
@@ -23,11 +23,14 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	const lookups: any[] = [], sends: any[] = [], publications: any[] = [], validations: any[] = [], classes: string[] = [], queries: string[] = [];
 	const subscribers = new Set<() => void>();
 	const events: Record<string, { callback: (event?: any) => void; once: boolean }> = {};
+	const documentEvents = new Map<string, Set<(event: any) => void>>();
 	const model = {
 		cart: { needsShipping: true, shippingAddress: { postcode: '12345', country: 'ID' } as any,
 			extensions: {} as any, shippingRates: [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }] },
 		payment: 'cod', rateBusy: false, customerBusy: false, pendingItems: false, collection: false,
 	};
+	const restores: any[] = [];
+	const nativeDispatch = { selectShippingRate: (rate: string, packageId: string) => { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
 	const forbidden = () => { throw new Error('Adapter must not call native customer/rate or legacy DOM methods'); };
 	const cartStore: any = {
 		getCartData: () => model.cart,
@@ -77,7 +80,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		element, components: {},
 		plugins: { registerPlugin: (name: string, value: any) => { pluginName = name; plugin = value; } },
 		data: { select, useSelect: (callback: any) => callback(select),
-			dispatch: (name: string) => name === 'wc/store/checkout' ? checkoutDispatch : validationDispatch,
+			dispatch: (name: string) => name === 'wc/store/checkout' ? checkoutDispatch : name === 'wc/store/cart' && options.restore ? nativeDispatch : validationDispatch,
 			subscribe: (callback: () => void) => { subscribers.add(callback); return () => subscribers.delete(callback); } },
 	};
 	const blocks: any = {
@@ -94,6 +97,8 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 		addEventListener: (name: string, callback: () => void, init: any) => { events[name] = { callback, once: !!init?.once }; },
 	};
 	const document = {
+		addEventListener(name: string, callback: (event: any) => void) { if (!documentEvents.has(name)) documentEvents.set(name, new Set()); documentEvents.get(name)!.add(callback); },
+		removeEventListener(name: string, callback: (event: any) => void) { documentEvents.get(name)?.delete(callback); },
 		querySelector: (selector: string) => { queries.push(selector); return options.block === false ? null : {}; },
 		documentElement: { classList: { add: (name: string) => { if (!classes.includes(name)) classes.push(name); }, remove: (name: string) => { const index = classes.indexOf(name); if (index >= 0) classes.splice(index, 1); } } },
 		querySelectorAll: forbidden, getElementById: forbidden, createEvent: forbidden,
@@ -101,6 +106,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	const context = { window: root, document, setTimeout, clearTimeout, AbortController, URLSearchParams,
 		HTMLInputElement: new Proxy({}, { get: forbidden }), HTMLSelectElement: new Proxy({}, { get: forbidden }), jQuery: forbidden };
 	runInNewContext(sessionSource, context);
+	runInNewContext(readFileSync(new URL('../assets/wp/js/kiriof-shipping-selection.js', import.meta.url), 'utf8'), context);
 	if (options.missing === 'session') delete root.kiriofBuyerCheckoutSession;
 	if (options.missing === 'slot') delete blocks[options.slot || 'OrderMeta'];
 	if (options.missing === 'inner') delete blocks.registerCheckoutBlock;
@@ -162,7 +168,9 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	function notify() { for (const callback of subscribers) callback(); render(); }
 	function pagehide(persisted = false) { const event = events.pagehide; event?.callback({ persisted }); if (event?.once) delete events.pagehide; }
 	function unmount(index = 0) { const instance = instances[index]; instance.mounted = false; for (const hook of instance.hooks) hook?.cleanup?.(); render(); }
-	return { root, model, timers, lookups, sends, publications, validations, classes, queries, subscribers,
+	return { root, model, timers, lookups, sends, publications, validations, classes, queries, subscribers, documentEvents, restores,
+		billingChange: () => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'checkbox', checked: true, value: 'on' } }); render(); },
+		shippingChange: (value: string) => { for (const callback of documentEvents.get('change') || []) callback({ type: 'change', target: { tagName: 'INPUT', type: 'radio', checked: true, value } }); render(); },
 		plugin: () => plugin, pluginName: () => pluginName, registeredBlocks: () => registeredBlocks,
 		mount, mountRegisteredBlock, render, settle, flush, reply, notify, pagehide, unmount, find, findIn,
 		choose: (id: string | null) => { find('select').props.onChange({ target: { value: id || '' } }); render(); },
@@ -171,11 +179,104 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	};
 }
 
+function reviewed(rate_id: string, package_id = '0') { return { version: 1, packages: [{ package_id, rate_id }] }; }
+function latestValidation(h: ReturnType<typeof harness>, id: string) { return h.validations.filter(value => value[id] || value.clear === id).at(-1); }
+
 function options(node: any): {value: string; label: string}[] { return node.children.flat(Infinity).filter((child: any) => child?.type === 'option' && child.props.value).map((child: any) => ({value: child.props.value, label: child.children[0]})); }
 
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
 describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
+	test('billing checkbox cannot review automatic Express; exact available GoSend restores after customer busy settles', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+		const rates = (selected: string) => [{ package_id: 0, shipping_rates: [
+			{ rate_id: express, method_id: 'kiriminaja-official', selected: selected === express },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: selected === go },
+		] }];
+		h.model.cart.shippingRates = rates(go); h.shippingChange(go);
+		const sends = h.sends.length;
+		h.model.customerBusy = true; h.model.cart.shippingRates = rates(express); h.billingChange(); h.notify(); await h.settle();
+		expect(h.restores).toHaveLength(0);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection']).toBeDefined();
+		h.model.customerBusy = false; h.notify(); await h.settle();
+		expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[go, '0']]);
+		h.model.rateBusy = true; h.notify(); h.model.pendingItems = true; h.notify(); h.model.pendingItems = false; h.notify();
+		expect(h.restores).toHaveLength(1); expect(h.sends).toHaveLength(sends);
+		h.model.cart.shippingRates = rates(go); h.model.rateBusy = false; h.restores[0].resolve(); await h.settle(); h.notify();
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go)); expect(h.restores).toHaveLength(1);
+	});
+	test('failed exact restoration is blocked once, busy-only transitions do not loop or mutate plugin pricing', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant';
+		const rates = [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }, { rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: false }];
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: rates }]; h.shippingChange(go);
+		rates[0].selected = false; rates[1].selected = true; h.notify(); await h.settle();
+		expect(h.restores).toHaveLength(1); h.restores[0].reject(new Error('native failure')); await h.settle();
+		for (let i = 0; i < 3; i++) { h.model.customerBusy = true; h.notify(); h.model.customerBusy = false; h.notify(); await h.settle(); }
+		expect(h.restores).toHaveLength(1); expect(h.sends).toHaveLength(0);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection']).toBeDefined();
+	});
+	test('COD removes reviewed quote: no nonexistent rate restoration, only explicit Cargo re-review clears guard', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant';
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }] }]; h.shippingChange(go);
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }]; h.billingChange(); h.notify(); await h.settle();
+		expect(h.restores).toHaveLength(0); expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection']).toBeDefined();
+		h.shippingChange('kiriminaja:jne'); expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed('kiriminaja:jne'));
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' }); expect(h.sends).toHaveLength(0);
+	});
+	test('explicit native GoSend choice survives terms failure, automatic Cargo fallback conflicts until explicitly chosen', async () => {
+		const h = harness({ config: { districtPostcode: '12345', district: { id: 7 } } });
+		await ready(h); await h.flush(0); h.sends[0].resolve(); await h.settle();
+		const oldInstant = 'kiriminaja-instant:7:gosend:instant';
+		const cargo = 'kiriminaja:jne:cargo';
+		const selected = (rate_id: string, method_id: string) => [{ package_id: 0, shipping_rates: [{ rate_id, method_id, selected: true }] }];
+		h.model.cart.shippingRates = selected(oldInstant, 'kiriminaja-instant');
+		h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: true, code: 'available', expires_at: 0 };
+		// The native store is updated before its captured INPUT radio change.
+		h.shippingChange(oldInstant);
+		expect(h.documentEvents.get('change')?.size).toBe(1);
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: reviewed(oldInstant) }]);
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		const publications = h.publications.length;
+		// Woo terms/checkout failures are unrelated to buyer courier intent.
+		h.validations.push({ terms: { message: 'Please accept the terms', hidden: false } }); h.notify();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(oldInstant));
+		expect(h.publications.slice(publications).every(([, payload]) => JSON.stringify(payload.shipping_selection) === JSON.stringify(reviewed(oldInstant)))).toBe(true);
+		expect(latestValidation(h, 'terms')).toEqual({ terms: { message: 'Please accept the terms', hidden: false } });
+		// Native/server fallback is not a user choice and must not silently review Cargo.
+		h.model.cart.shippingRates = selected(cargo, 'kiriminaja-official'); h.notify();
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ 'kiriof-shipping-selection': { message: 'Shipping options changed. Please review and select your courier again before placing the order.', hidden: false } });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(oldInstant));
+		expect(h.sends).toHaveLength(1);
+		h.shippingChange(cargo);
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: reviewed(cargo) }]);
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(latestValidation(h, 'terms')).toEqual({ terms: { message: 'Please accept the terms', hidden: false } });
+		expect(h.sends).toHaveLength(1);
+		h.pagehide(); expect(h.documentEvents.get('change')?.size).toBe(0);
+	});
+	test('initial review waits for complete stable native packages and does not replace intent on price changes', async () => {
+		const h = harness(); h.model.rateBusy = true;
+		h.model.cart.shippingRates = [
+			{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] },
+			{ package_id: 1, shipping_rates: [] },
+		];
+		h.mount(); expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
+		h.model.rateBusy = false; h.notify();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
+		h.model.cart.shippingRates[1].shipping_rates = [{ rate_id: 'flat_rate:2', method_id: 'flat_rate', selected: true }]; h.notify();
+		const expected = { version: 1, packages: [{ package_id: '0', rate_id: 'kiriminaja:jne' }, { package_id: '1', rate_id: 'flat_rate:2' }] };
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(expected);
+		Object.assign(h.model.cart.shippingRates[0].shipping_rates[0], { price: '99999', name: 'New label' }); h.notify();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(expected);
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+	});
 	test('district lookup deadline aborts and reports once; retry ignores late old success', async () => {
 		const h = harness(); h.mount(); await h.flush(250); await h.flush(10000);
 		expect(h.lookups[0].init.signal.aborted).toBe(true); expect(h.status()).toBe('Lookup timed out');
@@ -189,11 +290,11 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 			h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
 			h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'available', message: 'Quote expired', expires_at: 0 };
 			h.mount();
-			expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Subdistrict required');
+			expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Subdistrict required');
 			await h.flush(250); await h.reply(); await h.flush(0);
 			expect(h.sends[0].request.data.refresh_instant).toBe(false);
 			h.sends[0].resolve(); await h.settle();
-			expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Quote expired');
+			expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Quote expired');
 			expect(h.find('button').children[0]).toBe('Retry');
 			h.model.rateBusy = true; h.retry(); await h.flush(0);
 			expect(h.sends).toHaveLength(1); expect(h.find('button')).toBeUndefined();
@@ -272,7 +373,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		const h = harness(); await ready(h); h.choose('7'); await h.flush(0); h.sends[0].resolve(); await h.settle();
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:1', method_id: 'kiriminaja-instant', selected: true };
 		h.model.cart.extensions['kiriminaja-official-instant-checkout'] = { eligible: false, code: 'outside_coverage', message: 'Outside coverage', expires_at: 0 };
-		h.notify(); expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Outside coverage');
+		h.notify(); expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Outside coverage');
 		h.model.cart.shippingAddress.first_name = 'New Buyer'; h.model.cart.shippingAddress.phone = '123'; h.notify(); await h.flush(0);
 		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data.recipient_context).toEqual({ first_name: 'New Buyer', last_name: '', phone: '123' });
 		expect(h.sends[1].request.data.destination).toEqual(h.sends[0].request.data.destination);
@@ -303,7 +404,12 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(api.getCoordinates(savedAddress)).toEqual({ latitude: '-6.2000000', longitude: '106.8000000', key: JSON.stringify(savedAddress) });
 		expect(api.active).toBe(false); expect(h.publications).toHaveLength(0);
 		h.mount(); h.mountRegisteredBlock();
-		expect(h.publications).toHaveLength(1);
+		expect(h.publications.length).toBeGreaterThan(0);
+		for (const [, payload] of h.publications) {
+			expect(payload.destination).not.toBeNull();
+			expect(payload.destination.version).toBe(2);
+			expect(payload.destination.destination_latitude).toBe('-6.2000000');
+		}
 		expect(api.getDestination().version).toBe(2); expect(api.getDestination().district_id).toBe('');
 		await h.flush(0); expect(h.sends).toHaveLength(0);
 		await h.flush(250); expect(h.lookups).toHaveLength(1); await h.reply();
@@ -371,7 +477,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		const h = harness();
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'flat_rate:2', method_id: 'flat_rate', selected: true };
 		h.mount(); await h.flush(250); h.lookups[0].reject(new Error('offline')); await h.settle();
-		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+		expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 		expect(h.sends).toHaveLength(0);
 	});
 	test('activates the public API and OrderMeta plugin only on Blocks pages', () => {
@@ -403,7 +509,9 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	});
 	test('duplicate mobile Slots mirror selection and retries with one effects owner', async () => {
 		const h = harness(); h.mount(); h.mount(); await h.flush(250);
-		expect(h.lookups).toHaveLength(1); expect(h.publications).toHaveLength(1);
+		expect(h.lookups).toHaveLength(1);
+		expect(new Set(h.publications.map(([, payload]) => JSON.stringify(payload.destination))).size).toBe(1);
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: reviewed('kiriminaja:jne') }]);
 		h.lookups[0].reject(new Error('offline')); await h.settle();
 		expect(h.findIn(0, 'p').children[0]).toBe('Lookup failed');
 		expect(h.findIn(1, 'p').children[0]).toBe('Lookup failed');
@@ -413,14 +521,16 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		h.findIn(1, 'select').props.onChange({ target: { value: '7' } }); h.render();
 		expect(h.findIn(0, 'select').props.value).toBe('7');
 		expect(h.findIn(1, 'select').props.value).toBe('7');
-		expect(h.publications.length).toBe(publications + 1);
+		expect(h.publications.length).toBeGreaterThan(publications);
+		for (const [, payload] of h.publications.slice(publications)) expect(payload.destination).toEqual(h.root.kiriofBuyerCheckout.getDestination());
 		await h.flush(0); expect(h.sends).toHaveLength(1);
 		h.sends[0].reject(new Error('offline')); await h.settle();
 		h.findIn(1, 'button').props.onClick(); h.render(); await h.flush(0);
 		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data).toEqual(h.sends[0].request.data);
 		h.sends[1].resolve(); await h.settle();
 		const validations = h.validations.length;
-		h.unmount(1); expect(h.validations).toHaveLength(validations);
+		h.unmount(1);
+		expect(h.validations.slice(validations).filter(value => value['kiriof-buyer-destination'] || value.clear === 'kiriof-buyer-destination')).toEqual([]);
 		expect(h.root.kiriofBuyerCheckout.active).toBe(true);
 		h.unmount(0); expect(h.root.kiriofBuyerCheckout.active).toBe(false); expect(h.classes).toEqual([]);
 	});
@@ -428,7 +538,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		const h = harness(); h.mount(); h.mount(); await h.flush(250);
 		const validations = h.validations.length; h.unmount(0);
 		expect(h.lookups[0].init.signal.aborted).toBe(true);
-		expect(h.validations.slice(validations).some(value => value.clear)).toBe(false);
+		expect(h.validations.slice(validations).some(value => value.clear === 'kiriof-buyer-destination')).toBe(false);
 		expect(h.root.kiriofBuyerCheckout.active).toBe(true); await h.flush(250);
 		expect(h.lookups).toHaveLength(2);
 		await h.reply(1, [{ id: 9, text: 'Replacement' }]); await h.reply(0);
@@ -491,7 +601,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(request.data).toEqual({ action: 'sync_checkout', destination: h.root.kiriofBuyerCheckout.getDestination(), payment_method: 'cod', insurance: 1, force_insurance: 0, recipient_context: { first_name: '', last_name: '', phone: '' }, quote_refresh_version: 0, refresh_instant: false });
 		expect(request.data.shipping_method).toBeUndefined(); expect(Object.isFrozen(request.data)).toBe(true); expect(Object.isFrozen(request.data.destination)).toBe(true);
 		expect(h.status()).toBe('Saving'); h.sends[0].resolve(); await h.settle();
-		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+		expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 	});
 	for (const gate of ['rateBusy', 'customerBusy', 'pendingItems'] as const) {
 		test(`waits for native ${gate} before updating, then resumes from subscription`, async () => {
@@ -532,7 +642,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.status()).toBe('Update failed'); expect(h.find('select').props.value).toBe('7'); expect(h.root.kiriofBuyerCheckout.getDestination().district_id).toBe('7');
 		h.notify(); await h.flush(0); expect(h.sends).toHaveLength(1);
 		h.retry(); await h.flush(0); expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data).toEqual(h.sends[0].request.data);
-		h.sends[1].resolve(); await h.settle(); expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+		h.sends[1].resolve(); await h.settle(); expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 	});
 	test('serializes payment updates without replaying courier selection', async () => {
 		const h = harness(); await ready(h); h.choose('7'); await h.flush(0);
@@ -556,9 +666,9 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		h.model.cart.shippingRates[0].shipping_rates[0] = { rate_id: 'kiriminaja-instant:7:gosend:instant', method_id: 'kiriminaja-instant', selected: true };
 		await ready(h);
 		await h.flush(0); h.sends[0].resolve(); await h.settle();
-		expect(h.validations.at(-1)['kiriof-buyer-destination'].message).toBe('Subdistrict required');
+		expect(latestValidation(h, 'kiriof-buyer-destination')['kiriof-buyer-destination'].message).toBe('Subdistrict required');
 		h.choose('7'); await h.flush(0); h.sends[1].resolve(); await h.settle();
-		expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+		expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 		expect(h.sends[0].request.data.shipping_method).toBeUndefined();
 	});
 	test('native District select shares Woo floating-label markup and offers postcode options without search requests', async () => {
@@ -591,7 +701,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 	});
 	test('pagehide unsubscribes and disposes pending updates; unmount aborts lookup and clears validation', async () => {
 		const h = harness(); h.mount(); await h.flush(250); expect(h.subscribers.size).toBe(1);
-		h.unmount(); expect(h.lookups[0].init.signal.aborted).toBe(true); expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+		h.unmount(); expect(h.lookups[0].init.signal.aborted).toBe(true); expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 		h.pagehide(); expect(h.subscribers.size).toBe(0); await h.reply(); await h.flush(0); expect(h.sends).toHaveLength(0);
 		const pending = harness(); await ready(pending); pending.choose('7'); pending.pagehide(); await pending.flush(0); expect(pending.sends).toHaveLength(0);
 		const inFlight = harness(); await ready(inFlight); inFlight.choose('7'); await inFlight.flush(0); inFlight.model.payment = 'bacs'; inFlight.render(); inFlight.pagehide();
@@ -601,7 +711,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		for (const mode of ['collection', 'noShipping']) {
 			const h = harness(); if (mode === 'collection') h.model.collection = true; else h.model.cart.needsShipping = false;
 			h.mount(); await h.flush(250); await h.flush(0); expect(h.find('select')).toBeUndefined(); expect(h.lookups).toHaveLength(0); expect(h.sends).toHaveLength(0);
-			expect(h.validations.at(-1)).toEqual({ clear: 'kiriof-buyer-destination' });
+			expect(latestValidation(h, 'kiriof-buyer-destination')).toEqual({ clear: 'kiriof-buyer-destination' });
 		}
 	});
 	test('public zero pin publishes version 2 with exactly six normalized shipping fields and the latest queued payload', async () => {
@@ -612,7 +722,7 @@ describe('buyer checkout Blocks adapter (unchanged production VM)', () => {
 		expect(h.root.kiriofBuyerCheckout.setCoordinates(address, { latitude: 0, longitude: 0 })).toBe(true); h.render();
 		const destination = h.root.kiriofBuyerCheckout.getDestination();
 		expect(destination).toEqual({ version: 2, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping', destination_latitude: '0.0000000', destination_longitude: '0.0000000', shipping_address: { address_1: 'Main Road', address_2: 'Unit 2', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' } });
-		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination }]);
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination, shipping_selection: reviewed('kiriminaja:jne') }]);
 		h.model.payment = 'bacs'; h.render(); await h.flush(0);
 		expect(h.sends).toHaveLength(1);
 		expect(h.sends[0].request.data).toEqual({ action: 'sync_checkout', destination, payment_method: 'bacs', insurance: 1, force_insurance: 0, recipient_context: { first_name: 'Buyer', last_name: '', phone: 'private' }, quote_refresh_version: 0, refresh_instant: false });

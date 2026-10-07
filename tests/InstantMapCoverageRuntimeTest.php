@@ -68,7 +68,7 @@ final class InstantMapCoverageRuntimeTest extends TestCase {
         $result = $this->runFixture( array( 'packages' => array( array( 'origin' => $this->origin() ) ) ) );
         $this->assertSame( 'checkout', $result['schemas'][0]['endpoint'] );
         $this->assertSame( 'kiriminaja-official', $result['schemas'][0]['namespace'] );
-        $this->assertSame( array( 'destination' ), array_keys( $result['schemas'][0]['schema'] ) );
+        $this->assertSame( array( 'destination', 'shipping_selection' ), array_keys( $result['schemas'][0]['schema'] ) );
         $cart = $result['schemas'][1];
         $this->assertSame( 'cart', $cart['endpoint'] );
         $this->assertSame( 'kiriminaja-official-instant-coverage', $cart['namespace'] );

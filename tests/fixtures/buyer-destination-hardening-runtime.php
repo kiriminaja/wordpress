@@ -111,6 +111,7 @@ namespace {
     }
     require ABSPATH . 'inc/Utils/ServiceResponse.php';
     require ABSPATH . 'inc/Services/BuyerDestination.php';
+    require ABSPATH . 'inc/Services/CheckoutShippingSelectionGuard.php';
     require ABSPATH . 'inc/Controllers/CheckoutController.php';
     $input = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );
     $GLOBALS['fixture_input'] = $input;

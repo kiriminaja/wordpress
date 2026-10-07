@@ -38,6 +38,7 @@ namespace {
         );
     }
     require ABSPATH . 'inc/Services/BuyerDestination.php';
+    require ABSPATH . 'inc/Services/CheckoutShippingSelectionGuard.php';
     require ABSPATH . 'inc/Services/InstantDeliveryCoverage.php';
     require ABSPATH . 'inc/Services/InstantMapCoverageService.php';
     require ABSPATH . 'inc/Base/Enqueue.php';

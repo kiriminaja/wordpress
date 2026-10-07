@@ -57,6 +57,7 @@ function pageHTML(enhanced = true, mandatory = false, virtual = false, floatLayo
     read('assets/wp/js/checkout/choices-controls.js'),
     read('assets/wp/js/checkout/state.js'),
     read('assets/wp/js/checkout/shipping-payment.js'),
+    read('assets/wp/js/kiriof-shipping-selection.js'),
     ...(floatLayout ? [] : [read('assets/wp/js/checkout/shipping-options.js')]),
     'kiriofScheduleClassicShippingMethodSelectInit();',
   ];

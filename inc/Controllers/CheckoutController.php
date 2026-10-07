@@ -2404,7 +2404,7 @@ class CheckoutController
             'endpoint' => $schema::IDENTIFIER,
             'namespace' => 'kiriminaja-official',
             'schema_type' => ARRAY_A,
-            'schema_callback' => static function () { return array( 'destination' => BuyerDestination::schema() ); },
+            'schema_callback' => static function () { return array( 'destination' => BuyerDestination::schema(), 'shipping_selection' => \KiriminAjaOfficial\Services\CheckoutShippingSelectionGuard::schema() ); },
             // Do not echo a session snapshot into a new checkout request implicitly.
             'data_callback' => static function () { return array(); },
         ) );

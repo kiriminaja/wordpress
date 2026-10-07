@@ -58,6 +58,7 @@ return array(
     'fieldKey'                => (string) $field_key,
     'i18n'                    => array(
         'shippingOptions' => __( 'Shipping options', 'kiriminaja-official' ),
+        'shippingSelectionChanged' => __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' ),
         'district'        => __( 'Subdistrict', 'kiriminaja-official' ),
         'selectDistrict'  => __( 'Select Subdistrict', 'kiriminaja-official' ),
         'districtWarning' => __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ),

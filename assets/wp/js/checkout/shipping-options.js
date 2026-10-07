@@ -4,6 +4,34 @@
     var section, list, insuranceArea, observer, queued = false, stopped = false;
     var packages = new Map();
     var insuranceAnchor;
+    var reviewed = window.kiriofShippingSelection && window.kiriofShippingSelection.create();
+    var reviewInput, reviewNotice;
+    function choices(form) {
+        return Array.from(form.querySelectorAll('input.shipping_method:checked, input.shipping_method[type="hidden"]')).map(function(input){
+            var index=input.getAttribute('data-index');
+            if(index===null){var match=(input.name || '').match(/^shipping_method\[([^\]]+)\]$/);index=match ? match[1] : '';}
+            return {package_id:index,rate_id:input.value};
+        });
+    }
+    function reconcileSelection(form) {
+        if(!reviewed)return;
+        if(!reviewInput){reviewInput=document.createElement('input');reviewInput.type='hidden';reviewInput.name='kiriof_shipping_selection';form.append(reviewInput);reviewNotice=document.createElement('p');reviewNotice.className='kiriof-shipping-selection-error';reviewNotice.setAttribute('role','alert');}
+        var current=choices(form);reviewed.seed(current);var match=reviewed.reconcile(current);reviewInput.value=JSON.stringify(reviewed.snapshot());
+        reviewNotice.hidden=!reviewed.snapshot().packages.length || match;
+        var message=reviewNotice.hidden?'':(window.kiriofBillingAddressConfig.i18n || {}).shippingSelectionChanged || 'Shipping options changed. Please review and select your courier again before placing the order.';
+        if(reviewNotice.textContent!==message)reviewNotice.textContent=message;
+        if(section && reviewNotice.parentNode!==section)section.append(reviewNotice);
+    }
+    function choose(event) {
+        if(!reviewed)return;
+        var target=event.target;var form=document.querySelector('form.checkout');if(!active() || !form || !target || !form.contains(target))return;
+        var isRadio=target.matches('input.shipping_method') && event.isTrusted;
+        var isChoices=target.matches('select.kiriof-classic-shipping-method-select') && event.detail && typeof event.detail.value==='string';
+        if(!isRadio && !isChoices)return;
+        var index=target.getAttribute('data-index');
+        var current=choices(form);var found=false;current=current.map(function(item){if(item.package_id===index){found=true;return {package_id:index,rate_id:target.value};}return item;});if(!found)current.push({package_id:index,rate_id:target.value});
+        reviewed.choose(index,target.value,current);reconcileSelection(form);
+    }
     var layoutObserver, observedParent, observedReview;
     function align(review) {
         var css = window.getComputedStyle(review);
@@ -80,6 +108,7 @@
             if (!insuranceAnchor || !insuranceAnchor.isConnected) { insuranceAnchor = document.createComment('kiriof insurance original position');insurance.parentNode.insertBefore(insuranceAnchor, insurance); }
             insuranceArea.append(insurance);
         }
+        reconcileSelection(form);
     }
     function refresh() {
         if (queued || stopped) { return; }
@@ -90,8 +119,10 @@
         place();observer = new window.MutationObserver(refresh);
         observer.observe(document.querySelector('form.checkout'), {childList: true, subtree: true});
         if (window.jQuery) { window.jQuery(document.body).on('updated_checkout.kiriofShippingOptions init_checkout.kiriofShippingOptions', refresh); }
+        document.addEventListener('change',choose,true);
+        if(window.jQuery)window.jQuery(document.querySelector('form.checkout')).on('checkout_place_order.kiriofShippingOptions',function(){reconcileSelection(this);return !reviewed || reviewed.matches(choices(this));});
     }
     window.kiriofClassicShippingOptions = {refresh: place};
-    window.addEventListener('pagehide', function () { stopped = true;if(observer)observer.disconnect();if(layoutObserver)layoutObserver.disconnect();if(window.jQuery)window.jQuery(document.body).off('.kiriofShippingOptions'); }, {once: true});
+    window.addEventListener('pagehide', function () { stopped = true;if(observer)observer.disconnect();if(layoutObserver)layoutObserver.disconnect();document.removeEventListener('change',choose,true);if(window.jQuery){window.jQuery(document.body).off('.kiriofShippingOptions');window.jQuery('form.checkout').off('.kiriofShippingOptions');} }, {once: true});
     if(document.readyState === 'loading')document.addEventListener('DOMContentLoaded', start, {once: true});else start();
 })(window, document);

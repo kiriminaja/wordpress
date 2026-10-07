@@ -119,7 +119,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             );
         }
         $this->assertStringContainsString("'kiriof-buyer-checkout'", $enqueue, 'Blocks must load the modern buyer checkout entry point');
-        $this->assertStringContainsString("'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
+        $this->assertStringContainsString("'kiriof-checkout-session', 'kiriof-shipping-selection', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout'", $enqueue, 'The buyer entry point must depend on the session transport and native Blocks APIs');
         $this->assertStringContainsString("wp_localize_script( 'kiriof-buyer-checkout', 'kiriofBuyerCheckoutConfig'", $enqueue);
         $this->assertStringContainsString('root.kiriofBuyerCheckoutSession', $buyer, 'The modern buyer must consume the dedicated session transport');
         $this->assertStringContainsString('register_block_type_from_metadata', $controller, 'District must be registered as a real checkout block, not only a SlotFill');

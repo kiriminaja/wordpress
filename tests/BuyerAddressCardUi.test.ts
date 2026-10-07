@@ -14,7 +14,7 @@ function events() {
 	const handlers = new Map<string, any>();
 	return { on(name: string, callback: any) { handlers.set(name, callback); return this; }, off() { handlers.clear(); return this; }, fire(name: string, event?: any) { handlers.get(name)?.(event); } };
 }
-async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean; autoLocation?: boolean } = {}) {
+async function fixture(options: { editing?: boolean; guest?: boolean; savedDestination?: any; mapFirst?: boolean; autoLocation?: boolean; restore?: boolean } = {}) {
 	const window = new happy.Window();
 	const document = window.document;
 	const previous = new Map<string, any>();
@@ -28,9 +28,10 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	// Woo 10.6: native card and shipping form are siblings; plugin child
 	// mounts are outside the address wrapper, not inside its hidden card/form.
 	document.body.innerHTML = `<div class="wp-block-woocommerce-checkout wc-block-checkout"><div id="shipping-fields" class="wc-block-checkout__shipping-fields"><div class="wc-block-components-address-address-wrapper${options.editing ? ' is-editing' : ''}">${options.guest ? '' : '<div class="wc-block-components-address-card"><address>Main Road, Jakarta</address><button class="wc-block-components-address-card__edit" aria-controls="shipping" aria-expanded="' + !!options.editing + '">Edit</button></div>'}<div id="shipping" class="wc-block-components-address-form">Native shipping inputs</div></div><div class="wp-block-kiriminaja-official-checkout-district" id="district-mount"></div><div class="wp-block-kiriminaja-official-map-checkout" id="map-mount"></div></div><div id="billing-fields" class="wc-block-checkout__billing-fields"><div class="wc-block-components-address-address-wrapper is-editing"><div class="wc-block-components-address-card"><button class="wc-block-components-address-card__edit" aria-controls="billing" aria-expanded="true">Billing edit</button></div></div></div></div>`;
-	const model = { cart: { needsShipping: true, shippingAddress: { ...address }, shippingRates: [{ shipping_rates: [{ method_id: 'kiriminaja-official', selected: true }] }] }, payment: 'cod', busy: false, collection: false };
+	const model = { cart: { needsShipping: true, shippingAddress: { ...address }, shippingRates: [{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] }] }, payment: 'cod', busy: false, collection: false };
 	const subscribers = new Set<any>(), publications: any[] = [], validations: any[] = [], sends: any[] = [], lookups: any[] = [], maps: any[] = [], registrations: any[] = [];
-	const locations: any[] = [], tiles: any[] = [];
+	const locations: any[] = [], tiles: any[] = [], restores: any[] = [];
+	const cartDispatch = { selectShippingRate(rate: string, packageId: string) { const task = deferred(); restores.push({ rate, packageId, ...task }); return task.promise; } };
 	Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(success: any, failure: any, options: any) { locations.push({ success, failure, options }); if (fixtureOptionsAutoLocation) success({ coords: { latitude: -6, longitude: 106 } }); } } });
 	const fixtureOptionsAutoLocation = options.autoLocation !== false;
 	const timers = new Map<number, { callback: any; delay: number }>(); let timerId = 0;
@@ -43,7 +44,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	window.wp = { element: { ...React, createPortal }, data: {
 		select,
 		useSelect(callback: any) { const [, update] = React.useState(0); React.useEffect(() => { const listener = () => update((value: number) => value + 1); subscribers.add(listener); return () => subscribers.delete(listener); }, []); return callback(select); },
-		dispatch: (name: string) => name === 'wc/store/checkout' ? { setExtensionData: (...args: any[]) => publications.push(args) } : { setValidationErrors: (errors: any) => validations.push(errors), clearValidationError: (id: string) => validations.push({ clear: id }) },
+		dispatch: (name: string) => name === 'wc/store/cart' && options.restore ? cartDispatch : name === 'wc/store/checkout' ? { setExtensionData: (...args: any[]) => publications.push(args) } : { setValidationErrors: (errors: any) => validations.push(errors), clearValidationError: (id: string) => validations.push({ clear: id }) },
 		subscribe(callback: any) { subscribers.add(callback); return () => subscribers.delete(callback); },
 	} };
 	window.wc = { blocksCheckout: { registerCheckoutBlock: (registration: any) => registrations.push(registration), extensionCartUpdate(request: any) { sends.push(request); return Promise.resolve({}); } } };
@@ -58,6 +59,7 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 		tileLayer() { const tile = Object.assign(events(), { addTo() { return this; } }); tiles.push(tile); return tile; },
 	};
 	const context = { window, document, AbortController, URLSearchParams, setTimeout: window.setTimeout.bind(window), clearTimeout: window.clearTimeout.bind(window) };
+	runInNewContext(readFileSync(new URL('../assets/wp/js/kiriof-shipping-selection.js', import.meta.url),'utf8'),context);
 	for (const source of scripts) runInNewContext(source, context);
 	expect(registrations.map(row => row.metadata.name)).toEqual(['kiriminaja-official/checkout-district', 'kiriminaja-official/map-checkout']);
 	const roots = registrations.map((registration, index) => { const root = createRoot(document.getElementById(index ? 'map-mount' : 'district-mount')); return { root, component: registration.component }; });
@@ -70,13 +72,40 @@ async function fixture(options: { editing?: boolean; guest?: boolean; savedDesti
 	async function notify() { await act(async () => { for (const callback of subscribers) callback(); }); }
 	async function editing(value: boolean) { await mutation(() => { const wrapper = document.querySelector('#shipping-fields .wc-block-components-address-address-wrapper'); wrapper.classList.toggle('is-editing', value); wrapper.querySelector('button').setAttribute('aria-expanded', String(value)); }); }
 	async function cleanup() { await act(async () => { for (const { root } of roots) root.unmount(); }); expect(document.querySelector('.kiriof-address-status-host')).toBeNull(); expect(maps.every(map => map.removed === 1)).toBe(true); window.dispatchEvent(new window.Event('pagehide')); expect(subscribers.size).toBe(0); window.happyDOM.abort(); for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } }
-	return { window, document, model, maps, locations, tiles, publications, validations, sends, lookups, timers, act, mutation, editing, notify, flush, reply, cleanup,
+	return { window, document, model, maps, locations, tiles, restores, publications, validations, sends, lookups, timers, act, mutation, editing, notify, flush, reply, cleanup,
 		card: () => document.querySelector('#shipping-fields .wc-block-components-address-card'),
 		badges: () => [...document.querySelectorAll('#shipping-fields .kiriof-address-status__badge')],
 	};
 }
 
 describe('combined native address-card UI (real React/DOM, unchanged production VM)', () => {
+	uiTest('real React collapsed native card billing checkbox preserves reviewed selection through asynchronous restoration', async () => {
+		const h = await fixture({ restore: true, savedDestination: saved() });
+		try {
+			await h.flush(250); await h.reply(); await h.flush(0);
+			const go = 'kiriminaja-instant:7:gosend:instant';
+			const rates = [{ rate_id: go, method_id: 'kiriminaja-instant', selected: true }, { rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: false }];
+			h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: rates }];
+			// Happy DOM cannot create trusted browser events: this side-event uses the
+			// actual registered listener; Chromium separately verifies trusted input.
+			const radio = h.document.createElement('input'); radio.type = 'radio'; radio.checked = true; radio.value = go; h.document.body.append(radio);
+			await h.act(async () => radio.dispatchEvent(new h.window.Event('change', { bubbles: true })));
+			expect(h.publications.at(-1)[1].shipping_selection.packages[0].rate_id).toBe(go);
+			const sends = h.sends.length;
+			const checkbox = h.document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = true; h.document.querySelector('#billing-fields').append(checkbox);
+			h.model.busy = true; rates[0].selected = false; rates[1].selected = true;
+			await h.act(async () => checkbox.dispatchEvent(new h.window.Event('change', { bubbles: true }))); await h.notify();
+			expect(h.restores).toHaveLength(0); expect(h.publications.at(-1)[1].shipping_selection.packages[0].rate_id).toBe(go);
+			h.model.busy = false; await h.notify();
+			expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[go, '0']]);
+			expect(h.validations.filter(row => row['kiriof-shipping-selection'] || row.clear === 'kiriof-shipping-selection').at(-1)['kiriof-shipping-selection']).toBeDefined();
+			rates[0].selected = true; rates[1].selected = false;
+			await h.act(async () => h.restores[0].resolve({})); await h.notify();
+			expect(h.validations.filter(row => row['kiriof-shipping-selection'] || row.clear === 'kiriof-shipping-selection').at(-1)).toEqual({ clear: 'kiriof-shipping-selection' });
+			expect(h.sends).toHaveLength(sends); expect(h.restores).toHaveLength(1);
+			expect(h.document.querySelector('.kiriof-buyer-map')).toBeNull(); expect(h.document.querySelector('#billing-fields .kiriof-address-status-host')).toBeNull();
+		} finally { await h.cleanup(); }
+	});
 	uiTest('native edit opens permission status only; saved pin survives denial and map awaits an explicit grant on reentry', async () => {
 		const h = await fixture({ savedDestination: saved(), autoLocation: false });
 		try {
@@ -117,6 +146,8 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			await h.flush(250); await h.reply(); await h.flush(0);
 			expect(h.badges().map(node => node.textContent)).toEqual(['Pin location']);
 			expect(h.window.kiriofBuyerCheckout.getDestination().district_label).toBe('District Seven');
+			expect(h.publications.every(([, payload]) => payload.destination !== null)).toBe(true);
+			expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.window.kiriofBuyerCheckout.getDestination(), shipping_selection: { version: 1, packages: [{ package_id: '0', rate_id: 'kiriminaja:jne' }] } }]);
 			await h.editing(true); expect(h.document.querySelector('.kiriof-address-status')).toBeNull(); expect(h.document.querySelector('.wc-blocks-components-select__select')).not.toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map')).not.toBeNull(); expect(h.maps).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
 			await h.act(async () => h.maps[0].fire('click', { latlng: { lat: 1, lng: 2 } }));
 			const destination = h.window.kiriofBuyerCheckout.getDestination(); expect(destination.destination_latitude).toBe('1.0000000');

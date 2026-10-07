@@ -17,6 +17,28 @@
 	if ( ! document.querySelector( '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart' ) || ! config.enabled || ! session || ( ! destinationSlot && ! supportsDistrictInnerBlock ) || ! wp || ! wp.element || ! wp.data || ! wp.data.useSelect || ! blocks.extensionCartUpdate ) {
 		return;
 	}
+	function restoreReviewedShipping(packages, chosen, busy) {
+		if(!shippingReview || busy || restoringShipping)return;
+		if(shippingReview.matches(chosen)){restorationKey='';return;}
+		var review=shippingReview.snapshot().packages;
+		if(!review.length || review.length!==packages.length)return;
+		var differences=[];
+		for(var i=0;i<review.length;i++){
+			var expected=review[i];var pkg=packages.find(function(entry){return String(entry.package_id)===expected.package_id;});
+			if(!pkg || !(pkg.shipping_rates || []).some(function(rate){return rate.rate_id===expected.rate_id;}))return;
+			var actual=chosen.find(function(entry){return entry.package_id===expected.package_id;});
+			if(!actual || actual.rate_id!==expected.rate_id)differences.push(expected);
+		}
+		var key=JSON.stringify([review,chosen]);
+		if(!differences.length || key===restorationKey)return;
+		var dispatch=wp.data.dispatch('wc/store/cart');
+		if(!dispatch || typeof dispatch.selectShippingRate!=='function')return;
+		restorationKey=key;restoringShipping=true;
+		// Restore only an existing exact reviewed ID after native refresh settles.
+		// Missing/changed rates stay blocked; no plugin pricing/booking is triggered.
+		var promise=Promise.resolve();differences.forEach(function(entry){promise=promise.then(function(){if(!api.disabled)return dispatch.selectShippingRate(entry.rate_id,entry.package_id);});});
+		promise.catch(function(){/* Native errors keep the review conflict visible. */}).finally(function(){restoringShipping=false;if(!api.disabled)notify();});
+	}
 
 	function addressBadge( text, complete, title ) {
 		return h( 'span', { className: 'kiriof-address-status__badge ' + ( complete ? 'is-complete' : 'is-warning' ), title: title },
@@ -55,6 +77,32 @@
 	var recipientRefreshVersion = -1;
 	var refreshedDeadline = 0;
 	var nextDistrictId = 0;
+	var shippingReview = root.kiriofShippingSelection && root.kiriofShippingSelection.create({ onChange: function() { publishShippingReview(); notify(); } });
+	var shippingSelectionErrorId = 'kiriof-shipping-selection';
+	var restorationKey = '';
+	var restoringShipping = false;
+	function selectedPackages(packages) {
+		return (packages || []).flatMap(function(pkg) { var rate=(pkg.shipping_rates || []).find(function(item){return item.selected;});return rate && pkg.package_id !== undefined && pkg.package_id !== null ? [{package_id:String(pkg.package_id),rate_id:rate.rate_id}] : []; });
+	}
+	function publishShippingReview() {
+		if(shippingReview && state.destination)checkoutDispatch.setExtensionData(namespace,{destination:state.destination,shipping_selection:shippingReview.snapshot()});
+	}
+	function reviewNativeShipping(event) {
+		var input=event.target;
+		if(!shippingReview || !input || input.tagName !== 'INPUT' || input.type !== 'radio')return;
+		var store=wp.data.select('wc/store/cart');var data=store.getCartData() || {};var packages=data.shippingRates || [];
+		if((event.type !== 'click' && !input.checked) || event.isTrusted === false)return;
+		var matching=packages.filter(function(entry){return (entry.shipping_rates || []).some(function(rate){return rate.rate_id===input.value;});});
+		var pkg=matching.length===1 ? matching[0] : null;
+		if(!pkg && input.closest){
+			var container=input.closest('.wc-block-components-shipping-rates-control__package');
+			if(container){var containers=Array.from(document.querySelectorAll('.wc-block-components-shipping-rates-control__package'));var index=containers.indexOf(container);var candidate=packages[index];if(matching.includes(candidate))pkg=candidate;}
+		}
+		if(!pkg)return;
+		restorationKey='';
+		var chosen=selectedPackages(packages);var found=false;chosen=chosen.map(function(entry){if(entry.package_id===String(pkg.package_id)){found=true;return {package_id:String(pkg.package_id),rate_id:input.value};}return entry;});if(!found)chosen.push({package_id:String(pkg.package_id),rate_id:input.value});
+		shippingReview.choose(String(pkg.package_id),input.value,chosen);
+	}
 	var state = { refreshVersion: 0, destination: null, queue: null, selection: null, results: { key: '', options: [], loading: false, error: false }, retryLookup: 0, retryUpdate: 0, lookupKey: '' };
 	var savedPin = savedCoordinates( config.savedDestination );
 	var restorationAttempted = ! savedPin;
@@ -146,7 +194,7 @@
 	function publish( destination ) {
 		if ( JSON.stringify( state.destination ) === JSON.stringify( destination ) ) { return; }
 		state.destination = destination;
-		checkoutDispatch.setExtensionData( namespace, { destination: destination } );
+		checkoutDispatch.setExtensionData( namespace, { destination: destination, ...(shippingReview ? {shipping_selection:shippingReview.snapshot()} : {}) } );
 	}
 
 	function setValidation( message ) {
@@ -239,6 +287,8 @@
 		var required = Boolean( cart.needsShipping && 'ID' === country && ! data.collection );
 		var rates = ( cart.shippingRates || [] ).flatMap( function( pkg ) { return pkg.shipping_rates || []; } );
 		var selected = rates.filter( function( rate ) { return rate.selected; } );
+		var chosenPackages=selectedPackages(cart.shippingRates);
+		var chosenPackagesKey=JSON.stringify(chosenPackages);
 		var instantSelected = selected.some( function( rate ) {
 			return 'kiriminaja-instant' === rate.method_id || /^kiriminaja-instant(?:_|:)/.test( rate.rate_id || '' );
 		} );
@@ -311,6 +361,17 @@
 		useEffect( function() {
 			if ( ownsEffects() && ! awaitingSavedPin ) { publish( destinationRef.current ); }
 		}, [ destinationKey, isOwner, awaitingSavedPin ] );
+
+		useEffect(function(){
+			if(!ownsEffects() || !shippingReview || awaitingSavedPin)return;
+			if(!data.busy && cart.needsShipping && !data.collection && chosenPackages.length===(cart.shippingRates || []).length)shippingReview.seed(chosenPackages);
+			var matches=shippingReview.reconcile(chosenPackages);
+			restoreReviewedShipping(cart.shippingRates || [],chosenPackages,data.busy);
+			publishShippingReview();
+			if(cart.needsShipping && !data.collection && shippingReview.snapshot().packages.length && (!matches || data.busy)){
+				var errors={};errors[shippingSelectionErrorId]={message:strings.shippingSelectionChanged || 'Shipping options changed. Please review and select your courier again before placing the order.',hidden:false};validationDispatch.setValidationErrors(errors);
+			}else validationDispatch.clearValidationError(shippingSelectionErrorId);
+		},[chosenPackagesKey,data.busy,cart.needsShipping,data.collection,awaitingSavedPin,pinAddressKey,isOwner,revision[0]]);
 
 		useEffect( function() {
 			if ( ownsEffects() ) { queue.resume(); }
@@ -520,12 +581,16 @@
 		} );
 	}
 	var unsubscribe = wp.data.subscribe( function() { if ( owner && ! api.disabled ) { queue.resume(); } } );
+	// Capture native user intent only. Store refreshes/defaults never overwrite it.
+	if(document.addEventListener){document.addEventListener('change',reviewNativeShipping,true);document.addEventListener('click',reviewNativeShipping,true);}
 	root.addEventListener( 'pagehide', function( event ) {
 		if ( event && event.persisted ) { return; }
 		api.disabled = true;
 		root.clearTimeout( readinessTimer );
 		if ( api.pending ) { api.pending = false; resolveReady( false ); }
 		unsubscribe();
+		if(document.removeEventListener){document.removeEventListener('change',reviewNativeShipping,true);document.removeEventListener('click',reviewNativeShipping,true);}
+		validationDispatch.clearValidationError(shippingSelectionErrorId);
 		effectCleanups.forEach( function( cleanup ) { cleanup(); } );
 		queue.dispose();
 	} );

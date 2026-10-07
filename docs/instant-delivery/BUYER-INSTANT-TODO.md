@@ -4,6 +4,16 @@ Status: Buyer quote/order implementation and local regression coverage implement
 
 ## Classic pin-only extension and safe reactivation
 
+### Reviewed courier integrity across validation retries
+
+A versioned package/rate-ID review is stored separately from current Woo shipping defaults and posted as Checkout extension `shipping_selection` (Blocks) or native hidden `kiriof_shipping_selection` (Classic). Initial stable rates seed the review once; explicit native buyer choices update it. Terms validation failure, billing-address checkbox updates, temporary missing rates and price/label refreshes do not silently rewrite the reviewed courier.
+
+Blocks restores an exact reviewed rate through the public native `wc/store/cart.selectShippingRate` action only after customer/rate updates settle and every reviewed ID is still available. Missing quotes—including COD-ineligible Instant—or a failed restoration stay blocked with a request to review/select again; no loop, fabricated rate, DOM polling or programmatic radio click is used. Capture-phase native input events record intent; duplicate rate IDs use their native package container context, not rate ID alone. Classic retains reviewed IDs through refreshed shipping fragments and blocks a mismatched submission until explicit reselection.
+
+A read-only server guard runs at priority 5 before Express/Instant route validators on actual place-order requests. It compares the posted package/rate IDs with current available rates, native session selections and order shipping-line method/instance/courier/service identity. Switching into/away from plugin shipping, malformed review data, missing rates or changed lines rejects before plugin quote snapshot/transaction writes; ordinary Store API PATCH edits and unrelated third-party-only checkout remain unaffected. This is a courier identity guard—not prior-price approval; existing exact quote/fee/total validation still applies. Older open checkout pages without the new review payload must reload before ordering.
+
+Real React/browser tests cover unchecked terms → GoSend → failed terms → retry, separate billing → GoSend → accepted terms → same-billing update, exact native restoration, missing rates/COD, failed restoration and explicit Cargo re-review. PHP regressions verify final rejection before route writes and stable package ordering. No live merchant order or booking was submitted.
+
 ### Classic order-review visibility
 
 Shipping-options column correction: the external section follows the existing order-review column's measured width and native float direction instead of clearing both columns at full form width. The review clears only its own float side, keeping it below its shipping selector without moving/resizing the customer-details column. ResizeObserver—not interval polling—reconciles the existing layout at native breakpoints and after fragment replacements. TH Shop Mania and constrained WC Booster fixtures compare customer/summary bounds before and after initialization, repeated AJAX events and 1200→390→1200 resizing; screenshots are reviewed as isolated theme-structure evidence, not a live deployment claim.

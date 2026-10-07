@@ -5839,3 +5839,7 @@ msgstr "Peralatan Kesehatan & Kecantikan"
 #: inc/Services/PackageTypeService.php
 msgid "Sports & Entertainment"
 msgstr "Peralatan Olahraga & Hiburan"
+
+#: inc/Services/CheckoutShippingSelectionGuard.php inc/Base/Enqueue.php templates/front/partials/form-billing-address-config.php
+msgid "Shipping options changed. Please review and select your courier again before placing the order."
+msgstr "Pilihan pengiriman telah berubah. Periksa dan pilih kembali kurir sebelum membuat pesanan."

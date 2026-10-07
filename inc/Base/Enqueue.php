@@ -220,6 +220,7 @@ class Enqueue extends BaseInit{
                 'saveStalled' => __( 'Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed.', 'kiriminaja-official' ),
                 'reloadCheckout' => __( 'Reload checkout', 'kiriminaja-official' ),
                 'quoteRefreshFailed' => __( 'Instant prices could not be refreshed. Please retry before placing your order.', 'kiriminaja-official' ),
+                'shippingSelectionChanged' => __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' ),
                 'instantUnavailable' => __( 'Instant delivery is unavailable. Choose another method or update the shipping address.', 'kiriminaja-official' ),
                 'saving' => __( 'Updating shipping totals…', 'kiriminaja-official' ),
                 'updateFailed' => __( 'Shipping totals could not be updated. Please retry.', 'kiriminaja-official' ),
@@ -272,10 +273,11 @@ class Enqueue extends BaseInit{
     /** Register once for native Blocks and the legacy frontend fallback. */
     public function register_buyer_checkout_assets( bool $localize = false ): void {
         $scripts = array(
+            'kiriof-shipping-selection' => array( 'assets/wp/js/kiriof-shipping-selection.js', array() ),
             'kiriof-checkout-session' => array( 'assets/wp/js/kiriof-checkout-session.js', array() ),
             'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
             'kiriof-address-presentation' => array( 'assets/wp/js/kiriof-address-presentation.js', array( 'wp-element' ) ),
-            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
+            'kiriof-buyer-checkout' => array( 'assets/wp/js/kiriof-buyer-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-shipping-selection', 'wp-element', 'wp-plugins', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
             'kiriof-map-checkout' => array( 'assets/wp/js/kiriof-map-checkout.js', array( 'kiriof-address-presentation', 'kiriof-checkout-session', 'kiriof-leaflet', 'wp-element', 'wp-data', 'wc-blocks-checkout', 'wc-settings' ) ),
             'kiriof-map-checkout-editor' => array( 'blocks/map-checkout/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
             'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
@@ -421,6 +423,8 @@ class Enqueue extends BaseInit{
             array( 'in_footer' => true )
         );
         $legacy_dependencies = $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : ( $this->isClassicCheckoutPage() && $this->classic_instant_enabled() ? array( 'kiriof-script', 'kiriof-classic-checkout' ) : array( 'kiriof-script' ) );
+        wp_register_script( 'kiriof-shipping-selection', $this->plugin_url . 'assets/wp/js/kiriof-shipping-selection.js', array(), (string) filemtime( KIRIOF_DIR . 'assets/wp/js/kiriof-shipping-selection.js' ), true );
+        if ( $this->isClassicCheckoutPage() ) { $legacy_dependencies[] = 'kiriof-shipping-selection'; }
         foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module ) {
             $handle = 'kiriof-checkout-' . $module;
             $relative_path = 'assets/wp/js/checkout/' . $module . '.js';
