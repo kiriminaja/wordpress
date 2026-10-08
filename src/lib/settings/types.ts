@@ -22,11 +22,31 @@ export type SettingItem = {
   toggle?: 'insurance' | 'cod';
 };
 
+export type GoogleMapsSummary = { configured: boolean; maskedKey: string };
+
+export type GoogleMapsBootstrap = GoogleMapsSummary & {
+  nonce: string;
+  i18n: {
+    title: string;
+    guidance: string;
+    configured: string;
+    notConfigured: string;
+    keyLabel: string;
+    placeholder: string;
+    save: string;
+    remove: string;
+    busy: string;
+    saved: string;
+    failed: string;
+  };
+};
+
 export type TechnicalBootstrap = {
   view: 'technical';
   toolbar: ToolbarConfig;
   downloadLogUrl: string;
   callbacks: string[];
+  googleMaps?: GoogleMapsBootstrap;
   region: {
     state: string;
     lastError: string;

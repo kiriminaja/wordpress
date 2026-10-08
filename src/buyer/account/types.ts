@@ -1,6 +1,6 @@
 import type * as Leaflet from 'leaflet';
-import type { Coverage, Point } from '../map/types';
-import type { MapProviderConfigInput } from '../map/config';
+import type { Point } from '../map/types';
+import type { MapProviderInput } from '../types/pin';
 export const addressFields = [
   'address_1',
   'address_2',
@@ -27,11 +27,7 @@ export interface AccountConfig {
   nonce?: string;
   savedDestination?: Destination;
   i18n?: Record<string, string>;
-  map?: MapProviderConfigInput & {
-    enabled?: boolean;
-    coverage?: Coverage;
-    i18n?: Record<string, string>;
-  };
+  map?: MapProviderInput;
 }
 export interface AccountRoot extends Window {
   AbortController: typeof AbortController;

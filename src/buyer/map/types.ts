@@ -4,6 +4,81 @@ export interface Point {
   latitude: string;
   longitude: string;
 }
+
+export interface GoogleLatLngLiteral {
+  lat: number;
+  lng: number;
+}
+export interface GoogleLatLng {
+  lat(): number;
+  lng(): number;
+}
+export interface GoogleMapEvent {
+  latLng?: GoogleLatLng | null;
+}
+export interface GoogleMapsListener {
+  remove(): void;
+}
+export interface GoogleMapInstance {
+  getCenter(): GoogleLatLng | undefined;
+  setCenter(center: GoogleLatLngLiteral): void;
+  setZoom(zoom: number): void;
+  addListener(name: string, callback: (event: GoogleMapEvent) => void): GoogleMapsListener;
+}
+export interface GoogleOverlay {
+  setMap(map: GoogleMapInstance | null): void;
+}
+/** Small runtime surface, intentionally independent of @types/google.maps. */
+export interface GoogleMapsAPI {
+  Map: new (
+    node: HTMLElement,
+    options: {
+      center: GoogleLatLngLiteral;
+      zoom: number;
+      scrollwheel?: boolean;
+      streetViewControl?: boolean;
+      mapTypeControl?: boolean;
+      fullscreenControl?: boolean;
+    },
+  ) => GoogleMapInstance;
+  Polyline?: new (options: {
+    map: GoogleMapInstance;
+    path: GoogleLatLngLiteral[];
+    geodesic: boolean;
+    clickable: boolean;
+    strokeOpacity: number;
+    icons: Array<{
+      icon: {
+        path: string;
+        strokeColor: string;
+        strokeOpacity: number;
+        strokeWeight: number;
+        scale: number;
+      };
+      offset: string;
+      repeat: string;
+    }>;
+  }) => GoogleOverlay;
+  Circle?: new (options: {
+    map: GoogleMapInstance;
+    center: GoogleLatLngLiteral;
+    radius: number;
+    clickable: boolean;
+    fillOpacity: number;
+    strokeColor: string;
+    strokeWeight: number;
+    strokeOpacity: number;
+  }) => GoogleOverlay;
+  event: {
+    clearInstanceListeners(instance: object): void;
+    trigger(instance: object, name: string): void;
+  };
+}
+export type GoogleMapsWindow = Window & {
+  google?: { maps: GoogleMapsAPI };
+  gm_authFailure?: () => void;
+  [callback: `__kiriminajaGoogleMaps${number}`]: (() => void) | undefined;
+};
 export interface PointInput {
   latitude: unknown;
   longitude: unknown;
@@ -31,11 +106,15 @@ export interface LocationGateOptions {
 }
 export interface MapSessionOptions {
   provider?: string;
+  apiKey?: string;
+  google?: GoogleMapsAPI | null;
+  document?: Document;
+  window?: GoogleMapsWindow;
   leaflet?: typeof Leaflet | null;
   node?: HTMLElement | null;
   tiles?: string;
   attribution?: string;
-  defaultCenter?: Leaflet.LatLngExpression;
+  defaultCenter?: [number, number] | Leaflet.LatLngExpression;
   initial?: PointInput | null;
   coverage?: Coverage | null;
   label?: string;
@@ -55,7 +134,7 @@ export interface MapSession {
   isAvailable(): boolean;
   dispose(): void;
 }
-/** Contract for future adapters; only Leaflet is implemented/registered today. */
+/** Synchronous adapters require an already loaded runtime. */
 export interface MapProvider {
   readonly id: string;
   createSession(options: MapSessionOptions): MapSession;

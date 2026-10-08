@@ -9,8 +9,8 @@ import {
 } from '../state/classic-pin.svelte';
 import { saveClassicPin, type ClassicPinTransportConfig } from '../api/checkout';
 import { nativeAddress, placeNativePin } from './native-address';
-import type { Coverage, Point } from '../map/types';
-import type { MapProviderConfigInput } from '../map/config';
+import type { Point } from '../map/types';
+import type { MapProviderInput } from '../types/pin';
 import type * as Leaflet from 'leaflet';
 
 export interface ClassicPinConfig extends ClassicPinTransportConfig {
@@ -18,11 +18,7 @@ export interface ClassicPinConfig extends ClassicPinTransportConfig {
   needsShipping?: boolean;
   savedDestination?: PinDestination | null;
   i18n?: Record<string, string>;
-  map?: MapProviderConfigInput & {
-    enabled?: boolean;
-    coverage?: Coverage;
-    i18n?: Record<string, string>;
-  };
+  map?: MapProviderInput;
 }
 interface JQueryEvents {
   on(

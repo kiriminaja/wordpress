@@ -1,4 +1,4 @@
-import { script, classicCss } from '../fixtures/buyer-source';
+import { script } from '../fixtures/buyer-source';
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -15,8 +15,8 @@ const label = 'Sariharjo, Ngaglik, Sleman, DI Yogyakarta, 55581';
 const address = { address_1: 'Jalan Palagan 12', address_2: '', city: 'Sleman', state: 'YO', postcode: '55581', country: 'ID', first_name: 'Test', last_name: 'Buyer', phone: '08123456789' };
 // Use the production PHP fixture's official village ID, not a fabricated provider row.
 const saved = { version: 2, district_id: '46310', district_label: label, postcode: '55581', country: 'ID', address_type: 'shipping', destination_latitude: '-7.7100000', destination_longitude: '110.3700000', shipping_address: address };
-const emptyMessage = 'No villages returned. Retry lookup or edit your address.';
-const errorMessage = 'Village lookup failed. Please retry.';
+const emptyMessage = 'No villages returned for your saved delivery address. Your delivery pin is still saved; retry the village lookup or edit your address before continuing checkout.';
+const errorMessage = 'Village lookup failed for your saved delivery address. Your delivery pin is still saved; please retry the village lookup or edit your address before continuing checkout.';
 const shippingMessage = 'Shipping options changed. Please review and select your courier again before placing the order.';
 const scripts = (sources: string[]) => sources.map(source => `<script>${source.replace(/<\/script/gi, '<\\/script')}</script>`).join('');
 let reactBundle: string;
@@ -30,7 +30,17 @@ function reactSource() {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 function html() {
-  return `<!doctype html><html><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><div id="fallback"></div><p id="shipping-error" role="alert" hidden></p></div>${scripts([
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+    body { margin:16px; font:16px Arial,sans-serif; }
+    .wc-block-checkout { width:560px; max-width:100%; min-width:0; }
+    #native, .wc-block-checkout__shipping-fields, .wc-block-components-address-address-wrapper { min-width:0; }
+    .wc-block-components-address-card { display:flex; align-items:flex-start; gap:12px; padding:16px; border:1px solid #ddd; box-sizing:border-box; min-width:0; }
+    .wc-block-components-address-card > p { flex:1; min-width:0; margin:0; }
+    .wc-block-components-button { box-sizing:border-box; border:1px solid #222; background:#222; color:white; cursor:pointer; }
+    ${read('assets/buyer/css/kiriof-buyer-checkout.css')}
+    /* A theme's later generic button margin must not push Retry outside its notice. */
+    .wc-block-checkout button { margin:18px 24px; }
+  </style></head><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><div id="fallback"></div><p id="shipping-error" role="alert" hidden></p></div>${scripts([
     reactSource(),
     `const R=window.__React;const listeners=new Set();let version=0;
     window.__extensions={};window.__errors={};window.__mutations=[];window.__emptyWrites=[];window.__trusted=[];window.__nativeActions=[];window.__customerBusy=false;
@@ -105,13 +115,63 @@ const pin = (browser: any) => browser.evaluate(() => (window as any).kiriofBuyer
 for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const) {
   for (const recoveryAction of ['Edit', 'collapsed Retry'] as const) {
   test(`Blocks saved 55581 pin survives ${failure}; billing is inert; ${recoveryAction} recovers official village`, async ({ app, browser }) => {
+    const width = recoveryAction === 'Edit' ? 1200 : 390;
+    await browser.setViewport({ width, height: 1000 });
     const state = await open(app, browser, failure);
     const card = browser.locator('.wc-block-components-address-card');
     const message = failure === 'empty' ? emptyMessage : errorMessage;
     await expect(card).toContainText(message);
     await expect(card).toContainText('Pin location saved');
     await expect(card).not.toContainText('Choose pin location');
-    await expect.poll(() => browser.evaluate(() => document.querySelectorAll('.kiriof-address-status__badge.is-warning').length)).toBe(1);
+    const notice = browser.locator('.kiriof-address-status__recovery');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText(message);
+    await expect(browser.locator('.kiriof-address-status__badge.is-complete')).toContainText('Pin location saved');
+    await expect(browser.locator('.kiriof-address-status__recovery .kiriof-address-status__action.wc-block-components-button.wp-element-button')).toContainText('Retry');
+    expect(await browser.evaluate(() => document.querySelectorAll('.kiriof-address-status__badge.is-warning').length)).toBe(0);
+    const layout = await browser.evaluate(() => {
+      const rect = (element: Element) => element.getBoundingClientRect().toJSON();
+      const status = document.querySelector('.kiriof-address-status')!;
+      const recovery = status.querySelector('.kiriof-address-status__recovery')!;
+      const text = recovery.querySelector('.kiriof-address-status__text')!;
+      const message = recovery.querySelector('.kiriof-address-status__message')!;
+      const button = recovery.querySelector('button')!;
+      const badge = status.querySelector('.kiriof-address-status__badge.is-complete')!;
+      const style = getComputedStyle(recovery);
+      return {
+        status: rect(status), recovery: rect(recovery), message: rect(message), text: rect(text), button: rect(button), badge: rect(badge),
+        lineHeight: parseFloat(getComputedStyle(text).lineHeight), badgeColor: getComputedStyle(badge).backgroundColor,
+        border: parseFloat(style.borderLeftWidth), radius: parseFloat(style.borderRadius), padding: parseFloat(style.paddingLeft),
+        buttonMargin: getComputedStyle(button).margin,
+        overflow: recovery.scrollWidth - recovery.clientWidth, pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    expect(layout.badgeColor).toBe('rgb(80, 250, 123)');
+    expect(layout.badge.width).toBeLessThan(layout.status.width);
+    expect(layout.badge.height).toBeLessThan(36);
+    expect(layout.recovery.width).toBeGreaterThanOrEqual(layout.status.width - 1);
+    expect(layout.border).toBe(1);
+    expect(layout.radius).toBe(4);
+    expect(layout.text.height).toBeGreaterThan(layout.lineHeight * 1.5);
+    expect(layout.button.height).toBeGreaterThanOrEqual(36);
+    expect(layout.buttonMargin).toBe('0px');
+    for (const child of [layout.message, layout.text, layout.button]) {
+      expect(child.left).toBeGreaterThanOrEqual(layout.recovery.left);
+      expect(child.right).toBeLessThanOrEqual(layout.recovery.right);
+      expect(child.top).toBeGreaterThanOrEqual(layout.recovery.top);
+      expect(child.bottom).toBeLessThanOrEqual(layout.recovery.bottom);
+    }
+    expect(layout.overflow).toBeLessThanOrEqual(1);
+    expect(layout.pageOverflow).toBeLessThanOrEqual(1);
+    expect(Math.abs(layout.button.right - (layout.recovery.right - layout.padding - layout.border))).toBeLessThanOrEqual(1);
+    if (width <= 600) {
+      expect(layout.button.top).toBeGreaterThanOrEqual(layout.message.bottom);
+      expect(Math.abs(layout.button.width - (layout.recovery.width - 2 * (layout.padding + layout.border)))).toBeLessThanOrEqual(1);
+    } else {
+      expect(layout.button.left).toBeGreaterThanOrEqual(layout.message.right);
+      expect(layout.button.top).toBeLessThan(layout.message.bottom);
+    }
+    if (failure === 'http503') await app.screenshot(`postal-recovery-${width}`);
     await expect.poll(() => review(browser)).toEqual({ version: 1, packages: [{ package_id: '3', rate_id: cargo }] });
     expect(state.requests).toEqual([{ method: 'POST', term: '55581', retry: null, action: 'kiriminaja_subdistrict_search', nonce: 'valid' }]);
     expect(state.writes).toEqual([]);

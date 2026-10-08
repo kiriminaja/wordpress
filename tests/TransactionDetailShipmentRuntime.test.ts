@@ -89,7 +89,8 @@ async function fixture(options: { deliveryType?: string; vehicle?: string | null
     for (let i = 0; i < 8; i++) { await Promise.resolve(); runtime.flushSync(); }
     const card = target.querySelector('.kiriof-shipment-card')!;
     const rows = () => [...card.querySelectorAll('dl > div')].map((node) => [node.querySelector('dt')?.textContent?.trim(), node.querySelector('dd')?.textContent?.trim()]);
-    return { card, target, rows, cleanup };
+    const paymentRows = () => [...target.querySelectorAll('.kiriof-detail-carrier-payment > div')].map((node) => [node.querySelector('dt')?.textContent?.trim(), node.querySelector('dd')?.textContent?.trim()]);
+    return { card, target, rows, paymentRows, cleanup };
   } catch (error) { await cleanup(); throw error; }
 }
 
@@ -98,7 +99,7 @@ describe('TransactionDetail shipment (compiled production Svelte)', () => {
     for (const fallback of [false, true]) test(`${deliveryType} ${fallback ? 'fallback' : 'normal'} collapses equal carrier amounts and keeps admin fee separate before Total`, async () => {
       const h = await fixture({ deliveryType, fallback, costs: { adminFee: 1000 } });
       try {
-        expect(h.rows().slice(3)).toEqual([['Order ID', '42'], ['Order Subtotal', 'Rp100.000'], ['Shipping', 'Rp10.000'], ['Admin Fee', 'Rp1.000'], ['Total', 'Rp111.000']]);
+        expect(h.rows()).toEqual([['Order ID', '42'], ['Order Subtotal', 'Rp100.000'], ['Shipping', 'Rp10.000'], ['Admin Fee', 'Rp1.000'], ['Total', 'Rp111.000']]);
         expect(h.card.textContent).not.toContain('Actual Shipping');
         expect(h.card.textContent).not.toContain('Total Shipping');
       } finally { await h.cleanup(); }
@@ -114,7 +115,7 @@ describe('TransactionDetail shipment (compiled production Svelte)', () => {
       for (const payment of [{ paymentMethod: 'Wallet', paymentStatus: 'pending-provider', paymentId: 'INV/<42>' }, { paymentMethod: '', paymentStatus: '', paymentId: '' }]) {
         const h = await fixture({ deliveryType, payment });
         try {
-          expect(h.rows().slice(0, 3)).toEqual([['Payment Method', payment.paymentMethod || '—'], ['Payment Status', payment.paymentStatus || '—'], ['Payment ID', payment.paymentId || '—']]);
+          expect(h.paymentRows()).toEqual([['Payment ID', payment.paymentId || '—'], ['Payment Method', payment.paymentMethod || '—'], ['Payment Status', payment.paymentStatus || '—']]);
         } finally { await h.cleanup(); }
       }
     });

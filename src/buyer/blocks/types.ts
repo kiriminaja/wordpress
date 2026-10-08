@@ -1,3 +1,5 @@
+import type * as Leaflet from 'leaflet';
+import type { MapProviderInput } from '../types/pin';
 import type { Point } from '../map/types';
 
 /** Only plugin-owned communications are modeled here. Woo's native stores are
@@ -36,6 +38,8 @@ export interface BuyerCheckoutBridge {
 /** Woo injects these globals; this entry never imports or bundles a second React. */
 export type BlocksRoot = Window &
   typeof globalThis & {
+    L?: typeof Leaflet;
+    kiriofMapCheckoutConfig?: MapProviderInput;
     wp?: unknown;
     wc?: unknown;
     kiriofBuyerCheckout?: BuyerCheckoutBridge;

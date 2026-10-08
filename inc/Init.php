@@ -23,6 +23,7 @@ final class Init {
             Services\ShipmentLocationService::class,
             Controllers\ProductController::class,
             Controllers\SettingController::class,
+            Controllers\GoogleMapsSettingsController::class,
             Controllers\CallbackController::class,
             Controllers\GeneralAjaxController::class,
             Controllers\ShippingProcessController::class,

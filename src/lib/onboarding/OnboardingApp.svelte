@@ -1,7 +1,11 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import L from 'leaflet';
-  import 'leaflet/dist/leaflet.css';
+  import type * as L from 'leaflet';
+  import { preloadedLeaflet } from '../transaction-detail/instant-route-map';
+  import { resolveMapConfig } from '../../buyer/map/config';
+  import { createProviderMapSession } from '../../buyer/map/providers';
+  import { loadGoogleMaps } from '../../buyer/map/google-loader';
+  import type { MapSession } from '../../buyer/map/types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
   import { Button } from '$lib/components/ui/button';
@@ -99,6 +103,10 @@
   let mapElement = $state<HTMLDivElement>();
   let map: L.Map | undefined;
   let marker: L.CircleMarker | undefined;
+  let googleSession: MapSession | undefined;
+  let mapGeneration = 0;
+  let mapReady = $state(false);
+  let googleMap = $state(false);
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
   const order: Step[] = ['account', 'address', 'couriers', 'shipping', 'complete'];
@@ -215,10 +223,7 @@
       current = !done.account ? 'account' : 'address';
       return;
     }
-    if (current === 'address' && step !== 'address' && map) {
-      map.remove();
-      map = undefined;
-    }
+    if (current === 'address' && step !== 'address') disposeMap();
     current = step;
     setMessage('');
     if (step === 'couriers') void loadCouriers();
@@ -476,56 +481,101 @@
     }
   }
 
-  function initMap(): void {
-    if (map) {
-      map.remove();
-      map = undefined;
+  function disposeMap(): void {
+    mapGeneration++;
+    mapReady = false;
+    googleSession?.dispose();
+    googleSession = undefined;
+    map?.off();
+    map?.remove();
+    map = undefined;
+    marker = undefined;
+  }
+
+  function locate(): void {
+    if (googleSession) { googleSession.locate(); return; }
+    if (!navigator.geolocation) {
+      setMessage(bootstrap.i18n.currentLocationUnavailable);
+      return;
     }
-    if (!mapElement) return;
-    const lat = Number(address.origin_latitude) || -6.2088;
-    const lng = Number(address.origin_longitude) || 106.8456;
-    map = L.map(mapElement).setView([lat, lng], 15);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-    marker = L.circleMarker([lat, lng], {
-      radius: 8,
-      color: 'var(--primary)',
-      fillColor: 'var(--primary)',
-      fillOpacity: 0.85,
-    }).addTo(map);
-    const update = (point: L.LatLng) => {
-      address.origin_latitude = point.lat.toFixed(7);
-      address.origin_longitude = point.lng.toFixed(7);
-      address = { ...address };
-    };
-    const place = (point: L.LatLng) => {
-      marker?.setLatLng(point);
-      map?.setView(point, 16);
-      update(point);
-    };
-    map.on('click', (event) => place(event.latlng));
-    const locate = new L.Control({ position: 'topright' });
-    locate.onAdd = () => {
-      const button = L.DomUtil.create('button', 'kiriof-onboarding__locate');
-      button.type = 'button';
-      button.title = bootstrap.i18n.currentLocation;
-      button.setAttribute('aria-label', bootstrap.i18n.currentLocation);
-      button.innerHTML = '<span aria-hidden="true">⌖</span>';
-      L.DomEvent.disableClickPropagation(button);
-      L.DomEvent.on(button, 'click', () => {
-        if (!navigator.geolocation) {
-          setMessage(bootstrap.i18n.currentLocationUnavailable);
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (position) => place(L.latLng(position.coords.latitude, position.coords.longitude)),
-          () => setMessage(bootstrap.i18n.currentLocationFailed),
-        );
+    const generation = mapGeneration;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (generation !== mapGeneration || !map) return;
+        const point = { lat: position.coords.latitude, lng: position.coords.longitude };
+        marker?.setLatLng(point);
+        map.setView(point, 16);
+        address.origin_latitude = point.lat.toFixed(7);
+        address.origin_longitude = point.lng.toFixed(7);
+        address = { ...address };
+      },
+      () => { if (generation === mapGeneration) setMessage(bootstrap.i18n.currentLocationFailed); },
+    );
+  }
+
+  async function initMap(): Promise<void> {
+    disposeMap();
+    if (!mapElement || current !== 'address') return;
+    const generation = mapGeneration;
+    const element = mapElement;
+    const latValue = Number(address.origin_latitude);
+    const lngValue = Number(address.origin_longitude);
+    const lat = address.origin_latitude && Number.isFinite(latValue) ? latValue : -6.2088;
+    const lng = address.origin_longitude && Number.isFinite(lngValue) ? lngValue : 106.8456;
+    const savedPoint = address.origin_latitude && address.origin_longitude && Number.isFinite(latValue) && Number.isFinite(lngValue) && Math.abs(latValue) <= 90 && Math.abs(lngValue) <= 180
+      ? { latitude: latValue, longitude: lngValue } : null;
+    try {
+      if (bootstrap.map?.enabled === false) throw new Error('Map unavailable');
+      const config = resolveMapConfig(bootstrap.map);
+      googleMap = config.provider === 'google';
+      if (config.provider === 'google') {
+        const google = await loadGoogleMaps(config.apiKey);
+        if (generation !== mapGeneration || element !== mapElement || current !== 'address') return;
+        const session = await createProviderMapSession({
+          ...config,
+          google, node: element, defaultCenter: [lat, lng],
+          initial: savedPoint,
+          geolocation: navigator.geolocation,
+          onSelect: (point) => {
+            if (generation !== mapGeneration || !point) return false;
+            address.origin_latitude = point.latitude;
+            address.origin_longitude = point.longitude;
+            address = { ...address };
+          },
+          onError: (code) => {
+            if (generation === mapGeneration) setMessage(code === 'permission'
+              ? bootstrap.i18n.currentLocationUnavailable
+              : code === 'location' ? bootstrap.i18n.currentLocationFailed : bootstrap.i18n.networkError);
+          },
+        });
+        if (generation !== mapGeneration || element !== mapElement || current !== 'address') { session.dispose(); return; }
+        googleSession = session;
+        mapReady = session.isAvailable();
+        return;
+      }
+      const L = preloadedLeaflet();
+      if (!L) throw new Error('Map unavailable');
+      map = L.map(element).setView([lat, lng], 15);
+      L.tileLayer(config.tiles, { maxZoom: 19, attribution: config.attribution }).addTo(map);
+      marker = L.circleMarker([lat, lng], {
+        radius: 8, color: 'var(--primary)', fillColor: 'var(--primary)', fillOpacity: 0.85,
+      }).addTo(map);
+      map.on('click', (event) => {
+        if (generation !== mapGeneration) return;
+        marker?.setLatLng(event.latlng);
+        map?.setView(event.latlng, 16);
+        address.origin_latitude = event.latlng.lat.toFixed(7);
+        address.origin_longitude = event.latlng.lng.toFixed(7);
+        address = { ...address };
       });
-      return button;
-    };
-    locate.addTo(map);
-    update(L.latLng(lat, lng));
-    setTimeout(() => map?.invalidateSize(), 150);
+      address.origin_latitude = lat.toFixed(7);
+      address.origin_longitude = lng.toFixed(7);
+      address = { ...address };
+      mapReady = true;
+      setTimeout(() => { if (generation === mapGeneration) map?.invalidateSize(); }, 150);
+    } catch {
+      if (generation === mapGeneration) setMessage(bootstrap.i18n.networkError);
+    }
   }
 
   onMount(() => {
@@ -537,10 +587,7 @@
     courierLoadController?.abort();
     courierLoadGeneration += 1;
     if (searchTimer) clearTimeout(searchTimer);
-    if (map) {
-      map.remove();
-      map = undefined;
-    }
+    disposeMap();
   });
 </script>
 
@@ -734,11 +781,14 @@
           <Separator class="my-3" />
 
           <div class="space-y-1.5">
-            <div
-              bind:this={mapElement}
-              class="kiriof-map h-40 sm:h-44 w-full overflow-hidden rounded-lg border border-border"
-              aria-label={bootstrap.address.i18n.mapHelp}
-            ></div>
+            <div class="relative isolate overflow-hidden rounded-lg border border-border">
+              <!-- svelte-ignore a11y_no_noninteractive_tabindex (Map keyboard controls.) -->
+              <div bind:this={mapElement} class="kiriof-map h-40 sm:h-44 w-full" role="region" tabindex="0" aria-label={bootstrap.address.i18n.mapHelp}></div>
+              {#if googleMap && mapReady}
+                <span class="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-2xl text-primary" aria-hidden="true">●</span>
+              {/if}
+              <button type="button" class="absolute right-2 top-2 z-10 flex size-9 items-center justify-center rounded-md border border-border bg-background text-xl text-foreground shadow-sm" aria-label={bootstrap.i18n.currentLocation} disabled={!mapReady} onclick={locate}><span aria-hidden="true">⌖</span></button>
+            </div>
             <FieldDescription
               class="flex items-center justify-between text-xs text-muted-foreground"
             >

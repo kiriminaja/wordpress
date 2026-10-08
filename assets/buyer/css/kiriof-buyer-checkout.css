@@ -95,6 +95,9 @@
 	flex-wrap: wrap;
 	gap: 0.5em;
 	margin-block-start: 0.75em;
+	align-items: flex-start;
+	width: 100%;
+	min-width: 0;
 }
 
 .kiriof-address-status__badge {
@@ -123,10 +126,54 @@
 	flex-shrink: 0;
 }
 
+/* Status chips stay short; lookup/update explanations are a separate notice. */
+.kiriof-address-status__recovery {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75em;
+	flex: 1 1 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	padding: 0.75em;
+	border: 1px solid #dba76a;
+	border-radius: 4px;
+	background: #fff8ed;
+	color: #3c2c17;
+}
+.kiriof-address-status__recovery:empty { display: none; }
+.kiriof-address-status__message {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5em;
+	flex: 1 1 220px;
+	min-width: 0;
+	max-width: 100%;
+	font-size: 0.875em;
+	line-height: 1.5;
+}
+.kiriof-address-status__message svg { flex: 0 0 18px; margin-top: 0.15em; }
+.kiriof-address-status__text { min-width: 0; overflow-wrap: anywhere; }
+.kiriof-address-status .kiriof-address-status__action {
+	flex: 0 0 auto;
+	min-height: 36px;
+	max-width: 100%;
+	margin: 0;
+	padding: 0.5em 0.875em;
+	font: inherit;
+	font-size: 0.875em;
+	line-height: 1.4;
+	white-space: normal;
+}
+@media (max-width: 600px) {
+	.kiriof-address-status .kiriof-address-status__action { flex-basis: 100%; width: 100%; }
+}
+
 @media (forced-colors: active) {
 	.kiriof-address-status__badge {
 		border: 1px solid CanvasText;
 	}
+	.kiriof-address-status__recovery { border-color: CanvasText; }
 }
 
 .kiriof-buyer-map {

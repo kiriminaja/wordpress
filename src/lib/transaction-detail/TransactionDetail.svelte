@@ -6,6 +6,7 @@
         IconCashBanknoteEdit,
         IconCheck,
         IconCircleCheck,
+        IconCreditCard,
         IconExternalLink,
         IconMapPin,
         IconPackage,
@@ -171,9 +172,9 @@
 
     <div class="!grid !items-start gap-4 xl:grid-cols-[minmax(0,1fr)_22.5rem]">
         <main class="!grid min-w-0 gap-4">
-            <KiriofCard>
-                <Card.Header class="p-3 border-b">
-                    <Card.Title>
+            <KiriofCard class="kiriof-detail-status-card">
+                <Card.Header class="!flex !flex-wrap !items-center !justify-between gap-2 p-3 border-b">
+                    <Card.Title class="!flex !flex-wrap !items-center gap-2">
                         {#if transaction.deliveryType === 'instant'}
                             {@const InstantIcon = instantStatusIcon(transaction.status)}
                             <ActionTooltip label={transaction.status.tooltip || ''} disabled={!transaction.status.tooltip}>
@@ -183,9 +184,18 @@
                         {:else}
                             <StatusBadge label={transaction.status.label} tone={transaction.status.tone} />
                         {/if}
+                        {#if transaction.shipment.buyerPaymentStatus}
+                            <span class="kiriof-detail-buyer-payment" title={i18n.buyerPaymentStatus} aria-label={`${i18n.buyerPaymentStatus}: ${transaction.shipment.buyerPaymentStatus}`}>
+                                <StatusBadge label={transaction.shipment.buyerPaymentStatus} tone={transaction.shipment.buyerPaymentStatus === i18n.paid ? 'success' : transaction.shipment.buyerPaymentStatus === i18n.unpaid ? 'warning' : 'neutral'} icon={IconCreditCard} />
+                            </span>
+                        {/if}
                     </Card.Title>
-                    {#if transaction.pickupNumber}
-                        <Card.Action>
+                    <dl class="kiriof-detail-carrier-payment !flex min-w-0 !flex-wrap !items-center gap-x-4 gap-y-1 text-xs">
+                        {#each [[i18n.paymentId, transaction.shipment.paymentId], [i18n.paymentMethod, transaction.shipment.paymentMethod], [i18n.paymentStatus, transaction.shipment.paymentStatus]] as [label, value]}
+                            <div class="!flex min-w-0 items-baseline gap-x-1.5"><dt class="shrink-0 text-muted-foreground">{label}</dt><dd class="m-0 min-w-0 max-w-64 truncate font-semibold text-foreground" title={value || undefined}>{value || '—'}</dd></div>
+                        {/each}
+                    </dl>
+                    {#if transaction.pickupNumber && transaction.pickupNumber !== transaction.shipment.paymentId}
                             <div
                                 class="!flex items-baseline gap-1.5 text-xs text-muted-foreground"
                             >
@@ -194,7 +204,6 @@
                                     >{transaction.pickupNumber}</strong
                                 >
                             </div>
-                        </Card.Action>
                     {/if}
                 </Card.Header>
                 <Card.Content class="!px-4 !pt-3 !pb-4">
@@ -253,11 +262,10 @@
                     </div>
                     {/if}
                 </Card.Content>
+                {#if transaction.deliveryType === 'instant'}
+                    <InstantRouteMap embedded data={transaction.shipment.routeMap} config={bootstrap.map} {i18n} />
+                {/if}
             </KiriofCard>
-
-            {#if transaction.deliveryType === 'instant'}
-                <InstantRouteMap data={transaction.shipment.routeMap} config={bootstrap.map} {i18n} />
-            {/if}
 
             <section
                 class="!grid gap-4 md:grid-cols-2"
@@ -428,14 +436,6 @@
                             />
                         </div>
                     </div>
-                        <dl class="!grid min-w-0 gap-2 text-sm">
-                            {#each [[i18n.paymentMethod, transaction.shipment.paymentMethod || '—'], [i18n.paymentStatus, transaction.shipment.paymentStatus || '—'], [i18n.paymentId, transaction.shipment.paymentId || '—']] as [label, value]}
-                                <div class="!flex min-w-0 !justify-between gap-4 text-muted-foreground"><dt>{label}</dt><dd class="m-0 break-all text-right font-semibold text-foreground">{value}</dd></div>
-                            {/each}
-                            {#if transaction.shipment.buyerPaymentStatus}
-                                <div class="!flex min-w-0 !justify-between gap-4 text-muted-foreground"><dt>{i18n.buyerPaymentStatus}</dt><dd class="m-0 break-all text-right font-semibold text-foreground">{transaction.shipment.buyerPaymentStatus}</dd></div>
-                            {/if}
-                        </dl>
                     <dl class="!grid min-w-0 gap-2 text-sm">
                         <div
                             class="!flex min-w-0 !items-center !justify-between gap-4 text-muted-foreground"

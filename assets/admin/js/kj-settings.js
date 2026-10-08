@@ -562,8 +562,12 @@
     toggleArea();
   }
 
+  var useGoogleMaps = !!(
+    window.kiriofAdminMapsConfig &&
+    window.kiriofAdminMapsConfig.provider === "google"
+  );
   var mapElement = document.getElementById("kiriof-wc-origin-map");
-  if (mapElement && window.L) {
+  if (!useGoogleMaps && mapElement && window.L) {
     var $lat = $("#kiriof_wc_origin_latitude"),
       $lng = $("#kiriof_wc_origin_longitude"),
       $coords = $("#kiriof-wc-map-coords"),
@@ -680,7 +684,7 @@
       });
     }
     var $locationMap = $card.find(".kiriof-wc-origin-map");
-    if ($locationMap.length && window.L) {
+    if (!useGoogleMaps && $locationMap.length && window.L) {
       var rawLat = $locationMap.data("lat"),
         rawLng = $locationMap.data("lng"),
         hasPin =

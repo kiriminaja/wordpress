@@ -95,7 +95,8 @@ class Onboarding extends BaseInit {
 			)
 		);
 
-		return array(
+        return array(
+			'map'          => \KiriminAjaOfficial\Services\InstantDetailMapData::mapConfig(),
 			'initialStep'  => $current_step,
 			'steps'        => $progress_steps,
 			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),

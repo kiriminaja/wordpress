@@ -1,8 +1,10 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { createLocationGate, mapProviderRegistry } from '../map/leaflet';
+  import { createLocationGate } from '../map/leaflet';
+  import { mapProviderRegistry } from '../map/providers';
+  import { loadGoogleMaps } from '../map/google-loader';
   import { resolveMapConfig } from '../map/config';
-  import type { MapSession, Point } from '../map/types';
+  import type { GoogleMapsAPI, GoogleMapsWindow, MapSession, Point } from '../map/types';
   import type { ClassicPinController, NativeAddress } from '../state/classic-pin.svelte';
   import type { ClassicPinConfig, ClassicPinWindow } from '../classic/pin';
 
@@ -32,25 +34,43 @@
     let gate: ReturnType<typeof createLocationGate> | undefined;
     let map: MapSession | undefined;
     moving = false; mapError = ''; canvasHidden = true;
+    function current() {
+      const latest = controller.getState();
+      return !disposed && latest.scope === state.scope && JSON.stringify(latest.address) === JSON.stringify(expected);
+    }
     function show(device: typeof state.point) {
-      if (disposed) return;
-      canvasHidden = false;
-      try {
-        const provider = resolveMapConfig(config.map);
+      if (!current()) return;
+      function instantiate(provider: ReturnType<typeof resolveMapConfig>, google?: GoogleMapsAPI) {
+        if (!current()) return;
+        canvasHidden = false;
         map = mapProviderRegistry[provider.provider].createSession({
-          ...provider, node: canvas, leaflet: root.L, coverage: config.map?.coverage,
+          ...provider, google, document: root.document, window: root as GoogleMapsWindow,
+          node: canvas, leaflet: root.L, coverage: config.map?.coverage,
           initial: state.point, geolocation: root.navigator.geolocation,
-          onMove: next => { moving = next; },
-          onSelect: next => select(next, expected),
-          onError: code => { mapError = code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable; },
+          onMove: next => { if (current()) moving = next; },
+          onSelect: next => current() && select(next, expected),
+          onError: code => { if (current()) mapError = (code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || 'Map unavailable'; },
         });
         session = map;
-        if (device && !state.point) map.pick(device.latitude, device.longitude, true);
-      } catch { mapError = strings.mapUnavailable || 'Map unavailable'; }
+        if (device && !state.point && map.isAvailable()) map.pick(device.latitude, device.longitude, true);
+      }
+      function unavailable() { if (current()) mapError = strings.mapUnavailable || 'Map unavailable'; }
+      try {
+        const provider = resolveMapConfig(config.map);
+        if (provider.provider === 'google') {
+          void (async () => {
+            try {
+              const google = await loadGoogleMaps(provider.apiKey, root.document, root as GoogleMapsWindow);
+              if (!current()) return;
+              instantiate(provider, google);
+            } catch { unavailable(); }
+          })();
+        } else instantiate(provider);
+      } catch { unavailable(); }
     }
     if (state.point) show(null);
     else {
-      gate = createLocationGate({ geolocation: root.navigator.geolocation, onSuccess: show, onError: error => { if (!disposed) mapError = error === 'permission' ? strings.mapPermission : strings.mapLocationFailed; } });
+      gate = createLocationGate({ geolocation: root.navigator.geolocation, onSuccess: show, onError: error => { if (current()) mapError = error === 'permission' ? strings.mapPermission : strings.mapLocationFailed; } });
       gate.start();
     }
     return () => { disposed = true; gate?.dispose(); map?.dispose(); if (session === map) session = undefined; };

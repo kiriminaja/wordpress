@@ -100,7 +100,7 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
         foreach ( array( 'kiriof-buyer-checkout', 'kiriof-map-checkout', 'kiriof-address-presentation', 'kiriof-block-checkout' ) as $handle ) {
             $this->assertStringContainsString("'" . $handle . "' => array( false, array( 'kiriof-buyer-blocks' ) )", $enqueue, 'Modern consumers must alias the single Blocks entry, not evaluate obsolete implementations');
         }
-        $this->assertStringContainsString("'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-leaflet' ) )", $enqueue, 'Generated Blocks entry must retain state, native Blocks APIs and map dependencies');
+        $this->assertStringContainsString("'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-map-provider' ) )", $enqueue, 'Generated Blocks entry must retain state, native Blocks APIs and map dependencies');
         foreach ( array( 'bootBuyerCheckout(root);', 'bootBlocksMap(root);' ) as $consumer ) {
             $this->assertLessThan(strpos($entry, $consumer), strpos($entry, 'bootAddressPresentation(root);'), 'Presentation must initialize before its hook consumers');
         }

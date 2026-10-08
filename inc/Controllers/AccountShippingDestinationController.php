@@ -146,11 +146,13 @@ final class AccountShippingDestinationController {
         }
         $enqueue = new Enqueue();
         $config = $enqueue->buyer_checkout_config();
-        wp_enqueue_style( 'kiriof-leaflet', $url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-        wp_enqueue_script( 'kiriof-leaflet', $url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+        $enqueue->register_map_provider_assets();
+        if ( 'leaflet' === $config['map']['provider'] ) {
+            wp_enqueue_style( 'kiriof-leaflet' );
+        }
         // The account IIFE imports shared map helpers without registering Blocks stores.
         $account_path = 'assets/buyer/dist/kiriminaja-buyer-account-shipping.js';
-        wp_enqueue_script( 'kiriof-account-shipping', $url . $account_path, array( 'kiriof-leaflet' ), file_exists( KIRIOF_DIR . $account_path ) ? (string) filemtime( KIRIOF_DIR . $account_path ) : KIRIOF_VERSION, true );
+        wp_enqueue_script( 'kiriof-account-shipping', $url . $account_path, array( 'kiriof-map-provider' ), file_exists( KIRIOF_DIR . $account_path ) ? (string) filemtime( KIRIOF_DIR . $account_path ) : KIRIOF_VERSION, true );
         wp_localize_script( 'kiriof-account-shipping', 'kiriofAccountShippingConfig', array( 'ajaxUrl' => $config['ajaxUrl'], 'nonce' => $config['nonce'], 'map' => $config['map'], 'i18n' => $config['i18n'] ) );
     }
 

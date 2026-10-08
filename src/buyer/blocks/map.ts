@@ -1,6 +1,10 @@
 // @ts-nocheck -- React hooks and registration are supplied by Woo, not bundled React.
 import type { BlocksRoot } from './types';
-import { createMapSession, createLocationGate, coverageStatus } from '../map/leaflet';
+import { createLocationGate, coverageStatus } from '../map/leaflet';
+import { mapProviderRegistry } from '../map/providers';
+import { loadGoogleMaps } from '../map/google-loader';
+import { resolveMapConfig } from '../map/config';
+import type { GoogleMapsAPI, GoogleMapsWindow, MapSession } from '../map/types';
 import { shippingAddress } from './address';
 import { createMapPresentation } from './svelte-bridge';
 
@@ -116,12 +120,13 @@ export function bootBlocksMap(root: BlocksRoot): void {
             }
           },
           onError: function (code) {
+            if (latest.current.key !== addressKey) return;
             setError(
               code === 'permission'
                 ? strings.mapPermission
                 : code === 'location'
                   ? strings.mapLocationFailed
-                  : strings.mapUnavailable,
+                  : strings.mapUnavailable || 'Map unavailable',
             );
           },
         });
@@ -141,41 +146,81 @@ export function bootBlocksMap(root: BlocksRoot): void {
         if (initial) {
           setPoint(Object.assign({ key: addressKey }, initial));
         }
-        var mapSession = createMapSession({
-          leaflet: root.L,
-          node: node.current,
-          defaultCenter: [Number(grant.point.latitude), Number(grant.point.longitude)],
-          tiles: config.tiles,
-          attribution: config.attribution,
-          initial: initial,
-          label: strings.mapTitle,
-          coverage: coverage,
-          onCoverage: function (status) {
-            setCoverage({ key: coverageKey, status: status });
-          },
-          geolocation: root.navigator && root.navigator.geolocation,
-          onSelect: function (next) {
-            return apply(next, address, addressKey);
-          },
-          onMove: setMoving,
-          onError: function (code) {
-            setError(
-              code === 'invalid'
-                ? strings.mapInvalid
-                : code === 'permission'
-                  ? strings.mapPermission
-                  : code === 'location'
-                    ? strings.mapLocationFailed
-                    : strings.mapUnavailable,
-            );
-          },
-        });
-        session.current = mapSession;
-        if (!initial && mapSession.isAvailable()) {
-          mapSession.pick(grant.point.latitude, grant.point.longitude, true);
+        var disposed = false;
+        var mapSession: MapSession | undefined;
+        function current() {
+          return !disposed && latest.current.key === addressKey;
+        }
+        function unavailable() {
+          if (current()) setError(strings.mapUnavailable || 'Map unavailable');
+        }
+        function instantiate(
+          provider: ReturnType<typeof resolveMapConfig>,
+          google?: GoogleMapsAPI,
+        ) {
+          if (!current()) return;
+          mapSession = mapProviderRegistry[provider.provider].createSession({
+            ...provider,
+            google: google,
+            document: root.document,
+            window: root as GoogleMapsWindow,
+            leaflet: root.L,
+            node: node.current,
+            defaultCenter: [Number(grant.point.latitude), Number(grant.point.longitude)],
+            initial: initial,
+            label: strings.mapTitle,
+            coverage: coverage,
+            onCoverage: function (status) {
+              if (current()) setCoverage({ key: coverageKey, status: status });
+            },
+            geolocation: root.navigator && root.navigator.geolocation,
+            onSelect: function (next) {
+              return current() && apply(next, address, addressKey);
+            },
+            onMove: function (next) {
+              if (current()) setMoving(next);
+            },
+            onError: function (code) {
+              if (!current()) return;
+              setError(
+                code === 'invalid'
+                  ? strings.mapInvalid
+                  : code === 'permission'
+                    ? strings.mapPermission
+                    : code === 'location'
+                      ? strings.mapLocationFailed
+                      : strings.mapUnavailable || 'Map unavailable',
+              );
+            },
+          });
+          session.current = mapSession;
+          if (!initial && mapSession.isAvailable()) {
+            mapSession.pick(grant.point.latitude, grant.point.longitude, true);
+          }
+        }
+        try {
+          var provider = resolveMapConfig(config);
+          if (provider.provider === 'google') {
+            void (async function () {
+              try {
+                var google = await loadGoogleMaps(
+                  provider.apiKey,
+                  root.document,
+                  root as GoogleMapsWindow,
+                );
+                if (!current()) return;
+                instantiate(provider, google);
+              } catch {
+                unavailable();
+              }
+            })();
+          } else instantiate(provider);
+        } catch {
+          unavailable();
         }
         return function () {
-          mapSession.dispose();
+          disposed = true;
+          mapSession?.dispose();
           if (session.current === mapSession) {
             session.current = null;
           }

@@ -8,7 +8,13 @@ export type InstantRouteMapData = {
   points: Array<[number, number]>;
   mode: 'recorded' | 'illustration' | 'unavailable';
 };
-export type InstantRouteMapConfig = { tiles: string; attribution: string; enabled: boolean };
+export type InstantRouteMapConfig = {
+  tiles: string;
+  attribution: string;
+  enabled: boolean;
+  provider?: string;
+  apiKey?: string;
+};
 
 export type TransactionDetailBootstrap = {
   map?: InstantRouteMapConfig;
