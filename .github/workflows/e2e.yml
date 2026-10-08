@@ -5,6 +5,9 @@ on:
     branches: [main, staging, development, v3]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
