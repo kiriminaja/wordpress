@@ -90,15 +90,21 @@ describe('Map checkout exported session: compiled production TypeScript VM, no U
 		for (const radiusMeters of [undefined, null, false, '', ' ', -1, 0, Infinity]) expect(api.coverageStatus({ origin, radiusMeters }, origin)).toBeNull();
 		expect(api.coverageStatus(null, origin)).toBeNull(); expect(api.coverageStatus(coverage, null)).toBeNull();
 	});
-	uiTest('optional and coverage notes float inside the granted map rather than above it', () => {
+	uiTest('compact coverage badge floats inside the granted map without an optional label', () => {
 		const h = uiHarness({ coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } }); try {
 			const section = h.container.querySelector('.kiriof-buyer-map');
 			const viewport = section.querySelector('.kiriof-buyer-map__viewport');
 			const information = viewport.querySelector('.kiriof-buyer-map__information');
 			expect(information.getAttribute('role')).toBe('note');
 			expect(information.getAttribute('tabindex')).toBe('0');
-			expect(information.querySelector('.kiriof-buyer-map__optional').textContent).toBe('Optional delivery pin');
-			expect(information.querySelector('.kiriof-buyer-map__coverage').textContent).toContain('Instant coverage: 40 km');
+			expect(information.querySelector('.kiriof-buyer-map__optional')).toBeNull();
+			expect(information.querySelector('p')).toBeNull();
+			const coverage = information.querySelector('span.kiriof-buyer-map__coverage');
+			expect(coverage.textContent.trim()).toBe('Instant ≤ 40 km');
+			expect(coverage.getAttribute('title')).toBe(h.root.kiriofMapCheckoutConfig.i18n.mapCoverage);
+			expect(coverage.getAttribute('aria-label')).toBe(coverage.getAttribute('title'));
+			expect(coverage.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+			expect(coverage.querySelector('path').getAttribute('d')).toBe('m12 3 10 18H2L12 3Z');
 			expect(section.querySelector(':scope > .kiriof-buyer-map__coverage')).toBeNull();
 			expect(section.querySelector(':scope > p:not(.kiriof-buyer-map__status):not(.kiriof-buyer-map__coverage-warning)')).toBeNull();
 			expect(h.maps).toHaveLength(1); expect(h.writes).toHaveLength(1);
@@ -306,7 +312,7 @@ describe('Map checkout exported session: compiled production TypeScript VM, no U
 });
 
 const uiTest = test;
-function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any; coverage?: any } = {}) {
+function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any; coverage?: any; rejectCoordinates?: boolean; coverageBadge?: string } = {}) {
 	const window = new happy.Window({ url: 'https://checkout.example.test' });
 	const saved = new Map<string, PropertyDescriptor | undefined>();
 	for (const [key, value] of Object.entries({ window, document: window.document, navigator: window.navigator, HTMLElement: window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true })) {
@@ -329,7 +335,7 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 		} else f.locations.push({ success, failure, options: requestOptions });
 	} } });
 	root.kiriofMapCheckoutConfig = { enabled: true, coverage: options.coverage, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
-		pinLocation: 'Pin Location', needPinLocation: 'Need Pin Location', mapCoverage: 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.', mapOutsideRadius: 'Outside Instant coverage; Express is allowed', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
+		pinLocation: 'Pin Location', needPinLocation: 'Need Pin Location', mapCoverageBadge: options.coverageBadge, mapCoverage: 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.', mapOutsideRadius: 'Outside Instant coverage; Express is allowed', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
 	} };
 	root.kiriofBuyerCheckout = {
 		getCoordinates: (address: any) => coordinates.get(JSON.stringify(address)) || null,
@@ -413,7 +419,7 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			expect(h.circles).toHaveLength(0); expect(h.container.querySelector('.kiriof-buyer-map__information')).toBeNull();
 			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 0 } }));
 			expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.writes).toHaveLength(1);
-			expect(h.container.querySelector('.kiriof-buyer-map__information').textContent).toContain('Instant coverage: 40 km');
+			expect(h.container.querySelector('.kiriof-buyer-map__coverage').textContent.trim()).toBe('Instant ≤ 40 km');
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning').getAttribute('role')).toBe('note'); expect(h.container.textContent).toContain('Outside Instant coverage');
 			React.act(() => h.tiles[0].fire('tileerror')); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Map unavailable'); expect(h.container.textContent).toContain('Outside Instant coverage');
 			h.click('Locate me'); React.act(() => h.locations[0].failure({ code: 1 })); expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe('Permission denied');
@@ -422,7 +428,7 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 	});
 	uiTest('unknown coverage has no legend or false inside indication; updated config replaces stale origin overlay', () => {
 		const h = uiHarness(); try {
-			expect(h.container.querySelector('.kiriof-buyer-map__coverage')).toBeNull(); expect(h.circles).toHaveLength(0);
+			expect(h.container.querySelector('.kiriof-buyer-map__coverage')).toBeNull(); expect(h.container.querySelector('.kiriof-buyer-map__information')).toBeNull(); expect(h.circles).toHaveLength(0);
 			h.root.kiriofMapCheckoutConfig.coverage = { origin: { latitude: -6, longitude: 106 }, radiusMeters: 40000 }; h.render();
 			expect(h.circles.at(-1).position).toEqual([-6, 106]); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull();
 			h.root.kiriofMapCheckoutConfig.coverage.origin.latitude = 0; h.render();
@@ -484,18 +490,21 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 	uiTest('granted map retains accessible canvas, fixed SVG and explicit follow-up locate', () => {
 		const h = uiHarness(); try {
 			const canvas = h.container.querySelector('.kiriof-buyer-map__canvas'); expect(canvas.getAttribute('aria-label')).toBe('Delivery location map'); expect(canvas.getAttribute('aria-description')).toContain('Use arrow keys');
-			const indicator = h.container.querySelector('.kiriof-buyer-map__indicator'); expect(indicator.getAttribute('aria-hidden')).toBe('true'); expect(indicator.querySelector('svg').getAttribute('focusable')).toBe('false'); expect(h.markers).toHaveLength(0);
+			const indicator = h.container.querySelector('.kiriof-buyer-map__indicator'); expect(indicator.getAttribute('aria-hidden')).toBeNull(); expect(indicator.querySelector(':scope > svg').getAttribute('aria-hidden')).toBe('true'); expect(indicator.querySelector('svg').getAttribute('focusable')).toBe('false'); expect(h.markers).toHaveLength(0);
 			expect(h.locations).toHaveLength(0); h.click('Locate me'); expect(h.locations).toHaveLength(1); React.act(() => h.position(0, 0, 0)); expect(h.writes).toHaveLength(2); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
 			h.click('Locate me'); React.act(() => h.locations[1].failure({ code: 1 })); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toHaveLength(2);
 			expect(h.button('Clear pin')).toBeUndefined(); expect(h.button('Load map')).toBeUndefined(); expect(h.container.querySelectorAll('input')).toHaveLength(0);
 		} finally { h.cleanup(); }
 	});
-	uiTest('floating pin badge reflects accepted coordinates only and locate is icon-only with a translated accessible name', () => {
+	uiTest('centered icon-only pin status reflects accepted coordinates only and locate is icon-only with a translated accessible name', () => {
 		for (const rejectCoordinates of [false, true]) {
 			const h = uiHarness({ rejectCoordinates }); try {
 				const viewport = h.container.querySelector('.kiriof-buyer-map__viewport');
 				const badge = viewport.querySelector('.kiriof-buyer-map__pin-status');
+				expect(badge.parentElement.classList.contains('kiriof-buyer-map__indicator')).toBe(true);
 				expect(badge.textContent).toBe(rejectCoordinates ? 'Need Pin Location' : 'Pin Location');
+				expect(badge.querySelector('.kiriof-map-screen-reader').textContent).toBe(badge.textContent);
+				expect(badge.querySelectorAll('span')).toHaveLength(1);
 				expect(badge.classList.contains(rejectCoordinates ? 'is-warning' : 'is-complete')).toBe(true);
 				expect(badge.getAttribute('role')).toBe('status'); expect(badge.getAttribute('aria-live')).toBe('polite');
 				expect(badge.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
@@ -508,8 +517,17 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			} finally { h.cleanup(); }
 		}
 	});
+	uiTest('coverage badge uses the translated short key and falls back when it is empty', () => {
+		for (const coverageBadge of ['Instan ≤ 40 km', '']) {
+			const h = uiHarness({ coverageBadge, coverage: { origin: { latitude: -6, longitude: 106 }, radiusMeters: 40000 } }); try {
+				const badge = h.container.querySelector('.kiriof-buyer-map__coverage');
+				expect(badge.textContent.trim()).toBe(coverageBadge || 'Instant ≤ 40 km');
+				expect(badge.getAttribute('title')).toBe(h.root.kiriofMapCheckoutConfig.i18n.mapCoverage);
+			} finally { h.cleanup(); }
+		}
+	});
 	uiTest('camera movement publishes once at moveend and rerenders do not prompt or reset', () => {
-		const h = uiHarness(); try {
+		const h = uiHarness({ coverage: { origin: { latitude: -6, longitude: 106 }, radiusMeters: 40000 } }); try {
 			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(1); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
 			expect(h.container.querySelector('.kiriof-buyer-map__information').hidden).toBe(true);
 			expect(h.container.querySelector('.kiriof-buyer-map__pin-status').hidden).toBe(true);

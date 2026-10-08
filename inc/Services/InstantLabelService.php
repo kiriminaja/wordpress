@@ -140,7 +140,7 @@ class InstantLabelService {
 			|| preg_match( '/%(?:0[0-9a-f]|1[0-9a-f]|7f)/i', $url ) || false === filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return false;
 		}
-		$parts = parse_url( $url );
+		$parts = wp_parse_url( $url );
 		$host = strtolower( $parts['host'] ?? '' );
 		return is_array( $parts ) && 'https' === strtolower( $parts['scheme'] ?? '' )
 			&& ! isset( $parts['user'] ) && ! isset( $parts['pass'] )

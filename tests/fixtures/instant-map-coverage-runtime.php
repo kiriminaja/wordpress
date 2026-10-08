@@ -4,6 +4,7 @@ namespace Automattic\WooCommerce\StoreApi\Schemas\V1 {
     class CartSchema { public const IDENTIFIER = 'cart'; }
 }
 namespace KiriminAjaOfficial\Services {
+    function get_option( $name, $default = '' ) { return $default; }
     class ShipmentLocationService {
         public function getDefaultLocation() {
             ++$GLOBALS['default_reads'];
@@ -41,6 +42,7 @@ namespace {
     require ABSPATH . 'inc/Services/CheckoutShippingSelectionGuard.php';
     require ABSPATH . 'inc/Services/InstantDeliveryCoverage.php';
     require ABSPATH . 'inc/Services/InstantMapCoverageService.php';
+    require ABSPATH . 'inc/Services/GoogleMapsSettings.php';
     require ABSPATH . 'inc/Base/Enqueue.php';
     require ABSPATH . 'inc/Controllers/CheckoutController.php';
     $service = new \KiriminAjaOfficial\Services\InstantMapCoverageService();

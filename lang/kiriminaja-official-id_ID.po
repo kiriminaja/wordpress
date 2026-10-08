@@ -5855,3 +5855,67 @@ msgstr "Pilihan pengiriman telah berubah. Periksa dan pilih kembali kurir sebelu
 #: inc/Base/Enqueue.php
 msgid "Updating shipping options…"
 msgstr "Memperbarui pilihan pengiriman…"
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Motor"
+msgstr "Motor"
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Mobil"
+msgstr "Mobil"
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Buyer Payment Status"
+msgstr "Status Pembayaran Pembeli"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Google Maps Integrations"
+msgstr "Integrasi Google Maps"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Enable the Maps JavaScript API and billing in Google Cloud. Restrict this browser key to your website HTTP referrers and the Maps JavaScript API. Browser keys are public when maps load."
+msgstr "Aktifkan Maps JavaScript API dan penagihan di Google Cloud. Batasi kunci browser ini ke perujuk HTTP situs Anda dan Maps JavaScript API. Kunci browser bersifat publik saat peta dimuat."
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Saved browser key"
+msgstr "Kunci browser tersimpan"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "No browser key saved. Maps use OpenStreetMap."
+msgstr "Belum ada kunci browser tersimpan. Peta menggunakan OpenStreetMap."
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "New browser API key"
+msgstr "Kunci API browser baru"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Leave blank to keep the saved key"
+msgstr "Biarkan kosong untuk mempertahankan kunci tersimpan"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Save Google Maps Key"
+msgstr "Simpan Kunci Google Maps"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Remove Google Maps Key"
+msgstr "Hapus Kunci Google Maps"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Updating…"
+msgstr "Memperbarui…"
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Google Maps settings updated."
+msgstr "Pengaturan Google Maps diperbarui."
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Unable to update Google Maps settings."
+msgstr "Tidak dapat memperbarui pengaturan Google Maps."
+
+#: inc/Base/Enqueue.php
+msgid "Instant ≤ 40 km"
+msgstr "Instant ≤ 40 km"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Invalid coupon amount."
+msgstr "Jumlah kupon tidak valid."

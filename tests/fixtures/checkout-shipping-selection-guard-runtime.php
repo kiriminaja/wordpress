@@ -5,10 +5,13 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
 	}
 }
 namespace {
+    function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 	define( 'ABSPATH', __DIR__ );
-	function __( $text, $domain ) { return $text; }
+	function __( $text, $domain ) { return ! empty( $GLOBALS['translated'] ) ? '<b>Shipping changed & retry</b>' : $text; }
 	function wp_unslash( $value ) { return stripslashes( $value ); }
 	$GLOBALS['hooks'] = array();
+	$GLOBALS['review_logs'] = array();
+	function kiriof_log( $level, $message, $context, $channel ) { $GLOBALS['review_logs'][] = compact( 'level', 'message', 'context', 'channel' ); }
 	function add_action( $hook, $callback, $priority, $args ) { $GLOBALS['hooks'][$hook][$priority][] = $callback; }
 	function WC() { return $GLOBALS['wc']; }
 	class GuardRate {
@@ -48,12 +51,20 @@ namespace {
 	$express = new GuardRate( 'kiriminaja-official_jne_REG', 'kiriminaja-official', 2, array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG' ) );
 	$other = new GuardRate( 'flat_rate:8', 'flat_rate', 8, array() );
 	$case = $config['case'];
-	$actual = in_array( $case, array( 'changed', 'terms', 'into-plugin', 'express', 'service', 'case', 'legacy' ), true ) ? clone $express : clone $instant;
+	$GLOBALS['translated'] = 'translated' === $case;
+	if ( 'available-mismatch' === $case ) {
+		// Opaque identifiers and unrelated checkout data must stay out of diagnostics.
+		$instant->id .= ':private-reviewed-rate';
+		$express->id .= ':private-selected-rate';
+	}
+	if ( 'opaque' === $case ) { $instant->id .= ':opaque%20<tag>\\\"'; }
+	$actual = in_array( $case, array( 'changed', 'available-mismatch', 'terms', 'into-plugin', 'express', 'service', 'case', 'legacy' ), true ) ? clone $express : clone $instant;
 	if ( in_array( $case, array( 'outside', 'away-plugin' ), true ) ) { $actual = clone $other; }
-	$expected = in_array( $case, array( 'changed', 'terms', 'away-plugin' ), true ) ? $instant : $actual;
+	$expected = in_array( $case, array( 'changed', 'available-mismatch', 'terms', 'away-plugin' ), true ) ? $instant : $actual;
 	if ( 'into-plugin' === $case ) { $expected = $other; }
 	$review = array( 'version' => 1, 'packages' => array( array( 'package_id' => '3', 'rate_id' => $expected->id, 'price' => '20000', 'taxes' => '0', 'currency_minor_unit' => 0 ) ) );
 	if ( in_array( $case, array( 'missing', 'outside' ), true ) ) { $review = null; }
+	if ( 'translated' === $case ) { $review = null; }
 	if ( 'malformed' === $case ) { $review['version'] = '1'; }
 	if ( 'duplicate' === $case ) { $review['packages'][] = $review['packages'][0]; }
 	if ( 'control' === $case ) { $review['packages'][0]['rate_id'] .= "\n"; }
@@ -68,7 +79,23 @@ namespace {
 	if ( 'legacy' === $case ) { $line->method = $actual->id; }
 	if ( 'order-route' === $case ) { $line = clone $express; }
 	$packages = array( 3 => array( 'rates' => 'missing-rate' === $case ? array() : array( $actual->id => $actual ) ) );
+	if ( 'available-mismatch' === $case ) {
+		$packages[3] = array(
+			'rates' => array( $instant->id => $instant, $express->id => $express ),
+			'destination' => array( 'address' => 'private-buyer-address', 'pin' => 'private-buyer-pin' ),
+			'quote_key' => 'private-quote-key',
+		);
+		$review['packages'][0]['address'] = 'private-posted-address';
+		$review['packages'][0]['pin'] = 'private-posted-pin';
+		$review['packages'][0]['api_key'] = 'private-api-key';
+		if ( ! empty( $config['order_lines_review'] ) ) { $line = clone $instant; }
+	}
 	$chosen = array( 3 => $actual->id );
+	if ( ! empty( $config['stale_session_keys'] ) ) {
+		// Woo updates current package keys in place; obsolete keys may survive.
+		$chosen[0] = $instant->id;
+		$chosen[12] = 'flat_rate:obsolete';
+	}
 	$lines = array( 42 => $line );
 	if ( 'multi' === $case ) {
 		$packages[9] = array( 'rates' => array( $other->id => $other ) );
@@ -94,5 +121,5 @@ namespace {
 		} catch ( \Throwable $error ) { $status = $error->getCode(); $message = $error->getMessage(); }
 		$attempts[] = array( 'status' => $status, 'message' => $message, 'writes' => $order->writes );
 	}
-	echo json_encode( array( 'attempts' => $attempts, 'priorities' => array_keys( $GLOBALS['hooks'][$hook] ), 'registered' => in_array( \KiriminAjaOfficial\Services\CheckoutShippingSelectionGuard::class, \KiriminAjaOfficial\Init::get_services(), true ), 'chosen' => $GLOBALS['wc']->session->chosen ) );
+	echo json_encode( array( 'attempts' => $attempts, 'priorities' => array_keys( $GLOBALS['hooks'][$hook] ), 'registered' => in_array( \KiriminAjaOfficial\Services\CheckoutShippingSelectionGuard::class, \KiriminAjaOfficial\Init::get_services(), true ), 'chosen' => $GLOBALS['wc']->session->chosen, 'logs' => $GLOBALS['review_logs'] ) );
 }

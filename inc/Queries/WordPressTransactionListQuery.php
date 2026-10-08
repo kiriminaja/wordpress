@@ -496,19 +496,10 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         return array_values( array_unique( $codes ) );
     }
 
-    /** Global delivery-tab totals, using the same shippable/order scope as All. */
+    /** Global pending delivery badges, independent of active list filters. */
     public function getDeliveryCounts(): array {
-        $active_delivery = $this->delivery_type;
-        try {
-            $this->delivery_type = 'express';
-            $regular_count = $this->getCountByPostStatus( null );
-            $this->delivery_type = 'instant';
-            $instant_count = $this->getCountByPostStatus( null );
-        } finally {
-            // Counting the other tab must not change later queries or filters.
-            $this->delivery_type = $active_delivery;
-        }
-        return array( 'regular' => $regular_count, 'instant' => $instant_count );
+        $counts = ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts();
+        return array( 'regular' => $counts['regular'], 'instant' => $counts['instant'], 'issue' => $counts['issue'] );
     }
 
     public function getStatusCounts(): array {

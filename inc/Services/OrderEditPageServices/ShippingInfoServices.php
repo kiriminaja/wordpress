@@ -7,6 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Services\ShipmentDetailAmounts;
+use KiriminAjaOfficial\Services\ShipmentDetailPayment;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
 class ShippingInfoServices extends BaseService{
     
     public int $wcOrderId = 0;
@@ -15,10 +18,14 @@ class ShippingInfoServices extends BaseService{
         $this->wcOrderId = $wcOrderId;
         return $this;
     }
-    
+
     public function call(){
         $repo = (new \KiriminAjaOfficial\Repositories\TransactionRepository())->getTransactionByWCOrderId($this->wcOrderId);
         if (!$repo) { return self::error([],'Not Found');}
+
+        $wc_order = wc_get_order( $this->wcOrderId );
+        $delivery_type = TransactionDeliveryType::resolve( $repo );
+        $payment = ShipmentDetailPayment::forTransaction( $repo );
         
         return self::success([
             'awb'               =>  @$repo->awb ? $repo->awb : '-' , 
@@ -48,6 +55,13 @@ class ShippingInfoServices extends BaseService{
             'ka_order_id'        => $repo->order_id ?? '',
             'transaction_id'     => (int) ( $repo->id ?? 0 ),
             'wc_order_id'        => (int) ( $repo->wp_wc_order_stat_order_id ?? 0 ),
+            'admin_fee_raw'      => ShipmentDetailAmounts::adminFee( $wc_order, $repo ),
+            'buyer_shipping_raw' => $wc_order ? (float) $wc_order->get_shipping_total() : max( 0.0, (float) ( $repo->shipping_cost ?? 0 ) - (float) ( $repo->discount_amount ?? 0 ) ),
+            'delivery_type'      => $delivery_type,
+            'vehicle'            => TransactionDeliveryType::normalizeVehicle( $repo->vehicle ?? null ),
+            'carrier_payment_id' => $payment['id'],
+            'carrier_payment_status' => $payment['status'],
+            'carrier_payment_method' => $payment['method'],
         ],'success');
     }
     

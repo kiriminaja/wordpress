@@ -1,3 +1,5 @@
+import type { MapProviderInput } from './pin';
+
 export type SelectorOption = {
   value: string;
   label: string;
@@ -10,6 +12,7 @@ export type SelectorOption = {
 };
 
 export type SelectorConfig = {
+  map?: MapProviderInput;
   fieldKey?: string;
   nonce?: string;
   ajaxUrl?: string;

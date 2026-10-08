@@ -6,19 +6,37 @@ export interface MapProviderConfigInput {
   provider?: unknown;
   tiles?: unknown;
   attribution?: unknown;
+  apiKey?: unknown;
 }
-export interface MapProviderConfig {
-  readonly provider: 'leaflet';
-  readonly tiles: string;
-  readonly attribution: string;
+export type MapProviderId = 'leaflet' | 'google';
+export type MapProviderConfig =
+  | { readonly provider: 'leaflet'; readonly tiles: string; readonly attribution: string }
+  | {
+      readonly provider: 'google';
+      readonly apiKey: string;
+      /** Compatibility fields for synchronous Leaflet consumers; never used by Google. */
+      readonly tiles: string;
+      readonly attribution: string;
+    };
+export function isSupportedMapProvider(provider: unknown): provider is MapProviderId {
+  return provider === 'leaflet' || provider === 'google';
 }
-export function isSupportedMapProvider(provider: unknown): provider is 'leaflet' {
-  return provider === DEFAULT_MAP_PROVIDER;
+export function isValidGoogleMapsKey(key: unknown): key is string {
+  return typeof key === 'string' && /^[A-Za-z0-9_-]{8,256}$/.test(key);
 }
-/** Resolve public display config only. Unknown providers fail before map or tile creation. */
+/** Validate before any runtime/network work. Errors never echo configuration or credentials. */
 export function resolveMapConfig(input: MapProviderConfigInput = {}): MapProviderConfig {
   const provider = input.provider ?? DEFAULT_MAP_PROVIDER;
   if (!isSupportedMapProvider(provider)) throw new Error('Unsupported map provider');
+  if (provider === 'google') {
+    if (!isValidGoogleMapsKey(input.apiKey)) throw new Error('Map unavailable');
+    return Object.freeze({
+      provider,
+      apiKey: input.apiKey,
+      tiles: DEFAULT_MAP_TILES,
+      attribution: DEFAULT_MAP_ATTRIBUTION,
+    });
+  }
   const tiles = input.tiles ?? DEFAULT_MAP_TILES;
   if (typeof tiles !== 'string' || !tiles.startsWith('https://'))
     throw new Error('Map unavailable');

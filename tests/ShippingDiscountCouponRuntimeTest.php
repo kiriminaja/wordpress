@@ -8,11 +8,21 @@ use PHPUnit\Framework\TestCase;
 final class ShippingDiscountCouponRuntimeTest extends TestCase
 {
     #[Test]
+    public function coupon_eligibility_and_fresh_pricing_are_exercised_at_runtime(): void
+    {
+        $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/shipping-coupon-eligibility-runtime.php');
+        exec($command . ' 2>&1', $output, $status);
+        $this->assertSame(0, $status, implode("\n", $output));
+        $this->assertSame('ok', trim(implode("\n", $output)));
+    }
+
+    #[Test]
     public function coupon_controller_registers_runtime_shipping_coupon_hooks(): void
     {
         $content = file_get_contents(PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php');
 
-        $this->assertStringContainsString('woocommerce_coupon_is_valid_for_cart', $content);
+        $this->assertStringContainsString("add_filter( 'woocommerce_coupon_is_valid', array( \$this, 'validateShippingCouponForCart' ), 20, 2 );", $content);
+        $this->assertStringNotContainsString("add_filter( 'woocommerce_coupon_is_valid_for_cart'", $content);
         $this->assertStringContainsString('woocommerce_cart_coupon_types', $content);
         $this->assertStringContainsString('woocommerce_coupon_is_valid_for_product', $content);
         $this->assertStringContainsString('woocommerce_coupon_get_discount_amount', $content);
@@ -259,7 +269,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             'Store API coupon validation should recognize KiriminAja from available package rates when chosen_shipping_methods is temporarily empty'
         );
         $this->assertStringContainsString(
-            "strpos( \$method, 'kiriminaja-official' ) === 0",
+            'extractCourierCodeFromMethodId( (string) $method )',
             $serviceContent,
             'KiriminAja shipping detection must still use the KiriminAja method prefix'
         );
@@ -312,6 +322,7 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             $controllerContent,
             'Shipping cache must be invalidated before WooCommerce recalculates totals on coupon removal'
         );
+        $this->assertSame(2, substr_count($controllerContent, "array( \$this, 'invalidateShippingRatesAfterCouponChange' )"), 'Invalidate once before totals, never clear fresh metadata afterwards');
         $this->assertStringContainsString(
             "WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );",
             $controllerContent,
@@ -323,9 +334,9 @@ final class ShippingDiscountCouponRuntimeTest extends TestCase
             'WooCommerce shipping package cache must be cleared so rates recalculate with the new shipping coupon'
         );
         $this->assertStringContainsString(
-            'reset_shipping',
+            'get_packages',
             $controllerContent,
-            'WooCommerce shipping object should be reset after coupon changes'
+            'Both fresh cart and calculated shipping package cache keys must be invalidated'
         );
     }
 

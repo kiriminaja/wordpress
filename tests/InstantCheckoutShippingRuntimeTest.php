@@ -13,6 +13,19 @@ final class InstantCheckoutShippingRuntimeTest extends TestCase {
 		return $result;
 	}
 
+    public function test_coupon_pricing_uses_raw_delivery_only_and_native_id_session_metadata(): void {
+        $r = $this->run_fixture();
+        foreach (['fixed' => 49000, 'percent' => 40500, 'free' => 0, 'removed' => 54000] as $kind => $cost) {
+            $rate = $r['coupons'][$kind]['rates'][0];
+            $meta = $r['coupons'][$kind]['meta'];
+            $this->assertEquals($cost, $rate['cost']);
+            $this->assertEquals(54000, $meta['original_cost']);
+            $this->assertEquals(54000 - $cost, $meta['discount_amount']);
+            $this->assertSame('opaque_token', $rate['meta_data']['kiriof_instant_quote_token']);
+            $this->assertArrayNotHasKey('kiriof_shipping_coupon_discount_amount', $rate['meta_data']);
+        }
+    }
+
 	public function test_registration_is_safe_without_woocommerce_and_instances_have_distinct_ids(): void {
 		$result = $this->run_fixture();
 		$this->assertSame( array( 'existing' => 'Existing' ), $result['before'] );

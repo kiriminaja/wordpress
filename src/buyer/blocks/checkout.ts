@@ -36,9 +36,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
   var validationDispatch;
 
   if (
-    !document.querySelector(
-      '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart',
-    ) ||
+    !document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout') ||
     !config.enabled ||
     !session ||
     (!destinationSlot && !supportsDistrictInnerBlock) ||
@@ -126,11 +124,13 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
       });
   }
 
-  function addressBadge(text, complete, title) {
+  function addressBadge(text, complete, title, notice = false) {
     return h(
       'span',
       {
-        className: 'kiriof-address-status__badge ' + (complete ? 'is-complete' : 'is-warning'),
+        className:
+          (notice ? 'kiriof-address-status__message ' : 'kiriof-address-status__badge ') +
+          (complete ? 'is-complete' : 'is-warning'),
         title: title,
       },
       h(
@@ -149,7 +149,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
           ? h('path', { d: 'm5 12 4 4 10-10' })
           : h('path', { d: 'M8 3h8l5 5v8l-5 5H8l-5-5V8Z M12 7v6 M12 16v1' }),
       ),
-      text,
+      h('span', { className: 'kiriof-address-status__text' }, text),
     );
   }
   try {
@@ -497,6 +497,18 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     });
     var chosenPackages = selectedPackages(cart.shippingRates);
     var chosenPackagesKey = JSON.stringify(chosenPackages);
+    // A rate can become available again without changing the selected IDs.
+    // Revisit a blocked exact-ID restoration when its availability changes.
+    var availablePackagesKey = JSON.stringify(
+      (cart.shippingRates || []).map(function (pkg) {
+        return [
+          pkg.package_id,
+          (pkg.shipping_rates || []).map(function (rate) {
+            return rate.rate_id;
+          }),
+        ];
+      }),
+    );
     var instantSelected = selected.some(function (rate) {
       return (
         'kiriminaja-instant' === rate.method_id ||
@@ -551,6 +563,21 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     var currentPin = mapPin && mapPin.key === shippingAddressKey(address) ? mapPin : null;
     var destination = destinationForAddress(currentSelection, address, currentPin);
     var destinationKey = JSON.stringify(destination);
+    var initialShippingReady =
+      !required ||
+      !kiriminajaSelected ||
+      Boolean(
+        currentSelection &&
+        !results.loading &&
+        !results.error &&
+        updateState.acknowledged &&
+        !updateState.pending &&
+        !updateState.inFlight &&
+        !updateState.error &&
+        JSON.stringify(updateState.acknowledged.destination) === destinationKey &&
+        JSON.stringify(updateState.acknowledged.recipient_context) === recipientKey &&
+        updateState.acknowledged.payment_method === (data.payment || ''),
+      );
     var lookupGeneration = useRef(0);
     var destinationRef = useRef(destination);
     destinationRef.current = destination;
@@ -612,6 +639,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
         if (!ownsEffects() || !shippingReview) return;
         if (
           !awaitingSavedPin &&
+          initialShippingReady &&
           !data.busy &&
           cart.needsShipping &&
           !data.collection &&
@@ -633,7 +661,15 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
           };
           validationDispatch.setValidationErrors(errors);
         } else validationDispatch.clearValidationError(shippingSelectionErrorId);
-        if (guarded && data.busy) {
+        var initializingShipping =
+          cart.needsShipping &&
+          !data.collection &&
+          kiriminajaSelected &&
+          !shippingReview.snapshot().packages.length &&
+          (!initialShippingReady ||
+            data.busy ||
+            chosenPackages.length !== (cart.shippingRates || []).length);
+        if ((guarded && data.busy) || initializingShipping) {
           var pending = {};
           pending[shippingSelectionPendingId] = {
             message: strings.shippingSelectionUpdating || 'Updating shipping options…',
@@ -644,6 +680,8 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
       },
       [
         chosenPackagesKey,
+        availablePackagesKey,
+        initialShippingReady,
         data.busy,
         cart.needsShipping,
         data.collection,
@@ -1000,43 +1038,51 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
             Boolean(currentPin),
             strings.pinRequirement,
           ),
-          !checking && (results.error || lookupEmpty || updateState.error || quoteStale)
-            ? addressBadge(message, false)
-            : null,
-          !districtUnverified && !updateState.error && !quoteStale && unavailable
-            ? addressBadge(unavailable, false)
-            : null,
-          updateState.uncertain
-            ? h(
-                'button',
-                {
-                  type: 'button',
-                  onClick: function () {
-                    root.location.reload();
-                  },
-                },
-                strings.reloadCheckout,
-              )
-            : results.error || lookupEmpty || updateState.error || showRetry
+          h(
+            'div',
+            { className: 'kiriof-address-status__recovery' },
+            !checking && (results.error || lookupEmpty || updateState.error || quoteStale)
+              ? addressBadge(message, false, undefined, true)
+              : null,
+            !districtUnverified && !updateState.error && !quoteStale && unavailable
+              ? addressBadge(unavailable, false, undefined, true)
+              : null,
+            updateState.uncertain
               ? h(
                   'button',
                   {
                     type: 'button',
+                    className:
+                      'kiriof-address-status__action wc-block-components-button wp-element-button',
                     onClick: function () {
-                      if (results.error || lookupEmpty) {
-                        setShared('retryLookup', function (previous) {
-                          return previous + 1;
-                        });
-                      } else if (updateState.error) {
-                        setShared('retryUpdate', state.retryUpdate + 1);
-                      } else {
-                        setShared('refreshVersion', ++refreshVersion);
-                      }
+                      root.location.reload();
                     },
                   },
-                  strings.retry,
+                  strings.reloadCheckout,
                 )
-              : null,
+              : results.error || lookupEmpty || updateState.error || showRetry
+                ? h(
+                    'button',
+                    {
+                      type: 'button',
+                      className:
+                        'kiriof-address-status__action wc-block-components-button wp-element-button',
+                      onClick: function () {
+                        if (results.error || lookupEmpty) {
+                          setShared('retryLookup', function (previous) {
+                            return previous + 1;
+                          });
+                        } else if (updateState.error) {
+                          setShared('retryUpdate', state.retryUpdate + 1);
+                        } else {
+                          setShared('refreshVersion', ++refreshVersion);
+                        }
+                      },
+                    },
+                    strings.retry,
+                  )
+                : null,
+          ),
         ),
         presentation.cardTarget,
       );

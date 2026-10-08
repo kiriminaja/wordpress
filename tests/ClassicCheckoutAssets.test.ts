@@ -30,7 +30,7 @@ describe('Classic asset registration and legacy ownership', () => {
 		expect(registration).not.toContain('wp-element');
 		expect(registration).not.toContain('kiriof-buyer-checkout.js');
 		expect(registration).toContain("$this->register_buyer_state_assets();");
-		expect(registration).toContain("'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-leaflet' ) )");
+		expect(registration).toContain("'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-map-provider' ) )");
 		expect(registration).not.toContain("assets/buyer/js/");
 		const stateRegistration = enqueue.split("private function register_buyer_state_assets(): void {")[1].split("/** Register once")[0];
 		expect(stateRegistration).toContain("assets/buyer/dist/kiriminaja-buyer-state.js");

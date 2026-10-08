@@ -17,11 +17,14 @@ namespace KiriminAjaOfficial\Services {
 }
 namespace KiriminAjaOfficial\Base {
     class Enqueue {
+        public function register_map_provider_assets(): void {
+            wp_register_script( 'kiriof-map-provider', false, array( 'kiriof-leaflet' ), 'test', true );
+        }
         public function register_buyer_checkout_assets( bool $localize = false ): void {
             wp_register_script( 'kiriof-buyer-state', '/assets/buyer/dist/kiriminaja-buyer-state.js', array(), 'test', true );
         }
         public function buyer_checkout_config(): array {
-            return array( 'ajaxUrl' => '/wp-admin/admin-ajax.php', 'nonce' => 'lookup-nonce', 'map' => array( 'enabled' => true, 'tiles' => 'https://tiles.example/{z}/{x}/{y}' ), 'i18n' => array( 'selectDistrict' => 'Select Subdistrict', 'district' => 'Subdistrict', 'retry' => 'Try again', 'mapTitle' => 'Pin Location', 'mapOptional' => 'Optional for Express.', 'mapHelp' => 'Move map', 'mapKeyboard' => 'Use arrow keys', 'mapPermission' => 'Allow location', 'mapLocate' => 'Locate me' ) );
+            return array( 'ajaxUrl' => '/wp-admin/admin-ajax.php', 'nonce' => 'lookup-nonce', 'map' => array( 'enabled' => true, 'provider' => 'leaflet', 'tiles' => 'https://tiles.example/{z}/{x}/{y}' ), 'i18n' => array( 'selectDistrict' => 'Select Subdistrict', 'district' => 'Subdistrict', 'retry' => 'Try again', 'mapTitle' => 'Pin Location', 'mapOptional' => 'Optional for Express.', 'mapHelp' => 'Move map', 'mapKeyboard' => 'Use arrow keys', 'mapPermission' => 'Allow location', 'mapLocate' => 'Locate me' ) );
         }
     }
 }

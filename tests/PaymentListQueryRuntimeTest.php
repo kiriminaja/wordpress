@@ -56,6 +56,34 @@ final class PaymentListQueryRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function separately_prepared_date_bounds_preserve_filter_and_pagination_arguments(): void
+    {
+        $wpdb = new PaymentListQueryWpdbFake();
+        $query = new WordPressPaymentListQuery( $wpdb );
+        $query->getPage(
+            array( 'key' => "PU'_%", 'month' => '2020-01', 'status' => 'paid', 'date_from' => '2025-02-28', 'date_to' => '2025-03-01' ),
+            2,
+            20
+        );
+
+        foreach ( array( $wpdb->var_queries[0], $wpdb->result_queries[0] ) as $sql ) {
+            $this->assertStringContainsString( "payment_identity LIKE '%PU''\\_\\%%'", $sql );
+            $this->assertStringContainsString( "( 0 = 0 OR created_at LIKE '%' )", $sql );
+            $this->assertStringContainsString( "( 1 = 0 OR status = 'paid' )", $sql );
+            $this->assertStringContainsString( "created_at >= '2025-02-28 00:00:00'", $sql );
+            $this->assertStringContainsString( "created_at < '2025-03-02 00:00:00'", $sql );
+        }
+        $this->assertStringContainsString( 'LIMIT 20, 20', $wpdb->result_queries[0] );
+
+        $query->getPage( array( 'key' => '', 'month' => '', 'status' => '', 'date_from' => '2025-02-30' ), 1, 20 );
+        $this->assertStringContainsString( ' AND 1 = 0', $wpdb->var_queries[1] );
+        $this->assertStringContainsString( ' AND 1 = 0 ORDER BY', $wpdb->result_queries[1] );
+
+        $source = file_get_contents( PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php' );
+        $this->assertDoesNotMatchRegularExpression( '/phpcs:(?:ignore|disable)[^\n]*PreparedSQLPlaceholders/', $source );
+    }
+
+    #[Test]
     public function payment_search_shares_the_tools_row_with_matching_height_controls(): void
     {
         $list = file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
@@ -160,18 +188,20 @@ final class PaymentListQueryWpdbFake
 
     public function prepare( $sql, ...$values ): string
     {
-        foreach ( $values as $value ) {
-            $position = preg_match( '/%[ids]/', $sql, $match, PREG_OFFSET_CAPTURE ) ? $match[0][1] : false;
-            if ( false === $position ) {
-                continue;
-            }
-
-            $placeholder = substr( $sql, $position, 2 );
-            $replacement = '%d' === $placeholder
-                ? (string) $value
-                : ( '%i' === $placeholder ? (string) $value : "'" . str_replace( "'", "''", (string) $value ) . "'" );
-            $sql         = substr_replace( $sql, $replacement, $position, 2 );
+        if ( 1 === count( $values ) && is_array( $values[0] ) ) {
+            $values = $values[0];
         }
+        preg_match_all( '/%[ids]/', $sql, $placeholders );
+        if ( count( $placeholders[0] ) !== count( $values ) ) {
+            throw new RuntimeException( 'Prepare placeholder and argument counts must match.' );
+        }
+        $index = 0;
+        $sql = preg_replace_callback( '/%[ids]/', static function ( $match ) use ( $values, &$index ) {
+            $value = $values[ $index++ ];
+            return '%d' === $match[0]
+                ? (string) (int) $value
+                : ( '%i' === $match[0] ? (string) $value : "'" . str_replace( "'", "''", (string) $value ) . "'" );
+        }, $sql );
 
         return $sql;
     }

@@ -28,7 +28,7 @@ namespace {
         // fragments from an outer prepare(). Remove only immediately before execution.
         private const PERCENT = '{transaction-database-percent}';
 
-        public function __construct() {
+        public function __construct(bool $instant_print = false) {
             $this->db = class_exists('Pdo\\Sqlite') ? new \Pdo\Sqlite('sqlite::memory:') : new PDO('sqlite::memory:');
             $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             // SQLite LIKE lacks MySQL's default backslash escape. Register that
@@ -61,7 +61,11 @@ namespace {
                 'CREATE TABLE wp_woocommerce_order_itemmeta (order_item_id INTEGER, meta_key TEXT, meta_value TEXT)',
                 'CREATE TABLE wp_postmeta (post_id INTEGER, meta_key TEXT, meta_value TEXT)',
             ] as $sql) { $this->db->exec($sql); }
-            $this->seed();
+            if ($instant_print) {
+                $this->db->exec('ALTER TABLE wp_kiriminaja_transactions ADD instant_payment_id TEXT');
+                $this->db->exec('ALTER TABLE wp_kiriminaja_transactions ADD instant_status_code INTEGER');
+            }
+            $this->seed($instant_print);
         }
 
         public function esc_like($value): string { return addcslashes((string) $value, '_%\\'); }
@@ -95,7 +99,7 @@ namespace {
             $stmt->execute($values);
         }
 
-        private function seed(): void {
+        private function seed(bool $instant_print): void {
             // Each row's date is unique so pagination order is deterministic.
             $rows = [
                 1 => ['wc-processing', 'new'],
@@ -120,13 +124,37 @@ namespace {
                 20 => ['wc-completed', 'shipped', 'paid' => true, 'awb' => 'OTHER', 'order_id' => 'OTHER'],
                 21 => ['wc-completed', 'shipped', 'paid' => true, 'awb' => "QUOTE'100%_literal", 'order_id' => 'OTHER'],
             ];
+            if ($instant_print) {
+                // Dedicated scope controls leave the original security/date dataset unchanged.
+                $rows = [
+                    1 => ['wc-processing', 'new', 'courier' => 'gosend'],
+                    2 => ['wc-processing', 'new', 'courier' => 'grab_express', 'printed' => 1],
+                    3 => ['wc-on-hold', 'new', 'courier' => 'gosend'],
+                    4 => ['wc-pending', 'new', 'courier' => 'grab_express', 'printed' => 1],
+                    5 => ['wc-completed', 'shipped', 'courier' => 'gosend', 'booked' => true],
+                    6 => ['wc-completed', 'request_pickup', 'courier' => 'grab_express', 'booked' => true, 'printed' => 1],
+                    7 => ['wc-cancelled', 'canceled', 'courier' => 'gosend'],
+                    8 => ['wc-cancelled', 'finished', 'courier' => 'grab_express', 'booked' => true, 'printed' => 1],
+                    9 => ['wc-processing', 'new', 'courier' => 'jne'],
+                    10 => ['wc-completed', 'shipped', 'courier' => 'pos', 'paid' => true, 'printed' => 1],
+                    11 => ['wc-completed', 'shipped', 'courier' => 'borzo', 'booked' => true],
+                    12 => ['wc-completed', 'shipped', 'courier' => 'gosend', 'booked' => true, 'printed' => 1, 'month' => '2025-03'],
+                    13 => ['wc-completed', 'shipped', 'courier' => 'gosend'], // No Instant booking evidence.
+                    14 => ['wc-completed', 'shipped', 'courier' => 'gosend', 'printed' => 1],
+                ];
+            }
             foreach ($rows as $id => $row) {
                 $date = ($row['month'] ?? '2025-02') . '-' . sprintf('%02d', $id) . ' 12:00:00';
                 $pickup = 'PICKUP-' . $id;
                 $this->insert('wp_posts', [$id, $date, $row[0], 'shop_order']);
                 $this->insert('wp_wc_orders', [$id, $date, $row[0], 'shop_order']);
                 $courier = $row['courier'] ?? ($id % 2 ? 'jne' : 'pos');
-                $this->insert('wp_kiriminaja_transactions', [$id, $id, $row[1], $pickup, $row['deficit'] ?? 0, $row['cod'] ?? 100, $courier, in_array($courier, ['gosend', 'grab_express', 'borzo'], true) ? 'instant' : 'express', $row['printed'] ?? 0, $row['awb'] ?? 'KA-10-' . $id, $row['order_id'] ?? 'KA-10-' . $id, $date]);
+                $transaction = [$id, $id, $row[1], $pickup, $row['deficit'] ?? 0, $row['cod'] ?? 100, $courier, in_array($courier, ['gosend', 'grab_express', 'borzo'], true) ? 'instant' : 'express', $row['printed'] ?? 0, $row['awb'] ?? 'KA-10-' . $id, $row['order_id'] ?? 'KA-10-' . $id, $date];
+                if ($instant_print) {
+                    $transaction[] = !empty($row['booked']) ? 'INSTANT-PAY-' . $id : null;
+                    $transaction[] = !empty($row['booked']) ? 100 : null;
+                }
+                $this->insert('wp_kiriminaja_transactions', $transaction);
                 if (!empty($row['paid'])) {
                     $this->insert('wp_kiriminaja_payments', [$id * 10, $pickup]);
                     if (4 === $id || 6 === $id) { // Real duplicate joined rows.
@@ -148,7 +176,7 @@ namespace {
 
     $payload = json_decode($argv[1] ?? '{}', true, 512, JSON_THROW_ON_ERROR);
     \Automattic\WooCommerce\Utilities\OrderUtil::$enabled = !empty($payload['hpos']);
-    $wpdb = new TransactionMultiFilterDatabaseWpdb();
+    $wpdb = new TransactionMultiFilterDatabaseWpdb('instant-print' === ($payload['scenario'] ?? ''));
     $query = new \KiriminAjaOfficial\Queries\WordPressTransactionListQuery($wpdb);
     $defaults = ['key' => '', 'month' => '', 'status' => 'all', 'cod' => '', 'courier' => '', 'print_status' => '', 'delivery_type' => 'express'];
     $responses = [];

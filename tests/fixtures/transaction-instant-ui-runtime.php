@@ -1,6 +1,7 @@
 <?php
 /** Isolated production view-model execution with WordPress/service collaborators stubbed. */
 namespace KiriminAjaOfficial\Services {
+    function get_option( $name, $default = '' ) { return $default; }
     class ShipmentLocationService {
         public function repository() { return new class { public function getAll($active): array { return []; } }; }
     }
@@ -37,10 +38,12 @@ namespace {
     require ABSPATH . 'inc/Base/BaseInit.php';
     require ABSPATH . 'inc/Base/Helper.php';
     require ABSPATH . 'inc/Services/TransactionDeliveryType.php';
+    require ABSPATH . 'inc/Services/ShipmentDetailPayment.php';
     require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
     // Load the production static lifecycle guards; no repository instance is needed.
     require ABSPATH . 'inc/Services/InstantShipmentState.php';
     require ABSPATH . 'inc/Services/InstantTrackingPresentation.php';
+    require ABSPATH . 'inc/Services/GoogleMapsSettings.php';
     require ABSPATH . 'inc/Services/InstantDetailMapData.php';
     require ABSPATH . 'inc/Services/TransactionProcessServices/RecipientDataResolver.php';
     require ABSPATH . 'inc/Services/InstantShipmentContext.php';

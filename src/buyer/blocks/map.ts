@@ -1,6 +1,10 @@
 // @ts-nocheck -- React hooks and registration are supplied by Woo, not bundled React.
 import type { BlocksRoot } from './types';
-import { createMapSession, createLocationGate, coverageStatus } from '../map/leaflet';
+import { createLocationGate, coverageStatus } from '../map/leaflet';
+import { mapProviderRegistry } from '../map/providers';
+import { loadGoogleMaps } from '../map/google-loader';
+import { resolveMapConfig } from '../map/config';
+import type { GoogleMapsAPI, GoogleMapsWindow, MapSession } from '../map/types';
 import { shippingAddress } from './address';
 import { createMapPresentation } from './svelte-bridge';
 
@@ -116,12 +120,13 @@ export function bootBlocksMap(root: BlocksRoot): void {
             }
           },
           onError: function (code) {
+            if (latest.current.key !== addressKey) return;
             setError(
               code === 'permission'
                 ? strings.mapPermission
                 : code === 'location'
                   ? strings.mapLocationFailed
-                  : strings.mapUnavailable,
+                  : strings.mapUnavailable || 'Map unavailable',
             );
           },
         });
@@ -141,41 +146,81 @@ export function bootBlocksMap(root: BlocksRoot): void {
         if (initial) {
           setPoint(Object.assign({ key: addressKey }, initial));
         }
-        var mapSession = createMapSession({
-          leaflet: root.L,
-          node: node.current,
-          defaultCenter: [Number(grant.point.latitude), Number(grant.point.longitude)],
-          tiles: config.tiles,
-          attribution: config.attribution,
-          initial: initial,
-          label: strings.mapTitle,
-          coverage: coverage,
-          onCoverage: function (status) {
-            setCoverage({ key: coverageKey, status: status });
-          },
-          geolocation: root.navigator && root.navigator.geolocation,
-          onSelect: function (next) {
-            return apply(next, address, addressKey);
-          },
-          onMove: setMoving,
-          onError: function (code) {
-            setError(
-              code === 'invalid'
-                ? strings.mapInvalid
-                : code === 'permission'
-                  ? strings.mapPermission
-                  : code === 'location'
-                    ? strings.mapLocationFailed
-                    : strings.mapUnavailable,
-            );
-          },
-        });
-        session.current = mapSession;
-        if (!initial && mapSession.isAvailable()) {
-          mapSession.pick(grant.point.latitude, grant.point.longitude, true);
+        var disposed = false;
+        var mapSession: MapSession | undefined;
+        function current() {
+          return !disposed && latest.current.key === addressKey;
+        }
+        function unavailable() {
+          if (current()) setError(strings.mapUnavailable || 'Map unavailable');
+        }
+        function instantiate(
+          provider: ReturnType<typeof resolveMapConfig>,
+          google?: GoogleMapsAPI,
+        ) {
+          if (!current()) return;
+          mapSession = mapProviderRegistry[provider.provider].createSession({
+            ...provider,
+            google: google,
+            document: root.document,
+            window: root as GoogleMapsWindow,
+            leaflet: root.L,
+            node: node.current,
+            defaultCenter: [Number(grant.point.latitude), Number(grant.point.longitude)],
+            initial: initial,
+            label: strings.mapTitle,
+            coverage: coverage,
+            onCoverage: function (status) {
+              if (current()) setCoverage({ key: coverageKey, status: status });
+            },
+            geolocation: root.navigator && root.navigator.geolocation,
+            onSelect: function (next) {
+              return current() && apply(next, address, addressKey);
+            },
+            onMove: function (next) {
+              if (current()) setMoving(next);
+            },
+            onError: function (code) {
+              if (!current()) return;
+              setError(
+                code === 'invalid'
+                  ? strings.mapInvalid
+                  : code === 'permission'
+                    ? strings.mapPermission
+                    : code === 'location'
+                      ? strings.mapLocationFailed
+                      : strings.mapUnavailable || 'Map unavailable',
+              );
+            },
+          });
+          session.current = mapSession;
+          if (!initial && mapSession.isAvailable()) {
+            mapSession.pick(grant.point.latitude, grant.point.longitude, true);
+          }
+        }
+        try {
+          var provider = resolveMapConfig(config);
+          if (provider.provider === 'google') {
+            void (async function () {
+              try {
+                var google = await loadGoogleMaps(
+                  provider.apiKey,
+                  root.document,
+                  root as GoogleMapsWindow,
+                );
+                if (!current()) return;
+                instantiate(provider, google);
+              } catch {
+                unavailable();
+              }
+            })();
+          } else instantiate(provider);
+        } catch {
+          unavailable();
         }
         return function () {
-          mapSession.dispose();
+          disposed = true;
+          mapSession?.dispose();
           if (session.current === mapSession) {
             session.current = null;
           }
@@ -208,49 +253,57 @@ export function bootBlocksMap(root: BlocksRoot): void {
               'aria-label': strings.mapHelp,
               'aria-description': strings.mapKeyboard,
             }),
-            h(mapPresentation.Information, {
-              attributes: {
-                className: 'kiriof-buyer-map__information',
-                role: 'note',
-                hidden: moving,
-                tabIndex: 0,
-                'aria-label': strings.mapTitle,
-              },
-              model: {
-                optional: strings.mapOptional,
-                coverage: strings.mapCoverage,
-                hasCoverage: hasCoverage,
-              },
-            }),
-            h(mapPresentation.Status, {
-              attributes: {
-                className:
-                  'kiriof-buyer-map__pin-status ' + (selected ? 'is-complete' : 'is-warning'),
-                hidden: moving,
-                role: 'status',
-                'aria-live': 'polite',
-              },
-              model: {
-                complete: Boolean(selected),
-                text: selected
-                  ? strings.pinLocation || buyerStrings.pinLocation
-                  : strings.needPinLocation || buyerStrings.needPinLocation,
-              },
-            }),
+            hasCoverage
+              ? h(mapPresentation.Information, {
+                  attributes: {
+                    className: 'kiriof-buyer-map__information',
+                    role: 'note',
+                    hidden: moving,
+                    tabIndex: 0,
+                    'aria-label': strings.mapCoverage,
+                  },
+                  model: {
+                    badge: strings.mapCoverageBadge,
+                    coverage: strings.mapCoverage,
+                    hasCoverage: hasCoverage,
+                  },
+                })
+              : null,
             h(
               'div',
-              { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
+              { className: 'kiriof-buyer-map__indicator' },
               h(
                 'svg',
-                { viewBox: '0 0 32 44', width: 32, height: 44, focusable: 'false' },
+                {
+                  viewBox: '0 0 32 44',
+                  width: 32,
+                  height: 44,
+                  focusable: 'false',
+                  'aria-hidden': 'true',
+                },
                 h('path', {
                   d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 28 15 28s15-17 15-28C31 7.7 24.3 1 16 1Z',
                   fill: 'currentColor',
                   stroke: '#fff',
                   strokeWidth: 2,
                 }),
-                h('circle', { cx: 16, cy: 16, r: 5, fill: '#fff' }),
+                h('circle', { cx: 16, cy: 16, r: 10, fill: '#fff' }),
               ),
+              h(mapPresentation.Status, {
+                attributes: {
+                  className:
+                    'kiriof-buyer-map__pin-status ' + (selected ? 'is-complete' : 'is-warning'),
+                  hidden: moving,
+                  role: 'status',
+                  'aria-live': 'polite',
+                },
+                model: {
+                  complete: Boolean(selected),
+                  text: selected
+                    ? strings.pinLocation || buyerStrings.pinLocation
+                    : strings.needPinLocation || buyerStrings.needPinLocation,
+                },
+              }),
             ),
             h(
               'button',

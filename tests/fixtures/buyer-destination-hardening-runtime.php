@@ -50,6 +50,7 @@ namespace KiriminAjaOfficial\Base {
     class BaseInit { public function logThis( ...$args ) {} }
 }
 namespace {
+    function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
     function do_action( $hook, ...$args ) {}
     define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
     define( 'REST_REQUEST', true );

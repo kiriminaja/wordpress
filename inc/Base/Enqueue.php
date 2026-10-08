@@ -245,7 +245,7 @@ class Enqueue extends BaseInit{
         if ( 0 !== strpos( $tiles, 'https://' ) ) {
             $tiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
         }
-        return array(
+        return array_merge( ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config(), array(
             'enabled' => (bool) apply_filters( 'kiriof_map_checkout_enabled', true ),
             'defaultCenter' => array( -6.2088, 106.8456 ),
             'coverage' => $coverage,
@@ -257,9 +257,9 @@ class Enqueue extends BaseInit{
                 'mapHelp' => __( 'Delivery location map', 'kiriminaja-official' ),
                 'mapDeviceNotice' => __( 'Current device location may differ from the delivery address. Check the pin and move it to the intended destination.', 'kiriminaja-official' ),
                 'mapCoverage' => __( 'Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area.', 'kiriminaja-official' ),
+                'mapCoverageBadge' => __( 'Instant ≤ 40 km', 'kiriminaja-official' ),
                 'mapOutsideRadius' => __( 'This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery.', 'kiriminaja-official' ),
                 'mapKeyboard' => __( 'Use arrow keys to move the map. Press Enter to select the center location.', 'kiriminaja-official' ),
-                'mapOptional' => __( 'Optional. A delivery pin helps the courier find your address.', 'kiriminaja-official' ),
                 'mapLocate' => __( 'Current location', 'kiriminaja-official' ),
                 'mapLocating' => __( 'Requesting location permission…', 'kiriminaja-official' ),
                 'mapPermission' => __( 'Location permission was denied. The map picker is hidden. You can allow location access in your browser settings and reopen this editor.', 'kiriminaja-official' ),
@@ -269,7 +269,27 @@ class Enqueue extends BaseInit{
                 'mapMoving' => __( 'Move the map to position your delivery pin…', 'kiriminaja-official' ),
                 'mapUnavailable' => __( 'Map unavailable. You can continue with your shipping address.', 'kiriminaja-official' ),
             ),
-        );
+        ) );
+    }
+
+    /** Google is loaded asynchronously by the map bundle; Leaflet remains local. */
+    public function register_map_provider_assets(): void {
+        $leaflet = 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'];
+        if ( $leaflet ) {
+            if ( ! wp_script_is( 'kiriof-leaflet', 'registered' ) ) {
+                wp_register_script( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+            }
+            if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
+                wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+            }
+        }
+        if ( ! wp_script_is( 'kiriof-map-provider', 'registered' ) ) {
+            wp_register_script( 'kiriof-map-provider', false, $leaflet ? array( 'kiriof-leaflet' ) : array(), KIRIOF_VERSION, true );
+        }
+    }
+
+    private function map_style_dependencies(): array {
+        return 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] ? array( 'kiriof-leaflet' ) : array();
     }
 
     /** Shared IIFE state/map factories have no WordPress or Blocks dependency. */
@@ -288,9 +308,9 @@ class Enqueue extends BaseInit{
     /** Register once for native Blocks and the legacy frontend fallback. */
     public function register_buyer_checkout_assets( bool $localize = false ): void {
         $this->register_buyer_state_assets();
+        $this->register_map_provider_assets();
         $scripts = array(
-            'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
-            'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-leaflet' ) ),
+            'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-map-provider' ) ),
             'kiriof-buyer-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
             'kiriof-map-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
             'kiriof-address-presentation' => array( false, array( 'kiriof-buyer-blocks' ) ),
@@ -301,7 +321,7 @@ class Enqueue extends BaseInit{
         foreach ( $scripts as $handle => $asset ) {
             if ( ! wp_script_is( $handle, 'registered' ) ) {
                 $asset_path = KIRIOF_DIR . $asset[0];
-                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+                $asset_version = $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION;
                 wp_register_script( $handle, false === $asset[0] ? false : $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
             }
         }
@@ -311,12 +331,9 @@ class Enqueue extends BaseInit{
             }
         }
 
-        if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
-            wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-        }
         if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
             $style_path = KIRIOF_DIR . 'assets/buyer/css/kiriof-buyer-checkout.css';
-            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/buyer/css/kiriof-buyer-checkout.css', array( 'kiriof-leaflet' ), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/buyer/css/kiriof-buyer-checkout.css', $this->map_style_dependencies(), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
         }
         if ( $localize ) {
             $map_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
@@ -342,22 +359,19 @@ class Enqueue extends BaseInit{
     /** Register Classic checkout without a dependency on WooCommerce Blocks APIs. */
     public function register_classic_checkout_assets( bool $localize = false ): void {
         $this->register_buyer_state_assets();
+        $this->register_map_provider_assets();
         $scripts = array(
-            'kiriof-leaflet' => array( 'assets/lib/leaflet/leaflet.js', array() ),
-            'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-leaflet' ) ),
+            'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-map-provider' ) ),
         );
         foreach ( $scripts as $handle => $asset ) {
             if ( ! wp_script_is( $handle, 'registered' ) ) {
                 $asset_path = KIRIOF_DIR . $asset[0];
-                $asset_version = 'kiriof-leaflet' === $handle ? '1.9.4' : ( $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+                $asset_version = $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION;
                 wp_register_script( $handle, false === $asset[0] ? false : $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
             }
         }
-        if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
-            wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-        }
         $styles = array(
-            'kiriof-classic-checkout' => array( 'assets/buyer/css/kiriof-classic-checkout.css', array( 'kiriof-leaflet' ) ),
+            'kiriof-classic-checkout' => array( 'assets/buyer/css/kiriof-classic-checkout.css', $this->map_style_dependencies() ),
         );
         foreach ( $styles as $handle => $asset ) {
             if ( ! wp_style_is( $handle, 'registered' ) ) {
@@ -654,7 +668,7 @@ class Enqueue extends BaseInit{
 
 
         // Lists can navigate into detail through the workspace without a full reload.
-        $needs_leaflet = in_array( $page, array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) || $is_wc_warehouses_settings || $is_wc_general_settings;
+        $needs_leaflet = 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] && ( in_array( $page, array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) || $is_wc_warehouses_settings || $is_wc_general_settings );
 
         if ( $needs_leaflet ) {
             wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
@@ -662,6 +676,12 @@ class Enqueue extends BaseInit{
         }
 
         $kiriof_script_dependencies = array( 'jquery', 'select2' );
+        if ( $is_wc_warehouses_settings || $is_wc_general_settings ) {
+            $map_bridge_path = 'assets/buyer/dist/kiriminaja-buyer-admin-maps.js';
+            wp_enqueue_script( 'kiriof-admin-maps', $this->plugin_url . $map_bridge_path, array(), file_exists( KIRIOF_DIR . $map_bridge_path ) ? (string) filemtime( KIRIOF_DIR . $map_bridge_path ) : KIRIOF_VERSION, true );
+            wp_localize_script( 'kiriof-admin-maps', 'kiriofAdminMapsConfig', ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config() );
+            $kiriof_script_dependencies[] = 'kiriof-admin-maps';
+        }
         if ( $needs_leaflet ) {
             $kiriof_script_dependencies[] = 'kiriof-leaflet-script';
         }
@@ -684,7 +704,7 @@ class Enqueue extends BaseInit{
             wp_enqueue_style( 'woocommerce_admin_styles' );
 			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
 			$this->enqueue_workspace_style();
-            $this->enqueue_workspace_script( $workspace_script, array( 'kiriof-leaflet-script' ) );
+            $this->enqueue_workspace_script( $workspace_script, $needs_leaflet ? array( 'kiriof-leaflet-script' ) : array() );
         }
 
         /** Select 2 - use WooCommerce's bundled copy */
@@ -759,6 +779,10 @@ class Enqueue extends BaseInit{
     }
 
 	private function enqueueOnboarding(): void {
+		$this->register_map_provider_assets();
+		if ( 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] ) {
+			wp_enqueue_style( 'kiriof-leaflet' );
+		}
 		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
 		if ( file_exists( $progress_script ) ) {
 			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
@@ -774,7 +798,7 @@ class Enqueue extends BaseInit{
 			wp_enqueue_script(
 				'kiriof-onboarding-progress',
 				$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.js',
-				array(),
+				array( 'kiriof-map-provider' ),
 				(string) filemtime( $progress_script ),
 				true
 			);

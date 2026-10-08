@@ -20,7 +20,7 @@ final class InstantDiagnosticRedactor {
 		self::collectCandidates( $request, $candidates );
 		$variants = array();
 		foreach ( $candidates as $candidate ) {
-			foreach ( array( $candidate, rawurlencode( $candidate ), urlencode( $candidate ), substr( (string) json_encode( $candidate ), 1, -1 ) ) as $variant ) {
+			foreach ( array( $candidate, rawurlencode( $candidate ), urlencode( $candidate ), substr( (string) wp_json_encode( $candidate ), 1, -1 ) ) as $variant ) {
 				$variant = self::plainText( $variant );
 				if ( '' !== $variant ) {
 					$variants[ $variant ] = '[redacted]';
@@ -80,7 +80,7 @@ final class InstantDiagnosticRedactor {
 	private static function plainText( string $text ): string {
 		$text = str_replace( array( '\\"', '\\/' ), array( '"', '/' ), $text );
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-		$text = strip_tags( $text );
+		$text = wp_strip_all_tags( $text );
 		return preg_replace( '/[\x00-\x20\x7f]+/', ' ', $text ) ?? '';
 	}
 }

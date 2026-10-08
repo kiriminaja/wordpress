@@ -144,6 +144,45 @@ test('matching selected GoSend never shows changed-courier warning during custom
   expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([]);
   expect(unexpected).toEqual([]);
 });
+// Saved domestic address: zero is a valid pin, not a missing-location sentinel.
+const bootstrapAddress = { address_1: 'Fixture street', address_2: '', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' };
+const bootstrapDestination = { version: 2, district_id: '7', district_label: 'Fixture district', postcode: '12345', country: 'ID', address_type: 'shipping', destination_latitude: '0.0000000', destination_longitude: '0.0000000', shipping_address: bootstrapAddress };
+
+for (const explicit of [false, true]) {
+  test(`Blocks saved pin initial destination acknowledgement ${explicit ? 'preserves explicit Cargo intent during bootstrap' : 'seeds GoSend without editing or geolocation'}`, async ({ app, browser }) => {
+    const { unexpected, requests, releaseBootstrap, checkouts } = await open(app, browser, true, false, true);
+    await expect.poll(() => browser.evaluate(() => (window as any).__bootstrapStarted)).toBe(true);
+    await expect(browser.locator('input[name="shipping"]:checked')).toHaveAttribute('value', cargo);
+    expect(await browser.evaluate(() => (window as any).__customerBusy)).toBe(true);
+    if (explicit) {
+      // Already checked native radios still receive trusted clicks: capture must
+      // retain this buyer intent even when Woo's selected-value effect is a no-op.
+      await browser.locator(`input[value="${cargo}"]`).click();
+      await expect.poll(() => blocksReview(browser)).toEqual(snapshot(cargo));
+      expect(await browser.evaluate(() => (window as any).__selectionSequence)).toEqual([['document capture', cargo, false]]);
+    }
+    releaseBootstrap!();
+    const expected = explicit ? cargo : instant;
+    await expect.poll(() => browser.evaluate(() => (window as any).__bootstrapFinished)).toBe(true);
+    await expect.poll(() => blocksReview(browser)).toEqual(snapshot(expected));
+    await expect.poll(() => browser.evaluate(() => (window as any).__rateBusy || (window as any).__customerBusy)).toBe(false);
+    await expect(browser.locator('input[name="shipping"]:checked')).toHaveAttribute('value', expected);
+    await expect(browser.locator('#native-summary')).toHaveAttribute('data-rate', expected);
+    expect(await browser.evaluate(() => (window as any).__extensions['kiriminaja-official'].destination)).toEqual(bootstrapDestination);
+    expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual(explicit ? [[cargo, 3]] : []);
+    expect(await browser.evaluate(() => (window as any).__restoreBusy)).toEqual(explicit ? [false] : []);
+    expect(requests).toEqual(explicit ? ['?restore=' + encodeURIComponent(cargo)] : []);
+    if (!explicit) expect(await browser.evaluate(() => (window as any).__selectionSequence)).toEqual([]);
+    await expect(browser.locator('#shipping-error')).not.toBeVisible();
+    await browser.locator('#terms').click();
+    await browser.locator('#place').click();
+    await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
+    expect(checkouts).toEqual([{ rate: expected, review: snapshot(expected), status: 0 }]);
+    expect(await blocksReview(browser)).toEqual(snapshot(expected));
+    expect(unexpected).toEqual([]);
+  });
+}
+
 const scripts = (sources: string[]) => sources.map(source => `<script>${source.replace(/<\/script/gi, '<\\/script')}</script>`).join('');
 function table(chosen: string, ids = [3]) {
   return `<table class="kiriof-classic-order-review"><tbody>${ids.map(index => php('classic-shipping-presentation-runtime.php', {
@@ -179,24 +218,31 @@ function reactSource() {
     return reactBundle;
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
-function blocksHTML() {
+function blocksHTML(initialBootstrap = false) {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><label><input type="checkbox" id="terms">Accept terms</label><button id="place">Place order</button><p id="terms-error" role="alert" hidden></p><p id="shipping-error" role="alert" hidden></p><p id="server-error" role="alert" hidden></p></div>${scripts([
     reactSource(),
     `const R=window.__React;const listeners=new Set();let version=0;
-    window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__selectionSequence=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;
+    window.__initialBootstrap=${JSON.stringify(initialBootstrap)};window.__bootstrapStarted=false;window.__bootstrapFinished=false;window.__restoreBusy=[];window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__selectionSequence=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;
     const rates=[{rate_id:${JSON.stringify(cargo)},method_id:'kiriminaja-official',selected:true,label:'JNE Cargo'},{rate_id:${JSON.stringify(instant)},method_id:'kiriminaja-instant',selected:false,label:'GoSend Instant'}];
-    window.__cart={needsShipping:true,shippingAddress:{country:'US',postcode:'90210',first_name:'Test',phone:'123'},extensions:{},shippingRates:[{package_id:3,shipping_rates:rates}]};
+    window.__cart={needsShipping:true,shippingAddress:${JSON.stringify(initialBootstrap ? { ...bootstrapAddress, first_name: 'Test', last_name: 'Buyer', phone: '123' } : {country:'US',postcode:'90210',first_name:'Test',phone:'123'})},extensions:{},shippingRates:[{package_id:3,shipping_rates:rates}]};
     function emit(){version++;listeners.forEach(fn=>fn());}window.__notify=emit;
     function apply(rate){window.__cart={...window.__cart,shippingRates:[{package_id:3,shipping_rates:rates.filter(r=>!window.__missingQuote||r.rate_id!==${JSON.stringify(instant)}).map(r=>({...r,selected:r.rate_id===rate}))}]};emit();}
     window.__refresh=async function(){window.__customerBusy=true;emit();const response=await fetch('/rates?automatic=1');apply((await response.json()).rate);window.__customerBusy=false;emit();};
-    const cartDispatch={selectShippingRate:async(rate,packageId)=>{window.__nativeActions.push([rate,packageId]);window.__rateBusy=true;emit();try{if(window.__holdRestore)await new Promise(resolve=>window.__releaseRestore=resolve);const response=await fetch('/rates?restore='+encodeURIComponent(rate));if(window.__failRestore)throw new Error('Native restore failed');apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}};
+    const cartDispatch={selectShippingRate:async(rate,packageId)=>{window.__nativeActions.push([rate,packageId]);window.__restoreBusy.push(window.__customerBusy||window.__rateBusy);window.__rateBusy=true;emit();try{if(window.__holdRestore)await new Promise(resolve=>window.__releaseRestore=resolve);const response=await fetch('/rates?restore='+encodeURIComponent(rate));if(window.__failRestore)throw new Error('Native restore failed');apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}};
     const stores={'wc/store/cart':{getCartData:()=>window.__cart,isShippingRateBeingSelected:()=>window.__rateBusy,isCustomerDataUpdating:()=>window.__customerBusy,hasPendingItemsOperations:()=>false},'wc/store/checkout':{prefersCollection:()=>false},'wc/store/payment':{getActivePaymentMethod:()=> 'bacs'}};
     const select=name=>stores[name];const subscribe=fn=>{listeners.add(fn);return()=>listeners.delete(fn);};
     function showErrors(){const p=document.querySelector('#shipping-error');const error=window.__errors['kiriof-shipping-selection'];p.hidden=!error;p.textContent=error?error.message:'';}
     window.wp={element:R,data:{select,subscribe,useSelect:fn=>{R.useSyncExternalStore(subscribe,()=>version);return fn(select);},dispatch:name=>name==='wc/store/checkout'?{setExtensionData:(namespace,data)=>{window.__extensions[namespace]=data;}}:name==='wc/store/cart'?cartDispatch:{setValidationErrors:errors=>{Object.assign(window.__errors,errors);showErrors();},clearValidationError:id=>{delete window.__errors[id];showErrors();}}}};
-    window.wc={blocksCheckout:{registerCheckoutBlock:registration=>{window.__District=registration.component;},extensionCartUpdate:()=>{window.__pluginUpdates++;return Promise.resolve();}}};
-    window.kiriofBuyerCheckoutConfig={enabled:true,map:{enabled:false},i18n:{shippingSelectionChanged:${JSON.stringify(message)}}};
-    function NativeRates(){R.useSyncExternalStore(subscribe,()=>version);return R.createElement('fieldset',null,R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);if(event.target.checked)await window.__refresh();}}),'Use same address for billing'),R.createElement('input',{id:'billing-address',placeholder:'Billing street'}),window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:async event=>{const chosen=event.target.value;window.__trusted.push(event.nativeEvent.isTrusted);window.__rateBusy=true;window.__selectionSequence.push(['native onChange',chosen,window.__rateBusy]);emit();try{const response=await fetch('/rates?chosen='+encodeURIComponent(chosen));apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}}),rate.label)));}
+    window.wc={blocksCheckout:{registerCheckoutBlock:registration=>{window.__District=registration.component;},extensionCartUpdate:async payload=>{window.__pluginUpdates++;if(!window.__initialBootstrap||window.__pluginUpdates!==1)return;window.__bootstrapStarted=true;window.__customerBusy=true;emit();try{const response=await fetch('/cart-bootstrap',{method:'POST',body:JSON.stringify(payload)});apply((await response.json()).rate);}finally{window.__customerBusy=false;window.__bootstrapFinished=true;emit();}}}};
+    window.kiriofBuyerCheckoutConfig={enabled:true,map:{enabled:false},${initialBootstrap ? `nonce:'isolated',ajaxUrl:'/saved-district',savedDestination:${JSON.stringify(bootstrapDestination)},` : ''}i18n:{shippingSelectionChanged:${JSON.stringify(message)}}};
+    function NativeRates(){R.useSyncExternalStore(subscribe,()=>version);
+      // WooPackageRates initializes radio state from the selected Store API rate.
+      // Its per-code effect skips selection when that code is already selected.
+      const selected=window.__cart.shippingRates[0].shipping_rates.find(rate=>rate.selected).rate_id;
+      const [code,setCode]=R.useState(selected);
+      R.useEffect(()=>{if(window.__initialBootstrap)setCode(selected);},[selected]);
+      R.useEffect(()=>{if(window.__initialBootstrap&&code!==selected)cartDispatch.selectShippingRate(code,'3');},[code]);
+      return R.createElement('fieldset',null,R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);if(event.target.checked)await window.__refresh();}}),'Use same address for billing'),R.createElement('input',{id:'billing-address',placeholder:'Billing street'}),window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:window.__initialBootstrap?code===rate.rate_id:rate.selected,onChange:async event=>{const chosen=event.target.value;if(window.__initialBootstrap){setCode(chosen);return;}window.__trusted.push(event.nativeEvent.isTrusted);window.__rateBusy=true;window.__selectionSequence.push(['native onChange',chosen,window.__rateBusy]);emit();try{const response=await fetch('/rates?chosen='+encodeURIComponent(chosen));apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}}),rate.label)),R.createElement('output',{id:'native-summary','data-rate':selected},window.__cart.shippingRates[0].shipping_rates.find(rate=>rate.selected).label));}
     // Observe only: Woo's React root onChange owns busy state and the request.
     // Document capture (including the plugin listener registered below) runs first.
     document.addEventListener('click',event=>{if(event.target.name==='shipping')window.__selectionSequence.push(['document capture',event.target.value,window.__rateBusy]);},true);
@@ -210,19 +256,51 @@ function blocksHTML() {
     };`,
   ])}</body></html>`;
 }
-async function open(app: any, browser: any, blocks = false, fallback = false) {
-  const unexpected: string[] = [], requests: any[] = []; let selectedRate = cargo;
-  await browser.route('**/*', (route: any) => {
+async function open(app: any, browser: any, blocks = false, fallback = false, initialBootstrap = false) {
+  const unexpected: string[] = [], requests: any[] = [], checkouts: any[] = []; let selectedRate = cargo;
+  let releaseBootstrap: (() => void) | undefined;
+  const bootstrapBarrier = new Promise<void>(resolve => { releaseBootstrap = resolve; });
+  await browser.route('**/*', async (route: any) => {
     const url = new URL(route.request.url);
-    if (url.pathname === '/selection') return route.fulfill({ contentType: 'text/html', body: blocks ? blocksHTML() : classicHTML(fallback) });
+    if (url.pathname === '/selection') return route.fulfill({ contentType: 'text/html', body: blocks ? blocksHTML(initialBootstrap) : classicHTML(fallback) });
+    if (initialBootstrap && url.pathname === '/saved-district') {
+      expect(new URLSearchParams(route.request.postData).get('term')).toBe(bootstrapAddress.postcode);
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [{ id: '7', text: bootstrapDestination.district_label }] }) });
+    }
+    if (initialBootstrap && url.pathname === '/cart-bootstrap') {
+      expect(JSON.parse(route.request.postData).data.destination).toEqual(bootstrapDestination);
+      await bootstrapBarrier;
+      selectedRate = instant;
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rate: instant }) });
+    }
     if (url.pathname === '/rates') { selectedRate = url.searchParams.get('chosen') || url.searchParams.get('restore') || cargo; requests.push(url.search); return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rate: url.searchParams.get('chosen') || url.searchParams.get('restore') || cargo }) }); }
-    if (url.pathname === '/checkout') { const payload=JSON.parse(route.request.postData || '{}'); if(payload['kiriminaja-official']?.shipping_selection?.packages?.[0]?.rate_id===selectedRate)return route.fulfill({contentType:'application/json',body:'{}'});unexpected.push('checkout escaped client validation');return route.fulfill({status:409,body:message}); }
+    if (url.pathname === '/checkout') { const payload=JSON.parse(route.request.postData || '{}');
+      if (initialBootstrap) {
+        // Reuse production PHP guard classes/hooks, then feed the actual posted
+        // review and HTTP-selected server rate, not a preselected scenario match.
+        const result = JSON.parse(execFileSync('php', ['-r', `
+          $fixture=$argv[1]; $argv[1]='{"case":"matching","classic":false}';
+          ob_start(); require $fixture; ob_end_clean();
+          $input=json_decode($argv[2],true);
+          $actual=$input['rate']===$instant->id?$instant:$express;
+          // Actual Woo updates current keys without pruning old package choices.
+          $GLOBALS['wc']=new GuardWC(array(3=>array('rates'=>array($actual->id=>$actual))),new GuardSession(array(3=>$actual->id,0=>'flat_rate:obsolete')));
+          $order=new GuardOrder(array(42=>clone $actual)); $status=0;
+          try { foreach($GLOBALS['hooks']['woocommerce_store_api_checkout_update_order_from_request'] as $callbacks) foreach($callbacks as $callback) $callback($order,new GuardRequest($input['review'])); }
+          catch(\\Throwable $error){$status=$error->getCode();}
+          echo json_encode(array('status'=>$status,'writes'=>$order->writes));
+        `, root + 'tests/fixtures/checkout-shipping-selection-guard-runtime.php', JSON.stringify({ case: 'matching', classic: false, rate: selectedRate, review: payload['kiriminaja-official']?.shipping_selection })], { encoding: 'utf8' }));
+        checkouts.push({ rate: selectedRate, review: payload['kiriminaja-official']?.shipping_selection, status: result.status });
+        if (!result.status) expect(result.writes).toEqual(['express-validation', 'instant-validation']);
+        return route.fulfill({ status: result.status || 200, contentType: 'application/json', body: JSON.stringify(result) });
+      }
+      if(payload['kiriminaja-official']?.shipping_selection?.packages?.[0]?.rate_id===selectedRate)return route.fulfill({contentType:'application/json',body:'{}'});unexpected.push('checkout escaped client validation');return route.fulfill({status:409,body:message}); }
     if (url.pathname.startsWith('/assets/buyer/img/couriers/')) return route.fulfill({ contentType: 'image/png', path: root + url.pathname });
     if (url.pathname !== '/favicon.ico') unexpected.push(url.href);
     return route.fulfill({ status: 409, body: 'No live requests permitted' });
   });
   await app.open('/selection');
-  return { unexpected, requests };
+  return { unexpected, requests, releaseBootstrap, checkouts };
 }
 const classicReview = (browser: any) => browser.evaluate(() => JSON.parse(document.querySelector<HTMLInputElement>('[name="kiriof_shipping_selection"]')!.value));
 const blocksReview = (browser: any) => browser.evaluate(() => (window as any).__extensions['kiriminaja-official']?.shipping_selection);

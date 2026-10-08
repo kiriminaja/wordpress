@@ -28,6 +28,7 @@ namespace {
     $GLOBALS['api_calls'] = 0;
     $GLOBALS['api_payload'] = null;
     function sanitize_text_field( $value ) { return (string) $value; }
+    function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
     function __( $text, $domain ) { return $text; }
     function wp_json_encode( $value ) { return json_encode( $value ); }
     function get_transient( $key ) { return false; }
@@ -50,6 +51,7 @@ namespace {
     if ( ! empty( $GLOBALS['input']['missing_rate'] ) ) { $GLOBALS['quote']->results = array(); }
     require __DIR__ . '/../../inc/Utils/ServiceResponse.php';
     require __DIR__ . '/../../inc/Base/BaseService.php';
+    require __DIR__ . '/../../inc/Services/CourierServiceCatalog.php';
     require __DIR__ . '/../../inc/Services/CheckoutServices/PricingCacheService.php';
     require __DIR__ . '/../../inc/Services/CheckoutServices/CheckoutCalculationService.php';
     require __DIR__ . '/../../inc/Services/ShippingDiscountCouponService.php';

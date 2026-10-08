@@ -73,17 +73,13 @@ function kiriof_shipping_method(){
             }
     
             public function calculate_shipping( $package = array() ){
+                // Replace only this method's metadata, even when no Express rate survives.
+                $this->clearExpressCouponRateMetadata();
                 if ( 'ID' !== ( $package['destination']['country'] ?? '' ) ) {
-                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
-                    }
                     return;
                 }
 
                 if ( ! $this->kiriof_has_sufficient_checkout_address( $package ) ) {
-                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
-                    }
                     return;
                 }
 
@@ -146,9 +142,6 @@ function kiriof_shipping_method(){
                 $kiriof_insurance = WC()->session->get( 'kiriof_insurance' );
 
                 if ( empty( $destination_id ) ) {
-                    if ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session ) {
-                        WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array() );
-                    }
                     return;
                 }
                   
@@ -266,6 +259,20 @@ function kiriof_shipping_method(){
                     WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array_merge( $existingRateMetaMap, $kiriofRateMetaMap ) );
                 }
 
+            }
+
+            private function clearExpressCouponRateMetadata(): void {
+                if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+                    return;
+                }
+                $metadata = (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+                foreach ( array_keys( $metadata ) as $rateId ) {
+                    // Exact Express family delimiters; never clear Instant or third-party rows.
+                    if ( 0 === strpos( (string) $rateId, 'kiriminaja-official_' ) || 0 === strpos( (string) $rateId, 'kiriminaja-official:' ) ) {
+                        unset( $metadata[ $rateId ] );
+                    }
+                }
+                WC()->session->set( 'kiriof_shipping_coupon_rate_meta', $metadata );
             }
 
             private function kiriof_has_sufficient_checkout_address( $package ): bool {

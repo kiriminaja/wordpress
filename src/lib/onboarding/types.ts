@@ -1,6 +1,8 @@
 import type { Courier } from '$lib/couriers/selection';
+import type { MapProviderConfigInput } from '../../buyer/map/config';
 
 export type OnboardingBootstrap = {
+  map?: MapProviderConfigInput & { enabled?: boolean };
   initialStep: OnboardingStep;
   steps: Array<{ key: OnboardingStep; label: string; done: boolean }>;
   ajaxUrl: string;

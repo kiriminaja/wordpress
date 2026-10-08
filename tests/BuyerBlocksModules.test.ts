@@ -60,7 +60,7 @@ describe('Blocks source ownership and typed destination boundary', () => {
     expect(bridge).toContain("element.createElement('div', { ...props.attributes, ref: node })");
     expect(source('blocks/map.ts')).toContain('h(mapPresentation.Information');
     expect(source('blocks/map.ts')).toContain('h(mapPresentation.Status');
-    expect(source('components/MapInformation.svelte')).toContain('kiriof-buyer-map__optional');
+    expect(source('components/MapInformation.svelte')).toContain('kiriof-buyer-map__coverage');
     expect(source('components/PinStatus.svelte')).toContain('m5 12 4 4 10-10');
   });
 });
