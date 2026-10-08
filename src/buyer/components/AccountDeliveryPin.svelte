@@ -92,7 +92,7 @@
 </script>
 
 <section class="kiriof-buyer-map" aria-label={strings.mapTitle || ''} hidden={!visible}>
-  <h3 class="kiriof-buyer-map__title">{strings.mapTitle || ''}</h3><p>{strings.mapOptional || ''}</p>
+  <h3 class="kiriof-buyer-map__title">{strings.mapTitle || ''}</h3>
   <p class="kiriof-buyer-map__coverage-legend" role="note" hidden={!legend}>{legend ? strings.mapCoverage || '' : ''}</p>
   <p class="kiriof-buyer-map__coverage-warning" role="note" aria-live="polite" hidden={!outside}>{outside ? strings.mapOutsideRadius || '' : ''}</p>
   <div class="kiriof-buyer-map__viewport" class:is-moving={moving} {hidden}>

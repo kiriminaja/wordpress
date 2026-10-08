@@ -253,49 +253,57 @@ export function bootBlocksMap(root: BlocksRoot): void {
               'aria-label': strings.mapHelp,
               'aria-description': strings.mapKeyboard,
             }),
-            h(mapPresentation.Information, {
-              attributes: {
-                className: 'kiriof-buyer-map__information',
-                role: 'note',
-                hidden: moving,
-                tabIndex: 0,
-                'aria-label': strings.mapTitle,
-              },
-              model: {
-                optional: strings.mapOptional,
-                coverage: strings.mapCoverage,
-                hasCoverage: hasCoverage,
-              },
-            }),
-            h(mapPresentation.Status, {
-              attributes: {
-                className:
-                  'kiriof-buyer-map__pin-status ' + (selected ? 'is-complete' : 'is-warning'),
-                hidden: moving,
-                role: 'status',
-                'aria-live': 'polite',
-              },
-              model: {
-                complete: Boolean(selected),
-                text: selected
-                  ? strings.pinLocation || buyerStrings.pinLocation
-                  : strings.needPinLocation || buyerStrings.needPinLocation,
-              },
-            }),
+            hasCoverage
+              ? h(mapPresentation.Information, {
+                  attributes: {
+                    className: 'kiriof-buyer-map__information',
+                    role: 'note',
+                    hidden: moving,
+                    tabIndex: 0,
+                    'aria-label': strings.mapCoverage,
+                  },
+                  model: {
+                    badge: strings.mapCoverageBadge,
+                    coverage: strings.mapCoverage,
+                    hasCoverage: hasCoverage,
+                  },
+                })
+              : null,
             h(
               'div',
-              { className: 'kiriof-buyer-map__indicator', 'aria-hidden': 'true' },
+              { className: 'kiriof-buyer-map__indicator' },
               h(
                 'svg',
-                { viewBox: '0 0 32 44', width: 32, height: 44, focusable: 'false' },
+                {
+                  viewBox: '0 0 32 44',
+                  width: 32,
+                  height: 44,
+                  focusable: 'false',
+                  'aria-hidden': 'true',
+                },
                 h('path', {
                   d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 28 15 28s15-17 15-28C31 7.7 24.3 1 16 1Z',
                   fill: 'currentColor',
                   stroke: '#fff',
                   strokeWidth: 2,
                 }),
-                h('circle', { cx: 16, cy: 16, r: 5, fill: '#fff' }),
+                h('circle', { cx: 16, cy: 16, r: 10, fill: '#fff' }),
               ),
+              h(mapPresentation.Status, {
+                attributes: {
+                  className:
+                    'kiriof-buyer-map__pin-status ' + (selected ? 'is-complete' : 'is-warning'),
+                  hidden: moving,
+                  role: 'status',
+                  'aria-live': 'polite',
+                },
+                model: {
+                  complete: Boolean(selected),
+                  text: selected
+                    ? strings.pinLocation || buyerStrings.pinLocation
+                    : strings.needPinLocation || buyerStrings.needPinLocation,
+                },
+              }),
             ),
             h(
               'button',

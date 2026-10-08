@@ -224,68 +224,20 @@
 }
 
 .kiriof-buyer-map__pin-status {
-	position: absolute;
-	bottom: 22px;
-	left: 12px;
-	z-index: 2;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	box-sizing: border-box;
-	max-width: calc(100% - 24px);
-	min-height: 32px;
-	padding: 6px 8px;
-	background: #fff;
-	color: #555;
-	border-radius: 4px;
-	box-shadow: 0 1px 5px rgb(0 0 0 / 35%);
-	font-size: 13px;
-	line-height: 1.4;
-	pointer-events: none;
+ position: absolute; top: 8px; left: 8px; z-index: 2; display: flex; align-items: center; justify-content: center;
+ width: 16px; height: 16px; padding: 0; margin: 0; color: #64748b; pointer-events: none;
 }
-
+.kiriof-buyer-map__pin-status.is-complete { color: #246b35; }
+.kiriof-buyer-map__pin-status svg { width: 16px !important; height: 16px !important; flex-shrink: 0; }
 .kiriof-buyer-map__information {
-	position: absolute;
-	top: 12px;
-	left: 54px;
-	right: 68px;
-	z-index: 2;
-	box-sizing: border-box;
-	max-width: 460px;
-	max-height: 108px;
-	overflow: auto;
-	padding: 7px 9px;
-	border: 1px solid #cbd5e1;
-	border-radius: 4px;
-	background: #fff;
-	color: #475569;
-	box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
-	font-size: 12px;
-	line-height: 1.4;
-	overscroll-behavior: contain;
+ position: absolute; top: 12px; left: 54px; right: auto; z-index: 2; box-sizing: border-box;
+ max-width: calc(100% - 122px); padding: 4px 7px; border: 1px solid #dba76a; border-radius: 4px;
+ background: #fff8ed; color: #694516; font-size: 11px; line-height: 1.4;
 }
-
-.kiriof-buyer-map .kiriof-buyer-map__information p {
-	margin: 0;
-	font: inherit;
-}
-
-.kiriof-buyer-map .kiriof-buyer-map__information p + p {
-	margin-top: 4px;
-}
-
-.kiriof-buyer-map__information:focus-visible {
-	outline: 2px solid #1e1e1e;
-	outline-offset: 2px;
-}
-
-.kiriof-buyer-map__pin-status.is-complete {
-	color: #246b35;
-}
-
-.kiriof-buyer-map__pin-status svg {
-	flex-shrink: 0;
-}
+.kiriof-buyer-map__coverage { display: inline-flex; align-items: center; gap: 4px; }
+.kiriof-buyer-map__coverage svg { width: 14px; height: 14px; flex-shrink: 0; }
+.kiriof-buyer-map__information:focus-visible { outline: 2px solid #1e1e1e; outline-offset: 2px; }
+.kiriof-map-screen-reader { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
 
 .kiriof-buyer-map__locate:focus-visible,
 .kiriof-buyer-map__canvas:focus-visible {
@@ -306,7 +258,7 @@
 	filter: drop-shadow(0 2px 2px rgb(0 0 0 / 35%));
 }
 
-.kiriof-buyer-map__indicator svg {
+.kiriof-buyer-map__indicator > svg {
 	display: block;
 	width: 32px;
 	height: 44px;
