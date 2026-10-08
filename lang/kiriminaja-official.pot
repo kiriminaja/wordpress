@@ -2734,3 +2734,7 @@ msgstr ""
 #: inc/Base/Enqueue.php
 msgid "Instant ≤ 40 km"
 msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Invalid coupon amount."
+msgstr ""

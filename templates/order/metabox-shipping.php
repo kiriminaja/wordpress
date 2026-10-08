@@ -18,17 +18,17 @@ if (! defined('ABSPATH')) {
  * @var bool     $wc_needs_payment    Whether the WC order still needs payment.
  */
 
+$kiriof_is_instant    = 'instant' === ( $data['delivery_type'] ?? 'express' );
 $kiriof_shipping_raw  = (float) ($data['shipping_cost_raw']  ?? 0);
 $kiriof_insurance_raw = (float) ($data['insurance_cost_raw'] ?? 0);
 $kiriof_cod_fee_raw   = (float) ($data['cod_fee_raw']        ?? 0);
 $kiriof_discount_raw  = (float) ($data['discount_amount_raw'] ?? 0);
 $kiriof_total_shipping = $kiriof_shipping_raw + $kiriof_insurance_raw + $kiriof_cod_fee_raw;
-$kiriof_platform_shipping_discount = max(0.0, $kiriof_discount_raw);
+$kiriof_platform_shipping_discount = $kiriof_is_instant ? 0.0 : max(0.0, $kiriof_discount_raw);
 $kiriof_is_cod        = $kiriof_cod_fee_raw > 0 || strtolower($data['payment_type'] ?? '') === 'cod';
 $kiriof_is_deficit    = ! empty($data['is_deficit']);
 $kiriof_cod_minimum   = (float) ($data['cod_minimum'] ?? 0);
 $kiriof_admin_fee     = max( 0.0, (float) ( $data['admin_fee_raw'] ?? 0 ) );
-$kiriof_is_instant    = 'instant' === ( $data['delivery_type'] ?? 'express' );
 $kiriof_vehicle       = $data['vehicle'] ?? null;
 $kiriof_vehicle_label = 'motor' === $kiriof_vehicle ? __( 'Motor', 'kiriminaja-official' ) : ( 'mobil' === $kiriof_vehicle ? __( 'Mobil', 'kiriminaja-official' ) : __( 'Vehicle unavailable', 'kiriminaja-official' ) );
 $kiriof_carrier_status = (string) ( $data['carrier_payment_status'] ?? '' );
@@ -49,9 +49,13 @@ $kiriof_coupon_service     = new \KiriminAjaOfficial\Services\ShippingDiscountCo
 $kiriof_coupon_scopes      = $kiriof_coupon_service->splitCouponCodesByScope((array) $wc_coupon_codes);
 $kiriof_first_coupon       = $kiriof_coupon_scopes['item'][0] ?? '';
 $kiriof_ship_coupon        = $kiriof_coupon_scopes['shipping'][0] ?? '';
-$kiriof_coupon_shipping_discount = $kiriof_ship_coupon
-    ? max(0.0, (float) $wc_shipping_discount - $kiriof_platform_shipping_discount)
-    : 0.0;
+// Instant persists the buyer coupon, not a KiriminAja carrier discount.
+// Historical discounts remain visible even if the coupon's current scope changed.
+$kiriof_coupon_shipping_discount = $kiriof_is_instant
+    ? max(0.0, $wc_order ? (float) $wc_shipping_discount : $kiriof_discount_raw)
+    : ($kiriof_ship_coupon
+        ? max(0.0, (float) $wc_shipping_discount - $kiriof_platform_shipping_discount)
+        : 0.0);
 $kiriof_wc_shipping_discount = $kiriof_platform_shipping_discount + $kiriof_coupon_shipping_discount;
 $kiriof_discounted_shipping = max(0, $kiriof_shipping_raw - $kiriof_wc_shipping_discount);
 $kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
@@ -391,8 +395,13 @@ $kiriof_adjust_url = add_query_arg( 'adjust_deficit', '1', $detail_url );
         <?php if ($kiriof_coupon_shipping_discount > 0) : ?>
             <tr>
                 <td>
-                    <?php echo esc_html($kiriof_ship_coupon); ?>
-                    <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></span>
+                    <?php if ( $kiriof_is_instant ) : ?>
+                        <?php esc_html_e('Shipping Discount', 'kiriminaja-official'); ?>
+                        <?php if ( $kiriof_ship_coupon ) : ?><span class="kiriof-mb-coupon-chip"><?php echo esc_html($kiriof_ship_coupon); ?></span><?php endif; ?>
+                    <?php else : ?>
+                        <?php echo esc_html($kiriof_ship_coupon); ?>
+                        <span style="color:#8c8f94;font-size:11px;"><?php esc_html_e('Shipping', 'kiriminaja-official'); ?></span>
+                    <?php endif; ?>
                 </td>
                 <td class="kiriof-mb-val--discount">-<?php echo wp_kses_post(wc_price($kiriof_coupon_shipping_discount)); ?></td>
             </tr>

@@ -49,7 +49,7 @@ final class CourierRateCountries {
 }
 function WC() { return $GLOBALS['rate_wc']; }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
-function sanitize_key( $value ) { return strtolower( $value ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 function wp_json_encode( $value ) { return json_encode( $value, JSON_THROW_ON_ERROR ); }
 function get_transient( $key ) { return false; }
 function get_option( $key, $default = false ) { return $default; }
@@ -310,7 +310,7 @@ switch ( $argv[1] ?? '' ) {
 				if ( null !== $country ) {
 					$destination['country'] = $country;
 				}
-				WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'stale' => array( 'cost' => 12000 ) ) );
+				WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'kiriminaja-official_ninja_STANDARD' => array( 'cost' => 12000 ) ) );
 				WC()->cart->coupon_reads = 0;
 				$method = ( new ReflectionClass( 'Kiriof_Shipping_Method_Controller' ) )->newInstanceWithoutConstructor();
 				$method->calculate_shipping( array( 'contents' => array(), 'destination' => $destination ) );

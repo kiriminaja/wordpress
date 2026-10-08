@@ -3,6 +3,46 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class CheckoutShippingSelectionGuardRuntimeTest extends TestCase {
+	public function test_available_selection_mismatch_logs_only_private_fingerprints_and_order_diagnostic(): void {
+		$reviewed_id = 'kiriminaja-instant:7:gosend:instant:private-reviewed-rate';
+		$selected_id = 'kiriminaja-official_jne_REG:private-selected-rate';
+		$fingerprints = null;
+		foreach ( array( false, true ) as $order_matches_review ) {
+			$payload = array( 'case' => 'available-mismatch', 'classic' => false, 'order_lines_review' => $order_matches_review );
+			exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/checkout-shipping-selection-guard-runtime.php' ) . ' ' . escapeshellarg( json_encode( $payload, JSON_THROW_ON_ERROR ) ) . ' 2>&1', $output, $status );
+			$this->assertSame( 0, $status, implode( "\n", $output ) );
+			$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+			$this->assertSame( array( array( 'status' => 409, 'message' => 'Shipping options changed. Please review and select your courier again before placing the order.', 'writes' => array() ) ), $result['attempts'] );
+			$this->assertSame( array( 3 => $selected_id ), $result['chosen'], 'Reject without rewriting the native selection, even when draft order lines still match the review.' );
+			$this->assertSame( array( array(
+				'level' => 'warning',
+				'message' => 'Checkout shipping review rejected.',
+				'context' => array(
+					'reason' => 'selected_rate_mismatch',
+					'route' => 'blocks',
+					'backtrace' => false,
+					'reviewed_kind' => 'instant',
+					'selected_kind' => 'express',
+					'reviewed_fingerprint' => substr( hash( 'sha256', $reviewed_id ), 0, 16 ),
+					'selected_fingerprint' => substr( hash( 'sha256', $selected_id ), 0, 16 ),
+					'order_matches_review' => $order_matches_review,
+				),
+				'channel' => 'kiriminaja_checkout',
+			) ), $result['logs'] );
+			$context = $result['logs'][0]['context'];
+			$current_fingerprints = array( $context['reviewed_fingerprint'], $context['selected_fingerprint'] );
+			foreach ( $current_fingerprints as $fingerprint ) { $this->assertMatchesRegularExpression( '/^[a-f0-9]{16}$/', $fingerprint ); }
+			$this->assertNotSame( $current_fingerprints[0], $current_fingerprints[1] );
+			if ( null !== $fingerprints ) { $this->assertSame( $fingerprints, $current_fingerprints, 'Fingerprints depend only on exact rate IDs, not draft order state.' ); }
+			$fingerprints = $current_fingerprints;
+			$logs = json_encode( $result['logs'], JSON_THROW_ON_ERROR );
+			foreach ( array( $reviewed_id, $selected_id, 'private-', 'address', 'pin"', 'api_key', 'quote_key', 'package_id', 'rate_id' ) as $private ) {
+				$this->assertStringNotContainsString( $private, $logs );
+			}
+			unset( $output );
+		}
+	}
+
 	public function test_current_package_identity_is_authoritative_when_woo_retains_obsolete_session_keys(): void {
 		foreach ( array( array( 'case' => 'instant', 'classic' => false, 'allowed' => true ), array( 'case' => 'outside', 'classic' => false, 'allowed' => true ), array( 'case' => 'changed', 'classic' => false, 'allowed' => false ), array( 'case' => 'instant', 'classic' => true, 'allowed' => true ) ) as $input ) {
 			$payload = $input + array( 'stale_session_keys' => true );

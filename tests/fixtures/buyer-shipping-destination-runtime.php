@@ -3,6 +3,7 @@
 error_reporting( E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED );
 define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
 require_once ABSPATH . 'vendor/autoload.php';
+require_once ABSPATH . 'inc/Services/CourierServiceCatalog.php';
 
 $GLOBALS['buyer_shipping_warnings'] = array();
 set_error_handler( static function ( $severity, $message ) {
@@ -49,6 +50,7 @@ function add_filter( ...$args ) {}
 function __( $text, $domain = '' ) { return $text; }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 function wp_json_encode( $value ) { return json_encode( $value, JSON_THROW_ON_ERROR ); }
 function get_transient( $key ) { return false; }
 function set_transient( ...$args ) { return true; }
@@ -114,7 +116,7 @@ $package = array( 'contents' => array(), 'destination' => array( 'address_1' => 
 $snapshot = array( 'district_id' => '456', 'postcode' => '12345', 'country' => 'ID' );
 WC()->session->set( 'shipping_destination_id', '111' );
 WC()->session->set( 'destination_id', '222' );
-WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'stale' => array( 'cost' => 9000 ) ) );
+WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'kiriminaja-official_ninja_STANDARD' => array( 'cost' => 9000 ) ) );
 switch ( $argv[1] ?? '' ) {
 	case 'free_services':
 	case 'free_cod':

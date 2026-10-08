@@ -18,6 +18,8 @@ class InstantCheckoutController {
 	public const SNAPSHOT_META_KEY = '_kiriof_instant_checkout_snapshot';
 	public const SELECTION_META_KEY = '_kiriof_instant_checkout_selection';
 	public const CUSTOMER_TOTAL_META_KEY = '_kiriof_instant_customer_shipping_total';
+	public const CUSTOMER_DISCOUNT_META_KEY = '_kiriof_instant_customer_shipping_discount';
+	public const CUSTOMER_COST_META_KEY = '_kiriof_instant_customer_shipping_cost';
 	public const ADMIN_FEE_META_KEY = '_kiriof_instant_admin_fee';
 	public const INVOICE_META_KEY = '_kiriof_instant_checkout_invoice';
 	public const CART_FEE_ID = 'kiriof_instant_admin_fee';
@@ -63,7 +65,8 @@ class InstantCheckoutController {
 			$destination = BuyerDestination::normalize( $wc->session->get( 'kiriof_buyer_destination', null ) );
 			$snapshot = $this->quotes->validate( (string) ( $meta['kiriof_instant_quote_token'] ?? '' ), (string) ( $meta['kiriof_instant_courier'] ?? '' ), (string) ( $meta['kiriof_instant_service'] ?? '' ), $package, $destination, is_string( $payment ) ? $payment : '', false );
 			$amounts = $snapshot['rate'];
-			if ( ! InstantCheckoutQuoteService::validRateAmounts( $amounts ) || (float) $rate->get_cost() !== (float) $amounts['shipping_costs'] || 'motor' !== ( $meta['kiriof_instant_vehicle'] ?? null ) || (string) ( $meta['kiriof_instant_quote_expires'] ?? '' ) !== (string) $amounts['expires'] || $amounts['admin_fee'] <= 0 ) {
+			$pricing = $this->customerPricing( $amounts );
+			if ( ! InstantCheckoutQuoteService::validRateAmounts( $amounts ) || (float) $rate->get_cost() !== $pricing['cost'] || 'motor' !== ( $meta['kiriof_instant_vehicle'] ?? null ) || (string) ( $meta['kiriof_instant_quote_expires'] ?? '' ) !== (string) $amounts['expires'] || $amounts['admin_fee'] <= 0 ) {
 				return;
 			}
 			// Stable ID prevents duplicate charges within a totals calculation.
@@ -175,9 +178,12 @@ class InstantCheckoutController {
 			$this->checkZone( $line, $package );
 			// Express insurance preferences never apply to an Instant quote/order.
 			$snapshot = $this->quotes->validate( (string) $line->get_meta( 'kiriof_instant_quote_token' ), (string) $line->get_meta( 'kiriof_instant_courier' ), (string) $line->get_meta( 'kiriof_instant_service' ), $package, $destination, $order->get_payment_method(), false );
+			$snapshot['customer_pricing'] = $this->customerPricing( $snapshot['rate'] );
 			$this->checkSnapshot( $order, $line, $snapshot );
 			$order->update_meta_data( self::SNAPSHOT_META_KEY, $snapshot );
-			$order->update_meta_data( self::CUSTOMER_TOTAL_META_KEY, $snapshot['rate']['total_price'] );
+			$order->update_meta_data( self::CUSTOMER_TOTAL_META_KEY, $snapshot['customer_pricing']['cost'] + $snapshot['rate']['admin_fee'] );
+			$order->update_meta_data( self::CUSTOMER_COST_META_KEY, $snapshot['customer_pricing']['cost'] );
+			$order->update_meta_data( self::CUSTOMER_DISCOUNT_META_KEY, $snapshot['customer_pricing']['discount_amount'] );
 			$order->update_meta_data( self::ADMIN_FEE_META_KEY, $snapshot['rate']['admin_fee'] );
 			$order->update_meta_data( self::SELECTION_META_KEY, hash( 'sha256', wp_json_encode( $snapshot ) ) );
 			$order->update_meta_data( BuyerDestination::META_KEY, $destination );
@@ -233,10 +239,42 @@ class InstantCheckoutController {
 		}
 	}
 
+	/** Recompute only during live checkout, never during durable receipt processing. */
+	private function customerPricing( array $rate ): array {
+		$pricing = ( new \KiriminAjaOfficial\Services\ShippingDiscountCouponService() )->getAdjustedRatePricing( (object) array( 'courier' => $rate['courier'] ), (float) $rate['shipping_costs'] );
+		// Match WC_Shipping_Rate's price precision before binding the receipt.
+		$cost = function_exists( 'wc_format_decimal' ) ? (float) wc_format_decimal( $pricing['cost'], wc_get_price_decimals() ) : (float) $pricing['cost'];
+		return array( 'original_cost' => (float) $rate['shipping_costs'], 'cost' => $cost, 'discount_amount' => (float) $rate['shipping_costs'] - $cost );
+	}
+
+	/** Read legacy nondiscount receipts locally; never alter their hashed snapshot. */
+	private function snapshotPricing( $order, array $snapshot ): array {
+		if ( ! array_key_exists( 'customer_pricing', $snapshot ) ) {
+			foreach ( array( self::CUSTOMER_COST_META_KEY, self::CUSTOMER_DISCOUNT_META_KEY ) as $key ) {
+				$present = is_callable( array( $order, 'meta_exists' ) ) ? $order->meta_exists( $key ) : '' !== $order->get_meta( $key );
+				if ( $present ) { throw new \InvalidArgumentException( 'snapshot_invalid' ); }
+			}
+			$raw = $snapshot['rate']['shipping_costs'] ?? -1;
+			return array( 'original_cost' => $raw, 'cost' => $raw, 'discount_amount' => 0 );
+		}
+		if ( ! is_array( $snapshot['customer_pricing'] ) ) { throw new \InvalidArgumentException( 'snapshot_invalid' ); }
+		return $snapshot['customer_pricing'];
+	}
+
 	/** Snapshot retries do not depend on a destructively consumed session quote. */
 	private function checkSnapshot( $order, $line, array $snapshot ): void {
 		$rate = $snapshot['rate'] ?? array();
 		$context = $snapshot['context'] ?? array();
+		$pricing = $this->snapshotPricing( $order, $snapshot );
+		if ( ! is_array( $pricing ) || array_keys( $pricing ) !== array( 'original_cost', 'cost', 'discount_amount' ) ) {
+			throw new \InvalidArgumentException( 'snapshot_invalid' );
+		}
+		foreach ( $pricing as $amount ) {
+			if ( ! is_numeric( $amount ) || ! is_finite( (float) $amount ) || $amount < 0 ) { throw new \InvalidArgumentException( 'snapshot_invalid' ); }
+		}
+		if ( (float) $pricing['original_cost'] !== (float) ( $rate['shipping_costs'] ?? -1 ) || abs( (float) $pricing['cost'] + (float) $pricing['discount_amount'] - (float) $pricing['original_cost'] ) > 0.00000001 ) {
+			throw new \InvalidArgumentException( 'snapshot_invalid' );
+		}
 		// A durable receipt must explicitly record IDR; legacy unbound receipts fail closed.
 		$currency = is_callable( array( $order, 'get_currency' ) ) ? $order->get_currency() : ( function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : 'IDR' );
 		if ( 'IDR' !== $currency || 'IDR' !== ( $context['currency'] ?? null ) ) {
@@ -252,7 +290,7 @@ class InstantCheckoutController {
 		) ) {
 			throw new \InvalidArgumentException( 'outside_instant_radius' );
 		}
-		if ( 'cod' === strtolower( $order->get_payment_method() ) || ! InstantCheckoutQuoteService::validRateAmounts( $rate ) || (float) $line->get_total() !== (float) $rate['shipping_costs'] || 'motor' !== ( $rate['vehicle'] ?? null ) || 'motor' !== $line->get_meta( 'kiriof_instant_vehicle' ) || (string) ( $rate['expires'] ?? '' ) !== (string) $line->get_meta( 'kiriof_instant_quote_expires' ) || empty( $context['items'] ) || empty( $context['origin'] ) || ( $context['insurance'] ?? null ) !== false || ( $context['payment_method'] ?? null ) !== $order->get_payment_method() ) {
+		if ( 'cod' === strtolower( $order->get_payment_method() ) || ! InstantCheckoutQuoteService::validRateAmounts( $rate ) || (float) $line->get_total() !== (float) $pricing['cost'] || 'motor' !== ( $rate['vehicle'] ?? null ) || 'motor' !== $line->get_meta( 'kiriof_instant_vehicle' ) || (string) ( $rate['expires'] ?? '' ) !== (string) $line->get_meta( 'kiriof_instant_quote_expires' ) || empty( $context['items'] ) || empty( $context['origin'] ) || ( $context['insurance'] ?? null ) !== false || ( $context['payment_method'] ?? null ) !== $order->get_payment_method() ) {
 			throw new \InvalidArgumentException( 'snapshot_invalid' );
 		}
 		$fees = array();
@@ -266,7 +304,7 @@ class InstantCheckoutController {
 		}
 		if ( $fees ) {
 			$fee = reset( $fees );
-			if ( self::FEE_TYPE !== $fee->get_meta( '_kiriof_fee_type' ) || (float) $fee->get_total() !== (float) $rate['admin_fee'] || (float) $fee->get_total_tax() !== 0.0 || (float) $line->get_total() + (float) $fee->get_total() !== (float) $rate['total_price'] ) {
+			if ( self::FEE_TYPE !== $fee->get_meta( '_kiriof_fee_type' ) || (float) $fee->get_total() !== (float) $rate['admin_fee'] || (float) $fee->get_total_tax() !== 0.0 || (float) $line->get_total() + (float) $fee->get_total() !== (float) $pricing['cost'] + (float) $rate['admin_fee'] ) {
 				throw new \InvalidArgumentException( 'snapshot_invalid' );
 			}
 		}
@@ -315,7 +353,9 @@ class InstantCheckoutController {
 				throw new \RuntimeException( 'snapshot_missing' );
 			}
 			$this->checkSnapshot( $order, $line, $snapshot );
-			if ( (string) $order->get_meta( self::CUSTOMER_TOTAL_META_KEY ) !== (string) $snapshot['rate']['total_price'] || (string) $order->get_meta( self::ADMIN_FEE_META_KEY ) !== (string) $snapshot['rate']['admin_fee'] ) {
+			$pricing = $this->snapshotPricing( $order, $snapshot );
+			$legacy = ! array_key_exists( 'customer_pricing', $snapshot );
+			if ( (string) $order->get_meta( self::CUSTOMER_TOTAL_META_KEY ) !== (string) ( $pricing['cost'] + $snapshot['rate']['admin_fee'] ) || ( ! $legacy && ( (string) $order->get_meta( self::CUSTOMER_COST_META_KEY ) !== (string) $pricing['cost'] || (string) $order->get_meta( self::CUSTOMER_DISCOUNT_META_KEY ) !== (string) $pricing['discount_amount'] ) ) || (string) $order->get_meta( self::ADMIN_FEE_META_KEY ) !== (string) $snapshot['rate']['admin_fee'] ) {
 				throw new \RuntimeException( 'snapshot_changed' );
 			}
 			if ( ! hash_equals( (string) $order->get_meta( self::SELECTION_META_KEY ), hash( 'sha256', wp_json_encode( $snapshot ) ) ) || $order->get_meta( BuyerDestination::META_KEY ) !== $snapshot['context']['destination'] ) {
@@ -335,6 +375,10 @@ class InstantCheckoutController {
 			}
 			// Keep booking/admin repricing on the raw carrier cost; the buyer paid total once.
 			$shipping = array( '_kiriof_instant_admin_fee' => $rate['admin_fee'], '_kiriof_instant_shipping_total' => $rate['total_price'], '_kiriof_instant_shipping_cost' => $rate['shipping_costs'] );
+			if ( ! $legacy ) {
+				$shipping[ self::CUSTOMER_COST_META_KEY ] = $pricing['cost'];
+				$shipping[ self::CUSTOMER_DISCOUNT_META_KEY ] = $pricing['discount_amount'];
+			}
 			foreach ( $this->orderAddress( $order ) as $field => $value ) {
 				$shipping[ '_shipping_' . $field ] = $value;
 			}
@@ -344,7 +388,7 @@ class InstantCheckoutController {
 				$order->update_meta_data( self::INVOICE_META_KEY, $invoice );
 				$order->save_meta_data();
 			}
-			$payload = array( 'order_id' => $invoice, 'delivery_type' => 'instant', 'vehicle' => 'motor', 'service' => $rate['courier'], 'service_name' => $rate['service'], 'status' => 'new', 'shipping_info' => wp_json_encode( $shipping ), 'weight' => $context['weight'], 'shipping_cost' => $rate['shipping_costs'], 'insurance_cost' => 0, 'cod_fee' => 0, 'transaction_value' => $context['item_value'], 'wp_wc_order_stat_order_id' => $order->get_id(), 'created_at' => gmdate( 'Y-m-d H:i:s' ), 'destination_sub_district_id' => $context['destination']['district_id'], 'destination_sub_district' => $context['destination']['district_label'], 'destination_latitude' => $context['destination']['destination_latitude'], 'destination_longitude' => $context['destination']['destination_longitude'], 'shipment_location_id' => $origin['location_id'], 'shipment_location_snapshot' => wp_json_encode( $origin ), 'discount_amount' => 0, 'discount_percentage' => 0, 'woocommerce_discount_amount' => (float) $order->get_discount_total(), 'woocommerce_discount_description' => '', 'is_deficit' => 0, 'cod_minimum' => null );
+			$payload = array( 'order_id' => $invoice, 'delivery_type' => 'instant', 'vehicle' => 'motor', 'service' => $rate['courier'], 'service_name' => $rate['service'], 'status' => 'new', 'shipping_info' => wp_json_encode( $shipping ), 'weight' => $context['weight'], 'shipping_cost' => $rate['shipping_costs'], 'insurance_cost' => 0, 'cod_fee' => 0, 'transaction_value' => $context['item_value'], 'wp_wc_order_stat_order_id' => $order->get_id(), 'created_at' => gmdate( 'Y-m-d H:i:s' ), 'destination_sub_district_id' => $context['destination']['district_id'], 'destination_sub_district' => $context['destination']['district_label'], 'destination_latitude' => $context['destination']['destination_latitude'], 'destination_longitude' => $context['destination']['destination_longitude'], 'shipment_location_id' => $origin['location_id'], 'shipment_location_snapshot' => wp_json_encode( $origin ), 'discount_amount' => $pricing['discount_amount'], 'discount_percentage' => 0, 'woocommerce_discount_amount' => (float) $order->get_discount_total(), 'woocommerce_discount_description' => '', 'is_deficit' => 0, 'cod_minimum' => null );
 			foreach ( array( 'length', 'width', 'height' ) as $dimension ) {
 				$payload[ $dimension ] = max( array_column( $context['items'], $dimension ) );
 			}
@@ -373,7 +417,7 @@ class InstantCheckoutController {
 	}
 
 	private function checkExisting( object $existing, array $payload ): void {
-		foreach ( array( 'order_id', 'delivery_type', 'vehicle', 'service', 'service_name', 'wp_wc_order_stat_order_id', 'shipping_cost', 'weight', 'transaction_value', 'destination_sub_district_id', 'shipment_location_id' ) as $field ) {
+		foreach ( array( 'order_id', 'delivery_type', 'vehicle', 'service', 'service_name', 'wp_wc_order_stat_order_id', 'shipping_cost', 'discount_amount', 'discount_percentage', 'weight', 'transaction_value', 'destination_sub_district_id', 'shipment_location_id' ) as $field ) {
 			if ( (string) ( $existing->$field ?? '' ) !== (string) $payload[ $field ] ) {
 				throw new \RuntimeException( 'transaction_conflict' );
 			}

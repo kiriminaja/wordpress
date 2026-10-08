@@ -21,6 +21,9 @@ namespace {
     define('ABSPATH', dirname(__DIR__, 2) . '/');
     define('KIRIOF_DIR', ABSPATH);
     define('KIRIOF_NONCE', 'fixture');
+    define('KIRIOF_URL', '/plugin/');
+    define('KIRIOF_MAX_COD_AMOUNT', 3000000);
+    function get_option($name, $default = '') { return $default; }
     function __($text, $domain = '') { return $text; }
     function esc_html($text) { return htmlspecialchars((string) $text, ENT_QUOTES, 'UTF-8'); }
     function esc_attr($text) { return esc_html($text); }
@@ -62,13 +65,23 @@ namespace {
     function wc_get_order($id) { return $GLOBALS['order']; }
     $payload = json_decode($argv[1] ?? '{}', true) ?: [];
     $row = (object) array_merge(['id' => 1, 'wp_wc_order_stat_order_id' => 10, 'service' => 'gosend', 'service_name' => 'Instant', 'delivery_type' => 'instant', 'vehicle' => 'motor', 'order_id' => 'KA-1', 'status' => 'new', 'shipping_cost' => 11000, 'discount_amount' => 0], $payload['row'] ?? []);
-    $order = new WC_Order($payload['wc_order'] ?? ['fees' => [['type' => 'instant_admin_fee', 'total' => 1000]]]);
+    $order = !empty($payload['no_order']) ? false : new WC_Order($payload['wc_order'] ?? ['fees' => [['type' => 'instant_admin_fee', 'total' => 1000]]]);
     $payment_lookup = [];
     require ABSPATH . 'inc/Utils/ServiceResponse.php';
     require ABSPATH . 'inc/Base/BaseService.php';
     require ABSPATH . 'inc/Services/ShipmentDetailAmounts.php';
     require ABSPATH . 'inc/Services/TransactionDeliveryType.php';
     require ABSPATH . 'inc/Services/ShipmentDetailPayment.php';
+    if (($payload['mode'] ?? '') === 'fallback') {
+        require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
+        require ABSPATH . 'inc/Services/InstantTrackingPresentation.php';
+        require ABSPATH . 'inc/Services/GoogleMapsSettings.php';
+        require ABSPATH . 'inc/Services/InstantDetailMapData.php';
+        require ABSPATH . 'inc/Services/TransactionDetailPageData.php';
+        $detail = (new \ReflectionClass(\KiriminAjaOfficial\Services\TransactionDetailPageData::class))->newInstanceWithoutConstructor();
+        echo json_encode($detail->prepareFallback($row, 'Test fallback'), JSON_THROW_ON_ERROR);
+        exit;
+    }
     require ABSPATH . 'inc/Services/OrderEditPageServices/ShippingInfoServices.php';
     require ABSPATH . 'inc/Controllers/EditOrderController.php';
     $controller = new \KiriminAjaOfficial\Controllers\EditOrderController(new \KiriminAjaOfficial\Repositories\TransactionRepository(), new \KiriminAjaOfficial\Repositories\SettingRepository(), new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository());

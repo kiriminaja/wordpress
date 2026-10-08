@@ -47,6 +47,7 @@ namespace {
 	}
 	require $root . '/inc/Utils/ServiceResponse.php';
 	require $root . '/inc/Base/BaseService.php';
+	require $root . '/inc/Services/CourierServiceCatalog.php';
 	require $root . '/inc/Services/ShippingDiscountCouponService.php';
 	require $root . '/inc/Services/ShippingDiscountRegionCacheService.php';
 	class LoggingCouponService extends \KiriminAjaOfficial\Services\ShippingDiscountCouponService {

@@ -28,7 +28,7 @@ final class OrderMetaboxShippingRuntimeTest extends TestCase {
     }
 
     public function test_breakdown_and_both_shipping_discounts_are_retained(): void {
-        $html = $this->render(['row' => ['insurance_cost' => 500, 'discount_amount' => 1000], 'wc_order' => ['shipping' => 8000, 'coupons' => ['ITEM', 'SHIP'], 'discount' => 500]])['html'];
+        $html = $this->render(['row' => ['delivery_type' => 'express', 'service' => 'jne', 'insurance_cost' => 500, 'discount_amount' => 1000], 'wc_order' => ['shipping' => 8000, 'coupons' => ['ITEM', 'SHIP'], 'discount' => 500]])['html'];
         $this->assertStringContainsString('<td>Total Shipping</td>', $html);
         $this->assertStringContainsString('Rp11.500', $html);
         $this->assertStringContainsString('<td>Insurance</td>', $html);
@@ -66,5 +66,36 @@ final class OrderMetaboxShippingRuntimeTest extends TestCase {
         $this->assertStringNotContainsString('<td>OTHER</td>', $html);
         unset($payload['carrier_payment']);
         $this->assertStringNotContainsString('kiriof-mb-badge--paid', $this->render($payload)['html']);
+    }
+    public function test_instant_buyer_coupon_is_not_a_carrier_discount_even_after_scope_removal(): void {
+        foreach ([['SHIP'], ['HISTORICAL'], []] as $codes) {
+            foreach ([false, true] as $legacy) {
+                $html = $this->render(['legacy' => $legacy, 'row' => ['shipping_cost' => 18000, 'discount_amount' => 4500], 'wc_order' => ['shipping' => 13500, 'total' => 34500, 'coupons' => $codes, 'fees' => [['type' => 'instant_admin_fee', 'total' => 1000]]]])['html'];
+                $this->assertStringNotContainsString('Shipping Discount (from KiriminAja)', $html);
+                $this->assertMatchesRegularExpression('/Shipping Discount.*?<\/td>\s*<td[^>]*>-Rp4\.500<\/td>/s', $html);
+                $this->assertMatchesRegularExpression('/<td>Discounted Shipping<\/td>\s*<td>Rp13\.500<\/td>/', $html);
+                $this->assertMatchesRegularExpression('/<td>Admin Fee<\/td>\s*<td>Rp1\.000<\/td>/', $html);
+                $this->assertMatchesRegularExpression('/<td>Total<\/td>\s*<td>Rp34\.500<\/td>/', $html);
+                $this->assertSame(in_array('SHIP', $codes, true) ? 1 : 0, substr_count($html, 'kiriof-mb-coupon-chip'));
+            }
+        }
+    }
+
+    public function test_fallback_uses_wc_shipping_when_carrier_rate_has_changed(): void {
+        $result = $this->render(['mode' => 'fallback', 'row' => ['shipping_cost' => 20000, 'discount_amount' => 4500], 'wc_order' => ['shipping' => 13500, 'total' => 34500, 'fees' => [['type' => 'instant_admin_fee', 'total' => 1000]]]]);
+        $costs = $result['transaction']['shipment']['costs'];
+        $this->assertSame(13500, $costs['shipping']);
+        $this->assertSame(6500, $costs['shippingDiscount']);
+        $this->assertSame(14500, $costs['total']);
+        $this->assertSame(34500, $costs['orderTotal']);
+    }
+    public function test_orderless_instant_uses_persisted_buyer_discount_without_inventing_a_coupon(): void {
+        $html = $this->render(['legacy' => true, 'no_order' => true, 'row' => ['shipping_cost' => 18000, 'discount_amount' => 4500]])['html'];
+        $this->assertStringNotContainsString('Shipping Discount (from KiriminAja)', $html);
+        $this->assertMatchesRegularExpression('/<td>\s*Shipping Discount\s*<\/td>\s*<td[^>]*>-Rp4\.500<\/td>/s', $html);
+        $this->assertMatchesRegularExpression('/<td>Discounted Shipping<\/td>\s*<td>Rp13\.500<\/td>/', $html);
+        $costs = $this->render(['mode' => 'fallback', 'no_order' => true, 'row' => ['shipping_cost' => 18000, 'discount_amount' => 4500]])['transaction']['shipment']['costs'];
+        $this->assertSame(13500, $costs['shipping']);
+        $this->assertSame(4500, $costs['shippingDiscount']);
     }
 }

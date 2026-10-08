@@ -22,6 +22,29 @@ namespace {
     require __DIR__ . '/instant-checkout-quote-runtime.php';
     ob_end_clean();
     $scenario = $argv[2] ?? '';
+    $GLOBALS['scenario'] = $scenario;
+    // Exercise the real coupon pricing service, not a synthetic adjusted-rate getter.
+    require_once dirname(__DIR__, 2) . '/inc/Services/CourierServiceCatalog.php';
+    require_once dirname(__DIR__, 2) . '/inc/Services/ShippingDiscountCouponService.php';
+    function sanitize_key($value) { return strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $value)); }
+    function wc_get_price_decimals() { return str_contains($GLOBALS['scenario'] ?? '', 'decimal') ? 2 : 0; }
+    function wc_format_decimal($value, $dp = false) { return number_format((float) $value, $dp === false ? 0 : $dp, '.', ''); }
+    function metadata_exists(...$args) { return false; }
+    function get_post_meta($id, $key, $single = false) { return []; }
+    class WC_Coupon {
+        public function __construct(public string $kind = 'fixed') {}
+        public function get_id() { return 1; }
+        public function get_code() { return $this->kind; }
+        public function get_discount_type() { return $this->kind === 'percent' ? 'kiriof_percent_shipping_discount' : 'kiriof_fixed_shipping_discount'; }
+        public function get_amount() { return $this->kind === 'percent' ? (str_contains($GLOBALS['scenario'] ?? '', 'fractional') ? 13 : 25) : 5000; }
+        public function get_free_shipping() { return $this->kind === 'free'; }
+    }
+    class CouponCart {
+        public array $coupons = [];
+        public function get_coupons() { return $this->coupons; }
+        public function get_cart() { return [['data' => new class { public function needs_shipping() { return true; } }]]; }
+    }
+
     class OrderSettings extends \KiriminAjaOfficial\Repositories\SettingRepository {
         public bool $insurance = false;
         public function getSettingByKey($key) { return $key === 'enable_insurance' ? (object) ['value' => $this->insurance ? 'yes' : 'no'] : parent::getSettingByKey($key); }
@@ -93,6 +116,7 @@ namespace {
         public function get_id() { return 123; }
         public function get_meta($key) { return $this->meta[$key] ?? ''; }
         public function update_meta_data($key, $value) { $this->meta[$key] = $value; }
+        public function meta_exists($key) { return array_key_exists($key, $this->meta); }
         public function get_payment_method() { return $this->payment; }
         public function set_payment_method($value) { $this->payment = $value; }
         public function get_currency() { return $this->currency; }
@@ -102,7 +126,7 @@ namespace {
     }
     class OrderRequest { public array $params; public function get_param($key) { return $this->params[$key] ?? null; } }
     class OrderWC {
-        public $session; public $customer; public array $packages;
+        public $session; public $customer; public $cart; public array $packages;
         public function shipping() { return $this; }
         public function get_packages() { return $this->packages; }
     }
@@ -113,9 +137,22 @@ namespace {
     }
     require dirname(__DIR__, 2) . '/inc/Controllers/InstantCheckoutController.php';
     $savedSession = WC()->session;
-    $wc = new OrderWC(); $wc->session = $savedSession; $wc->packages = [$package]; $GLOBALS['wc'] = $wc;
+    $wc = new OrderWC(); $wc->session = $savedSession; $wc->packages = [$package]; $GLOBALS['wc'] = $wc; $wc->cart = new CouponCart();
     if ($reload) { $wc->session = new QuoteSession(); $wc->session->data = $savedSession->data; }
+    if (in_array($scenario, ['coupon_percent_fractional', 'coupon_percent_decimal'], true)) {
+        $rawCost = $scenario === 'coupon_percent_decimal' ? 11001 : 18001;
+        $quote['rates'][0]['shipping_costs'] = $rawCost; $quote['rates'][0]['total_price'] = $quote['rates'][0]['cost'] = $rawCost + 1000;
+        foreach ($wc->session->data['kiriof_instant_checkout_quotes'] as &$entry) { $entry['rates'][0] = $quote['rates'][0]; } unset($entry);
+    }
     $line = new OrderShipping($quote['rates'][0]); $order = new OrderFixture($package['destination'], $line);
+    if (str_starts_with($scenario, 'coupon_')) {
+        $kind = str_contains($scenario, 'percent') ? 'percent' : (str_contains($scenario, 'free') ? 'free' : 'fixed');
+        $wc->cart->coupons = [new WC_Coupon($kind)];
+        $pricing = (new \KiriminAjaOfficial\Services\ShippingDiscountCouponService())->getAdjustedRatePricing((object) ['courier' => $quote['rates'][0]['courier']], (float) $quote['rates'][0]['shipping_costs']);
+        $line->total = (float) wc_format_decimal($pricing['cost'], wc_get_price_decimals());
+        if ($scenario === 'coupon_removed') { $wc->cart->coupons = []; }
+        if ($scenario === 'coupon_tamper') { $line->total++; }
+    }
     $request = new OrderRequest(); $request->params = ['shipping_address' => $order->address, 'payment_method' => 'bacs', 'extensions' => ['kiriminaja-official' => ['destination' => $destination]]];
     $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
     $controller = new \KiriminAjaOfficial\Controllers\InstantCheckoutController($settings, $transactions, $service, $generator = new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId());
@@ -210,6 +247,17 @@ namespace {
     }
     try { if ($scenario === 'classic' || strpos($scenario,'classic_') === 0) { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
     if ($error === '') {
+        if (str_starts_with($scenario, 'coupon_')) { $wc->session->data = []; $wc->cart = null; }
+        if ($scenario === 'coupon_durable_tamper') { $order->meta[$controller::CUSTOMER_DISCOUNT_META_KEY]++; }
+        if (str_starts_with($scenario, 'legacy_') || $scenario === 'new_missing_pricing') {
+            unset($order->meta[$controller::SNAPSHOT_META_KEY]['customer_pricing']);
+            if ($scenario !== 'new_missing_pricing') { unset($order->meta[$controller::CUSTOMER_COST_META_KEY], $order->meta[$controller::CUSTOMER_DISCOUNT_META_KEY]); }
+            if ($scenario === 'legacy_wrong_cost') { $order->meta[$controller::CUSTOMER_COST_META_KEY] = 17999; }
+            if ($scenario === 'legacy_wrong_discount') { $order->meta[$controller::CUSTOMER_DISCOUNT_META_KEY] = 1; }
+            if ($scenario === 'legacy_empty_meta') { $order->meta[$controller::CUSTOMER_COST_META_KEY] = ''; }
+            $order->meta[$controller::SELECTION_META_KEY] = hash('sha256', wp_json_encode($order->meta[$controller::SNAPSHOT_META_KEY]));
+            $wc->session->data = []; $wc->cart = null;
+        }
         if ($scenario === 'processed_currency') { $order->currency = 'USD'; }
         if ($scenario === 'processed_shipping_tax') { $line->tax = 100; }
         if ($scenario === 'durable_missing_currency') { unset($order->meta[\KiriminAjaOfficial\Controllers\InstantCheckoutController::SNAPSHOT_META_KEY]['context']['currency']); }

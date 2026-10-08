@@ -52,10 +52,15 @@ namespace {
 	$other = new GuardRate( 'flat_rate:8', 'flat_rate', 8, array() );
 	$case = $config['case'];
 	$GLOBALS['translated'] = 'translated' === $case;
+	if ( 'available-mismatch' === $case ) {
+		// Opaque identifiers and unrelated checkout data must stay out of diagnostics.
+		$instant->id .= ':private-reviewed-rate';
+		$express->id .= ':private-selected-rate';
+	}
 	if ( 'opaque' === $case ) { $instant->id .= ':opaque%20<tag>\\\"'; }
-	$actual = in_array( $case, array( 'changed', 'terms', 'into-plugin', 'express', 'service', 'case', 'legacy' ), true ) ? clone $express : clone $instant;
+	$actual = in_array( $case, array( 'changed', 'available-mismatch', 'terms', 'into-plugin', 'express', 'service', 'case', 'legacy' ), true ) ? clone $express : clone $instant;
 	if ( in_array( $case, array( 'outside', 'away-plugin' ), true ) ) { $actual = clone $other; }
-	$expected = in_array( $case, array( 'changed', 'terms', 'away-plugin' ), true ) ? $instant : $actual;
+	$expected = in_array( $case, array( 'changed', 'available-mismatch', 'terms', 'away-plugin' ), true ) ? $instant : $actual;
 	if ( 'into-plugin' === $case ) { $expected = $other; }
 	$review = array( 'version' => 1, 'packages' => array( array( 'package_id' => '3', 'rate_id' => $expected->id, 'price' => '20000', 'taxes' => '0', 'currency_minor_unit' => 0 ) ) );
 	if ( in_array( $case, array( 'missing', 'outside' ), true ) ) { $review = null; }
@@ -74,6 +79,17 @@ namespace {
 	if ( 'legacy' === $case ) { $line->method = $actual->id; }
 	if ( 'order-route' === $case ) { $line = clone $express; }
 	$packages = array( 3 => array( 'rates' => 'missing-rate' === $case ? array() : array( $actual->id => $actual ) ) );
+	if ( 'available-mismatch' === $case ) {
+		$packages[3] = array(
+			'rates' => array( $instant->id => $instant, $express->id => $express ),
+			'destination' => array( 'address' => 'private-buyer-address', 'pin' => 'private-buyer-pin' ),
+			'quote_key' => 'private-quote-key',
+		);
+		$review['packages'][0]['address'] = 'private-posted-address';
+		$review['packages'][0]['pin'] = 'private-posted-pin';
+		$review['packages'][0]['api_key'] = 'private-api-key';
+		if ( ! empty( $config['order_lines_review'] ) ) { $line = clone $instant; }
+	}
 	$chosen = array( 3 => $actual->id );
 	if ( ! empty( $config['stale_session_keys'] ) ) {
 		// Woo updates current package keys in place; obsolete keys may survive.

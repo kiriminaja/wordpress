@@ -5915,3 +5915,7 @@ msgstr "Tidak dapat memperbarui pengaturan Google Maps."
 #: inc/Base/Enqueue.php
 msgid "Instant ≤ 40 km"
 msgstr "Instant ≤ 40 km"
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Invalid coupon amount."
+msgstr "Jumlah kupon tidak valid."

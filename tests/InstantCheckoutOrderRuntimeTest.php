@@ -12,6 +12,77 @@ final class InstantCheckoutOrderRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function pre_discount_receipts_replay_without_mutation_or_pricing_session(): void {
+        $r = $this->fixture('legacy_valid');
+        $this->assertSame('', $r['error']);
+        $this->assertSame('', $r['processed_error']);
+        $this->assertCount(1, $r['rows']);
+        $this->assertSame(1, $r['calls']);
+        $this->assertSame(1, $r['invoice_calls']);
+        $this->assertArrayNotHasKey('customer_pricing', $r['meta']['_kiriof_instant_checkout_snapshot']);
+        $this->assertArrayNotHasKey('_kiriof_instant_customer_shipping_cost', $r['meta']);
+        $this->assertSame(19000, $r['meta']['_kiriof_instant_customer_shipping_total']);
+        $shipping = json_decode($r['rows'][0]['shipping_info'], true);
+        $this->assertArrayNotHasKey('_kiriof_instant_customer_shipping_cost', $shipping);
+        $this->assertEquals(0, $r['rows'][0]['discount_amount']);
+        foreach (['new_missing_pricing', 'legacy_wrong_cost', 'legacy_wrong_discount', 'legacy_empty_meta'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertSame('', $r['error'], $scenario);
+            $this->assertNotEmpty($r['processed_error'], $scenario);
+            $this->assertSame([], $r['rows'], $scenario);
+            $this->assertSame(0, $r['invoice_calls'], $scenario);
+        }
+    }
+
+    #[Test]
+    public function fractional_percentage_matches_wc_precision_and_keeps_raw_quote(): void {
+        $r = $this->fixture('coupon_percent_fractional');
+        $this->assertSame('', $r['error']);
+        $this->assertSame('', $r['processed_error']);
+        $this->assertSame(15661, $r['shipping_total']);
+        $this->assertEquals(2340, $r['rows'][0]['discount_amount']);
+        $this->assertSame(18001, $r['rows'][0]['shipping_cost']);
+        $this->assertSame(16661, $r['meta']['_kiriof_instant_customer_shipping_total']);
+        $this->assertSame(19001, $r['meta']['_kiriof_instant_checkout_snapshot']['rate']['total_price']);
+        $this->assertSame(1, $r['calls']);
+        $this->assertSame(1, $r['invoice_calls']);
+        $this->assertCount(1, $r['cart_fees']);
+        $r = $this->fixture('coupon_percent_decimal');
+        $this->assertSame('', $r['error']);
+        $this->assertSame('', $r['processed_error']);
+        $this->assertSame(8250.75, $r['shipping_total']);
+        $this->assertSame(2750.25, $r['rows'][0]['discount_amount']);
+        $this->assertSame(11001, $r['rows'][0]['shipping_cost']);
+        $this->assertSame(9250.75, $r['meta']['_kiriof_instant_customer_shipping_total']);
+        $this->assertSame(1, $r['calls']);
+    }
+
+    #[Test]
+    public function shipping_coupons_keep_raw_booking_cost_and_bind_durable_buyer_charge(): void {
+        foreach (['fixed' => 5000, 'percent' => 4500, 'free' => 18000] as $kind => $discount) {
+            $r = $this->fixture('coupon_' . $kind);
+            $this->assertSame('', $r['error']);
+            $this->assertSame('', $r['processed_error']);
+            $this->assertSame(18000, $r['rows'][0]['shipping_cost']);
+            $this->assertEquals($discount, $r['rows'][0]['discount_amount']);
+            $this->assertEquals(18000 - $discount, $r['meta']['_kiriof_instant_customer_shipping_cost']);
+            $this->assertEquals(19000 - $discount, $r['meta']['_kiriof_instant_customer_shipping_total']);
+            $this->assertSame(19000, $r['meta']['_kiriof_instant_checkout_snapshot']['rate']['total_price']);
+            $this->assertCount(1, $r['cart_fees']);
+            $this->assertSame(1, $r['calls']);
+        }
+        foreach (['coupon_removed', 'coupon_tamper'] as $scenario) {
+            $r = $this->fixture($scenario);
+            $this->assertNotEmpty($r['error']);
+            $this->assertSame([], $r['rows']);
+            $this->assertSame([], $r['cart_fees']);
+        }
+        $r = $this->fixture('coupon_durable_tamper');
+        $this->assertNotEmpty($r['processed_error']);
+        $this->assertSame([], $r['rows']);
+    }
+
+    #[Test]
     public function classic_inherited_phone_is_bound_to_fees_snapshot_and_durable_replay(): void {
         $r = $this->fixture('classic_billing_phone');
         $this->assertSame('', $r['error']);

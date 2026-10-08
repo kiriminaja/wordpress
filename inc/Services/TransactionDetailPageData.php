@@ -339,6 +339,15 @@ class TransactionDetailPageData
         $admin_fee = ShipmentDetailAmounts::adminFee( $wc_order, $transaction );
         $discount = max( 0.0, (float) ( $transaction->discount_amount ?? 0 ) );
         $paid_shipping = max( 0.0, $shipping - $discount );
+        try {
+            if ( $wc_order && method_exists( $wc_order, 'get_shipping_total' ) ) {
+                // WC records what the buyer actually paid, even after carrier rate drift.
+                $paid_shipping = max( 0.0, (float) $wc_order->get_shipping_total() );
+                $discount = max( 0.0, $shipping - $paid_shipping );
+            }
+        } catch ( \Throwable $error ) {
+            // Retain the persisted shipment calculation when WC shipping is unavailable.
+        }
         $order_total = $paid_shipping + $insurance + $cod_fee + $admin_fee;
         try {
             if ( $wc_order && method_exists( $wc_order, 'get_total' ) ) {

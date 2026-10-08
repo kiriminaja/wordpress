@@ -110,7 +110,16 @@ final class CheckoutShippingSelectionGuard {
 			$id = $review[ $key ] ?? null;
 			$rate = is_string( $id ) ? ( $package['rates'][ $id ] ?? null ) : null;
 			if ( ! $rate || $rate->get_id() !== $id ) { $this->fail( $store_api, 'reviewed_rate_unavailable' ); }
-			if ( ( $chosen[ $key ] ?? null ) !== $id ) { $this->fail( $store_api, 'selected_rate_mismatch' ); }
+			if ( ( $chosen[ $key ] ?? null ) !== $id ) {
+				$selected = is_string( $chosen[ $key ] ?? null ) ? $chosen[ $key ] : '';
+				$this->fail( $store_api, 'selected_rate_mismatch', array(
+					'reviewed_kind' => $this->rateKind( $id ),
+					'selected_kind' => $this->rateKind( $selected ),
+					'reviewed_fingerprint' => substr( hash( 'sha256', $id ), 0, 16 ),
+					'selected_fingerprint' => substr( hash( 'sha256', $selected ), 0, 16 ),
+					'order_matches_review' => (bool) array_filter( $remaining, fn( $line ) => $this->matches( $line, $rate ) ),
+				) );
+			}
 			// Match a multiset, not order item IDs or presumed numeric package positions.
 			$matched = false;
 			foreach ( $remaining as $index => $line ) {
@@ -138,12 +147,18 @@ final class CheckoutShippingSelectionGuard {
 		return true;
 	}
 
-	private function fail( bool $store_api, string $reason ): void {
+	private function rateKind( string $id ): string {
+		if ( 0 === strpos( $id, 'kiriminaja-instant:' ) ) { return 'instant'; }
+		if ( $this->owned( $id ) ) { return 'express'; }
+		return '' === $id ? 'missing' : 'external';
+	}
+
+	private function fail( bool $store_api, string $reason, array $identity_diagnostics = array() ): void {
 		// Fixed internal reasons only: no posted identifiers, address, coordinates,
 		// payment values, quote tokens or exception trace enter this diagnostic.
 		if ( function_exists( 'kiriof_log' ) ) {
 			try {
-				kiriof_log( 'warning', 'Checkout shipping review rejected.', array( 'reason' => $reason, 'route' => $store_api ? 'blocks' : 'classic', 'backtrace' => false ), 'kiriminaja_checkout' );
+				kiriof_log( 'warning', 'Checkout shipping review rejected.', array( 'reason' => $reason, 'route' => $store_api ? 'blocks' : 'classic', 'backtrace' => false ) + $identity_diagnostics, 'kiriminaja_checkout' );
 			} catch ( \Throwable $error ) {
 				// Logging must not alter the read-only checkout gate.
 			}
