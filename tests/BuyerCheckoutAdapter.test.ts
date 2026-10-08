@@ -15,7 +15,7 @@ type Node = { type: any; props: any; children: any[] };
 // A small commit-phase hook runner: effects run after render, changed effects clean
 // up first, setters are stable, and updates during effects cause another render.
 // The active state and checkout TypeScript modules execute in the same browser-like VM.
-function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean; restore?: boolean } = {}) {
+function harness(options: { block?: boolean; cartOnly?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean; restore?: boolean } = {}) {
 	const timers = new Map<number, { delay: number; callback: () => void }>();
 	let nextTimer = 0;
 	const setTimeout = (callback: () => void, delay = 0) => { timers.set(++nextTimer, { callback, delay }); return nextTimer; };
@@ -99,7 +99,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	const document = {
 		addEventListener(name: string, callback: (event: any) => void) { if (!documentEvents.has(name)) documentEvents.set(name, new Set()); documentEvents.get(name)!.add(callback); },
 		removeEventListener(name: string, callback: (event: any) => void) { documentEvents.get(name)?.delete(callback); },
-		querySelector: (selector: string) => { queries.push(selector); return options.block === false ? null : {}; },
+		querySelector: (selector: string) => { queries.push(selector); return options.block === false || options.cartOnly ? null : {}; },
 		documentElement: { classList: { add: (name: string) => { if (!classes.includes(name)) classes.push(name); }, remove: (name: string) => { const index = classes.indexOf(name); if (index >= 0) classes.splice(index, 1); } } },
 		querySelectorAll: forbidden, getElementById: forbidden, createEvent: forbidden,
 	};
@@ -200,6 +200,36 @@ function options(node: any): {value: string; label: string}[] { return node.chil
 async function ready(h: ReturnType<typeof harness>) { h.mount(); await h.flush(250); await h.reply(); }
 
 describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', () => {
+	test('initial reviewed ID reappearing with unchanged native selection wakes exact restoration', async () => {
+		const h = harness({ restore: true, config: { districtPostcode: '12345', district: { id: 7 } } });
+		const express = 'kiriminaja:jne', go = 'kiriminaja-instant:7:gosend:sameday';
+		await ready(h); await h.flush(0);
+		expect(h.sends).toHaveLength(1);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
+		h.sends[0].resolve(); await h.settle();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(express));
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: true },
+		] }];
+		h.notify(); await h.settle();
+		expect(h.restores).toHaveLength(0); // Missing exact reviewed ID: correctly refuse restoration.
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [
+			{ rate_id: express, method_id: 'kiriminaja-official', selected: false },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: true },
+		] }];
+		h.notify(); await h.settle();
+		// Availability alone changes: GoSend stays selected and neither busy flag changes.
+		expect(h.restores.map(({ rate, packageId }) => [rate, packageId])).toEqual([[express, 0]]);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(express));
+		expect(latestValidation(h, 'kiriof-shipping-selection')['kiriof-shipping-selection'].hidden).toBe(false);
+		h.model.cart.shippingRates[0].shipping_rates[0].selected = true;
+		h.model.cart.shippingRates[0].shipping_rates[1].selected = false;
+		h.restores[0].resolve(); await h.settle(); h.notify();
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(express));
+		expect(h.restores).toHaveLength(1); h.pagehide();
+	});
 	test('native captured GoSend click reviews intent before Woo updates selected flags and busy state', async () => {
 		const h = harness({ restore: true }); h.mount();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
@@ -392,7 +422,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		h.pagehide(); expect(h.documentEvents.get('change')?.size).toBe(0);
 	});
 	test('initial review waits for complete stable native packages and does not replace intent on price changes', async () => {
-		const h = harness(); h.model.rateBusy = true;
+		const h = harness({ config: { districtPostcode: '12345', district: { id: 7 } } }); h.model.rateBusy = true;
 		h.model.cart.shippingRates = [
 			{ package_id: 0, shipping_rates: [{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: true }] },
 			{ package_id: 1, shipping_rates: [] },
@@ -402,10 +432,36 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
 		h.model.cart.shippingRates[1].shipping_rates = [{ rate_id: 'flat_rate:2', method_id: 'flat_rate', selected: true }]; h.notify();
 		const expected = { version: 1, packages: [{ package_id: '0', rate_id: 'kiriminaja:jne' }, { package_id: '1', rate_id: 'flat_rate:2' }] };
+		await h.flush(250); await h.reply(); await h.flush(0);
+		expect(h.sends).toHaveLength(1);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
+		h.sends[0].resolve(); await h.settle();
 		expect(h.publications.at(-1)[1].shipping_selection).toEqual(expected);
 		Object.assign(h.model.cart.shippingRates[0].shipping_rates[0], { price: '99999', name: 'New label' }); h.notify();
 		expect(h.publications.at(-1)[1].shipping_selection).toEqual(expected);
 		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+	});
+	test('initial review seeds the final native GoSend default only after destination acknowledgement', async () => {
+		const h = harness({ restore: true, config: { districtPostcode: '12345', district: { id: 7 } } });
+		await ready(h); await h.flush(0);
+		expect(h.sends).toHaveLength(1);
+		const go = 'kiriminaja-instant:7:gosend:sameday';
+		// The sync response changes Woo's default, without an explicit buyer click.
+		h.model.cart.shippingRates = [{ package_id: 0, shipping_rates: [
+			{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: false },
+			{ rate_id: go, method_id: 'kiriminaja-instant', selected: true },
+		] }];
+		h.notify(); await h.settle();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
+		expect(h.restores).toHaveLength(0);
+		h.sends[0].resolve(); await h.settle();
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(go));
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
+		expect(h.restores).toHaveLength(0); expect(h.sends).toHaveLength(1);
 	});
 	test('district lookup deadline aborts and reports once; retry ignores late old success', async () => {
 		const h = harness(); h.mount(); await h.flush(250); await h.flush(10000);
@@ -675,10 +731,14 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		expect(h.pluginName()).toBe('kiriminaja-official-buyer-destination');
 		expect(h.plugin().scope).toBe('woocommerce-checkout');
 		expect(h.classes).toEqual([]);
-		expect(h.queries[0]).toContain('.wp-block-woocommerce-cart');
+		expect(h.queries[0]).not.toContain('.wp-block-woocommerce-cart');
 		h.mount(); expect(h.root.kiriofBuyerCheckout.active).toBe(true); expect(h.classes).toEqual(['kiriof-buyer-checkout-active']); expect(h.root.kiriofBuyerCheckout.getDestination().postcode).toBe('12345');
 		const classic = harness({ block: false });
 		expect(classic.root.kiriofBuyerCheckout).toBeUndefined(); expect(classic.plugin()).toBeUndefined(); expect(classic.classes).toEqual([]);
+		const cart = harness({ cartOnly: true });
+		expect(cart.root.kiriofBuyerCheckout).toBeUndefined(); expect(cart.plugin()).toBeUndefined();
+		expect(cart.registeredBlocks()).toEqual([]); expect(cart.documentEvents.size).toBe(0);
+		expect(cart.timers.size).toBe(0); expect(cart.lookups).toEqual([]); expect(cart.sends).toEqual([]); expect(cart.validations).toEqual([]);
 	});
 	test('waits for an actual Slot mount and permanently yields after readiness timeout', async () => {
 		const mounted = harness(); const pending = mounted.root.kiriofBuyerCheckout.ready;
@@ -699,7 +759,8 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		const h = harness(); h.mount(); h.mount(); await h.flush(250);
 		expect(h.lookups).toHaveLength(1);
 		expect(new Set(h.publications.map(([, payload]) => JSON.stringify(payload.destination))).size).toBe(1);
-		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: reviewed('kiriminaja:jne') }]);
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: { version: 1, packages: [] } }]);
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
 		h.lookups[0].reject(new Error('offline')); await h.settle();
 		expect(h.findIn(0, 'p').children[0]).toBe('Lookup failed');
 		expect(h.findIn(1, 'p').children[0]).toBe('Lookup failed');
@@ -715,7 +776,10 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		h.sends[0].reject(new Error('offline')); await h.settle();
 		h.findIn(1, 'button').props.onClick(); h.render(); await h.flush(0);
 		expect(h.sends).toHaveLength(2); expect(h.sends[1].request.data).toEqual(h.sends[0].request.data);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual({ version: 1, packages: [] });
 		h.sends[1].resolve(); await h.settle();
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: reviewed('kiriminaja:jne') }]);
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
 		const validations = h.validations.length;
 		h.unmount(1);
 		expect(h.validations.slice(validations).filter(value => value['kiriof-buyer-destination'] || value.clear === 'kiriof-buyer-destination')).toEqual([]);
@@ -917,11 +981,15 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		expect(h.root.kiriofBuyerCheckout.setCoordinates(address, { latitude: 0, longitude: 0 })).toBe(true); h.render();
 		const destination = h.root.kiriofBuyerCheckout.getDestination();
 		expect(destination).toEqual({ version: 2, district_id: '7', district_label: 'District Seven', postcode: '12345', country: 'ID', address_type: 'shipping', destination_latitude: '0.0000000', destination_longitude: '0.0000000', shipping_address: { address_1: 'Main Road', address_2: 'Unit 2', city: 'Jakarta', state: 'JK', postcode: '12345', country: 'ID' } });
-		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination, shipping_selection: reviewed('kiriminaja:jne') }]);
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination, shipping_selection: { version: 1, packages: [] } }]);
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
 		h.model.payment = 'bacs'; h.render(); await h.flush(0);
 		expect(h.sends).toHaveLength(1);
 		expect(h.sends[0].request.data).toEqual({ action: 'sync_checkout', destination, payment_method: 'bacs', insurance: 1, force_insurance: 0, recipient_context: { first_name: 'Buyer', last_name: '', phone: 'private' }, quote_refresh_version: 0, refresh_instant: false });
 		expect(Object.isFrozen(h.sends[0].request.data.destination.shipping_address)).toBe(true);
+		h.sends[0].resolve(); await h.settle();
+		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination, shipping_selection: reviewed('kiriminaja:jne') }]);
+		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
 	});
 	test('a map-only destination still requires district and never writes an empty identity', async () => {
 		const h = harness(); await ready(h);

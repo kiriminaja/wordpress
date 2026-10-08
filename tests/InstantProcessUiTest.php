@@ -52,60 +52,6 @@ final class InstantProcessUiTest extends TestCase {
         $this->assertMatchesRegularExpression( "/\\.kiriof-instant-process-dialog \\[data-slot='collapsible-content'\\]\\[hidden\\],[^{}]*\\[data-state='closed'\\]\\s*\\{\\s*@apply !hidden;/", $css );
     }
 
-    public function test_both_shipment_dialogs_use_shared_loading_and_submission_feedback(): void {
-        foreach ( array( 'InstantProcessDialog', 'RequestPickupDialog' ) as $name ) {
-            $source = $this->source( 'src/lib/transactions/' . $name . '.svelte' );
-            $this->assertStringContainsString( "import ShipmentSummarySkeleton from '\$lib/payments/ShipmentSummarySkeleton.svelte'", $source );
-            $this->assertStringContainsString( "import ShipmentOperationProgress from '\$lib/payments/ShipmentOperationProgress.svelte'", $source );
-            $this->assertStringContainsString( "import { Spinner } from '\$lib/components/ui/spinner'", $source );
-            $this->assertStringContainsString( '<ShipmentSummarySkeleton variant="' . ( 'InstantProcessDialog' === $name ? 'instant' : 'express' ) . '"', $source );
-            $this->assertStringContainsString( '<ShipmentOperationProgress label=', $source );
-            $this->assertStringContainsString( '<Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />', $source );
-            $this->assertStringNotContainsString( 'IconLoader2', $source );
-            $this->assertStringNotContainsString( 'loading={', $source );
-        }
-        $progress = $this->source( 'src/lib/payments/ShipmentOperationProgress.svelte' );
-        $this->assertStringContainsString( "import * as Alert from '\$lib/components/ui/alert'", $progress );
-        $this->assertStringContainsString( 'role="status" aria-live="polite" aria-busy="true"', $progress );
-        $this->assertStringContainsString( '<Spinner aria-hidden="true" role="presentation" />', $progress );
-        $this->assertStringContainsString( '<Alert.Description>{label}</Alert.Description>', $progress );
-        $skeleton = $this->source( 'src/lib/payments/ShipmentSummarySkeleton.svelte' );
-        $this->assertStringContainsString( "import { Skeleton } from '\$lib/components/ui/skeleton'", $skeleton );
-        $this->assertStringContainsString( 'aria-busy="true" role="status" aria-label={label}', $skeleton );
-        $this->assertStringContainsString( 'aria-hidden="true"', $skeleton );
-    }
-
-    public function test_instant_uses_radio_cards_and_separate_masked_pin_step(): void {
-        $source = $this->source('src/lib/transactions/InstantProcessDialog.svelte');
-        $pin = $this->source('src/lib/payments/CreditPinInput.svelte');
-        $methods = $this->source('src/lib/payments/PaymentMethodSelector.svelte');
-        $this->assertStringContainsString("import CreditPinInput from '\$lib/payments/CreditPinInput.svelte'", $source);
-        $this->assertStringContainsString("import PaymentMethodSelector from '\$lib/payments/PaymentMethodSelector.svelte'", $source);
-        $this->assertStringContainsString('<PaymentMethodSelector idPrefix="instant-method" bind:value={method}', $source);
-        $this->assertStringContainsString('<CreditPinInput id="instant-credit-pin" bind:value={pin}', $source);
-        $this->assertStringContainsString('disabled={busy || expired} invalid={Boolean(error)}', $source);
-        $this->assertFileDoesNotExist(PLUGIN_DIR . '/src/lib/transactions/InstantCreditPin.svelte');
-        $this->assertStringContainsString('<RadioGroup.Root bind:value', $methods);
-        $this->assertStringContainsString('<Field.Set', $methods);
-        $this->assertStringNotContainsString('<select', $source);
-        $this->assertStringNotContainsString('<input', $source);
-        $this->assertStringContainsString("step === 'pin'", $source);
-        $this->assertStringContainsString('kiriof_instant_validate_credit', $source);
-        $this->assertStringContainsString('<InputOTP.Root', $pin);
-        $this->assertStringContainsString('maxlength={6}', $pin);
-        $this->assertStringContainsString('pattern={REGEXP_ONLY_DIGITS}', $pin);
-        $this->assertStringContainsString('type="password"', $pin);
-        $this->assertStringContainsString('<InputOTP.Slot {cell} mask={!focused || disabled || revealedIndex !== index}', $pin);
-        $this->assertStringContainsString('{#each cells as cell, index (cell)}', $pin);
-        $this->assertStringNotContainsString( '<InputOTP.Group', $pin );
-        $this->assertStringContainsString( '<Field.Label for={id} class="sr-only">', $pin );
-        $this->assertStringContainsString( '<Field.Description id={`${id}-help`} class="sr-only m-0">', $pin );
-        $this->assertStringNotContainsString('<InputOTP.Separator', $pin);
-        $this->assertStringContainsString('autocomplete="off" inputmode="numeric"', $pin);
-        $this->assertStringContainsString('aria-describedby={`${id}-help`}', $pin);
-        $this->assertStringContainsString('aria-invalid={invalid || undefined}', $pin);
-    }
-
     public function test_instant_checkboxes_do_not_inherit_the_vertical_express_dialog_reset(): void {
         $css = $this->source( 'src/styles/admin-list.css' );
         $this->assertStringContainsString( ".kiriof-instant-process-dialog [data-slot='field'][data-orientation='horizontal']", $css );

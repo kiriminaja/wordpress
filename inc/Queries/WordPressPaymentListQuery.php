@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- This read model uses prepared values and trusted plugin-owned table identifiers; raw SQL is required for the payment/transaction aggregate.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- This read-only payment/transaction aggregate requires uncached SQL.
 
 /**
  * WordPress database read model for the Payments admin list.
@@ -38,25 +38,33 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $filters = array_merge( $filters, ListDateRangeFilter::normalize( $filters ) );
         $groups = $this->getPaymentGroupsSql();
         $status = in_array( $filters['status'], array( 'unpaid', 'paid', 'pending', 'refunded' ), true ) ? $filters['status'] : '';
-        $args = array(
+        // Filter after aggregation so payment group membership and totals stay intact.
+        $date_sql = ListDateRangeFilter::sql( $wpdb, 'created_at', $filters );
+        $total = (int) $wpdb->get_var( $wpdb->prepare(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups use fixed SQL with prepared identifiers; date SQL contains only validated, separately prepared bounds.
+            "SELECT COUNT(*) FROM ({$groups}) payment_groups WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )" . "{$date_sql}",
+            '' !== $filters['key'] ? 1 : 0,
+            '%' . $wpdb->esc_like( $filters['key'] ) . '%',
+            '' !== $filters['month'] ? 1 : 0,
+            $wpdb->esc_like( $filters['month'] ) . '%',
+            '' !== $status ? 1 : 0,
+            $status
+        ) );
+        $total_pages = (int) ceil( $total / $items_per_page );
+        if ( $total_pages > 0 ) {
+            $page = min( $page, $total_pages );
+        }
+        $results = $wpdb->get_results( $wpdb->prepare(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Same fixed aggregate and separately prepared date bounds as the count; filter and pagination values are prepared here.
+            "SELECT * FROM ({$groups}) payment_groups WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )" . "{$date_sql}" . ' ORDER BY created_at DESC, row_key ASC LIMIT %d, %d',
             '' !== $filters['key'] ? 1 : 0,
             '%' . $wpdb->esc_like( $filters['key'] ) . '%',
             '' !== $filters['month'] ? 1 : 0,
             $wpdb->esc_like( $filters['month'] ) . '%',
             '' !== $status ? 1 : 0,
             $status,
-        );
-        $where = 'WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )';
-        // Filter after aggregation so payment group membership and totals stay intact.
-        $where .= ListDateRangeFilter::sql( $wpdb, 'created_at', $filters );
-        $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM ({$groups}) payment_groups {$where}", ...$args ) );
-        $total_pages = (int) ceil( $total / $items_per_page );
-        if ( $total_pages > 0 ) {
-            $page = min( $page, $total_pages );
-        }
-        $results = $wpdb->get_results( $wpdb->prepare(
-            "SELECT * FROM ({$groups}) payment_groups {$where} ORDER BY created_at DESC, row_key ASC LIMIT %d, %d",
-            ...array_merge( $args, array( ( $page - 1 ) * $items_per_page, $items_per_page ) )
+            ( $page - 1 ) * $items_per_page,
+            $items_per_page
         ) );
         // Fetch complete membership separately: GROUP_CONCAT is length limited and
         // can silently omit orders from the authorized payment refresh request.
@@ -81,10 +89,12 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
 
     /** {@inheritDoc} */
     public function getStatusCounts(): array {
+        $wpdb = $this->wpdb;
         $counts = array();
         $groups = $this->getPaymentGroupsSql();
         foreach ( array( 'all', 'unpaid', 'paid', 'pending', 'refunded' ) as $status ) {
-            $counts[ $status ] = (int) $this->wpdb->get_var( $this->wpdb->prepare(
+            $counts[ $status ] = (int) $wpdb->get_var( $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fixed aggregate with %i-prepared table identifiers, not request SQL; status values are prepared here.
                 "SELECT COUNT(*) FROM ({$groups}) payment_groups WHERE ( %s = 'all' OR status = %s )",
                 $status,
                 $status
@@ -97,6 +107,7 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
     /** {@inheritDoc} */
     public function getOldestCreatedAt(): ?string {
         $groups = $this->getPaymentGroupsSql();
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups are fixed SQL with %i-prepared plugin table names; this query has no request values.
         $created_at = $this->wpdb->get_var( "SELECT created_at FROM ({$groups}) payment_groups WHERE created_at IS NOT NULL ORDER BY created_at ASC LIMIT 1" );
         $this->logDatabaseError();
         return null === $created_at || '' === (string) $created_at ? null : (string) $created_at;

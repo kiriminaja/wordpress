@@ -26,15 +26,13 @@ class ShippingDiscountCouponController {
         add_filter( 'woocommerce_coupon_discount_types', array( $this, 'registerDiscountType' ) );
         add_filter( 'woocommerce_cart_coupon_types', array( $this, 'registerRuntimeCartCouponTypes' ) );
         add_filter( 'woocommerce_coupon_data_tabs', array( $this, 'registerCouponDataTabs' ) );
-        add_filter( 'woocommerce_coupon_is_valid_for_cart', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
+        add_filter( 'woocommerce_coupon_is_valid', array( $this, 'validateShippingCouponForCart' ), 20, 2 );
         add_filter( 'woocommerce_coupon_message', array( $this, 'customizeCouponSuccessMessage' ), 10, 3 );
         add_filter( 'woocommerce_coupon_is_valid_for_product', array( $this, 'validateShippingCouponForProduct' ), 20, 4 );
         add_filter( 'woocommerce_coupon_get_discount_amount', array( $this, 'zeroItemDiscountForShippingCoupon' ), 20, 5 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
         add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 5, 1 );
         add_action( 'woocommerce_applied_coupon', array( $this, 'handleAppliedShippingCoupon' ), 20, 1 );
-        add_action( 'woocommerce_applied_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
-        add_action( 'woocommerce_removed_coupon', array( $this, 'invalidateShippingRatesAfterCouponChange' ), 30, 1 );
         add_action( 'woocommerce_before_calculate_totals', array( $this, 'enforceShippingCouponRestrictions' ), 20, 1 );
         add_filter( 'manage_edit-shop_coupon_columns', array( $this, 'registerCouponListColumns' ) );
         add_action( 'manage_shop_coupon_posts_custom_column', array( $this, 'renderCouponListColumn' ), 10, 2 );
@@ -83,7 +81,7 @@ class ShippingDiscountCouponController {
                 'Shipping discount coupon rejected before KiriminAja validation.',
                 $coupon,
                 array(
-                    'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                    'hook' => 'woocommerce_coupon_is_valid',
                 )
             );
             return false;
@@ -101,7 +99,7 @@ class ShippingDiscountCouponController {
             'Shipping discount coupon failed cart validation.',
             $coupon,
             array(
-                'hook' => 'woocommerce_coupon_is_valid_for_cart',
+                'hook' => 'woocommerce_coupon_is_valid',
                 'validation_message' => $message,
             )
         );
@@ -237,15 +235,18 @@ class ShippingDiscountCouponController {
             $packages = (array) WC()->cart->get_shipping_packages();
         }
 
+        if ( isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'get_packages' ) ) {
+            $packages += (array) WC()->shipping()->get_packages();
+        }
+
         if ( isset( WC()->session ) && WC()->session ) {
             foreach ( array_keys( $packages ) as $package_index ) {
                 WC()->session->set( 'shipping_for_package_' . $package_index, false );
             }
         }
 
-        if ( isset( WC()->shipping ) && WC()->shipping() && method_exists( WC()->shipping(), 'reset_shipping' ) ) {
-            WC()->shipping()->reset_shipping();
-        }
+        // reset_shipping() clears chosen_shipping_methods in WooCommerce.
+        // Invalidating package hashes is enough and preserves the buyer choice.
 
     }
 
@@ -784,6 +785,12 @@ class ShippingDiscountCouponController {
             : array();
         // phpcs:enable WordPress.Security.NonceVerification.Missing
         $discountType = $coupon instanceof \WC_Coupon ? $coupon->get_discount_type() : '';
+		$allowed_couriers = array_column( $this->getCourierOptions(), 'id' );
+		$couriers = array_values( array_unique( array_intersect( $couriers, $allowed_couriers ) ) );
+		if ( 'selected' === $courier_scope && empty( $couriers ) ) {
+			// An empty/invalid selected scope must not silently become All Couriers.
+			$couriers = array( '_kiriof_no_couriers' );
+		}
 
         update_post_meta( $post_id, self::META_REGIONS, wp_json_encode( $this->normalizeRegions( $regions ) ) );
         update_post_meta( $post_id, self::META_COURIERS, array_values( array_unique( array_filter( $couriers ) ) ) );
@@ -1080,13 +1087,14 @@ class ShippingDiscountCouponController {
     }
 
     private function getCourierOptions(): array {
-        $service = ( new KiriminajaApiService() )->get_couriers();
-        if ( 200 !== $service->status || empty( $service->data ) ) {
-            return array();
-        }
+        // Admin rendering must not depend on a live courier API request.
+        $couriers = \KiriminAjaOfficial\Services\CourierServiceCatalog::available();
+        // Coupon permissions do not grant service entitlement. Include known
+        // Instant couriers even when they are not enabled for this account.
+        $couriers = array_merge( $couriers, \KiriminAjaOfficial\Services\CourierServiceCatalog::instantServices() );
 
         $options = array();
-        foreach ( (array) $service->data as $courier ) {
+        foreach ( $couriers as $courier ) {
             $courier = (object) $courier;
             if ( empty( $courier->code ) || empty( $courier->name ) ) {
                 continue;

@@ -9,7 +9,7 @@ final class InstantDetailMapDataRuntimeTest extends TestCase {
         $enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
         $data = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionDetailPageData.php' );
         $this->assertStringContainsString( "array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' )", $enqueue );
-        $this->assertStringContainsString( "\$this->enqueue_workspace_script( \$workspace_script, array( 'kiriof-leaflet-script' ) )", $enqueue );
+        $this->assertStringContainsString( "\$this->enqueue_workspace_script( \$workspace_script, \$needs_leaflet ? array( 'kiriof-leaflet-script' ) : array() )", $enqueue );
         $this->assertSame( 2, substr_count( $data, '"map" => $is_express ? null : InstantDetailMapData::mapConfig()' ) );
         $helper = file_get_contents( PLUGIN_DIR . '/inc/Services/InstantDetailMapData.php' );
         $this->assertStringContainsString( 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', $helper );

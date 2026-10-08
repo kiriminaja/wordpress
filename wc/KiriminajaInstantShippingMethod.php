@@ -91,6 +91,15 @@ function kiriof_instant_shipping_method() {
 		}
 
 		public function calculate_shipping( $package = array() ) {
+			$wc = function_exists( 'WC' ) ? WC() : null;
+			if ( $wc && isset( $wc->session ) && $wc->session ) {
+				$meta = (array) $wc->session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+				$prefix = $this->id . ':' . $this->instance_id . ':';
+				foreach ( array_keys( $meta ) as $rate_id ) {
+					if ( is_string( $rate_id ) && str_starts_with( $rate_id, $prefix ) ) { unset( $meta[$rate_id] ); }
+				}
+				$wc->session->set( 'kiriof_shipping_coupon_rate_meta', $meta );
+			}
 			if ( 'yes' !== $this->enabled || ! $this->has_physical_contents( $package ) ) {
 				return;
 			}
@@ -138,10 +147,11 @@ function kiriof_instant_shipping_method() {
 						if ( ! $this->valid_rate( $rate ) ) {
 							continue;
 						}
+						$pricing = ( new \KiriminAjaOfficial\Services\ShippingDiscountCouponService() )->getAdjustedRatePricing( (object) array( 'courier' => $rate['courier'] ), (float) $rate['shipping_costs'] );
 						$this->add_rate( array(
 							'id' => $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'],
 							'label' => sanitize_text_field( $rate['label'] ),
-							'cost' => (float) $rate['shipping_costs'],
+							'cost' => function_exists( 'wc_format_decimal' ) ? (float) wc_format_decimal( $pricing['cost'], wc_get_price_decimals() ) : (float) $pricing['cost'],
 							'taxes' => false,
 							'meta_data' => array(
 								'kiriof_delivery_type' => 'instant',
@@ -153,6 +163,9 @@ function kiriof_instant_shipping_method() {
 							),
 						) );
 						$rate_id = $this->id . ':' . $this->instance_id . ':' . $rate['courier'] . ':' . $rate['service'];
+						$coupon_meta = (array) $session->get( 'kiriof_shipping_coupon_rate_meta', array() );
+						$coupon_meta[$rate_id] = array_merge( $pricing, array( 'label' => sanitize_text_field( $rate['label'] ), 'formatted_cost' => wp_strip_all_tags( wc_price( $pricing['cost'] ) ), 'formatted_original_cost' => wp_strip_all_tags( wc_price( $pricing['original_cost'] ) ) ) );
+						$session->set( 'kiriof_shipping_coupon_rate_meta', $coupon_meta );
 						if ( isset( $this->rates[$rate_id] ) && method_exists( $this->rates[$rate_id], 'set_delivery_time' ) ) {
 							$this->rates[$rate_id]->set_delivery_time( $rate['estimation'] );
 						}

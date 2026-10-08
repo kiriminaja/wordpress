@@ -9,6 +9,16 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
 require_once dirname( __DIR__ ) . '/vendor/autoload.php';
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $value ) { return json_encode( $value ); }
+}
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	function wp_strip_all_tags( $text, $remove_breaks = false ) {
+		$text = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $text );
+		$text = strip_tags( $text );
+		return trim( $remove_breaks ? preg_replace( '/[\\r\\n\\t ]+/', ' ', $text ) : $text );
+	}
+}
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) );
 }
@@ -16,6 +26,18 @@ require_once dirname( __DIR__ ) . '/inc/Infrastructure/InstantDiagnosticRedactor
 
 /** Real bounded request handling with an offline PSR-18 client. */
 final class InstantApiTransportDiagnosticsTest extends TestCase {
+	public function test_redaction_removes_script_style_and_decoded_markup_without_leaking_secrets(): void {
+		$message = \KiriminAjaOfficial\Infrastructure\InstantDiagnosticRedactor::redact(
+			'&lt;script&gt;private-script-token&lt;/script&gt;<style>private-style-token</style><b>PIN is invalid</b> token=private-account-token https://carrier.invalid/?key=private-url-token',
+			array(),
+			'private-account-token'
+		);
+		$this->assertStringContainsString( 'PIN is invalid', $message );
+		$this->assertStringNotContainsString( 'private-', $message );
+		$this->assertStringNotContainsString( '<', $message );
+		$this->assertStringContainsString( '[redacted]', $message );
+	}
+
 	protected function tearDown(): void {
 		\KiriminAja\Base\Config\Cache\Cache::resetStore();
 	}

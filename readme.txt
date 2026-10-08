@@ -54,6 +54,17 @@ With KiriminAja, WooCommerce shipping operations can be more centralized, easier
 * Origin address, active courier, callback URL, insurance, and tracking page settings.
 * Region coverage and courier list cache for better admin performance.
 
+== Optional Google Maps Integration ==
+
+Google Maps is optional and disabled unless the merchant saves their own browser API key in KiriminAja Settings > Technical > Google Maps Integrations. Without a key, maps continue using the bundled Leaflet library and OpenStreetMap.
+
+When enabled, map pages load the Maps JavaScript API from https://maps.googleapis.com and display Google's map imagery instead of loading Leaflet. Requests send the public browser API key and normal browser/network information (such as IP address and HTTP referrer); displayed coordinates and map interactions are processed by Google. No Google Directions or Places API is used. Google Cloud billing and usage limits belong to the merchant.
+
+Restrict the key to the website's HTTP referrers and to Maps JavaScript API. The settings display is masked, but browser keys are visible to visitors when maps load. Removing the key restores OpenStreetMap. Loading or authorization failures do not silently fall back to another provider.
+
+Google Maps terms: https://cloud.google.com/maps-platform/terms
+Google privacy policy: https://policies.google.com/privacy
+
 == Supported Couriers and Services ==
 
 Courier and service availability depends on the merchant account, origin address, destination address, package details, and active KiriminAja services. Commonly available couriers include:

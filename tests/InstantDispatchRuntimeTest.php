@@ -405,6 +405,69 @@ final class InstantDispatchRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function merchant_funds_provider_quote_without_subtracting_buyer_shipping_discount(): void {
+        $receipt = array(
+            '_shipping_city'=>'Saved City',
+            '_kiriof_instant_shipping_cost'=>18000,
+            '_kiriof_instant_shipping_total'=>19000,
+            '_kiriof_instant_admin_fee'=>1000,
+            '_kiriof_instant_customer_shipping_cost'=>16200,
+            '_kiriof_instant_customer_shipping_discount'=>1800,
+            '_kiriof_instant_customer_shipping_total'=>17200,
+        );
+        $row = array('shipping_cost'=>18000, 'discount_amount'=>1800, 'discount_percentage'=>0, 'shipping_info'=>json_encode($receipt, JSON_THROW_ON_ERROR));
+        // Both runs are isolated fixture bookings, not paid provider requests. The
+        // second quote represents provider repricing, not another buyer discount.
+        foreach (array(18000, 16000) as $provider_price) {
+            $r = $this->runFixture(array('row'=>$row, 'price'=>$provider_price, 'validate_credit'=>true, 'profile'=>'CREDIT', 'method'=>'credit', 'pin'=>'123456'));
+            $this->assertSame('', $r['error']);
+            $this->assertTrue($r['quote']['rows'][0]['eligible']);
+            $this->assertSame(18000, $r['quote']['rows'][0]['before']);
+            $this->assertSame($provider_price, $r['quote']['rows'][0]['after']);
+            $this->assertSame($provider_price !== 18000, $r['quote']['rows'][0]['changed']);
+            $quoted = $r['after_validation']['transients']['kiriof_instant_quote_' . $r['quote']['token']]['contexts']['KA-1'];
+            $this->assertSame($provider_price, $quoted['price']);
+            $this->assertSame(array('valid'=>true), $r['validation']);
+            $this->assertReadOnlyValidation($r);
+            $this->assertSame(array_fill(0, 2, array('amount'=>$provider_price, 'valid_pin'=>true)), $r['credits']);
+            $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
+            $this->assertCount(1, $r['books']);
+            $this->assertSame('credit', $r['books'][0]['payment_method']);
+            $this->assertTrue($r['books'][0]['valid_credit_pin']);
+            $this->assertCount(1, $r['books'][0]['packages']);
+            $this->assertSame(array(
+                'order_id'=>'KA-1',
+                'destination'=>array('name'=>'Booked Full Name', 'phone'=>'0812345678', 'address'=>'Complete recipient street, City, 12345', 'latitude'=>-6.3, 'longitude'=>106.9),
+                'service'=>'gosend', 'service_type'=>'sameday', 'vehicle'=>'motor',
+                'shipping_cost'=>$provider_price, 'items'=>array(array('name'=>'Item', 'qty'=>1)), 'package_type_id'=>7,
+            ), $r['books'][0]['packages'][0]);
+            foreach (array('coupon', 'coupon_code', 'discount_amount', 'discount_percentage', 'cost', 'admin_fee', 'metadata', 'shipping_info') as $field) {
+                $this->assertArrayNotHasKey($field, $r['books'][0]);
+                $this->assertArrayNotHasKey($field, $r['books'][0]['packages'][0]);
+            }
+            $this->assertSame($provider_price, $r['rows'][0]['shipping_cost']);
+            $this->assertSame(1800, $r['rows'][0]['discount_amount']);
+            $this->assertSame(0, $r['rows'][0]['discount_percentage']);
+            $snapshot = json_decode($r['rows'][0]['shipping_info'], true, 512, JSON_THROW_ON_ERROR);
+            foreach ($receipt as $field=>$value) {
+                $this->assertSame($value, $snapshot[$field], $field);
+            }
+            $this->assertSame($provider_price, $snapshot['instant_shipping_cost']);
+            $this->assertSame(18000, $r['dispatch']['payments'][0]['amount']);
+            $this->assertSame(1, $r['prices']);
+            // The mocked QRIS response deliberately returns 18000 even when
+            // the quote is 16000: remote QR payment amounts remain authoritative.
+            $qris = $this->runFixture(array('row'=>$row, 'price'=>$provider_price));
+            $this->assertSame('', $qris['error']);
+            $this->assertSame('booked', $qris['dispatch']['rows'][0]['status']);
+            $this->assertSame('qris', $qris['books'][0]['payment_method']);
+            $this->assertSame($provider_price, $qris['books'][0]['packages'][0]['shipping_cost']);
+            $this->assertSame(18000, $qris['dispatch']['payments'][0]['amount']);
+            $this->assertSame('000201-QR', $qris['dispatch']['payments'][0]['qr_content']);
+        }
+    }
+
+    #[Test]
     public function fresh_exact_price_and_snapshots_are_persisted_once(): void {
         $r = $this->runFixture(['retry'=>true,'row'=>['rejected_reason'=>'Check remote state before retrying']]);
         $this->assertSame('', $r['error']);

@@ -117,7 +117,7 @@ class InstantCheckoutQuoteService {
 			throw new InvalidArgumentException( 'quote_invalid' );
 		} catch ( InvalidArgumentException $error ) {
 			$reason = $this->reason( $error->getMessage() );
-			throw new InvalidArgumentException( $reason );
+			throw new InvalidArgumentException( $reason ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- reason() allowlists internal machine codes; HTML escaping would change the exception contract.
 		} catch ( \Throwable $error ) {
 			throw new InvalidArgumentException( 'quote_invalid' );
 		}
@@ -432,7 +432,7 @@ class InstantCheckoutQuoteService {
 
 	private function integer( $value, int $minimum, string $reason = 'items_invalid' ): int {
 		if ( is_bool( $value ) || ! is_numeric( $value ) || ! is_finite( (float) $value ) || (float) $value < $minimum || (float) $value >= PHP_INT_MAX || floor( (float) $value ) !== (float) $value ) {
-			throw new InvalidArgumentException( $reason );
+			throw new InvalidArgumentException( $reason ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Private callers supply only the fixed items_invalid or origin_invalid machine code, not display text.
 		}
 		return (int) $value;
 	}

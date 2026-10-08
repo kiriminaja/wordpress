@@ -26,6 +26,28 @@ namespace KiriminAjaOfficial\Services {
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );
+    // Exercise the real coupon pricing service, not a synthetic adjusted-rate getter.
+    require_once dirname(__DIR__, 2) . '/inc/Services/CourierServiceCatalog.php';
+    require_once dirname(__DIR__, 2) . '/inc/Services/ShippingDiscountCouponService.php';
+    function sanitize_key($value) { return strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', $value)); }
+    function wc_get_price_decimals() { return 0; }
+    function wc_format_decimal($value, $dp = false) { return number_format((float) $value, $dp === false ? 0 : $dp, '.', ''); }
+    function metadata_exists(...$args) { return false; }
+    function get_post_meta($id, $key, $single = false) { return []; }
+    class WC_Coupon {
+        public function __construct(public string $kind = 'fixed') {}
+        public function get_id() { return 1; }
+        public function get_code() { return $this->kind; }
+        public function get_discount_type() { return $this->kind === 'percent' ? 'kiriof_percent_shipping_discount' : 'kiriof_fixed_shipping_discount'; }
+        public function get_amount() { return $this->kind === 'percent' ? 25 : 5000; }
+        public function get_free_shipping() { return $this->kind === 'free'; }
+    }
+    class CouponCart {
+        public array $coupons = [];
+        public function get_coupons() { return $this->coupons; }
+        public function get_cart() { return [['data' => new class { public function needs_shipping() { return true; } }]]; }
+    }
+
 	$GLOBALS['logs'] = array();
 	function kiriof_log( ...$args ) { $GLOBALS['logs'][] = $args; }
 	$GLOBALS['actions'] = array();
@@ -181,7 +203,7 @@ namespace {
 	$method->calculate_shipping( $package );
 	$result['zero_rates'] = fixture_rates( $method );
 	$result['money'] = array( 'tax_status' => $one->tax_status, 'taxes' => $one->submitted_rates[0]['taxes'] );
-	$GLOBALS['wc']->cart = new class { public $packages = array(); public function get_shipping_packages() { return $this->packages; } };
+	$GLOBALS['wc']->cart = new class { public $packages = array(); public function get_coupons() { return []; } public function get_shipping_packages() { return $this->packages; } };
 	foreach ( array( 'multi', 'currency', 'virtual' ) as $scenario ) {
 		$GLOBALS['wc']->cart->packages = 'multi' === $scenario ? array( $package, $package ) : array( $package );
 		$GLOBALS['currency'] = 'currency' === $scenario ? 'USD' : 'IDR';
@@ -207,6 +229,17 @@ namespace {
 		$guard->calculate_shipping( $package );
 		$result['reasons'][ $reason ] = $session->get( 'kiriof_instant_checkout_status' )['100:' . hash( 'sha256', json_encode( array_keys( $package['contents'] ) ) )];
 	}
+    $GLOBALS['wc']->cart = new CouponCart();
+    $quotes->mode = 'ok'; $quotes->rows = [$valid];
+    foreach (['fixed', 'percent', 'free'] as $kind) {
+        WC()->cart->coupons = [new WC_Coupon($kind)];
+        $method = new Kiriof_Instant_Shipping_Method_Controller(101, $quotes);
+        $method->calculate_shipping($package);
+        $result['coupons'][$kind] = ['rates' => fixture_rates($method), 'meta' => $session->get('kiriof_shipping_coupon_rate_meta')['kiriminaja-instant:101:gosend:instant']];
+    }
+    WC()->cart->coupons = [];
+    $method = new Kiriof_Instant_Shipping_Method_Controller(101, $quotes); $method->calculate_shipping($package);
+    $result['coupons']['removed'] = ['rates' => fixture_rates($method), 'meta' => $session->get('kiriof_shipping_coupon_rate_meta')['kiriminaja-instant:101:gosend:instant']];
 	$result['logs'] = $GLOBALS['logs'];
 	echo json_encode( $result );
 

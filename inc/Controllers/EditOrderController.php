@@ -135,7 +135,7 @@ class EditOrderController{
         );
 
         // Extra WC order data for the redesigned metabox.
-        $wc_order            = wc_get_order( $order_id );
+        $wc_order            = $post_or_order instanceof \WC_Order ? $post_or_order : wc_get_order( $order_id );
         $wc_subtotal         = $wc_order ? (float) $wc_order->get_subtotal()       : 0.0;
         $wc_total            = $wc_order ? (float) $wc_order->get_total()          : 0.0;
         $wc_discount_total   = $wc_order ? (float) $wc_order->get_discount_total() : 0.0;

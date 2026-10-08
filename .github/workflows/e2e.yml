@@ -1,0 +1,54 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [main, staging, development, v3]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Isolated Chromium user flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml
+          tools: composer
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+      - name: Install production fixtures and frontend dependencies
+        run: |
+          composer install --no-interaction --prefer-dist
+          bun install --frozen-lockfile
+          cd tests/e2e
+          bun install --frozen-lockfile
+      - name: Build deployed browser entries
+        run: bun run build
+      - name: Install Chromium dependencies
+        working-directory: tests/e2e
+        run: |
+          bunx playwright install-deps chromium
+          bun run browser:install
+      - name: Exercise isolated user flows
+        working-directory: tests/e2e
+        run: bun run test
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-failure-evidence
+          path: tests/e2e/.e2e/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore

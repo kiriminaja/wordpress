@@ -38,7 +38,8 @@ final class CheckoutShippingSelectionGuard {
 
 	public function classic( $order, $data ): void {
 		// WooCommerce verifies the checkout nonce before create_order. Never reuse a session review.
-		$posted = $_POST['kiriof_shipping_selection'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash,WordPress.Security.NonceVerification.Missing -- Native checkout nonce verified; JSON is unslashed below then review() strictly validates version, list shape and bounded exact identifiers against server rates. Text sanitization would mutate opaque rate IDs.
+		$posted = $_POST['kiriof_shipping_selection'] ?? null;
 		$raw = is_string( $posted ) ? json_decode( wp_unslash( $posted ), true ) : null;
 		$this->validate( $order, $raw, false );
 	}
@@ -74,7 +75,7 @@ final class CheckoutShippingSelectionGuard {
 
 	private function validate( $order, $raw, bool $store_api ): void {
 		$review = $this->review( $raw );
-		if ( null !== $raw && null === $review ) { $this->fail( $store_api ); }
+		if ( null !== $raw && null === $review ) { $this->fail( $store_api, 'review_invalid' ); }
 		$wc = function_exists( 'WC' ) ? WC() : null;
 		$packages = $wc ? $wc->shipping()->get_packages() : array();
 		$chosen = $wc && $wc->session ? $wc->session->get( 'chosen_shipping_methods', array() ) : array();
@@ -84,7 +85,10 @@ final class CheckoutShippingSelectionGuard {
 		foreach ( is_array( $raw ) && is_array( $raw['packages'] ?? null ) ? $raw['packages'] : array() as $entry ) {
 			if ( is_array( $entry ) && is_string( $entry['rate_id'] ?? null ) && $this->owned( $entry['rate_id'] ) ) { $in_scope = true; }
 		}
-		foreach ( is_array( $chosen ) ? $chosen : array() as $id ) {
+		// Woo updates selections by current package key and does not always prune
+		// removed package keys. They are not shipments in this checkout request.
+		$current_chosen = is_array( $chosen ) && is_array( $packages ) ? array_intersect_key( $chosen, $packages ) : array();
+		foreach ( $current_chosen as $id ) {
 			if ( is_string( $id ) && $this->owned( $id ) ) { $in_scope = true; }
 		}
 		foreach ( is_array( $packages ) ? $packages : array() as $key => $package ) {
@@ -97,15 +101,24 @@ final class CheckoutShippingSelectionGuard {
 		}
 		if ( ! $in_scope ) { return; }
 
-		if ( null === $review || ! is_array( $packages ) || ! is_array( $chosen ) || count( $review ) !== count( $packages ) || count( $chosen ) !== count( $packages ) || count( $lines ) !== count( $packages ) ) {
-			$this->fail( $store_api );
+		if ( null === $review ) { $this->fail( $store_api, 'review_missing' ); }
+		if ( ! is_array( $packages ) || ! is_array( $chosen ) || count( $review ) !== count( $packages ) || count( $current_chosen ) !== count( $packages ) || count( $lines ) !== count( $packages ) ) {
+			$this->fail( $store_api, 'current_package_set_mismatch' );
 		}
 		$remaining = array_values( $lines );
 		foreach ( $packages as $key => $package ) {
 			$id = $review[ $key ] ?? null;
 			$rate = is_string( $id ) ? ( $package['rates'][ $id ] ?? null ) : null;
-			if ( ! $rate || ( $chosen[ $key ] ?? null ) !== $id || $rate->get_id() !== $id ) {
-				$this->fail( $store_api );
+			if ( ! $rate || $rate->get_id() !== $id ) { $this->fail( $store_api, 'reviewed_rate_unavailable' ); }
+			if ( ( $chosen[ $key ] ?? null ) !== $id ) {
+				$selected = is_string( $chosen[ $key ] ?? null ) ? $chosen[ $key ] : '';
+				$this->fail( $store_api, 'selected_rate_mismatch', array(
+					'reviewed_kind' => $this->rateKind( $id ),
+					'selected_kind' => $this->rateKind( $selected ),
+					'reviewed_fingerprint' => substr( hash( 'sha256', $id ), 0, 16 ),
+					'selected_fingerprint' => substr( hash( 'sha256', $selected ), 0, 16 ),
+					'order_matches_review' => (bool) array_filter( $remaining, fn( $line ) => $this->matches( $line, $rate ) ),
+				) );
 			}
 			// Match a multiset, not order item IDs or presumed numeric package positions.
 			$matched = false;
@@ -116,7 +129,7 @@ final class CheckoutShippingSelectionGuard {
 					break;
 				}
 			}
-			if ( ! $matched ) { $this->fail( $store_api ); }
+			if ( ! $matched ) { $this->fail( $store_api, 'order_shipping_identity_mismatch' ); }
 		}
 	}
 
@@ -134,12 +147,27 @@ final class CheckoutShippingSelectionGuard {
 		return true;
 	}
 
-	private function fail( bool $store_api ): void {
+	private function rateKind( string $id ): string {
+		if ( 0 === strpos( $id, 'kiriminaja-instant:' ) ) { return 'instant'; }
+		if ( $this->owned( $id ) ) { return 'express'; }
+		return '' === $id ? 'missing' : 'external';
+	}
+
+	private function fail( bool $store_api, string $reason, array $identity_diagnostics = array() ): void {
+		// Fixed internal reasons only: no posted identifiers, address, coordinates,
+		// payment values, quote tokens or exception trace enter this diagnostic.
+		if ( function_exists( 'kiriof_log' ) ) {
+			try {
+				kiriof_log( 'warning', 'Checkout shipping review rejected.', array( 'reason' => $reason, 'route' => $store_api ? 'blocks' : 'classic', 'backtrace' => false ) + $identity_diagnostics, 'kiriminaja_checkout' );
+			} catch ( \Throwable $error ) {
+				// Logging must not alter the read-only checkout gate.
+			}
+		}
 		$message = __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' );
 		$exception = '\\Automattic\\WooCommerce\\StoreApi\\Exceptions\\RouteException';
 		if ( $store_api && class_exists( $exception ) ) {
-			throw new $exception( 'kiriof_shipping_selection_changed', $message, 409 );
+			throw new $exception( 'kiriof_shipping_selection_changed', esc_html( $message ), 409 );
 		}
-		throw new \RuntimeException( $message );
+		throw new \RuntimeException( esc_html( $message ) );
 	}
 }

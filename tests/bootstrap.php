@@ -11,6 +11,10 @@ define('PLUGIN_SLUG', 'kiriminaja-official');
 define('PLUGIN_PREFIX', 'kiriof_');
 define('PLUGIN_DEFINE_PREFIX', 'KIRIOF_');
 
+if (!defined('ABSPATH')) {
+    define('ABSPATH', PLUGIN_DIR . '/');
+}
+
 if ( ! function_exists( 'update_option' ) ) {
     function update_option( $option, $value ) {
         $GLOBALS['tracking_page_test_options'][ $option ]  = $value;

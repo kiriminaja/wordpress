@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
 import { happy } from './helpers/ui-runtime';
-import { normalizeInstantRoute, routePoint } from '../src/lib/transaction-detail/instant-route-map';
+import { normalizeInstantRoute, routePoint, mountInstantRouteMap } from '../src/lib/transaction-detail/instant-route-map';
 
 const root = resolve(import.meta.dir, '..');
 const illustration = { origin: { latitude: 0, longitude: 0 }, destination: { latitude: -6.2, longitude: 106.8 }, points: [], mode: 'illustration' as const };
@@ -26,7 +26,7 @@ test('saved coordinates accept zero/decimal strings, reject missing, non-finite 
   expect(normalizeInstantRoute({ ...illustration, destination: null })).toBeNull();
 });
 
-async function fixture(data: any = illustration, missingLeaflet = false) {
+async function fixture(data: any = illustration, missingLeaflet = false, config?: any, google?: any) {
   const window = new happy.Window({ url: 'https://fixture.test' });
   const directory = mkdtempSync(join(root, 'node_modules', '.instant-map-runtime-'));
   const saved = new Map<string, PropertyDescriptor | undefined>();
@@ -56,6 +56,7 @@ async function fixture(data: any = illustration, missingLeaflet = false) {
     circleMarker(point: any, options: any) { const marker = { point, options, tooltip: null as any, bindTooltip(node: any) { this.tooltip = node; return this; }, addTo() { return this; } }; markers.push(marker); return marker; },
   };
   if (!missingLeaflet) (window as any).L = L;
+  if (google) (window as any).google = { maps: google };
   const globals = { window, document: window.document, navigator: window.navigator, Node: window.Node, Element: window.Element, HTMLElement: window.HTMLElement, SVGElement: window.SVGElement, DocumentFragment: window.DocumentFragment, Text: window.Text, Comment: window.Comment, Event: window.Event, MutationObserver: window.MutationObserver, ResizeObserver: Observer,
     getComputedStyle: window.getComputedStyle.bind(window), requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
     setTimeout: (callback: () => void) => { timers.set(++timer, callback); return timer; }, clearTimeout: (id: number) => timers.delete(id),
@@ -73,12 +74,12 @@ async function fixture(data: any = illustration, missingLeaflet = false) {
   if (!build.success) throw new Error(build.logs.join('\n'));
   const r = await import(join(directory, 'runtime.js'));
   const target = window.document.createElement('main'); window.document.body.append(target);
-  const host = r.mount(r.Host, { target, props: { initial: data, config: { enabled: true, tiles: '/tiles/{z}/{x}/{y}.png', attribution: 'Saved map' } } });
+  const host = r.mount(r.Host, { target, props: { initial: data, config: config ?? { enabled: true, tiles: '/tiles/{z}/{x}/{y}.png', attribution: 'Saved map' } } });
   const settle = async () => { for (let i = 0; i < 6; i++) { await Promise.resolve(); r.flushSync(); } };
   await settle();
   let destroyed = false;
   const destroy = async () => { if (!destroyed) { destroyed = true; await r.unmount(host); await settle(); } };
-  return { target, maps, lines, markers, layers, observers, timers, settle, destroy,
+  return { window, target, maps, lines, markers, layers, observers, timers, settle, destroy,
     requests: () => requests,
     change: async (value: any) => { host.change(value); await settle(); },
     changeConfig: async (value: any) => { host.changeConfig(value); await settle(); },
@@ -156,4 +157,66 @@ describe('InstantRouteMap compiled Svelte lifecycle', () => {
       expect(h.requests()).toBe(0);
     } finally { await h.cleanup(); }
   });
+});
+
+
+function googleFixture() {
+  const maps: any[] = [], overlays: any[] = [], cleared: object[] = [];
+  class Map {
+    fit: any;
+    constructor(public node: HTMLElement, public options: any) { maps.push(this); }
+    fitBounds(bounds: any, padding: any) { this.fit = { bounds, padding }; }
+  }
+  class Overlay {
+    detached = 0;
+    constructor(public options: any) { overlays.push(this); }
+    setMap(value: any) { if (value === null) this.detached++; }
+  }
+  return { maps, overlays, cleared, api: { Map, Polyline: Overlay, Circle: Overlay, event: {
+    clearInstanceListeners: (instance: object) => cleared.push(instance), trigger() {},
+  } } };
+}
+
+const googleConfig = { enabled: true, provider: 'google', apiKey: 'fixture_key', tiles: '', attribution: '' };
+test('Google route map copies original recorded geometry, uses read-only overlays and disposes on provider changes', async () => {
+  const google = googleFixture();
+  const h = await fixture(recorded, false, googleConfig, google.api);
+  try {
+    expect(h.maps).toHaveLength(0); expect(h.layers).toHaveLength(0);
+    expect(google.maps).toHaveLength(1);
+    expect(google.maps[0].options.draggable).toBe(false);
+    expect(google.overlays[0].options.path).toEqual(recorded.points.map(([lat, lng]) => ({ lat, lng })));
+    expect(google.overlays[0].options.geodesic).toBe(false);
+    // The production adapter resolves semantic theme colors in the DOM. This
+    // unstyled fixture uses currentColor instead of pinning a duplicate palette.
+    expect(google.overlays.slice(1).every(o => typeof o.options.fillColor === 'string' && o.options.fillColor.length > 0)).toBe(true);
+    expect(google.maps[0].fit.padding).toBe(24);
+    google.overlays[0].options.path[0].lat = 42;
+    expect(recorded.points[0]).toEqual([0, 0]);
+    await h.changeConfig({ ...googleConfig, provider: 'unknown' });
+    expect(google.overlays.every(o => o.detached === 1)).toBe(true);
+    expect(google.cleared).toHaveLength(4);
+    expect(h.maps).toHaveLength(0);
+    expect(h.target.textContent).toContain('could not be displayed');
+  } finally { await h.cleanup(); }
+});
+
+test('late Google loader completion after disposal creates no stale route map or Leaflet fallback', async () => {
+  const google = googleFixture();
+  const window = new happy.Window({ url: 'https://fixture.test' });
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: window });
+  (window as any).google = { maps: google.api };
+  const container = window.document.createElement('div');
+  try {
+    const session = mountInstantRouteMap(container as any, normalizeInstantRoute(recorded)!, googleConfig, () => { throw new Error('Unexpected map error'); });
+    session.dispose();
+    await Promise.resolve(); await Promise.resolve();
+    expect(google.maps).toHaveLength(0);
+    expect(google.overlays).toHaveLength(0);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'window', previous);
+    else delete (globalThis as any).window;
+    window.happyDOM.abort();
+  }
 });

@@ -216,7 +216,10 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 				expect(h.sends).toHaveLength(0); expect(h.window.kiriofBuyerCheckout.getDestination().district_id).toBe('');
 				expect(h.window.kiriofBuyerCheckout.getCoordinates(shipping)).toMatchObject({ latitude: '0.0000000', longitude: '0.0000000' });
 				expect(h.badges().find(node => node.textContent === 'Pin location').classList.contains('is-complete')).toBe(true);
-				expect(h.badges().filter(node => node.textContent === label)).toHaveLength(1);
+				const notices = h.card().querySelectorAll('.kiriof-address-status__recovery .kiriof-address-status__message');
+				expect(notices).toHaveLength(1); expect(notices[0].textContent).toBe(label);
+				expect(notices[0].classList.contains('is-warning')).toBe(true);
+				expect(h.badges().map(node => node.textContent)).toEqual(['Pin location']);
 				expect(h.badges().some(node => node.textContent === 'Subdistrict not set')).toBe(false);
 				expect([...h.card().querySelectorAll('.kiriof-address-status button')].map(node => node.textContent)).toEqual(['Retry']);
 				await h.editing(true);

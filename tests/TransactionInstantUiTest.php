@@ -5,18 +5,100 @@ declare(strict_types=1);
 use PHPUnit\Framework\TestCase;
 
 final class TransactionInstantUiTest extends TestCase {
+    public function test_bootstrap_pending_issue_count_is_independent_of_historical_list_totals_and_filters(): void {
+        // Run the real renderer with fake query/services; replace only the template output boundary.
+        $runtime = <<<'PHP'
+namespace KiriminAjaOfficial\Services {
+    class TransactionListViewModelFactory { public function createRows($rows, $status): array { return []; } }
+    class KiriminajaApiService { public function getCourierNameMap(): array { return []; } }
+    class ShipmentLocationService {
+        public function repository() { return $this; }
+        public function getAll($active): array { return []; }
+    }
+    class PluginUpdateNoticeService { public function get_toolbar_update() { return null; } }
+    class RevampAnnouncementService { public static function attach_announcement($toolbar) { return $toolbar; } }
+}
+namespace {
+    define('ABSPATH', __DIR__);
+    define('KIRIOF_URL', 'https://fixture.test/');
+    define('KIRIOF_NONCE', 'fixture');
+    function get_locale() { return 'en_US'; }
+    function wp_get_current_user() { return (object) ['ID' => 1]; }
+    function get_user_meta(...$args) { return 25; }
+    function update_user_meta(...$args) {}
+    function sanitize_text_field($value) { return trim(strip_tags($value)); }
+    function wp_unslash($value) { return $value; }
+    function admin_url($value) { return 'https://fixture.test/' . $value; }
+    function __($value, $domain) { return $value; }
+    function wp_create_nonce($value) { return 'nonce'; }
+    $root = $argv[1];
+    require $root . '/inc/Contracts/TransactionListQueryInterface.php';
+    require $root . '/inc/Services/TransactionDeliveryType.php';
+    require $root . '/inc/Services/ListDateRangeFilter.php';
+    require $root . '/inc/Queries/WordPressTransactionListQuery.php';
+    $source = file_get_contents($root . '/inc/Services/TransactionListRenderService.php');
+    $source = str_replace('include KIRIOF_DIR . "templates/transaction-process/app.php";', 'echo json_encode($kiriof_transactions_bootstrap, JSON_THROW_ON_ERROR);', $source);
+    eval(substr($source, 5));
+    class HistoricalQuery implements \KiriminAjaOfficial\Contracts\TransactionListQueryInterface {
+        public function getPage(array $filters, int $page, int $items_per_page): array {
+            return ['results' => [], 'total' => $filters['key'] ? 1 : 47, 'page' => $page, 'items_per_page' => $items_per_page, 'total_pages' => 2];
+        }
+        public function getStatusCounts(): array { return ['all' => 200, 'order-issue' => 47, 'wc-processing' => 89]; }
+        public function getCouriers(): array { return []; }
+        public function getOldestCreatedAt(): ?string { return null; }
+    }
+    class PendingQuery extends HistoricalQuery {
+        public function getDeliveryCounts(): array { return ['regular' => '3', 'instant' => '2', 'issue' => '4']; }
+    }
+    class LegacyDeliveryQuery extends HistoricalQuery {
+        public function getDeliveryCounts(): array { return ['regular' => 3, 'instant' => 2]; }
+    }
+    $_GET = json_decode($argv[3], true);
+    $query_class = $argv[2];
+    $query = new $query_class();
+    (new \KiriminAjaOfficial\Services\TransactionListRenderService($query))->render();
+}
+PHP;
+        foreach (['PendingQuery' => 4, 'LegacyDeliveryQuery' => 0, 'HistoricalQuery' => 0] as $query => $pending_issue) {
+            foreach (['', 'filtered order'] as $key) {
+                $get = ['status' => 'order-issue', 'key' => $key, 'courier' => 'jne', 'cod' => '1', 'print_status' => '1', 'date_from' => '2026-01-01', 'date_to' => '2026-01-31'];
+                $command = escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg($runtime) . ' ' . escapeshellarg(PLUGIN_DIR) . ' ' . escapeshellarg($query) . ' ' . escapeshellarg(json_encode($get, JSON_THROW_ON_ERROR));
+                $output = shell_exec($command);
+                $this->assertNotNull($output);
+                $bootstrap = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+                $this->assertSame($pending_issue, $bootstrap['deliveryCounts']['issue']);
+                $this->assertSame('order-issue', $bootstrap['filters']['status']);
+                $this->assertSame($key ? 1 : 47, $bootstrap['pagination']['total']);
+                $counts = array_column($bootstrap['statusOptions'], 'count', 'value');
+                $this->assertSame(47, $counts['order-issue']);
+                $this->assertSame(89, $counts['wc-processing']);
+                $this->assertSame(200, $counts['all']);
+            }
+        }
+    }
+
     private function runFixture(string $fixture, array $payload): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/' . $fixture) . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
         $this->assertNotNull($output);
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
-    public function test_instant_filters_persist_and_ignore_express_only_filters(): void {
+    public function test_instant_filters_persist_print_status_and_ignore_express_only_cod(): void {
         $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant', 'cod' => '1', 'print_status' => '1', 'status' => 'processed']]);
         $this->assertSame('instant', $filters['delivery_type']);
         $this->assertSame('processed', $filters['status']);
         $this->assertSame('', $filters['cod']);
-        $this->assertSame('', $filters['print_status']);
+        $this->assertSame('1', $filters['print_status']);
+        foreach (['0', '1', '', 'all', 'wat', '2', ['1']] as $print_status) {
+            $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant', 'cod' => '0', 'print_status' => $print_status]]);
+            $this->assertSame(in_array($print_status, ['0', '1'], true) ? $print_status : '', $filters['print_status']);
+            $this->assertSame('', $filters['cod']);
+            $this->assertSame('all', $filters['status']);
+            $this->assertSame('instant', $filters['delivery_type']);
+        }
+        $defaults = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant']]);
+        $this->assertSame('', $defaults['print_status']);
+        $this->assertSame('all', $defaults['status']);
         foreach (['Instant', 'unknown', ['instant'], ''] as $value) {
             $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => $value]]);
             $this->assertSame('express', $filters['delivery_type']);
@@ -177,6 +259,8 @@ final class TransactionInstantUiTest extends TestCase {
     public function test_workspace_navigation_and_ui_safety_contract(): void {
         $app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
         $this->assertStringContainsString("{ value: 'instant', label: bootstrap.i18n.instantDelivery, count: bootstrap.deliveryCounts?.instant ?? 0 }", $app);
+        $this->assertStringContainsString("{ value: 'order-issue', label: bootstrap.i18n.orderIssue, count: bootstrap.deliveryCounts?.issue ?? 0 }", $app);
+        $this->assertStringNotContainsString('orderIssueOption', $app);
         $this->assertStringContainsString("url.searchParams.set('delivery_type', values.delivery_type || (isInstant ? 'instant' : 'express'))", $app);
         $this->assertStringContainsString("delivery_type: value === 'instant' ? 'instant' : 'express'", $app);
         $this->assertStringContainsString('selected = {};', $app);

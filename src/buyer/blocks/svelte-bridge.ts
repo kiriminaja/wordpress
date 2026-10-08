@@ -6,7 +6,7 @@ import MapInformation from '../components/MapInformation.svelte';
 import PinStatus from '../components/PinStatus.svelte';
 
 export interface MapInformationModel {
-  optional: string;
+  badge: string;
   coverage: string;
   hasCoverage: boolean;
 }

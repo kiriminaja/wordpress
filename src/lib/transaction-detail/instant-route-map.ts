@@ -1,5 +1,13 @@
 import type * as Leaflet from 'leaflet';
 import type { InstantRouteMapConfig, InstantRouteMapData } from './types';
+import { loadGoogleMaps } from '../../buyer/map/google-loader';
+import { resolveMapConfig } from '../../buyer/map/config';
+import type {
+  GoogleMapsAPI,
+  GoogleMapInstance,
+  GoogleOverlay,
+  GoogleLatLngLiteral,
+} from '../../buyer/map/types';
 
 export type RoutePoint = [number, number];
 export type NormalizedInstantRoute = {
@@ -145,6 +153,181 @@ export function createInstantRouteMapSession(
   } catch {
     dispose();
     onError();
+  }
+  return { dispose };
+}
+
+/** Only saved geometry is displayed; no Directions service, location or selection handlers. */
+export function createGoogleInstantRouteMapSession(
+  container: HTMLElement,
+  route: NormalizedInstantRoute,
+  google: GoogleMapsAPI,
+  onError: () => void,
+): { dispose: () => void } {
+  // Route-specific additions keep the shared buyer API small.
+  type RouteMap = GoogleMapInstance & {
+    fitBounds(
+      bounds: { north: number; south: number; east: number; west: number },
+      padding: number,
+    ): void;
+  };
+  type RouteAPI = {
+    Map: new (node: HTMLElement, options: Record<string, unknown>) => RouteMap;
+    Polyline: new (options: Record<string, unknown>) => GoogleOverlay;
+    Circle: new (options: Record<string, unknown>) => GoogleOverlay;
+  };
+  const api = google as unknown as RouteAPI;
+  let map: RouteMap | undefined;
+  const overlays: GoogleOverlay[] = [];
+  let observer: ResizeObserver | undefined;
+  let disposed = false;
+  const literal = (point: RoutePoint): GoogleLatLngLiteral => ({ lat: point[0], lng: point[1] });
+  // Google does not resolve CSS var() in overlay options. Resolve the shared
+  // semantic token through a DOM probe without hardcoding a second palette.
+  const color = (token: string) => {
+    const probe = container.ownerDocument.createElement('span');
+    probe.style.color = `var(${token})`;
+    container.appendChild(probe);
+    const resolved =
+      container.ownerDocument.defaultView?.getComputedStyle(probe).color || 'currentColor';
+    probe.remove();
+    return resolved;
+  };
+  const primary = color('--primary'),
+    success = color('--success'),
+    destructive = color('--destructive');
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    observer?.disconnect();
+    for (const overlay of overlays) {
+      google.event.clearInstanceListeners(overlay);
+      overlay.setMap(null);
+    }
+    if (map) google.event.clearInstanceListeners(map);
+    container.replaceChildren();
+  };
+  try {
+    if (!api.Map || !api.Polyline || !api.Circle) throw new Error('Map unavailable');
+    const start = route.origin ?? route.points[0]!;
+    const end = route.destination ?? route.points[route.points.length - 1]!;
+    map = new api.Map(container, {
+      center: literal(start),
+      zoom: 13,
+      scrollwheel: false,
+      draggable: false,
+      disableDoubleClickZoom: true,
+      streetViewControl: false,
+      mapTypeControl: false,
+      fullscreenControl: false,
+      clickableIcons: false,
+    });
+    overlays.push(
+      new api.Polyline({
+        map,
+        path: route.points.map(literal),
+        geodesic: false,
+        clickable: false,
+        strokeColor: primary,
+        strokeWeight: 4,
+        strokeOpacity: route.mode === 'illustration' ? 0 : 1,
+        ...(route.mode === 'illustration'
+          ? {
+              icons: [
+                {
+                  icon: {
+                    path: 'M 0,-1 0,1',
+                    strokeOpacity: 1,
+                    strokeColor: primary,
+                    strokeWeight: 4,
+                    scale: 1,
+                  },
+                  offset: '0',
+                  repeat: '14px',
+                },
+              ],
+            }
+          : {}),
+      }),
+    );
+    for (const [point, color] of [
+      [start, success],
+      [end, destructive],
+    ] as const) {
+      overlays.push(
+        new api.Circle({
+          map,
+          center: literal(point),
+          radius: 35,
+          clickable: false,
+          fillColor: color,
+          fillOpacity: 1,
+          strokeColor: color,
+          strokeWeight: 2,
+        }),
+      );
+    }
+    const points = [...route.points, start, end];
+    if (!points.every((point) => point[0] === start[0] && point[1] === start[1])) {
+      map.fitBounds(
+        {
+          north: Math.max(...points.map((p) => p[0])),
+          south: Math.min(...points.map((p) => p[0])),
+          east: Math.max(...points.map((p) => p[1])),
+          west: Math.min(...points.map((p) => p[1])),
+        },
+        24,
+      );
+    }
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => {
+        if (!disposed && map) google.event.trigger(map, 'resize');
+      });
+      observer.observe(container);
+    }
+  } catch {
+    dispose();
+    onError();
+  }
+  return { dispose };
+}
+
+/** A cancellable async boundary prevents late script loads from creating stale maps. */
+export function mountInstantRouteMap(
+  container: HTMLElement,
+  route: NormalizedInstantRoute,
+  config: InstantRouteMapConfig,
+  onError: () => void,
+  labels?: RouteMapLabels,
+): { dispose: () => void } {
+  let disposed = false;
+  let session: { dispose: () => void } | undefined;
+  const report = () => {
+    if (!disposed) onError();
+  };
+  const dispose = () => {
+    disposed = true;
+    session?.dispose();
+  };
+  try {
+    if (!config.enabled) throw new Error('Map unavailable');
+    // Existing admin Leaflet bootstraps may use local tile URLs. Validate provider/key
+    // without changing the established Leaflet URL contract.
+    const provider = resolveMapConfig({ provider: config.provider, apiKey: config.apiKey });
+    if (provider.provider === 'google') {
+      void loadGoogleMaps(provider.apiKey)
+        .then((api) => {
+          if (!disposed)
+            session = createGoogleInstantRouteMapSession(container, route, api, report);
+        })
+        .catch(report);
+    } else {
+      const leaflet = preloadedLeaflet();
+      if (!leaflet || !config.tiles) throw new Error('Map unavailable');
+      session = createInstantRouteMapSession(container, route, config, leaflet, report, labels);
+    }
+  } catch {
+    report();
   }
   return { dispose };
 }

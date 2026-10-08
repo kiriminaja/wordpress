@@ -1,10 +1,12 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { createLocationGate, coverageStatus, mapProviderRegistry } from '../map/leaflet';
+  import { createLocationGate, coverageStatus } from '../map/leaflet';
+  import { mapProviderRegistry } from '../map/providers';
+  import { loadGoogleMaps } from '../map/google-loader';
   import { resolveMapConfig } from '../map/config';
   import { addressKey, readAddress } from '../account/address';
   import type { AccountConfig, AccountRoot, AccountView, Address } from '../account/types';
-  import type { MapError, MapSession, Point } from '../map/types';
+  import type { GoogleMapsAPI, GoogleMapsWindow, MapError, MapSession, Point } from '../map/types';
   let { state: view, config, root, form, select, synchronize }: {
     state: AccountView; config: AccountConfig; root: AccountRoot; form: HTMLFormElement;
     select(point: Point | null, expected: Address): boolean; synchronize(): void;
@@ -29,18 +31,18 @@
     function error(code: MapError) {
       if (!current()) return;
       if (code !== 'invalid') { hidden = true; available = false; }
-      status = (code === 'invalid' ? strings.mapInvalid : code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || '';
+      status = (code === 'invalid' ? strings.mapInvalid : code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || (code === 'unavailable' ? 'Map unavailable' : '');
     }
     const gate = createLocationGate({
       geolocation: root.navigator?.geolocation,
       onError: error,
       onSuccess(device) {
         if (!current()) return;
-        hidden = false;
-        try {
-          const provider = resolveMapConfig(config.map);
+        function instantiate(provider: ReturnType<typeof resolveMapConfig>, google?: GoogleMapsAPI) {
+          if (!current()) return;
+          hidden = false;
           map = mapProviderRegistry[provider.provider].createSession({
-            ...provider, node: canvas, leaflet: root.L, initial, coverage: config.map?.coverage,
+            ...provider, google, document: root.document, window: root as unknown as GoogleMapsWindow, node: canvas, leaflet: root.L, initial, coverage: config.map?.coverage,
             defaultCenter: [Number(device.latitude), Number(device.longitude)],
             geolocation: root.navigator?.geolocation,
             schedule: (callback, delay) => root.setTimeout(callback, delay),
@@ -62,6 +64,18 @@
           if (!initial) map.pick(device.latitude, device.longitude, true);
           status = view.pin ? strings.mapPlaced || '' : '';
           available = true;
+        }
+        try {
+          const provider = resolveMapConfig(config.map);
+          if (provider.provider === 'google') {
+            void (async () => {
+              try {
+                const google = await loadGoogleMaps(provider.apiKey, root.document, root as unknown as GoogleMapsWindow);
+                if (!current()) return;
+                instantiate(provider, google);
+              } catch { error('unavailable'); }
+            })();
+          } else instantiate(provider);
         } catch { error('unavailable'); }
       },
     });
@@ -78,7 +92,7 @@
 </script>
 
 <section class="kiriof-buyer-map" aria-label={strings.mapTitle || ''} hidden={!visible}>
-  <h3 class="kiriof-buyer-map__title">{strings.mapTitle || ''}</h3><p>{strings.mapOptional || ''}</p>
+  <h3 class="kiriof-buyer-map__title">{strings.mapTitle || ''}</h3>
   <p class="kiriof-buyer-map__coverage-legend" role="note" hidden={!legend}>{legend ? strings.mapCoverage || '' : ''}</p>
   <p class="kiriof-buyer-map__coverage-warning" role="note" aria-live="polite" hidden={!outside}>{outside ? strings.mapOutsideRadius || '' : ''}</p>
   <div class="kiriof-buyer-map__viewport" class:is-moving={moving} {hidden}>

@@ -113,9 +113,9 @@
   });
 </script>
 
-<div class="contents [&_.kiriof-app-toolbar]:flex-wrap [&_.kiriof-app-toolbar__actions]:w-full [&_.kiriof-app-toolbar__actions]:max-w-full [&_.kiriof-app-toolbar__actions]:flex-wrap sm:[&_.kiriof-app-toolbar__actions]:w-auto">
+<div class="kiriof-shadcn kiriof-couriers-toolbar contents">
   <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings}>
-    <InputGroup.Root class="!h-9 !w-full !min-w-0 !bg-background sm:!w-64">
+    <InputGroup.Root class="kiriof-couriers-search !h-[34px] !w-full !min-w-0 !bg-background sm:!w-64">
       <InputGroup.Addon align="inline-start"><IconSearch class="size-4" aria-hidden="true" /></InputGroup.Addon>
       <InputGroup.Input
         id={`${prefix}-search`}

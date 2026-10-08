@@ -8,7 +8,13 @@ export type InstantRouteMapData = {
   points: Array<[number, number]>;
   mode: 'recorded' | 'illustration' | 'unavailable';
 };
-export type InstantRouteMapConfig = { tiles: string; attribution: string; enabled: boolean };
+export type InstantRouteMapConfig = {
+  tiles: string;
+  attribution: string;
+  enabled: boolean;
+  provider?: string;
+  apiKey?: string;
+};
 
 export type TransactionDetailBootstrap = {
   map?: InstantRouteMapConfig;
@@ -39,6 +45,7 @@ export type TransactionDetailBootstrap = {
       paymentStatus: string;
       paymentMethod: string;
       paymentId: string;
+      buyerPaymentStatus?: string;
       costs: {
         orderTotal: number;
         subtotal: number;
@@ -48,6 +55,7 @@ export type TransactionDetailBootstrap = {
         shipping: number;
         insurance: number;
         codFee: number;
+        adminFee?: number;
         itemDiscount: number;
         total: number;
       };

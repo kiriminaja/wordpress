@@ -98,6 +98,11 @@
   @apply gap-0 p-0 border rounded-xl bg-white shadow-sm;
 }
 
+/* Reserve the same title/action baseline; multiline headers may still grow. */
+.kiriof-card > [data-slot='card-header'] {
+  @apply box-border min-h-[58px] !py-3;
+}
+
 @keyframes kiriof-detail-step-progress {
   to {
     transform: scaleX(1);

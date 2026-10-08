@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { createInstantRouteMapSession, normalizeInstantRoute, preloadedLeaflet } from './instant-route-map';
+  import { mountInstantRouteMap, normalizeInstantRoute } from './instant-route-map';
   import type { InstantRouteMapConfig, InstantRouteMapData } from './types';
 
-  let { data, config, i18n }: {
+  let { data, config, i18n, embedded = false }: {
     data?: InstantRouteMapData | null;
     config?: InstantRouteMapConfig;
     i18n: Record<string, string>;
+    embedded?: boolean;
   } = $props();
   let container: HTMLDivElement | undefined = $state();
   let error = $state(false);
@@ -23,12 +24,8 @@
     const element = container;
     error = false;
     if (!currentRoute || !element) return;
-    const leaflet = preloadedLeaflet();
-    if (!leaflet || !currentConfig?.enabled || !currentConfig.tiles) {
-      error = true;
-      return;
-    }
-    const session = createInstantRouteMapSession(element, currentRoute, currentConfig, leaflet, () => { error = true; }, {
+    if (!currentConfig) { error = true; return; }
+    const session = mountInstantRouteMap(element, currentRoute, currentConfig, () => { error = true; }, {
       origin: i18n.routeOrigin ?? 'Saved pickup',
       destination: i18n.routeDestination ?? 'Saved destination',
       start: i18n.routeStart ?? 'Recorded route start',
@@ -38,8 +35,8 @@
   });
 </script>
 
-<section class="m-0 min-w-0 overflow-hidden rounded-lg border border-border bg-card text-card-foreground" aria-label={title}>
-  <header class="!grid gap-1 border-b border-border p-3">
+<section class={embedded ? 'm-0 min-w-0 overflow-hidden border-t border-border' : 'm-0 min-w-0 overflow-hidden rounded-lg border border-border bg-card text-card-foreground'} aria-label={title}>
+  <header class={embedded ? 'sr-only' : '!grid gap-1 border-b border-border p-3'}>
     <h2 class="m-0 text-sm font-semibold">{title}</h2>
     <p class="m-0 text-xs leading-relaxed text-muted-foreground">{caption}</p>
   </header>

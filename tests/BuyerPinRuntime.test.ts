@@ -5,8 +5,8 @@ import { compile, compileModule } from 'svelte/compiler';
 import { happy } from './helpers/ui-runtime';
 
 const root = resolve(import.meta.dir, '..');
-async function fixture(savedDestination?: any, selectedDistrict = false) {
-  const window = new happy.Window({ url: 'https://fixture.test' });
+async function fixture(savedDestination?: any, selectedDistrict = false, provider = 'leaflet') {
+  const window = new happy.Window({ url: 'https://fixture.test', settings: { disableJavaScriptFileLoading: true, enableJavaScriptEvaluation: false, handleDisabledFileLoadingAsSuccess: true } });
   const directory = mkdtempSync(join(root, 'node_modules', '.buyer-pin-runtime-'));
   const saved = new Map<string, PropertyDescriptor | undefined>();
   const maps: any[] = [], requests: any[] = [], handlers = new Map<Element, any[]>();
@@ -18,7 +18,26 @@ async function fixture(savedDestination?: any, selectedDistrict = false) {
   (window as any).L = L;
   Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(ok: any) { location = ok; } } });
   (window as any).fetch = async (_url: any, options: any) => { requests.push(JSON.parse(new URLSearchParams(options.body).get('data')!)); return { ok: true, json: async () => failSave ? {success:true,data:{pin_saved:false,code:'mismatch',message:'unsafe'}} : {success:true,data:{pin_saved:true}} }; };
-  (window as any).kiriofClassicCheckoutConfig = {enabled:true, ajaxUrl:'/ajax', nonce:'nonce', savedDestination, map:{enabled:true}, pinErrors:{mismatch:'Localized mismatch'}};
+  (window as any).kiriofClassicCheckoutConfig = {enabled:true, ajaxUrl:'/ajax', nonce:'nonce', savedDestination, map:{enabled:true, provider, ...(provider === 'google' ? { apiKey: 'fixture-google-key' } : {})}, pinErrors:{mismatch:'Localized mismatch'}};
+  const loadGoogle = () => {
+    const script = window.document.querySelector<HTMLScriptElement>('script[data-kiriminaja-google-maps]');
+    if (!script) throw new Error('Google runtime was not requested');
+    (window as any).google = { maps: {
+      Map: class {
+        center: any;
+        events: Record<string, any> = {};
+        removed = false;
+        constructor(public node: HTMLElement, options: any) { this.center = options.center; maps.push(this); }
+        getCenter() { return {lat: () => this.center.lat, lng: () => this.center.lng}; }
+        setCenter(point: any) { this.center = point; }
+        setZoom() {}
+        addListener(name: string, callback: any) { this.events[name] = callback; return {remove: () => { delete this.events[name]; }}; }
+      },
+      event: {trigger() {}, clearInstanceListeners(map: any) { map.removed = true; }},
+    } };
+    const callback = new URL(script.src).searchParams.get('callback')!;
+    (window as any)[callback]();
+  };
   const trigger = (node: Element, name: string, target?: Element) => { for (const h of handlers.get(node) || []) if (h.names.some((v: string) => v.split('.')[0] === name)) h.cb({type:name,target}); };
   (window as any).jQuery = (node: Element) => { const api = { on(names: string, selector: any, cb?: any) {const list = handlers.get(node) || []; list.push({names:names.split(' '),cb:cb || selector}); handlers.set(node,list); return api;}, off() {handlers.delete(node); return api;}, trigger(name: string) {trigger(node,name);return api;} }; return api; };
   const globals: Record<string, any> = {window, document:window.document,navigator:window.navigator,MutationObserver:window.MutationObserver,getComputedStyle:window.getComputedStyle.bind(window)};
@@ -35,7 +54,7 @@ async function fixture(savedDestination?: any, selectedDistrict = false) {
   const bridge = runtime.startClassicPin(window)!;
   const settle = async () => {for (let i=0;i<8;i++) {await new Promise(r=>setTimeout(r,3)); runtime.flushSync();}};
   await settle();
-  return { window, maps, requests, bridge, settle, trigger, fail:()=>{failSave=true;}, location:()=>location({coords:{latitude:-6.2,longitude:106.8}}), async cleanup() {bridge.dispose();await settle();window.happyDOM.abort();for(const [key,value] of saved) {if(value) Object.defineProperty(globalThis,key,value);else delete (globalThis as any)[key];}rmSync(directory,{recursive:true,force:true});} };
+  return { window, maps, requests, bridge, settle, trigger, loadGoogle, fail:()=>{failSave=true;}, location:()=>location({coords:{latitude:-6.2,longitude:106.8}}), async cleanup() {bridge.dispose();await settle();window.happyDOM.abort();for(const [key,value] of saved) {if(value) Object.defineProperty(globalThis,key,value);else delete (globalThis as any)[key];}rmSync(directory,{recursive:true,force:true});} };
 }
 
 test('compiled pin gates geolocation, accepts suggestions before district, saves localized failures, retains map on queue changes and cleans up', async () => {
@@ -77,4 +96,37 @@ test('saved version-two pin bypasses geolocation only when all six native addres
     expect(mismatch.bridge.controller.getState().point).toBeNull();
     expect(mismatch.maps).toHaveLength(0);
   } finally { await mismatch.cleanup(); }
+});
+
+
+test('Google pin loads only after permission and rejects stale loading generations before constructing a map', async () => {
+  const h = await fixture(undefined, true, 'google');
+  try {
+    expect(h.window.document.querySelector('script[data-kiriminaja-google-maps]')).toBeNull();
+    expect(h.maps).toHaveLength(0);
+    h.location(); await h.settle();
+    expect(h.maps).toHaveLength(0);
+    const address = h.window.document.querySelector<HTMLInputElement>('#billing_address_1')!;
+    address.value = 'Changed street'; h.bridge.changed(); await h.settle();
+    h.loadGoogle(); await h.settle();
+    expect(h.maps).toHaveLength(0);
+    expect(h.bridge.controller.getState().point).toBeNull();
+    h.location(); await h.settle();
+    expect(h.maps).toHaveLength(1);
+    expect(h.bridge.controller.getState().address.address_1).toBe('Changed street');
+    expect(h.bridge.controller.getState().point).not.toBeNull();
+    expect(JSON.stringify(h.requests)).not.toContain('fixture-google-key');
+  } finally { await h.cleanup(); }
+});
+
+test('Google pending runtime is discarded on hidden/unmounted checkout without a late map', async () => {
+  const h = await fixture(undefined, false, 'google');
+  try {
+    h.location(); await h.settle();
+    h.window.document.querySelector<HTMLInputElement>('.shipping_method')!.value = 'local_pickup:1';
+    h.bridge.changed(); await h.settle();
+    h.loadGoogle(); await h.settle();
+    expect(h.maps).toHaveLength(0);
+    expect(h.requests.some(request => request.destination.version === 2)).toBe(false);
+  } finally { await h.cleanup(); }
 });

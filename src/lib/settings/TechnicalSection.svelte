@@ -5,6 +5,7 @@
   import type { TechnicalBootstrap } from './types';
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import { navigateSettings } from './navigation';
+  import GoogleMapsIntegration from './GoogleMapsIntegration.svelte';
 
   type RegionStatus = {
     status: {
@@ -105,6 +106,9 @@
 
 <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
 <div class="kiriof-technical kiriof-settings-content">
+  {#if bootstrap.googleMaps}
+    <GoogleMapsIntegration bootstrap={bootstrap.googleMaps} />
+  {/if}
   <section class="kiriof-section-card" aria-labelledby="kiriof-region-cache-title">
     <h2 id="kiriof-region-cache-title">{bootstrap.i18n.regionTitle}</h2>
     <p>{bootstrap.i18n.regionDescription}</p>

@@ -7,7 +7,7 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
 	wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'kiriminaja-official' ) );
 }
 
-// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only order detail lookup; capability is checked above.
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only lookup with capability check; the exact unslashed value must pass canonical positive integer and overflow checks below before use.
 $kiriof_order_id_raw = isset( $_GET['id'] ) && is_string( $_GET['id'] ) ? wp_unslash( $_GET['id'] ) : '';
 // Reject coerced/overflowing identifiers rather than opening a different order.
 $kiriof_wc_order_id = preg_match( '/\A[1-9][0-9]*\z/', $kiriof_order_id_raw ) && (string) (int) $kiriof_order_id_raw === $kiriof_order_id_raw ? (int) $kiriof_order_id_raw : 0;

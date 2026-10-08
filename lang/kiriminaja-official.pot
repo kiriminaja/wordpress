@@ -2674,3 +2674,67 @@ msgstr ""
 #: templates/woocommerce/cart/cart-shipping.php
 msgid "Shipping Options"
 msgstr ""
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Motor"
+msgstr ""
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Mobil"
+msgstr ""
+
+#: inc/Services/TransactionDetailPageData.php templates/order/metabox-shipping.php
+msgid "Buyer Payment Status"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Google Maps Integrations"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Enable the Maps JavaScript API and billing in Google Cloud. Restrict this browser key to your website HTTP referrers and the Maps JavaScript API. Browser keys are public when maps load."
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Saved browser key"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "No browser key saved. Maps use OpenStreetMap."
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "New browser API key"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Leave blank to keep the saved key"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Save Google Maps Key"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Remove Google Maps Key"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Updating…"
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Google Maps settings updated."
+msgstr ""
+
+#: inc/Services/SettingsPageData.php inc/Controllers/GoogleMapsSettingsController.php
+msgid "Unable to update Google Maps settings."
+msgstr ""
+
+#: inc/Base/Enqueue.php
+msgid "Instant ≤ 40 km"
+msgstr ""
+
+#: inc/Services/ShippingDiscountCouponService.php
+msgid "Invalid coupon amount."
+msgstr ""

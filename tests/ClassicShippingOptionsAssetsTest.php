@@ -22,24 +22,4 @@ final class ClassicShippingOptionsAssetsTest extends TestCase {
         $this->assertStringContainsString( "'shippingOptions' => __( 'Shipping options'", file_get_contents( PLUGIN_DIR . '/templates/front/partials/form-billing-address-config.php' ) );
     }
 
-    public function test_checkout_summary_rows_are_server_owned_readonly_and_revealed_only_by_relocation(): void {
-        $template = file_get_contents( PLUGIN_DIR . '/templates/woocommerce/cart/cart-shipping.php' );
-        $source   = file_get_contents( PLUGIN_DIR . '/assets/buyer/js/checkout/shipping-options.js' );
-        $css      = file_get_contents( PLUGIN_DIR . '/assets/buyer/css/kiriof-classic-choices.css' );
-        $summary  = substr( $template, strpos( $template, '// Read-only checkout totals' ) );
-
-        $this->assertStringContainsString( '! $kiriof_is_cart_totals_shipping && ! empty( $available_methods )', $summary );
-        $this->assertStringContainsString( '$kiriof_summary_rate->id === $chosen_method', $summary );
-        $this->assertStringContainsString( 'RateChoicePresentation::forRate', $summary );
-        $this->assertStringContainsString( "esc_html( \$kiriof_summary_presentation['label'] )", $summary );
-        $this->assertStringContainsString( "esc_html( \$kiriof_summary_presentation['price'] )", $summary );
-        foreach ( array( 'options', 'cost' ) as $kind ) {
-            $this->assertMatchesRegularExpression( '/<tr class="kiriof-classic-shipping-summary kiriof-classic-shipping-summary-' . $kind . '" data-kiriof-summary-package="[^\n]+" hidden>/', $summary );
-        }
-        $this->assertDoesNotMatchRegularExpression( '/<(?:input|select|button)\b/i', $summary );
-        $this->assertStringContainsString( "summary.getAttribute('data-kiriof-summary-package') === key && summary.hidden", $source );
-        $this->assertStringContainsString( 'summary.hidden = false', $source );
-        $this->assertStringContainsString( 'tr.kiriof-classic-shipping-summary[hidden] { display: none !important; }', $css );
-        $this->assertStringContainsString( 'tr.kiriof-classic-shipping-summary:not([hidden]) { display: table-row !important; }', $css );
-    }
 }

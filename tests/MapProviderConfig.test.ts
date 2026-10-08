@@ -81,6 +81,7 @@ function fixture(extra: Partial<MapSessionOptions> = {}) {
     },
     ...extra,
   });
+
   return {
     session,
     selections,
@@ -98,7 +99,18 @@ function fixture(extra: Partial<MapSessionOptions> = {}) {
 }
 
 describe('map provider configuration and typed core', () => {
-  test('defaults to public HTTPS Leaflet tiles and only registers Leaflet', () => {
+  test('Google credentials validate strictly without leaking rejected input', () => {
+    for (const apiKey of [false, null, '', 'short', 'a'.repeat(257), ' keyvalue', 'secret&key']) {
+      expect(() => resolveMapConfig({ provider: 'google', apiKey })).toThrow('Map unavailable');
+    }
+    expect(resolveMapConfig({ provider: 'google', apiKey: 'valid_key-123' }).provider).toBe(
+      'google',
+    );
+    expect(() => resolveMapConfig({ provider: 'unknown', apiKey: 'secret' })).toThrow(
+      'Unsupported map provider',
+    );
+  });
+  test('defaults to public HTTPS Leaflet tiles with the legacy synchronous registry unchanged', () => {
     expect(resolveMapConfig()).toEqual({
       provider: 'leaflet',
       tiles: DEFAULT_MAP_TILES,
@@ -107,14 +119,14 @@ describe('map provider configuration and typed core', () => {
     });
     expect(Object.keys(mapProviderRegistry)).toEqual(['leaflet']);
     expect(Object.isFrozen(resolveMapConfig())).toBe(true);
-    expect(isSupportedMapProvider('google')).toBe(false);
+    expect(isSupportedMapProvider('google')).toBe(true);
     expect(
       resolveMapConfig({ tiles: 'https://tiles.example/{z}/{x}/{y}', attribution: 'Seller' })
         .attribution,
     ).toBe('Seller');
   });
   test('unknown providers fail before invoking Leaflet or requesting tiles', () => {
-    for (const provider of ['google', 'googlemaps', 'unknown', 'Leaflet', '']) {
+    for (const provider of ['googlemaps', 'unknown', 'Leaflet', '']) {
       expect(() => resolveMapConfig({ provider })).toThrow('Unsupported map provider');
       const f = fixture({ provider });
       expect(f.counts()).toEqual({ removed: 0, mapCalls: 0, tileCalls: 0 });

@@ -426,7 +426,7 @@ test('Classic placement survives separate shipping toggles and Woo native row re
       text: document.querySelector('.kiriof-classic-map-locate').textContent,
       svg: document.querySelectorAll('.kiriof-classic-map-locate svg').length,
       badgeInViewport: !!document.querySelector(
-        '.kiriof-classic-map-viewport > .kiriof-classic-pin-state[role="status"]',
+        '.kiriof-classic-map-viewport > .kiriof-classic-map-indicator > .kiriof-classic-pin-state[role="status"]',
       ),
       pinHeading: document.querySelectorAll('.kiriof-classic-pin h3').length,
     })),

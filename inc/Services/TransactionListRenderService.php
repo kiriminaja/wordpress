@@ -142,6 +142,7 @@ class TransactionListRenderService
             "deliveryCounts" => array(
                 "regular" => (int) ($kiriof_deliveryCounts["regular"] ?? 0),
                 "instant" => (int) ($kiriof_deliveryCounts["instant"] ?? 0),
+                "issue" => (int) ($kiriof_deliveryCounts["issue"] ?? 0),
             ),
             "statusOptions" => [
                 [
@@ -506,16 +507,25 @@ class TransactionListRenderService
             : TransactionDeliveryType::normalize($filters["delivery_type"]);
         if ("instant" === $filters["delivery_type"]) {
             $filters["cod"] = "";
-            $filters["print_status"] = "";
         }
         $filters["courier"] = implode(",", WordPressTransactionListQuery::normalizeCourierFilter($filters["courier"]));
         if (!in_array($filters["print_status"], ["0", "1"], true)) {
             $filters["print_status"] = "";
         }
 
-        // Validate raw endpoints before sanitizing so malformed inputs fail closed.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filters.
-        $dates = ListDateRangeFilter::normalize( array_merge( $filters, array( "date_from" => wp_unslash( $_GET["date_from"] ?? "" ), "date_to" => wp_unslash( $_GET["date_to"] ?? "" ) ) ) );
+        // Sanitization must not turn malformed endpoints into valid dates.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only list filters.
+        foreach ( array( 'date_from', 'date_to' ) as $name ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Retained only to reject values altered by sanitization, never used in SQL.
+            $original = isset( $_GET[ $name ] ) ? wp_unslash( $_GET[ $name ] ) : '';
+            $clean = is_string( $original ) ? sanitize_text_field( $original ) : '';
+            $filters[ $name ] = $original === $clean ? $clean : '';
+            if ( ! is_string( $original ) || $original !== $clean ) {
+                $filters['date_range_invalid'] = true;
+            }
+        }
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+        $dates = ListDateRangeFilter::normalize( $filters );
         return array_merge( $filters, $dates );
     }
 

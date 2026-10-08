@@ -306,6 +306,22 @@ class SettingsPageData {
 			'view'           => 'technical',
 			'toolbar'        => $this->settingsToolbar( __( 'Technical', 'kiriminaja-official' ) ),
 			'downloadLogUrl' => $technical['downloadLogUrl'],
+			'googleMaps'     => array_merge( ( new GoogleMapsSettings() )->settingsSummary(), array(
+				'nonce' => wp_create_nonce( GoogleMapsSettings::NONCE_ACTION ),
+				'i18n'  => array(
+					'title'       => __( 'Google Maps Integrations', 'kiriminaja-official' ),
+					'guidance'    => __( 'Enable the Maps JavaScript API and billing in Google Cloud. Restrict this browser key to your website HTTP referrers and the Maps JavaScript API. Browser keys are public when maps load.', 'kiriminaja-official' ),
+					'configured'  => __( 'Saved browser key', 'kiriminaja-official' ),
+					'notConfigured' => __( 'No browser key saved. Maps use OpenStreetMap.', 'kiriminaja-official' ),
+					'keyLabel'    => __( 'New browser API key', 'kiriminaja-official' ),
+					'placeholder' => __( 'Leave blank to keep the saved key', 'kiriminaja-official' ),
+					'save'        => __( 'Save Google Maps Key', 'kiriminaja-official' ),
+					'remove'      => __( 'Remove Google Maps Key', 'kiriminaja-official' ),
+					'busy'        => __( 'Updating…', 'kiriminaja-official' ),
+					'saved'       => __( 'Google Maps settings updated.', 'kiriminaja-official' ),
+					'failed'      => __( 'Unable to update Google Maps settings.', 'kiriminaja-official' ),
+				),
+			) ),
 			'callbacks'      => array_values( array_filter( array_unique( $technical['callbacks'] ) ) ),
 			'region'         => array(
 				'state'         => $technical['state'],

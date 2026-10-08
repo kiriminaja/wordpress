@@ -38,6 +38,7 @@ require_once PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php';
 require_once PLUGIN_DIR . '/inc/Services/ProductVolumetricReadinessService.php';
 require_once PLUGIN_DIR . '/inc/Services/ShippingDiscountRegionCacheService.php';
 require_once PLUGIN_DIR . '/inc/Services/SettingsPageData.php';
+require_once PLUGIN_DIR . '/inc/Services/GoogleMapsSettings.php';
 require_once PLUGIN_DIR . '/inc/Services/CourierServiceUiData.php';
 require_once PLUGIN_DIR . '/inc/Services/RevampAnnouncementService.php';
 if ( ! function_exists( 'current_user_can' ) ) {
