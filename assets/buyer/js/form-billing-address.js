@@ -1,5 +1,9 @@
 // Checkout entry point. Libraries and configuration are loaded by WordPress dependencies.
 jQuery(document).ready(function($) {
+    // Do not initialize checkout address widgets or selection writers in Cart.
+    if (document.querySelector('.wp-block-woocommerce-cart, .wc-block-cart') && !document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout')) {
+        return;
+    }
     if (kiriofUsesClassicCheckout()) {
         kiriofSyncClassicAddressFields();
         return;

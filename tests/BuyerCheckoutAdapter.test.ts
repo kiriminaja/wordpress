@@ -15,7 +15,7 @@ type Node = { type: any; props: any; children: any[] };
 // A small commit-phase hook runner: effects run after render, changed effects clean
 // up first, setters are stable, and updates during effects cause another render.
 // The active state and checkout TypeScript modules execute in the same browser-like VM.
-function harness(options: { block?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean; restore?: boolean } = {}) {
+function harness(options: { block?: boolean; cartOnly?: boolean; enabled?: boolean; slot?: string; inner?: boolean; missing?: string; config?: any; collapsed?: boolean; restore?: boolean } = {}) {
 	const timers = new Map<number, { delay: number; callback: () => void }>();
 	let nextTimer = 0;
 	const setTimeout = (callback: () => void, delay = 0) => { timers.set(++nextTimer, { callback, delay }); return nextTimer; };
@@ -99,7 +99,7 @@ function harness(options: { block?: boolean; enabled?: boolean; slot?: string; i
 	const document = {
 		addEventListener(name: string, callback: (event: any) => void) { if (!documentEvents.has(name)) documentEvents.set(name, new Set()); documentEvents.get(name)!.add(callback); },
 		removeEventListener(name: string, callback: (event: any) => void) { documentEvents.get(name)?.delete(callback); },
-		querySelector: (selector: string) => { queries.push(selector); return options.block === false ? null : {}; },
+		querySelector: (selector: string) => { queries.push(selector); return options.block === false || options.cartOnly ? null : {}; },
 		documentElement: { classList: { add: (name: string) => { if (!classes.includes(name)) classes.push(name); }, remove: (name: string) => { const index = classes.indexOf(name); if (index >= 0) classes.splice(index, 1); } } },
 		querySelectorAll: forbidden, getElementById: forbidden, createEvent: forbidden,
 	};
@@ -731,10 +731,14 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		expect(h.pluginName()).toBe('kiriminaja-official-buyer-destination');
 		expect(h.plugin().scope).toBe('woocommerce-checkout');
 		expect(h.classes).toEqual([]);
-		expect(h.queries[0]).toContain('.wp-block-woocommerce-cart');
+		expect(h.queries[0]).not.toContain('.wp-block-woocommerce-cart');
 		h.mount(); expect(h.root.kiriofBuyerCheckout.active).toBe(true); expect(h.classes).toEqual(['kiriof-buyer-checkout-active']); expect(h.root.kiriofBuyerCheckout.getDestination().postcode).toBe('12345');
 		const classic = harness({ block: false });
 		expect(classic.root.kiriofBuyerCheckout).toBeUndefined(); expect(classic.plugin()).toBeUndefined(); expect(classic.classes).toEqual([]);
+		const cart = harness({ cartOnly: true });
+		expect(cart.root.kiriofBuyerCheckout).toBeUndefined(); expect(cart.plugin()).toBeUndefined();
+		expect(cart.registeredBlocks()).toEqual([]); expect(cart.documentEvents.size).toBe(0);
+		expect(cart.timers.size).toBe(0); expect(cart.lookups).toEqual([]); expect(cart.sends).toEqual([]); expect(cart.validations).toEqual([]);
 	});
 	test('waits for an actual Slot mount and permanently yields after readiness timeout', async () => {
 		const mounted = harness(); const pending = mounted.root.kiriofBuyerCheckout.ready;

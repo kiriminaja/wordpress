@@ -36,9 +36,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
   var validationDispatch;
 
   if (
-    !document.querySelector(
-      '.wp-block-woocommerce-checkout, .wc-block-checkout, .wp-block-woocommerce-cart, .wc-block-cart',
-    ) ||
+    !document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout') ||
     !config.enabled ||
     !session ||
     (!destinationSlot && !supportsDistrictInnerBlock) ||
