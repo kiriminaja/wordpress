@@ -172,6 +172,11 @@ for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const)
       expect(layout.button.top).toBeLessThan(layout.message.bottom);
     }
     if (failure === 'http503') await app.screenshot(`postal-recovery-${width}`);
+    // An unverified initial destination cannot approve a pre-sync courier
+    // default. This scenario explicitly reviews Cargo before the later billing
+    // refresh, so its existing intent-preservation assertions remain meaningful.
+    expect(await review(browser)).toEqual({ version: 1, packages: [] });
+    await browser.locator(`input[name="shipping"][value="${cargo}"]`).click();
     await expect.poll(() => review(browser)).toEqual({ version: 1, packages: [{ package_id: '3', rate_id: cargo }] });
     expect(state.requests).toEqual([{ method: 'POST', term: '55581', retry: null, action: 'kiriminaja_subdistrict_search', nonce: 'valid' }]);
     expect(state.writes).toEqual([]);

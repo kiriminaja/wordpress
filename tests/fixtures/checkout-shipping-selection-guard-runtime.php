@@ -10,6 +10,8 @@ namespace {
 	function __( $text, $domain ) { return ! empty( $GLOBALS['translated'] ) ? '<b>Shipping changed & retry</b>' : $text; }
 	function wp_unslash( $value ) { return stripslashes( $value ); }
 	$GLOBALS['hooks'] = array();
+	$GLOBALS['review_logs'] = array();
+	function kiriof_log( $level, $message, $context, $channel ) { $GLOBALS['review_logs'][] = compact( 'level', 'message', 'context', 'channel' ); }
 	function add_action( $hook, $callback, $priority, $args ) { $GLOBALS['hooks'][$hook][$priority][] = $callback; }
 	function WC() { return $GLOBALS['wc']; }
 	class GuardRate {
@@ -73,6 +75,11 @@ namespace {
 	if ( 'order-route' === $case ) { $line = clone $express; }
 	$packages = array( 3 => array( 'rates' => 'missing-rate' === $case ? array() : array( $actual->id => $actual ) ) );
 	$chosen = array( 3 => $actual->id );
+	if ( ! empty( $config['stale_session_keys'] ) ) {
+		// Woo updates current package keys in place; obsolete keys may survive.
+		$chosen[0] = $instant->id;
+		$chosen[12] = 'flat_rate:obsolete';
+	}
 	$lines = array( 42 => $line );
 	if ( 'multi' === $case ) {
 		$packages[9] = array( 'rates' => array( $other->id => $other ) );
@@ -98,5 +105,5 @@ namespace {
 		} catch ( \Throwable $error ) { $status = $error->getCode(); $message = $error->getMessage(); }
 		$attempts[] = array( 'status' => $status, 'message' => $message, 'writes' => $order->writes );
 	}
-	echo json_encode( array( 'attempts' => $attempts, 'priorities' => array_keys( $GLOBALS['hooks'][$hook] ), 'registered' => in_array( \KiriminAjaOfficial\Services\CheckoutShippingSelectionGuard::class, \KiriminAjaOfficial\Init::get_services(), true ), 'chosen' => $GLOBALS['wc']->session->chosen ) );
+	echo json_encode( array( 'attempts' => $attempts, 'priorities' => array_keys( $GLOBALS['hooks'][$hook] ), 'registered' => in_array( \KiriminAjaOfficial\Services\CheckoutShippingSelectionGuard::class, \KiriminAjaOfficial\Init::get_services(), true ), 'chosen' => $GLOBALS['wc']->session->chosen, 'logs' => $GLOBALS['review_logs'] ) );
 }

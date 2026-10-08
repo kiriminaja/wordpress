@@ -499,6 +499,18 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     });
     var chosenPackages = selectedPackages(cart.shippingRates);
     var chosenPackagesKey = JSON.stringify(chosenPackages);
+    // A rate can become available again without changing the selected IDs.
+    // Revisit a blocked exact-ID restoration when its availability changes.
+    var availablePackagesKey = JSON.stringify(
+      (cart.shippingRates || []).map(function (pkg) {
+        return [
+          pkg.package_id,
+          (pkg.shipping_rates || []).map(function (rate) {
+            return rate.rate_id;
+          }),
+        ];
+      }),
+    );
     var instantSelected = selected.some(function (rate) {
       return (
         'kiriminaja-instant' === rate.method_id ||
@@ -553,6 +565,21 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     var currentPin = mapPin && mapPin.key === shippingAddressKey(address) ? mapPin : null;
     var destination = destinationForAddress(currentSelection, address, currentPin);
     var destinationKey = JSON.stringify(destination);
+    var initialShippingReady =
+      !required ||
+      !kiriminajaSelected ||
+      Boolean(
+        currentSelection &&
+        !results.loading &&
+        !results.error &&
+        updateState.acknowledged &&
+        !updateState.pending &&
+        !updateState.inFlight &&
+        !updateState.error &&
+        JSON.stringify(updateState.acknowledged.destination) === destinationKey &&
+        JSON.stringify(updateState.acknowledged.recipient_context) === recipientKey &&
+        updateState.acknowledged.payment_method === (data.payment || ''),
+      );
     var lookupGeneration = useRef(0);
     var destinationRef = useRef(destination);
     destinationRef.current = destination;
@@ -614,6 +641,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
         if (!ownsEffects() || !shippingReview) return;
         if (
           !awaitingSavedPin &&
+          initialShippingReady &&
           !data.busy &&
           cart.needsShipping &&
           !data.collection &&
@@ -635,7 +663,15 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
           };
           validationDispatch.setValidationErrors(errors);
         } else validationDispatch.clearValidationError(shippingSelectionErrorId);
-        if (guarded && data.busy) {
+        var initializingShipping =
+          cart.needsShipping &&
+          !data.collection &&
+          kiriminajaSelected &&
+          !shippingReview.snapshot().packages.length &&
+          (!initialShippingReady ||
+            data.busy ||
+            chosenPackages.length !== (cart.shippingRates || []).length);
+        if ((guarded && data.busy) || initializingShipping) {
           var pending = {};
           pending[shippingSelectionPendingId] = {
             message: strings.shippingSelectionUpdating || 'Updating shipping options…',
@@ -646,6 +682,8 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
       },
       [
         chosenPackagesKey,
+        availablePackagesKey,
+        initialShippingReady,
         data.busy,
         cart.needsShipping,
         data.collection,
