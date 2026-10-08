@@ -19,6 +19,14 @@ function reactSource() {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 const scripts = (sources: string[]) => sources.map(source => `<script>${source.replace(/<\/script/gi, '<\\/script')}</script>`).join('');
+const unsafeJsCharMap: Record<string, string> = {
+  '<': '\\u003C',
+  '>': '\\u003E',
+  '/': '\\u002F',
+  '\\u2028': '\\u2028',
+  '\\u2029': '\\u2029',
+};
+const escapeUnsafeJsString = (value: string) => value.replace(/[<>/\u2028\u2029]/g, ch => unsafeJsCharMap[ch] ?? ch);
 
 function html(provider: 'leaflet' | 'google', coverage: boolean) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
@@ -44,7 +52,7 @@ function html(provider: 'leaflet' | 'google', coverage: boolean) {
 // SDK boundary only: the real Google loader, registry, adapter and Blocks/Svelte
 // presentation run in Chromium. Controls are representative SDK DOM, not live Google.
 function googleSDK(callback: string) {
-  return `(()=>{class FixtureMap{constructor(node,options){this.center=options.center;this.listeners={};window.__map=this;node.innerHTML='<div class="fixture-zoom">+<br>−</div><div class="fixture-attribution">Google fixture</div>';setTimeout(()=>this.fire('idle'),0)}addListener(name,cb){(this.listeners[name]??=[]).push(cb);return{remove:()=>this.listeners[name]=this.listeners[name].filter(x=>x!==cb)}}fire(name,event){for(const cb of this.listeners[name]||[])cb(event)}setCenter(center){this.center=center;this.fire('center_changed');setTimeout(()=>this.fire('idle'),0)}getCenter(){return{lat:()=>this.center.lat,lng:()=>this.center.lng}}setZoom(){}}class Overlay{setMap(){}}window.google={maps:{Map:FixtureMap,Polyline:Overlay,event:{trigger:(map,name)=>map.fire(name),clearInstanceListeners:map=>map.listeners={}}}};window[${JSON.stringify(callback)}]();})();`;
+  return `(()=>{class FixtureMap{constructor(node,options){this.center=options.center;this.listeners={};window.__map=this;node.innerHTML='<div class="fixture-zoom">+<br>−</div><div class="fixture-attribution">Google fixture</div>';setTimeout(()=>this.fire('idle'),0)}addListener(name,cb){(this.listeners[name]??=[]).push(cb);return{remove:()=>this.listeners[name]=this.listeners[name].filter(x=>x!==cb)}}fire(name,event){for(const cb of this.listeners[name]||[])cb(event)}setCenter(center){this.center=center;this.fire('center_changed');setTimeout(()=>this.fire('idle'),0)}getCenter(){return{lat:()=>this.center.lat,lng:()=>this.center.lng}}setZoom(){}}class Overlay{setMap(){}}window.google={maps:{Map:FixtureMap,Polyline:Overlay,event:{trigger:(map,name)=>map.fire(name),clearInstanceListeners:map=>map.listeners={}}}};window[${escapeUnsafeJsString(JSON.stringify(callback))}]();})();`;
 }
 
 for (const { provider, width, coverage } of [
