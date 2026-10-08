@@ -6,6 +6,9 @@ namespace KiriminAjaOfficial\Services {
 		return \GoogleMapsSettingsRuntimeTest::$options[ $name ] ?? $default;
 	}
 	function update_option( $name, $value, $autoload = null ) {
+		if ( 'kiriof_google_maps_browser_key' !== $name ) {
+			return \update_option( $name, $value );
+		}
 		\GoogleMapsSettingsRuntimeTest::$options[ $name ] = $value;
 		\GoogleMapsSettingsRuntimeTest::$autoload = $autoload;
 		return true;
