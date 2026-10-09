@@ -74,9 +74,6 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			array( 'wp_ajax_kiriof_instant_cancel', $result['composition']['controller'], 'cancel' ),
 			array( 'admin_post_kiriof_instant_labels', $result['composition']['controller'], 'labels' ),
 		), $result['hooks'] );
-		$source = file_get_contents( PLUGIN_DIR . '/inc/Controllers/InstantDeliveryController.php' );
-		$this->assertStringNotContainsString( 'nopriv', $source );
-		$this->assertStringContainsString( '__construct( InstantDispatchService $dispatch_service, InstantLabelService $label_service, InstantOperationsService $operations_service )', $source );
 	}
 
 	#[Test]

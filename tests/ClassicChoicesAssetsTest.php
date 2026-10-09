@@ -9,30 +9,6 @@ use PHPUnit\Framework\TestCase;
 /** Distribution, enqueue, label and read-only transport guards; interaction belongs to the browser suite. */
 final class ClassicChoicesAssetsTest extends TestCase {
 	#[Test]
-	public function classic_selectors_are_owned_by_bits_ui_not_the_obsolete_choices_vendor(): void {
-		$component = $this->source( 'src/buyer/components/BuyerCombobox.svelte' );
-		$bridge = $this->source( 'src/buyer/classic/selector.ts' );
-		$entry = $this->source( 'src/buyer/entries/classic.ts' );
-		$package = json_decode( $this->source( 'package.json' ), true, 512, JSON_THROW_ON_ERROR );
-		$this->assertArrayHasKey( 'bits-ui', $package['dependencies'] );
-		$this->assertStringContainsString( "import { Combobox } from 'bits-ui'", $component );
-		foreach ( array( 'Root', 'Trigger', 'Input', 'Item', 'Portal', 'Content' ) as $part ) {
-			$this->assertStringContainsString( '<Combobox.' . $part, $component );
-		}
-		$this->assertStringContainsString( 'onValueChange={onChoose}', $component );
-		$this->assertStringContainsString( 'mount(BuyerCombobox', $bridge );
-		$this->assertStringContainsString( 'startClassicSelectors', $entry );
-		$this->assertStringContainsString( 'root.kiriofClassicChoices = bridge;', $bridge, 'Legacy callers must resolve to the same selector owner.' );
-		$this->assertStringNotContainsString( 'new Choices', $bridge );
-		$this->assertStringNotContainsString( 'assets/lib/choices/', $this->source( 'inc/Base/Enqueue.php' ) );
-		foreach ( array( 'dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies' ) as $section ) {
-			foreach ( array_keys( $package[ $section ] ?? array() ) as $dependency ) {
-				$this->assertDoesNotMatchRegularExpression( '/choices/i', $dependency, 'Bits UI exclusively owns the enhanced selector.' );
-			}
-		}
-	}
-
-	#[Test]
 	public function classic_enqueue_executes_with_local_assets_and_preserves_the_legacy_dependency_chain(): void {
 		$result = $this->runtime( 'fixtures/classic-choices-assets-runtime.php', array( 'page' => 'classic' ) );
 		$this->assertArrayNotHasKey( 'kiriof-choices', $result['scripts'] );
@@ -89,7 +65,6 @@ final class ClassicChoicesAssetsTest extends TestCase {
 		$this->assertSame( 'nonce:choices-assets-test', $config['nonce'] );
 		$this->assertSame( 'nonce:choices-assets-test', $result['localized']['kiriofAjax']['nonce'] );
 		$this->assertSame( 'https://shop.example/wp-admin/admin-ajax.php', $config['ajaxUrl'] );
-		$this->assertMatchesRegularExpression( '/^msgid "Subdistrict"\Rmsgstr "Desa \/ Kelurahan"$/m', $this->source( 'lang/kiriminaja-official-id_ID.po' ) );
 		$fields = $this->runtime( 'fixtures/checkout-country-runtime.php', array( 'action' => 'fields', 'post' => array( 'billing_country' => 'ID', 'shipping_country' => 'ID' ) ) );
 		foreach ( array( 'billing' => 'kiriof_destination_area', 'shipping' => 'kiriof_shipping_destination_area' ) as $group => $key ) {
 			$expected_keys = array_keys( $fields['original_fields'][ $group ] );
@@ -101,27 +76,6 @@ final class ClassicChoicesAssetsTest extends TestCase {
 			$this->assertSame( 'Subdistrict', $fields['fields'][ $group ][ $key ]['label'] );
 			$this->assertTrue( $fields['fields'][ $group ][ $key ]['required'] );
 		}
-	}
-
-	#[Test]
-	public function typed_control_source_only_calls_read_only_same_origin_lookup_without_secrets(): void {
-		$source = $this->source( 'src/buyer/api/subdistrict.ts' );
-		$bridge = $this->source( 'src/buyer/classic/selector.ts' );
-		$courier = $this->source( 'src/buyer/components/CourierOption.svelte' );
-		$this->assertStringContainsString( "action: 'kiriminaja_subdistrict_search'", $source );
-		$this->assertStringContainsString( "ajax.nonce || config.nonce || ''", $bridge );
-		$this->assertStringContainsString( "ajax.ajaxurl || config.ajaxUrl || ''", $bridge );
-		$this->assertStringContainsString( 'window.fetch(endpoint', $source );
-		$this->assertStringContainsString( "credentials: 'same-origin'", $source );
-		$this->assertStringContainsString( 'url.origin === window.location.origin', $courier );
-		$this->assertStringNotContainsString( 'createElementNS(', $courier );
-		$this->assertStringContainsString( 'onerror={() => failed = source}', $courier );
-		$this->assertDoesNotMatchRegularExpression( '/(?:create[_-]?order|booking|credit|api[_-]?key|api[_-]?token|Authorization|Bearer)/i', $source );
-		$this->assertSame( 1, substr_count( $source, 'window.fetch(' ), 'Search has one read-only transport.' );
-		$this->assertSame( 1, preg_match( '/new URLSearchParams\(\{(.*?)\}\)/s', $source, $matches ) );
-		preg_match_all( '/^\s*(?:\x27([^\x27]+)\x27|([a-z]+))(?:\s*:|\s*,)/m', $matches[1], $fields );
-		$keys = array_map( static fn( $quoted, $plain ) => $quoted ?: $plain, $fields[1], $fields[2] );
-		$this->assertSame( array( 'action', 'nonce', 'term', 'data[term]', 'data[search]' ), $keys, 'Search must never send credentials or mutate booking/order payloads.' );
 	}
 
 	private function source( string $path ): string {

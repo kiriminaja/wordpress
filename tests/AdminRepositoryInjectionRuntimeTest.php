@@ -54,18 +54,6 @@ final class AdminRepositoryInjectionRuntimeTest extends TestCase {
 		$this->assertNotSame( '', $admin->plugin );
 	}
 
-	#[Test]
-	public function admin_contains_no_database_access_or_consumer_side_dependency_construction(): void {
-		$source = file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' );
-
-		$this->assertStringNotContainsString( 'global $wpdb', $source );
-		$this->assertStringNotContainsString( '$wpdb->', $source );
-		$this->assertStringNotContainsString( 'SELECT ', $source );
-		$this->assertStringContainsString( '$this->product_readiness_repository->getReadiness()', $source );
-		$this->assertStringContainsString( '$this->tracking_page_repository->hasPublishedTrackingPage()', $source );
-		$this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\SettingRepository', $source );
-		$this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Services\\WooCommerceShippingMethodRegistrationService', $source );
-	}
 }
 
 final class AdminProductReadinessRepositoryFake implements ProductVolumetricReadinessRepositoryInterface {

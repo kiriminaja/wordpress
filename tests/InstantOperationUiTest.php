@@ -3,21 +3,9 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
+use KiriminAjaOfficial\Services\InstantShipmentState;
 
 final class InstantOperationUiTest extends TestCase {
-    public function test_instant_row_actions_are_icon_only_with_tooltips_and_accessible_names(): void {
-        $source = $this->source( 'src/lib/transactions/TransactionsApp.svelte' );
-        foreach ( array( 'instantRecheck' => 'IconRefresh', 'instantCancel' => 'IconTrash', 'liveTracking' => 'IconMapPin' ) as $label => $icon ) {
-            $this->assertStringContainsString( '<ActionTooltip label={bootstrap.i18n.' . $label . '}>', $source );
-            $this->assertMatchesRegularExpression( '/<Button(?:(?!<\/Button>)[\s\S])*?size="icon-sm"(?:(?!<\/Button>)[\s\S])*?aria-label=\{bootstrap\.i18n\.' . $label . '\}><' . $icon . ' \/><\/Button>/', $source );
-            $this->assertStringNotContainsString( '>{bootstrap.i18n.' . $label . '}</Button>', $source );
-        }
-        $this->assertStringContainsString( 'target="_blank" rel="noopener noreferrer" aria-label={bootstrap.i18n.liveTracking}', $source );
-        foreach ( array( 'reconcile', 'tracking', 'cancel' ) as $mode ) {
-            $this->assertStringContainsString( "mode: '" . $mode . "', id: row.kaOrderId", $source );
-        }
-    }
-
     private function source(string $path): string {
         return file_get_contents(PLUGIN_DIR . '/' . $path);
     }
@@ -44,29 +32,16 @@ final class InstantOperationUiTest extends TestCase {
     }
 
     public function test_confirmed_bookings_can_cancel_without_an_awb_but_unknown_and_terminal_states_cannot(): void {
-        foreach (['gosend', 'grab_express'] as $service) {
-            foreach (['pending', 'request_pickup'] as $status) {
-                foreach ([100, 105, '100', '105'] as $code) {
-                    foreach (['', null, 'BOOKED-AWB'] as $awb) {
-                        foreach (['list', 'detail'] as $mode) {
-                            $row = $this->row(array_replace($this->confirmedBooking(), compact('service', 'status', 'awb', 'mode'), ['instant_status_code' => $code, 'is_deficit' => 1]));
-                            $this->assertTrue($row['actions']['cancel'], "$service/$status/$code/$mode");
-                            foreach (['changeOrigin', 'adjustDeficit', 'cancelDeficit'] as $action) {
-                                $this->assertFalse($row['actions'][$action]);
-                            }
-        foreach (['gosend', 'grab_express'] as $service) {
-            foreach (['list', 'detail', 'fallback'] as $mode) {
-                $payload = ['delivery_type'=>'instant', 'service'=>$service, 'status'=>'pending', 'instant_status_code'=>null, 'instant_payment_id'=>'', 'awb'=>'', 'mode'=>$mode];
-                $row = $this->row($payload);
-                $this->assertSame($mode !== 'fallback', $row['actions']['reconcile']);
-                foreach (['instant_status_code'=>0, 'instant_payment_id'=>'PAY-1', 'awb'=>'AWB-1', 'status'=>'new', 'order_id'=>'bad id', 'service'=>'jne'] as $field=>$value) {
-                    $this->assertFalse($this->row(array_replace($payload, [$field=>$value]))['actions']['reconcile']);
-                }
-            }
-        }
-                        }
-                    }
-                }
+        $valid = array(
+            'service'             => array( 'gosend', 'grab_express' ),
+            'status'              => array( 'pending', 'request_pickup' ),
+            'instant_status_code' => array( 100, 101, 105, 110, '100', '101', '105', '110' ),
+            'awb'                 => array( '', null, 'BOOKED-AWB' ),
+        );
+        foreach ( $valid as $field => $values ) {
+            foreach ( $values as $value ) {
+                $payload = array_replace( $this->confirmedBooking(), array( $field => $value ) );
+                $this->assertTrue( InstantShipmentState::canCancel( $payload ), $field . '/' . json_encode( $value ) );
             }
         }
         foreach ([
@@ -79,10 +54,27 @@ final class InstantOperationUiTest extends TestCase {
             ['status' => 'shipped'], ['status' => 'finished'], ['status' => 'canceled'],
             ['service' => 'borzo'], ['status' => 'new'],
         ] as $invalid) {
-            foreach (['list', 'detail'] as $mode) {
-                $row = $this->row(array_replace($this->confirmedBooking(), $invalid, ['mode' => $mode]));
-                $this->assertFalse($row['actions']['cancel'], json_encode($invalid) . "/$mode");
-            }
+            $this->assertFalse( InstantShipmentState::canCancel( array_replace( $this->confirmedBooking(), $invalid ) ), json_encode( $invalid ) );
+        }
+        foreach ( array( 'list', 'detail' ) as $mode ) {
+            $row = $this->row( array_replace( $this->confirmedBooking(), array( 'mode' => $mode, 'is_deficit' => 1 ) ) );
+            $this->assertSame( array( true, false, false, false ), array_map( static fn( $action ) => $row['actions'][ $action ], array( 'cancel', 'changeOrigin', 'adjustDeficit', 'cancelDeficit' ) ) );
+            $row = $this->row( array_replace( $this->confirmedBooking(), array( 'mode' => $mode, 'instant_status_code' => 200 ) ) );
+            $this->assertFalse( $row['actions']['cancel'] );
+        }
+    }
+
+    public function test_only_uncertain_bookings_offer_reconciliation(): void {
+        $payload = array_replace( $this->confirmedBooking(), array( 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_id' => '', 'awb' => '' ) );
+        foreach ( array( 'gosend', 'grab_express' ) as $service ) {
+            $this->assertTrue( InstantShipmentState::canRecheck( array_replace( $payload, array( 'service' => $service ) ) ) );
+        }
+        foreach ( array( 'instant_status_code' => 0, 'instant_payment_id' => 'PAY-1', 'awb' => 'AWB-1', 'status' => 'new', 'order_id' => 'bad id', 'service' => 'jne' ) as $field => $value ) {
+            $this->assertFalse( InstantShipmentState::canRecheck( array_replace( $payload, array( $field => $value ) ) ), $field );
+        }
+        foreach ( array( 'list', 'detail', 'fallback' ) as $mode ) {
+            $this->assertSame( 'fallback' !== $mode, $this->row( $payload + array( 'mode' => $mode ) )['actions']['reconcile'] );
+            $this->assertFalse( $this->row( array_replace( $payload, array( 'mode' => $mode, 'instant_payment_id' => 'PAY-1' ) ) )['actions']['reconcile'] );
         }
     }
 
@@ -155,67 +147,4 @@ final class InstantOperationUiTest extends TestCase {
         }
     }
 
-    public function test_recheck_is_targeted_to_uncertain_bookings_and_uses_existing_reconcile_endpoint(): void {
-        foreach (['src/lib/transactions/TransactionsApp.svelte', 'src/lib/transaction-detail/TransactionDetail.svelte', 'src/lib/transactions/InstantOperationDialog.svelte'] as $path) {
-            $source = $this->source($path);
-            $this->assertStringContainsString('reconcile', $source);
-            $this->assertStringContainsString('instantRecheck', $source);
-            $this->assertStringNotContainsString('Check remote status', $source);
-        }
-        foreach (['inc/Services/TransactionListRenderService.php', 'inc/Services/TransactionDetailPageData.php'] as $path) {
-            $this->assertStringNotContainsString('"instantReconcile"', $this->source($path));
-        }
-    }
-
-    public function test_operations_are_explicit_single_order_and_not_processing(): void {
-        $dialog = $this->source('src/lib/transactions/InstantOperationDialog.svelte');
-        $this->assertStringContainsString('onclick={() => void run()}', $dialog);
-        $this->assertStringContainsString('orderIds.length !== 1', $dialog);
-        $this->assertStringContainsString("if (mode === 'cancel') values.confirmed = 'yes'", $dialog);
-        $this->assertStringContainsString('order_ids: JSON.stringify(orderIds)', $dialog);
-        $this->assertStringContainsString('`kiriof_instant_${mode}`', $dialog);
-        $this->assertStringNotContainsString('$effect', $dialog);
-        $this->assertStringNotContainsString('kiriof_instant_dispatch', $dialog);
-        $this->assertStringNotContainsString('setInterval', $dialog);
-        $this->assertStringContainsString('instantOperationUnknown', $dialog);
-        $this->assertStringContainsString('rows !== null', $dialog);
-    }
-
-    public function test_close_is_blocked_busy_and_unmount_aborts(): void {
-        $dialog = $this->source('src/lib/transactions/InstantOperationDialog.svelte');
-        $this->assertStringContainsString('if (busy) return;', $dialog);
-        $this->assertStringContainsString('controller?.abort()', $dialog);
-        $this->assertStringContainsString("escapeKeydownBehavior={busy ? 'ignore' : 'close'}", $dialog);
-        $this->assertStringContainsString("interactOutsideBehavior={busy ? 'ignore' : 'close'}", $dialog);
-        $this->assertStringContainsString('showCloseButton={!busy}', $dialog);
-        $this->assertStringContainsString('signal: controller.signal', $dialog);
-    }
-
-    public function test_urls_and_local_guards_are_shared(): void {
-        $types = $this->source('src/lib/transactions/types.ts');
-        $this->assertStringContainsString("['http:', 'https:'].includes(url.protocol)", $types);
-        $this->assertStringContainsString('!url.username', $types);
-        $this->assertStringContainsString('!url.password', $types);
-        $this->assertStringContainsString('\\x00-\\x20\\x7f', $types);
-        foreach (['src/lib/transactions/TransactionsApp.svelte', 'src/lib/transaction-detail/TransactionDetail.svelte', 'src/lib/transactions/InstantOperationDialog.svelte'] as $path) {
-            $source = $this->source($path);
-            $this->assertStringContainsString('InstantOperation', $source);
-            $this->assertStringContainsString('safeInstantTrackingUrl', $source);
-            $this->assertStringContainsString('rel="noopener noreferrer"', $source);
-        }
-        $list = $this->source('inc/Services/TransactionListViewModelFactory.php');
-        $this->assertStringContainsString('InstantShipmentState::canCancel( $row )', $list);
-        $this->assertStringContainsString('InstantTrackingPresentation::trackingUrl( $row )', $list);
-        $detail = $this->source('inc/Services/TransactionDetailPageData.php');
-        $this->assertStringContainsString('InstantLabelService::canPrint($transaction)', $detail);
-        $this->assertStringContainsString('InstantShipmentState::canCancel($transaction)', $detail);
-        $this->assertStringContainsString('"supportsLiveTracking" => $is_express', $detail);
-        foreach (['inc/Services/TransactionListRenderService.php', 'inc/Services/TransactionDetailPageData.php'] as $path) {
-            $source = $this->source($path);
-            foreach (['instantCancelTerms', 'instantOperationUnknown', 'instantResult_cancel_requested', 'instantResult_canceled'] as $key) {
-                $this->assertStringContainsString('"' . $key . '" => __(', $source);
-            }
-            $this->assertStringContainsString('does not cancel the WooCommerce order or issue a WooCommerce refund', $source);
-        }
-    }
 }

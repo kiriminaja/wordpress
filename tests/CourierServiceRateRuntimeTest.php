@@ -93,23 +93,6 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		$this->assertSame( array( 'legacy' => true, 'deny_all' => false, 'empty_services' => false, 'enabled' => true ), $this->run_fixture( 'readiness' ) );
 	}
 
-	public function test_shipping_deny_all_guard_precedes_free_coupon_rate_creation(): void {
-		$source = file_get_contents( PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php' );
-		$start = strpos( $source, 'public function calculate_shipping(' );
-		$this->assertNotFalse( $start );
-		$source = substr( $source, $start );
-		$this->assertMatchesRegularExpression( '/if\s*\(\s*!\s*\( new .*?SettingRepository\(\) \)->hasEnabledCourierServices\(\)\s*\)\s*\{\s*return;\s*\}/s', $source );
-		$guard = strpos( $source, '->hasEnabledCourierServices()' );
-		$pricing = strpos( $source, 'getPricing' );
-		$rate = strpos( $source, '$this->add_rate(' );
-		$this->assertNotFalse( $guard );
-		$this->assertNotFalse( $pricing );
-		$this->assertNotFalse( $rate );
-		$this->assertLessThan( $pricing, $guard );
-		$this->assertLessThan( $rate, $guard );
-		$this->assertStringNotContainsString( "'_free'", $source );
-	}
-
 	public function test_shipping_rejects_foreign_and_unknown_package_countries_before_pricing_or_free_coupons(): void {
 		$result = $this->run_fixture( 'destination_country' );
 		foreach ( array( 'paid', 'free' ) as $mode ) {

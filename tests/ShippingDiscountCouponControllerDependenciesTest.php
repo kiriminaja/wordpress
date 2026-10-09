@@ -56,13 +56,4 @@ final class ShippingDiscountCouponControllerDependenciesTest extends TestCase {
         $this->assertSame( $repository, $property->getValue( $controller ) );
     }
 
-    #[Test]
-    public function repository_construction_is_confined_to_optional_constructor_default(): void {
-        $source = file_get_contents( PLUGIN_DIR . '/inc/Controllers/ShippingDiscountCouponController.php' );
-
-        $this->assertIsString( $source );
-        $this->assertStringContainsString( '?ShippingDiscountRegionRepository $region_repository = null', $source );
-        $this->assertSame( 1, substr_count( $source, 'new ShippingDiscountRegionRepository()' ) );
-        $this->assertGreaterThanOrEqual( 4, substr_count( $source, '$this->region_repository' ) );
-    }
 }

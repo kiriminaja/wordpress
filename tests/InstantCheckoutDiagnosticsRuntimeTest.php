@@ -6,14 +6,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantCheckoutDiagnosticsRuntimeTest extends TestCase {
-    #[Test]
-    public function diagnostics_remain_available_with_the_normalized_log_source(): void {
-        $init = file_get_contents(PLUGIN_DIR . '/inc/Init.php');
-        $settings = file_get_contents(PLUGIN_DIR . '/inc/Controllers/SettingController.php');
-        $this->assertStringContainsString('Services\\InstantCheckoutDiagnosticsService::class', $init);
-        $this->assertStringContainsString("'kiriminaja_instant'", $settings);
-    }
-
     private function runFixture(string $scenario = '', array $extra = []): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-checkout-diagnostics-runtime.php') . ' ' . escapeshellarg(json_encode(['scenario' => $scenario] + $extra, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);

@@ -227,23 +227,4 @@ final class PackageTypeServiceTest extends TestCase {
 		$this->assertSame( 7, PackageTypeService::resolveForProduct( $variationWithParent ) );
 	}
 
-	#[Test]
-	public function product_controller_hooks_category_into_shipping_tab(): void {
-		$source = file_get_contents( PLUGIN_DIR . '/inc/Controllers/ProductController.php' );
-
-		$this->assertStringContainsString( 'woocommerce_product_options_shipping', $source );
-		$this->assertStringContainsString( 'kiriof_custom_field_shipping_category', $source );
-		$this->assertStringContainsString( 'PackageTypeService::META_KEY', $source );
-		$this->assertStringContainsString( 'delete_post_meta', $source );
-		$this->assertStringContainsString( 'update_post_meta', $source );
-	}
-
-	#[Test]
-	public function pickup_and_instant_services_use_package_type_service_for_orders(): void {
-		$pickupSource = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php' );
-		$instantSource = file_get_contents( PLUGIN_DIR . '/inc/Services/InstantShipmentContext.php' );
-
-		$this->assertStringContainsString( 'PackageTypeService::resolveForOrder', $pickupSource );
-		$this->assertStringContainsString( 'PackageTypeService::resolveForOrder', $instantSource );
-	}
 }

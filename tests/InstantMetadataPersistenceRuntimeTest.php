@@ -31,8 +31,6 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
             $this->assertSame(101, $result['row']['instant_status_code']);
             $this->assertSame('shipped', $result['row']['status']);
         }
-        $source = file_get_contents(PLUGIN_DIR . '/inc/Migration/SetupMigration.php');
-        $this->assertMatchesRegularExpression('/transactionsTable\(\);\s*self::instantMetadataTable\(\);/', $source);
         $done = $this->runFixture(['mode' => 'migration', 'complete' => true]);
         $this->assertSame([], $done['queries']);
     }

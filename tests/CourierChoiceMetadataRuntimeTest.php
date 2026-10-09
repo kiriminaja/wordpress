@@ -48,8 +48,5 @@ final class CourierChoiceMetadataRuntimeTest extends TestCase {
 		}
 		$this->assertLessThan( 60000, $total );
 		$this->assertDirectoryDoesNotExist( dirname( __DIR__ ) . '/src/assets/images/kiriminaja-kurir' );
-		$config = file_get_contents( dirname( __DIR__ ) . '/templates/front/partials/form-billing-address-config.php' );
-		$this->assertStringContainsString( "'courierLogos'", $config );
-		$this->assertStringContainsString( 'CourierLogoAssets::urls()', $config );
 	}
 }

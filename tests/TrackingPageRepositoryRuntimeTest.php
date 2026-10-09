@@ -123,16 +123,6 @@ final class TrackingPageRepositoryRuntimeTest extends TestCase
     }
 
     #[Test]
-    public function activation_does_not_switch_order_storage_or_replace_existing_checkout_pages(): void
-    {
-        $source = file_get_contents( PLUGIN_DIR . '/inc/Pages/AdminPost.php' );
-        $this->assertStringNotContainsString( 'woocommerce_custom_orders_table_enabled', $source );
-        $this->assertStringNotContainsString( 'setLegacyWoocommerceKiriminaja', $source );
-        $this->assertStringNotContainsString( "self::updatePage(self::checkPageExist('checkout')->ID", $source );
-        $this->assertStringNotContainsString( "self::updatePage(self::checkPageExist('cart')->ID", $source );
-    }
-
-    #[Test]
     public function controller_delegates_tracking_page_lookup_to_repository_contract(): void
     {
         $expected   = array( (object) array( 'ID' => 19, 'post_title' => 'Tracking' ) );

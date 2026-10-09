@@ -98,25 +98,6 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function classic_district_script_uses_edited_address_and_updates_label_before_calculation_guard(): void {
-        $script = kiriof_legacy_checkout_source();
-        $change = substr( $script, strpos( $script, 'function changeDistrict(){' ) );
-        $change = substr( $change, 0, strpos( $change, 'function getSearchAreaKelurahan()' ) );
-        $this->assertStringContainsString( "var addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';", $change );
-        $this->assertStringNotContainsString( "let addressType = different_address", $change );
-        $this->assertStringContainsString( 'var country = kiriofGetClassicAddressCountry(addressType);', $change );
-        $this->assertStringContainsString( "jQuery('#' + addressType + '_country')", $script );
-        $label = strpos( $change, 'kiriofSetClassicDistrictLabel(root, label, differentAddress);' );
-        $guard = strpos( $change, "if (kiriofBillingAddressConfig.isCheckout && addressType !== (differentAddress ? 'shipping' : 'billing')) {" );
-        $this->assertNotFalse( $label );
-        $this->assertNotFalse( $guard );
-        $this->assertLessThan( $guard, $label, 'Inactive address edits must still update their district label.' );
-        $this->assertMatchesRegularExpression( "/addressType !== \\(differentAddress \\? 'shipping' : 'billing'\\)\\)\\s*\\{\\s*return;/", $change );
-        $this->assertStringContainsString( "on('country_to_state_changing.kiriofClassicAddress updated_checkout.kiriofClassicAddress', kiriofSyncClassicAddressFields)", $script );
-        $this->assertMatchesRegularExpression( '/function kiriofSyncClassicAddressFields\(\)\s*\{\s*if \(!kiriofBillingAddressConfig.isCheckout \|\| kiriofIsBlockCheckoutContext\(\)\)\s*\{\s*return;/', $script );
-    }
-
-    #[Test]
     #[DataProvider( 'countryPairs' )]
     public function missing_post_countries_use_checkout_get_value( string $billing, string $shipping ): void {
         $result = $this->runFixture( array(

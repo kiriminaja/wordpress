@@ -233,20 +233,4 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertStringContainsString( 'icon-128x128.png', $technical_bootstrap['toolbar']['logoUrl'] );
 	}
 
-	#[Test]
-	public function target_templates_never_instantiate_repositories(): void {
-		$templates = array(
-			'templates/setting/index.php',
-			'templates/setting/setuped/index.php',
-			'templates/setting/unsetuped/index.php',
-			'templates/setting/app.php',
-		);
-
-		foreach ( $templates as $template ) {
-			$content = file_get_contents( PLUGIN_DIR . '/' . $template );
-			$this->assertDoesNotMatchRegularExpression( '/new\s+[^;\n]*Repository\s*\(/', $content, $template );
-			$this->assertStringNotContainsString( 'Repositories\\', $content, $template );
-		}
-		$this->assertStringContainsString( 'SettingsPageData', file_get_contents( PLUGIN_DIR . '/templates/setting/index.php' ) );
-	}
 }

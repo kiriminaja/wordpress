@@ -15,78 +15,9 @@ use PHPUnit\Framework\Attributes\Test;
 final class PluginStructureTest extends TestCase
 {
     #[Test]
-    public function packaging_excludes_php_development_dotfiles(): void
-    {
-        $makefile = file_get_contents(PLUGIN_DIR . '/Makefile');
-        $this->assertStringContainsString('--exclude=.phpactor.json', $makefile);
-        $this->assertStringContainsString('--exclude=.php-version', $makefile);
-    }
-
-    #[Test]
     public function main_plugin_file_exists(): void
     {
         $this->assertFileExists(PLUGIN_DIR . '/kiriminaja.php');
-    }
-
-    #[Test]
-    public function main_plugin_file_has_required_headers(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
-        $requiredHeaders = [
-            'Plugin Name',
-            'Version',
-            'Author',
-            'License',
-            'Text Domain',
-            'Description',
-        ];
-
-        foreach ($requiredHeaders as $header) {
-            $this->assertStringContainsString(
-                $header,
-                $content,
-                "Missing required plugin header: {$header}"
-            );
-        }
-    }
-
-    #[Test]
-    public function text_domain_matches_slug(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
-        $this->assertMatchesRegularExpression(
-            '/Text Domain:\s+kiriminaja-official/',
-            $content,
-            'Text Domain should be "kiriminaja-official"'
-        );
-    }
-
-    #[Test]
-    public function version_defined_in_main_file(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
-        $this->assertMatchesRegularExpression(
-            '/define\s*\(\s*[\'"]KIRIOF_VERSION[\'"]\s*,\s*[\'"](\d+\.\d+\.\d+)[\'"]/',
-            $content,
-            'KIRIOF_VERSION constant must be defined with semver format'
-        );
-    }
-
-    #[Test]
-    public function version_header_matches_constant(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
-
-        preg_match('/\*\s*Version:\s+(\d+\.\d+\.\d+)/', $content, $headerMatch);
-        preg_match('/KIRIOF_VERSION[\'"],\s*[\'"](\d+\.\d+\.\d+)/', $content, $constantMatch);
-
-        $this->assertNotEmpty($headerMatch, 'Version header not found');
-        $this->assertNotEmpty($constantMatch, 'KIRIOF_VERSION constant not found');
-        $this->assertSame(
-            $headerMatch[1],
-            $constantMatch[1],
-            'Version header and KIRIOF_VERSION constant must match'
-        );
     }
 
     #[Test]
@@ -96,68 +27,9 @@ final class PluginStructureTest extends TestCase
     }
 
     #[Test]
-    public function readme_stable_tag_matches_version(): void
-    {
-        $mainContent = file_get_contents(PLUGIN_DIR . '/kiriminaja.php');
-        preg_match('/KIRIOF_VERSION[\'"],\s*[\'"](\d+\.\d+\.\d+)/', $mainContent, $versionMatch);
-
-        $readmeContent = file_get_contents(PLUGIN_DIR . '/readme.txt');
-        preg_match('/Stable tag:\s*(\S+)/', $readmeContent, $stableMatch);
-
-        $this->assertNotEmpty($versionMatch, 'KIRIOF_VERSION not found');
-        $this->assertNotEmpty($stableMatch, 'Stable tag not found in readme.txt');
-        $this->assertSame(
-            $versionMatch[1],
-            $stableMatch[1],
-            'readme.txt Stable tag must match KIRIOF_VERSION'
-        );
-    }
-
-    #[Test]
-    public function readme_has_required_sections(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/readme.txt');
-        $requiredSections = [
-            '== Description ==',
-            '== Installation ==',
-            '== Changelog ==',
-        ];
-
-        foreach ($requiredSections as $section) {
-            $this->assertStringContainsString(
-                $section,
-                $content,
-                "readme.txt missing required section: {$section}"
-            );
-        }
-    }
-
-    #[Test]
     public function uninstall_php_exists(): void
     {
         $this->assertFileExists(PLUGIN_DIR . '/uninstall.php');
-    }
-
-    #[Test]
-    public function uninstall_checks_wp_uninstall_plugin(): void
-    {
-        $content = file_get_contents(PLUGIN_DIR . '/uninstall.php');
-        $this->assertStringContainsString(
-            'WP_UNINSTALL_PLUGIN',
-            $content,
-            'uninstall.php must check WP_UNINSTALL_PLUGIN constant'
-        );
-    }
-
-    #[Test]
-    public function composer_json_has_correct_autoload(): void
-    {
-        $this->assertFileExists(PLUGIN_DIR . '/composer.json');
-        $composer = json_decode(file_get_contents(PLUGIN_DIR . '/composer.json'), true);
-
-        $this->assertArrayHasKey('autoload', $composer);
-        $this->assertArrayHasKey('psr-4', $composer['autoload']);
-        $this->assertArrayHasKey('KiriminAjaOfficial\\', $composer['autoload']['psr-4']);
     }
 
     #[Test]

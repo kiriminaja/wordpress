@@ -2,6 +2,8 @@
 
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Services\KiriminajaApiService;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -34,6 +36,9 @@ require_once PLUGIN_DIR . '/inc/Repositories/KiriminajaApiRepository.php';
 require_once PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php';
 
 final class KiriminajaApiServiceRepositoryInjectionTest extends TestCase {
+
+	use MockeryPHPUnitIntegration;
+
 	#[Test]
 	public function constructor_keeps_no_argument_compatibility(): void {
 		$constructor = ( new ReflectionClass( KiriminajaApiService::class ) )->getConstructor();
@@ -47,15 +52,13 @@ final class KiriminajaApiServiceRepositoryInjectionTest extends TestCase {
 	#[Test]
 	public function profile_service_accepts_the_normalized_repository_profile(): void {
 		$profile = (object) array( 'name' => 'Merchant', 'email' => 'merchant@example.com' );
-		$repository = $this->createMock( KiriminajaApiRepository::class );
-		$repository->expects( $this->once() )
-			->method( 'getProfile' )
-			->willReturn(
-				array(
-					'status' => true,
-					'data'   => (object) array( 'status' => true, 'results' => $profile ),
-				)
-			);
+		$repository = Mockery::mock( KiriminajaApiRepository::class );
+		$repository->shouldReceive( 'getProfile' )->once()->withNoArgs()->andReturn(
+			array(
+				'status' => true,
+				'data'   => (object) array( 'status' => true, 'results' => $profile ),
+			)
+		);
 
 		$result = ( new KiriminajaApiService( $repository ) )->getProfile();
 
@@ -65,31 +68,25 @@ final class KiriminajaApiServiceRepositoryInjectionTest extends TestCase {
 
 	#[Test]
 	public function injected_repository_is_reused_for_api_calls(): void {
-		$repository = $this->createMock( KiriminajaApiRepository::class );
-		$repository->expects( $this->once() )
-			->method( 'sub_district_search' )
-			->with( 'Sleman' )
-			->willReturn(
-				array(
+		$repository = Mockery::mock( KiriminajaApiRepository::class );
+		$repository->shouldReceive( 'sub_district_search' )->once()->with( 'Sleman' )->andReturn(
+			array(
+				'status' => true,
+				'data'   => (object) array(
 					'status' => true,
-					'data'   => (object) array(
-						'status' => true,
-						'result' => array( 'district' ),
-					),
-				)
-			);
-		$repository->expects( $this->once() )
-			->method( 'getPayment' )
-			->with( array( 'payment_id' => 'pay-123' ) )
-			->willReturn(
-				array(
+					'result' => array( 'district' ),
+				),
+			)
+		);
+		$repository->shouldReceive( 'getPayment' )->once()->with( array( 'payment_id' => 'pay-123' ) )->andReturn(
+			array(
+				'status' => true,
+				'data'   => (object) array(
 					'status' => true,
-					'data'   => (object) array(
-						'status' => true,
-						'data'   => (object) array( 'id' => 'pay-123' ),
-					),
-				)
-			);
+					'data'   => (object) array( 'id' => 'pay-123' ),
+				),
+			)
+		);
 
 		$service = new KiriminajaApiService( $repository );
 
@@ -97,15 +94,18 @@ final class KiriminajaApiServiceRepositoryInjectionTest extends TestCase {
 		$this->assertSame( 'pay-123', $service->getPayment( 'pay-123' )->data->id );
 	}
 
-	#[Test]
-	public function service_has_no_repository_construction_outside_the_default_constructor(): void {
-		$content = file_get_contents( PLUGIN_DIR . '/inc/Services/KiriminajaApiService.php' );
+	public static function invalid_address_responses(): iterable {
+		yield 'transport failure' => array( array( 'status' => false, 'data' => 'private-token' ) );
+		yield 'negative acknowledgement' => array( array( 'status' => true, 'data' => (object) array( 'status' => false ) ) );
+		yield 'malformed results' => array( array( 'status' => true, 'data' => (object) array( 'result' => 'private-token' ) ) );
+	}
 
-		$this->assertSame( 1, substr_count( $content, 'new KiriminajaApiRepository()' ) );
-		$this->assertStringNotContainsString(
-			'new \\KiriminAjaOfficial\\Repositories\\KiriminajaApiRepository',
-			$content
-		);
-		$this->assertSame( 7, substr_count( $content, '$this->repository->' ) );
+	#[DataProvider( 'invalid_address_responses' )]
+	public function test_failed_address_lookup_returns_fixed_error_from_the_injected_repository( array $response ): void {
+		$repository = Mockery::mock( KiriminajaApiRepository::class );
+		$repository->shouldReceive( 'sub_district_search' )->once()->with( 'Sleman' )->andReturn( $response );
+		$result = ( new KiriminajaApiService( $repository ) )->sub_district_search( 'Sleman' );
+
+		$this->assertSame( array( 400, array(), 'Could not load subdistricts.' ), array( $result->status, $result->data, $result->message ) );
 	}
 }

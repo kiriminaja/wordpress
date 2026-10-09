@@ -12,20 +12,6 @@ use PHPUnit\Framework\TestCase;
 final class EditOrderDependenciesTest extends TestCase
 {
     #[Test]
-    public function controller_reuses_its_injected_repositories(): void
-    {
-        $controllerSource = file_get_contents( PLUGIN_DIR . '/inc/Controllers/EditOrderController.php' );
-
-        $this->assertIsString( $controllerSource );
-        $this->assertSame( 0, substr_count( $controllerSource, 'new TransactionRepository()' ) );
-        $this->assertSame( 0, substr_count( $controllerSource, 'new SettingRepository()' ) );
-        $this->assertSame( 0, substr_count( $controllerSource, 'new KiriminajaApiRepository()' ) );
-        $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\TransactionRepository', $controllerSource );
-        $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\SettingRepository', $controllerSource );
-        $this->assertStringNotContainsString( 'new \\KiriminAjaOfficial\\Repositories\\KiriminajaApiRepository', $controllerSource );
-    }
-
-    #[Test]
     public function constructor_accepts_required_injected_instances(): void
     {
         if ( ! defined( 'ABSPATH' ) ) {

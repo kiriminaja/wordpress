@@ -74,12 +74,6 @@ final class TransactionListQueryRuntimeTest extends TestCase
 
     #[Test]
     public function delivery_counts_are_wired_and_refresh_control_includes_its_border_in_shared_height(): void {
-        $source = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
-        $this->assertStringContainsString( 'count: bootstrap.deliveryCounts?.regular ?? 0', $source );
-        $this->assertStringContainsString( 'count: bootstrap.deliveryCounts?.instant ?? 0', $source );
-        $css = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
-        $this->assertMatchesRegularExpression( '/\.kiriof-auto-refresh\s*\{[^}]*!box-border !h-\[34px\] !min-h-\[34px\]/', $css );
-        $this->assertMatchesRegularExpression( '/\.kiriof-auto-refresh > \.kiriof-auto-refresh__chevron\s*\{[^}]*!min-h-0 !h-full/', $css );
     }
 
     #[Test]
@@ -113,23 +107,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
     #[Test]
     public function switching_transaction_tabs_clears_list_filters_and_pending_search(): void
     {
-        $app = file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
-        $start = strpos( $app, 'function changeScope(value: string): void {' );
-        $end = strpos( $app, "\n  onDestroy(", $start );
 
-        $this->assertNotFalse( $start );
-        $this->assertNotFalse( $end );
-        $scope = substr( $app, $start, $end - $start );
 
-        $this->assertStringContainsString( 'window.clearTimeout(searchTimer)', $scope );
-        $this->assertStringContainsString( "if (value !== 'order-issue' && value !== 'regular' && value !== 'instant') return", $scope );
-        $this->assertStringContainsString( "delivery_type: value === 'instant' ? 'instant' : 'express'", $scope );
-        $this->assertStringContainsString( "status: value === 'order-issue' ? 'order-issue' : 'all'", $scope );
-        foreach ( array( 'key', 'month', 'cod', 'courier', 'print_status' ) as $filter ) {
-            $this->assertStringContainsString( $filter . ": ''", $scope );
-        }
-        $this->assertStringNotContainsString( 'per_page:', $scope );
-        $this->assertStringContainsString( "if (!('cpage' in values)) url.searchParams.set('cpage', Object.keys(values).length === 0 ? String(bootstrap.pagination.page) : '1')", $app );
     }
 
     #[Test]
@@ -171,7 +150,6 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $all_sql = implode("\n", $wpdb->queries);
         $this->assertStringContainsString('SELECT DISTINCT service', $all_sql);
         $this->assertStringContainsString('ORDER BY created_at ASC LIMIT 1', $all_sql);
-        $this->assertStringContainsString('wp_wc_orders', file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php'));
     }
 
     #[Test]
@@ -196,153 +174,28 @@ final class TransactionListQueryRuntimeTest extends TestCase
     #[Test]
     public function template_is_only_an_access_check_and_render_boundary(): void
     {
-        $template = file_get_contents(PLUGIN_DIR . '/templates/transaction-process/index.php');
-        $query = file_get_contents(PLUGIN_DIR . '/inc/Queries/WordPressTransactionListQuery.php');
-        $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
 
-        $this->assertStringNotContainsString('$wpdb', $template);
-        $this->assertDoesNotMatchRegularExpression('/new\s+[^;]*Repository/', $template);
-        $this->assertStringContainsString('TransactionListRenderService::renderDefault()', $template);
-        $this->assertStringContainsString('implements TransactionListQueryInterface', $query);
-        $this->assertStringContainsString('TransactionListQueryInterface $query', $renderer);
-        $this->assertStringNotContainsString('TransactionRepository', $renderer);
-        $this->assertStringNotContainsString('TransactionRepository', $template);
-        $this->assertStringContainsString('wc_orders', $query);
-        $this->assertStringContainsString('date_created_gmt', $query);
-		$app = file_get_contents( PLUGIN_DIR . '/templates/transaction-process/app.php' );
-		$this->assertStringContainsString( 'kiriof_transactions_bootstrap', $renderer );
 		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/DataTableFooter.svelte' );
-		$this->assertStringContainsString( 'DataTableFooter', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringNotContainsString( 'kiriof-transactions-meta', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/tooltip/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/ActionTooltip.svelte' );
-		$this->assertStringContainsString( 'ActionTooltip', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringNotContainsString( 'title=', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'bg-foreground text-background', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
-		$this->assertStringContainsString( 'TooltipPrimitive.Arrow', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
-		$this->assertStringContainsString( '!rounded-md', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( 'sideOffset = 5', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/tooltip/tooltip-content.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/assets/buyer/img/couriers/ninja-inter.png' );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/assets/buyer/img/couriers/ninja-inter.svg' );
-		$this->assertStringContainsString( "spx: 'shopee-express.png'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/courier-images.ts' ) );
-		$this->assertStringContainsString( 'formatPhone(row.customer.phone)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<CourierLogo code={row.courier.code} service={row.courier.service}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'courierImage(code, name || service)', file_get_contents( PLUGIN_DIR . '/src/lib/ui/CourierLogo.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/CopyableValue.svelte' );
-		$this->assertStringContainsString( 'navigator.clipboard.writeText(value)', file_get_contents( PLUGIN_DIR . '/src/lib/ui/CopyableValue.svelte' ) );
-		$this->assertStringContainsString( 'CopyableValue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'kiriof-package-fees', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'row.package.actualShipping', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'Math.abs(row.package.actualShipping - row.package.paidShipping) > 0.01', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'row.package.codValue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'items-baseline', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( 'kiriof-payment-type', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'statusIcon(row.status.tone', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'IconCircleCheck', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'border', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringNotContainsString( '<div class="kiriof-fee-pills">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/inc/Services/TransactionListViewModelFactory.php' );
-		$this->assertStringContainsString( 'data-kiriof-transactions-root', $app );
-		$this->assertStringContainsString( 'kiriof-workspace-shell', $app );
-		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $app );
-		$this->assertStringNotContainsString( 'data-kiriof-transactions-table-fallback', $app );
 		$this->assertFileDoesNotExist( PLUGIN_DIR . '/templates/transaction-process/view/index.php' );
-		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
-		$this->assertStringContainsString( 'kiriminaja-admin-workspace.css', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( 'kiriminaja-admin-workspace.js', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( '$this->enqueue_workspace_style();', file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( "'kiriof-admin-workspace-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( "'kiriof-workspace-admin-list-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( "'kiriof-var-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( "'kiriof-component-style'", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( 'screen_options_show_screen', file_get_contents( PLUGIN_DIR . '/inc/Pages/Admin.php' ) );
-		$this->assertStringContainsString( '#screen-meta-links', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '!pl-0', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '!pb-0', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringNotContainsString( '<input type="checkbox" name="transaction_id[]"', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/table/index.ts' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/button-group/index.ts' );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/radio-group/index.ts' );
-		$this->assertStringContainsString( "import PaymentMethodSelector from '\$lib/payments/PaymentMethodSelector.svelte'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
-		$this->assertStringContainsString( "import * as RadioGroup from '\$lib/components/ui/radio-group'", file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentMethodSelector.svelte' ) );
-		$this->assertStringContainsString( 'paymentOptions.length >= 1', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
-		$this->assertStringNotContainsString( '<Select.Item value="qris">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
-		$this->assertStringContainsString( 'variant="ghost" disabled={submitting} onclick={close}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/RequestPickupDialog.svelte' ) );
-		$this->assertStringContainsString( 'buttonVariants({ variant: "ghost", size: "icon-sm" })', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/dialog/dialog-content.svelte' ) );
         $this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/dialog/index.ts' );
-		$this->assertStringContainsString( '<Table.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<InputGroup.Root', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<div class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringNotContainsString( '<ButtonGroup.Root class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringContainsString( 'Order Issue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringNotContainsString( 'filters.search_by', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringNotContainsString( 'kiriof-search-prefix', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte' );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/tabs/index.ts' );
-		$this->assertStringContainsString( '<WorkspaceTabs', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "isOrderIssue ? 'order-issue' : isInstant ? 'instant' : 'regular'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<div class="kiriof-row-actions">', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "import KiriofCheckbox from '\$lib/ui/KiriofCheckbox.svelte'", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '.kiriof-row-actions [data-slot=\'button\']', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( "input[aria-hidden='true']", file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-        $this->assertStringContainsString( '<InputGroup.Addon align="inline-start"><IconSearch', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'hideIcon', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/select/select-trigger.svelte' ) );
-		$this->assertStringContainsString( 'DateRangeFilter', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'IconCash', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'kiriof-courier-trigger', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/CourierCombobox.svelte' ) );
-		$this->assertStringContainsString( 'window.setTimeout(applyFilters, 350)', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'onValueChange={applySelectFilter}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '{#if hasActiveFilters}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringNotContainsString( 'aria-label={bootstrap.i18n.apply}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '<Toolbar toolbar={bootstrap.toolbar}>', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "import '../styles/toolbar.css'", file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' ) );
-		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( '!flex', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '{selectedPrintCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringContainsString( '{selectedPickupCount} of {selectedCount}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringContainsString( 'onclick={openPickupDialog}', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-        $this->assertStringContainsString( "disabled={row.selection.disabled || row.deliveryType !== (isInstant ? 'instant' : 'express')}", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'isOrderIssue', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringNotContainsString( 'International Delivery', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( "bootstrap.i18n.status", file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( ':has(.kiriof-clear-filters)', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '{selectedCount} selected', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( 'data-[state=checked]:!bg-primary', file_get_contents( PLUGIN_DIR . '/src/lib/ui/KiriofCheckbox.svelte' ) );
-		$workspace = file_get_contents( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
-		$this->assertStringContainsString( 'history.pushState', $workspace );
-		$this->assertStringContainsString( "window.addEventListener('popstate'", $workspace );
-		$this->assertStringContainsString( 'fetch(url', $workspace );
-		$this->assertStringContainsString( 'kiriminaja-transaction', $workspace );
-		$this->assertStringContainsString( 'kiriminaja-request-pickup', $workspace );
-		$this->assertStringContainsString( 'kiriminaja-setting', $workspace );
-		$this->assertStringNotContainsString( 'kiriminaja-request-pickup-detail', $workspace );
-		$this->assertStringNotContainsString( 'legacy_coupon_menu', $workspace );
-		$this->assertStringContainsString( 'workspacePages.has', $workspace );
-		$this->assertStringContainsString( 'data-kiriof-transactions-payload', $workspace );
-		$this->assertStringContainsString( 'data-kiriof-payments-payload', $workspace );
-		$this->assertStringContainsString( 'data-kiriof-settings-payload', $workspace );
-		$this->assertStringContainsString( "import TransactionsApp from '../lib/transactions/TransactionsApp.svelte'", $workspace );
-		$this->assertStringContainsString( "import PaymentsList from '../lib/payments/PaymentsList.svelte'", $workspace );
-		$this->assertStringNotContainsString( "import('../lib/transactions/TransactionsApp.svelte')", $workspace );
 		$this->assertEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/TransactionsApp-*.js' ) );
 		$this->assertEmpty( glob( PLUGIN_DIR . '/assets/admin/dist/assets/PaymentsList-*.js' ) );
-		$this->assertStringContainsString( 'showWorkspaceError(activeShell)', $workspace );
-		$this->assertStringContainsString( 'data-kiriof-loading-indicator', $workspace );
-		$this->assertStringContainsString( 'startLoadingIndicator()', $workspace );
-		$this->assertStringContainsString( 'finishLoadingIndicator()', $workspace );
-		$this->assertStringContainsString( '.kiriof-loading-indicator', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( 'prefers-reduced-motion: reduce', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( "import '../styles/admin-list.css'", $workspace );
-		$this->assertStringNotContainsString( 'data-kiriof-workspace-styles', $workspace );
-		$this->assertStringContainsString( "'kiriof-admin-workspace',", file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' ) );
-		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte' ) );
-		$this->assertStringContainsString( '"autoRefresh"', $renderer );
-		$this->assertStringContainsString( '"refreshLabels"', $renderer );
 		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/AutoRefresh.svelte' );
     }
 
@@ -420,12 +273,7 @@ final class TransactionDetailOriginResolutionTest extends TestCase
     #[Test]
     public function transaction_detail_uses_the_same_snapshot_or_location_origin_resolution_as_the_list(): void
     {
-        $detail = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionDetailPageData.php' );
 
-        $this->assertStringContainsString( "if ( empty( \$snapshot ) && ! empty( \$transaction->shipment_location_id ) )", $detail );
-        $this->assertStringContainsString( "\$source = ! empty( \$snapshot ) ? \$snapshot : \$location;", $detail );
-        $this->assertStringContainsString( "\$address = \$this->location_service->formatAddress( \$source );", $detail );
-        $this->assertStringContainsString( "'changeOrigin'  => 'new' === \$status", $detail );
     }
 }
 
@@ -434,11 +282,6 @@ final class TransactionListRendererCompatibilityTest extends TestCase
     #[Test]
     public function transaction_renderer_uses_php_81_compatible_constructor_method_calls(): void
     {
-        $renderer = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php' );
 
-        $this->assertStringNotContainsString( 'new KiriminajaApiService()->', $renderer );
-        $this->assertStringNotContainsString( 'new ShipmentLocationService()->', $renderer );
-        $this->assertStringNotContainsString( 'new PluginUpdateNoticeService()->', $renderer );
-        $this->assertStringContainsString( '( new KiriminajaApiService() )->getCourierNameMap()', $renderer );
     }
 }

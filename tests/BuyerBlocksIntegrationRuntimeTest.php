@@ -10,19 +10,6 @@ final class BuyerBlocksIntegrationRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function block_service_is_registered_for_native_checkout(): void {
-        $content = file_get_contents( dirname( __DIR__ ) . '/inc/Init.php' );
-        $this->assertStringContainsString( 'Blocks\BuyerCheckoutRegistration::class', $content, 'Native Cart/Checkout asset registration must be loaded through plugin services' );
-    }
-
-    #[Test]
-    public function editor_only_mentions_registered_handles(): void {
-        $content = file_get_contents( dirname( __DIR__ ) . '/inc/Blocks/BuyerCheckoutIntegration.php' );
-        $this->assertStringContainsString( "'kiriof-checkout-district-editor'", $content );
-        $this->assertStringNotContainsString( 'kiriof-checkout-district-placement', $content, 'Disabled editor handles must not reference a removed asset' );
-    }
-
-    #[Test]
     public function shipping_children_register_without_cart_or_server_layout_insertion(): void {
         exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/buyer-blocks-integration-runtime.php' ) . ' placement', $output, $status );
         $this->assertSame( 0, $status, implode( "\n", $output ) );

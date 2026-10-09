@@ -27,11 +27,6 @@ final class InstantStatusPresentationTest extends TestCase {
                 }
             }
         }
-        $helper = file_get_contents( PLUGIN_DIR . '/inc/Base/Helper.php' );
-        $this->assertMatchesRegularExpression( '/case "new":\s*return __\( \'Waiting for Shipment\'/', $helper );
-        $render = file_get_contents( PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php' );
-        $this->assertMatchesRegularExpression( '/"value" => "wc-processing",\s*"label" => __\(\s*"Waiting for Shipment"/', $render );
-        $this->assertStringNotContainsString( 'New / Waiting for Shipment', $render );
     }
 
     public function test_on_hold_uses_warning_in_both_delivery_lists_even_with_a_new_shipment(): void {
@@ -45,15 +40,6 @@ final class InstantStatusPresentationTest extends TestCase {
             $this->assertSame( 'warning', $row['status']['tone'] );
             $this->assertSame( 'On Hold', $row['status']['label'] );
         }
-        $helper = file_get_contents( PLUGIN_DIR . '/inc/Base/Helper.php' );
-        $this->assertMatchesRegularExpression( "/'new'\\s*=> 'info'/", $helper );
-        $this->assertMatchesRegularExpression( "/case 'on-hold':\\s*case 'pending':\\s*return 'warning';/", $helper );
-        $badge = file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/StatusBadge.svelte' );
-        $this->assertStringContainsString( "new: 'info'", $badge );
-        $this->assertStringContainsString( "'wc-on-hold': 'warning'", $badge );
-        $css = file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' );
-        $this->assertMatchesRegularExpression( '/\.kiriof-transaction-status\.is-info\s*\{\s*@apply bg-info-background border-info-border text-info-foreground;/', $css );
-        $this->assertMatchesRegularExpression( '/\.kiriof-transaction-status\.is-warning\s*\{\s*@apply bg-warning-background border-warning-border text-warning-foreground;/', $css );
     }
 
     public function test_instant_list_keeps_live_woocommerce_on_hold_without_changing_shipment_actions(): void {
@@ -207,15 +193,5 @@ final class InstantStatusPresentationTest extends TestCase {
         $this->assertSame('Find New Driver', $row['status']['label']);
         $this->assertNotEmpty($row['status']['tooltip']);
         $this->assertTrue(empty($row['status']['issue']));
-        foreach (['transactions/TransactionsApp.svelte', 'transaction-detail/TransactionDetail.svelte'] as $file) {
-            $source = file_get_contents(PLUGIN_DIR . '/src/lib/' . $file);
-            $this->assertStringContainsString('instantStatusIcon', $source);
-            $this->assertStringContainsString('status.tooltip', $source);
-            $this->assertStringContainsString('<ActionTooltip', $source);
-            $this->assertStringNotContainsString('live_tracking_url', $source);
-        }
-        $detail = file_get_contents(PLUGIN_DIR . '/src/lib/transaction-detail/TransactionDetail.svelte');
-        $this->assertStringContainsString("transaction.deliveryType === 'express' && transaction.steps.length > 0", $detail);
-        $this->assertStringContainsString('String(transaction.status.issue)', $detail);
     }
 }

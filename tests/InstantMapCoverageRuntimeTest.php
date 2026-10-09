@@ -78,8 +78,6 @@ final class InstantMapCoverageRuntimeTest extends TestCase {
         $this->assertNull( $cart['schema']['coverage']['default'] );
         $this->assertSame( array( 'view' ), $cart['schema']['coverage']['context'] );
         $this->assertSame( array( 'coverage' => $this->circle() ), $cart['data'] );
-        $source = file_get_contents( PLUGIN_DIR . '/inc/Controllers/CheckoutController.php' );
-        $this->assertStringContainsString( "add_action( 'woocommerce_blocks_loaded', array( \$this, 'kiriof_register_coverage_schema' ) );", $source );
         $this->assertArrayHasKey( 'mapCoverage', $result['map']['i18n'] );
         $this->assertArrayHasKey( 'mapOutsideRadius', $result['map']['i18n'] );
     }

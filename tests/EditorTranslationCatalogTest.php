@@ -39,14 +39,12 @@ final class EditorTranslationCatalogTest extends TestCase {
 
 	#[Test]
 	public function catalog_filenames_hash_the_registered_plugin_relative_script_paths(): void {
-		$enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
 		$hashes  = array(
 			'blocks/checkout-district/edit.js' => '2a22a4e0bfbefd2b9615e9bba7f5f876',
 			'blocks/map-checkout/edit.js'      => '2e551a3a265cd20489b17437fcb66fc6',
 		);
 
 		foreach ( self::EDITOR_SCRIPTS as $handle => $script ) {
-			$this->assertStringContainsString( "'" . $handle . "' => array( '" . $script . "'", $enqueue );
 			$this->assertSame( $hashes[ $script ], md5( $script ) );
 			$this->assertFileExists( $this->catalog_path( $script ) );
 
@@ -83,14 +81,9 @@ final class EditorTranslationCatalogTest extends TestCase {
 	#[Test]
 	public function every_current_editor_message_has_an_exact_nonempty_indonesian_translation(): void {
 		foreach ( self::EDITOR_SCRIPTS as $script ) {
-			$source = file_get_contents( PLUGIN_DIR . '/' . $script );
-			$count  = preg_match_all( "/wp\\.i18n\\.__\\(\\s*'([^']+)',\\s*'kiriminaja-official'\\s*\\)/", $source, $matches );
-			$this->assertSame( 4, $count );
-			$this->assertSame( array_keys( self::EDITOR_TRANSLATIONS[ $script ] ), $matches[1] );
-
 			$messages = $this->catalog( $script )['locale_data']['messages'];
 			unset( $messages[''] );
-			$this->assertSame( $matches[1], array_keys( $messages ) );
+			$this->assertSame( array_keys( self::EDITOR_TRANSLATIONS[ $script ] ), array_keys( $messages ) );
 			foreach ( self::EDITOR_TRANSLATIONS[ $script ] as $msgid => $translation ) {
 				$this->assertSame( array( $translation ), $messages[ $msgid ] );
 				$this->assertNotSame( '', trim( $messages[ $msgid ][0] ) );
@@ -99,13 +92,4 @@ final class EditorTranslationCatalogTest extends TestCase {
 		}
 	}
 
-	#[Test]
-	public function editor_translation_attachment_uses_the_bundled_catalog_directory(): void {
-		$enqueue = file_get_contents( PLUGIN_DIR . '/inc/Base/Enqueue.php' );
-		$this->assertStringContainsString( "array( 'kiriof-map-checkout-editor', 'kiriof-checkout-district-editor' ) as \$editor_handle", $enqueue );
-		$this->assertStringContainsString( "wp_set_script_translations( \$editor_handle, 'kiriminaja-official', KIRIOF_DIR . 'lang' )", $enqueue );
-		foreach ( self::EDITOR_SCRIPTS as $script ) {
-			$this->assertFileExists( $this->catalog_path( $script ) );
-		}
-	}
 }

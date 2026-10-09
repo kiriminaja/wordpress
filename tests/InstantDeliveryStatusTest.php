@@ -30,7 +30,7 @@ final class InstantDeliveryStatusTest extends TestCase {
 	}
 
 	#[Test]
-	public function complete_nested_payment_and_awb_permutations(): void {
+	public function nested_codes_map_payment_states_without_borrowing_local_status(): void {
 		$expected = array(
 			100 => array( 'refunded' => 'cancel', 'pending' => 'waiting_for_shipment', 'unpaid' => 'waiting_for_payment', 'paid' => 'ready_delivered' ),
 			105 => array( 'paid' => 'ready_delivered' ),
@@ -40,18 +40,16 @@ final class InstantDeliveryStatusTest extends TestCase {
 		);
 		foreach ( $expected as $code => $payments ) {
 			foreach ( array( 'pending', 'unpaid', 'paid', 'refunded', '', null, 'invalid', array(), false ) as $payment ) {
-				foreach ( array( '', 'AWB-123', '0', ' ', null, 0, array(), (object) array() ) as $awb ) {
-					$key = is_string( $payment ) ? ( $payments[ $payment ] ?? 'unknown' ) : 'unknown';
-					if ( 100 === $code && 'paid' === $payment && ! ( is_string( $awb ) && '' !== trim( $awb ) ) ) {
-						$key = 'waiting_for_awb_generation';
-					}
-					foreach ( array( $code, (string) $code ) as $remote_code ) {
-						$result = InstantDeliveryStatus::describe( $this->remote( $remote_code, $payment, $awb ) );
-						$this->assertSame( $key, $result['key'] );
-						$this->assertSame( '', $result['issue'] );
-						if ( 'unknown' === $key ) {
-							$this->assertNotSame( 'success', $result['tone'] );
-						}
+				$key = is_string( $payment ) ? ( $payments[ $payment ] ?? 'unknown' ) : 'unknown';
+				if ( 100 === $code && 'paid' === $payment ) {
+					$key = 'waiting_for_awb_generation';
+				}
+				foreach ( array( $code, (string) $code ) as $remote_code ) {
+					$result = InstantDeliveryStatus::describe( $this->remote( $remote_code, $payment ) );
+					$this->assertSame( $key, $result['key'] );
+					$this->assertSame( '', $result['issue'] );
+					if ( 'unknown' === $key ) {
+						$this->assertNotSame( 'success', $result['tone'] );
 					}
 				}
 			}
@@ -59,10 +57,22 @@ final class InstantDeliveryStatusTest extends TestCase {
 	}
 
 	#[Test]
+	public function only_paid_code_100_uses_awb_presence(): void {
+		foreach ( array( '', 'AWB-123', '0', ' ', null, 0, array(), (object) array() ) as $awb ) {
+			$expected = is_string( $awb ) && '' !== trim( $awb ) ? 'ready_delivered' : 'waiting_for_awb_generation';
+			$this->assertSame( $expected, InstantDeliveryStatus::describe( $this->remote( 100, 'paid', $awb ) )['key'] );
+			$this->assertSame( 'waiting_for_shipment', InstantDeliveryStatus::describe( $this->remote( 100, 'pending', $awb ) )['key'] );
+		}
+		foreach ( array( 105 => 'ready_delivered', 110 => 'ready_delivered', 106 => 'on_delivery', 200 => 'finish' ) as $code => $key ) {
+			$this->assertSame( $key, InstantDeliveryStatus::describe( $this->remote( $code, 'paid', 'AWB-123' ) )['key'] );
+		}
+	}
+
+	#[Test]
 	public function all_direct_codes_ignore_payment_for_labels_but_honor_source_tones(): void {
 		$map = array( 101 => 'find_new_driver', 300 => 'cancel', 302 => 'cancel', 350 => 'cancel_requested', 400 => 'finish_retur', 401 => 'retur', 402 => 'retur', 403 => 'retur', 404 => 'retur', 405 => 'retur', 701 => 'shipment_problem', 702 => 'shipment_problem', 303 => 'shipment_problem', 500 => 'shipment_problem', 555 => 'shipment_problem', 301 => 'shipment_problem', 333 => 'shipment_problem' );
 		foreach ( $map as $code => $key ) {
-			foreach ( array( 'paid', 'unpaid', 'pending', 'refunded', '', null ) as $payment ) {
+			foreach ( array( 'paid', 'unpaid' ) as $payment ) {
 				foreach ( array( $code, (string) $code ) as $value ) {
 					$result = InstantDeliveryStatus::describe( (object) $this->remote( $value, $payment ) );
 					$this->assertSame( $key, $result['key'] );
@@ -71,6 +81,9 @@ final class InstantDeliveryStatusTest extends TestCase {
 					$this->assertSame( $tone, $result['tone'] );
 				}
 			}
+		}
+		foreach ( array( 'pending', 'refunded', '', null ) as $payment ) {
+			$this->assertSame( 'find_new_driver', InstantDeliveryStatus::describe( $this->remote( 101, $payment ) )['key'] );
 		}
 		$driver = InstantDeliveryStatus::describe( array( 'instant_status_code' => 101 ) );
 		$this->assertStringContainsString( 'automatically', $driver['tooltip'] );

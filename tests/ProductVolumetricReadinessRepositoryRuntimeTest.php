@@ -94,20 +94,6 @@ final class ProductVolumetricReadinessRepositoryRuntimeTest extends TestCase {
 		$this->assertTrue( $constructor->getParameters()[0]->isDefaultValueAvailable() );
 	}
 
-	#[Test]
-	public function setup_template_consumes_renderer_supplied_readiness_without_database_queries(): void {
-		$template = file_get_contents( PLUGIN_DIR . '/templates/setting/setuped/index.php' );
-		$renderer = file_get_contents( PLUGIN_DIR . '/templates/setting/index.php' );
-		$provider = file_get_contents( PLUGIN_DIR . '/inc/Services/SettingsPageData.php' );
-
-		$this->assertStringContainsString( '$productVolumetricReadiness', $template );
-		$this->assertStringNotContainsString( 'global $wpdb', $template );
-		$this->assertStringNotContainsString( 'ProductVolumetricReadinessRepository', $template );
-		$this->assertStringContainsString( 'SettingsPageData', $renderer );
-		$this->assertStringContainsString( 'ProductVolumetricReadinessService', $provider );
-		$this->assertStringNotContainsString( 'ProductVolumetricReadinessRepository', $renderer );
-		$this->assertStringContainsString( '->getReadiness()', $provider );
-	}
 }
 
 final class ProductVolumetricReadinessWpdbFake {

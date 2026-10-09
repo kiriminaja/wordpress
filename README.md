@@ -56,8 +56,14 @@ make zip                     # required before source/package parity checks
 make test
 ```
 
-This runs 400+ ParaTest-backed tests covering security, escaping, prefix compliance, template structure, and build integrity.
+This runs the PHP unit/runtime tests and repository validation checks.
 The suite is executed through ParaTest so test files run in parallel using `paratest.xml`.
+
+For PHP behavior tests, call the production method and use Mockery at repository, API, and WooCommerce boundaries. Use `MockeryPHPUnitIntegration` so expectations are verified and mocks are closed after each test. Assert returned values and side effects, not PHP source snippets or private implementation details. Keep static checks for packaging and repository-wide standards, and test independent input rules separately instead of multiplying unrelated permutations.
+
+```bash
+vendor/bin/paratest --configuration paratest.xml --filter SettingServiceDependencyInjectionRuntimeTest
+```
 
 The required unit/runtime suites run from the plugin root without a WordPress server or network API. PHP needs the curl, SQLite3 and PDO SQLite extensions for runtime fixtures. Frontend checks require Bun 1.4.2 and Node 20.19+ or 22.12+ (Vite 8); CI uses Node 22. Locked React, React DOM and Happy DOM development dependencies are required: DOM suites fail rather than skip when dependencies are missing. These VM/DOM and compiled Svelte tests execute production code with fixture transport/UI boundaries; they are not live-browser E2E coverage.
 

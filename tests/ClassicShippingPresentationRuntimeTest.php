@@ -94,9 +94,6 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 		$this->assertStringNotContainsString( '<select', $missing['html'] );
 		$this->assertStringNotContainsString( 'type="radio"', $missing['html'] );
 		$this->assertSame( array(), $missing['hooks'] );
-		$styles = file_get_contents( PLUGIN_DIR . '/assets/buyer/css/kj-wp-style.css' );
-		$this->assertStringContainsString( '.kiriof-shipping-methods-list--enhanced,', $styles );
-		$this->assertStringContainsString( '.woocommerce-checkout .kiriof-classic-shipping-method-select-wrap,', $styles );
 	}
 
 	public function test_unselected_checkout_preserves_placeholder_and_ignores_description_eta_metadata(): void {

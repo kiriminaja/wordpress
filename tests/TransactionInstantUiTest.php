@@ -256,34 +256,4 @@ PHP;
         }
     }
 
-    public function test_workspace_navigation_and_ui_safety_contract(): void {
-        $app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
-        $this->assertStringContainsString("{ value: 'instant', label: bootstrap.i18n.instantDelivery, count: bootstrap.deliveryCounts?.instant ?? 0 }", $app);
-        $this->assertStringContainsString("{ value: 'order-issue', label: bootstrap.i18n.orderIssue, count: bootstrap.deliveryCounts?.issue ?? 0 }", $app);
-        $this->assertStringNotContainsString('orderIssueOption', $app);
-        $this->assertStringContainsString("url.searchParams.set('delivery_type', values.delivery_type || (isInstant ? 'instant' : 'express'))", $app);
-        $this->assertStringContainsString("delivery_type: value === 'instant' ? 'instant' : 'express'", $app);
-        $this->assertStringContainsString('selected = {};', $app);
-        $this->assertStringContainsString('printPreviewOrderIds = [];', $app);
-        $this->assertStringContainsString('row.vehicle || bootstrap.i18n.vehicleUnavailable', $app);
-        $this->assertStringContainsString("{#if row.deliveryType !== 'instant'}", $app);
-        $this->assertStringNotContainsString('bootstrap.i18n.instantNotice', $app);
-        $renderer = file_get_contents(PLUGIN_DIR . '/inc/Services/TransactionListRenderService.php');
-        $this->assertStringNotContainsString('Instant shipments require price and payment review before dispatch.', $renderer);
-        $this->assertStringNotContainsString('disabled: true', $app);
-    }
-
-    public function test_instant_transaction_tab_is_enabled_and_connected_to_navigation(): void {
-        $app = file_get_contents(PLUGIN_DIR . '/src/lib/transactions/TransactionsApp.svelte');
-        $this->assertSame(1, preg_match('/const scopeTabs = \$derived\(\[([\s\S]*?)\]\);/', $app, $tabs));
-        $this->assertSame(3, preg_match_all('/\{ value: \'([^\']+)\'[^\n]*\}/', $tabs[1], $entries));
-        $this->assertSame(['regular', 'instant', 'order-issue'], $entries[1]);
-        foreach ($entries[0] as $entry) {
-            $this->assertDoesNotMatchRegularExpression('/\bdisabled\s*:/', $entry);
-        }
-        $this->assertStringContainsString('<WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />', $app);
-        $workspace = file_get_contents(PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte');
-        $this->assertStringContainsString('onValueChange={onChange}', $workspace);
-        $this->assertStringContainsString('<Tabs.Trigger value={tab.value} disabled={tab.disabled}', $workspace);
-    }
 }

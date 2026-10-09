@@ -79,23 +79,6 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString( ' AND 1 = 0', $wpdb->var_queries[1] );
         $this->assertStringContainsString( ' AND 1 = 0 ORDER BY', $wpdb->result_queries[1] );
 
-        $source = file_get_contents( PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php' );
-        $this->assertDoesNotMatchRegularExpression( '/phpcs:(?:ignore|disable)[^\n]*PreparedSQLPlaceholders/', $source );
-    }
-
-    #[Test]
-    public function payment_search_shares_the_tools_row_with_matching_height_controls(): void
-    {
-        $list = file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
-        $styles = file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' );
-
-        $this->assertStringContainsString( 'kiriof-payments-scopes', $list );
-        $this->assertStringContainsString( "<div class=\"kiriof-admin-list-tools\">\n          <form class=\"kiriof-payments-filterrow\"", $list );
-        $this->assertStringContainsString( '<DateRangeFilter dateFrom={bootstrap.filters.date_from}', $list );
-        $this->assertStringContainsString( '.kiriof-payments-scopes .kiriof-auto-refresh,', $styles );
-        $this->assertStringContainsString( '@apply !h-9 !min-h-9 !box-border;', $styles );
-        $this->assertStringContainsString( '@apply !h-full !min-h-0;', $styles );
-        $this->assertStringContainsString( '@media (max-width: 782px)', $styles );
     }
 
     #[Test]
@@ -115,57 +98,6 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString( 'ORDER BY created_at ASC LIMIT 1', $wpdb->var_queries[5] );
     }
 
-    #[Test]
-    public function template_is_only_an_access_check_and_render_boundary(): void
-    {
-        $template = file_get_contents( PLUGIN_DIR . '/templates/request-pickup/index.php' );
-        $query     = file_get_contents( PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php' );
-        $renderer  = file_get_contents( PLUGIN_DIR . '/inc/Services/PaymentListRenderService.php' );
-
-        $this->assertStringNotContainsString( '$wpdb', $template );
-        $this->assertDoesNotMatchRegularExpression( '/new\s+[^;]*Repository/', $template );
-        $this->assertStringContainsString( 'PaymentListRenderService::renderDefault()', $template );
-        $this->assertStringContainsString( 'PaymentListQueryInterface', $query );
-        $this->assertStringContainsString( 'PaymentListQueryInterface $query', $renderer );
-        $this->assertStringContainsString( 'public function render(): void', $renderer );
-        $this->assertStringNotContainsString( 'PaymentRepository', $renderer );
-		$this->assertStringContainsString( 'prepareSvelteBootstrap', $renderer );
-		$this->assertStringContainsString( 'kiriof_payments_bootstrap', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
-		$this->assertFileExists( PLUGIN_DIR . '/src/entries/admin-workspace.ts' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' );
-		$this->assertStringContainsString( 'ActionTooltip', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringNotContainsString( 'title=', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/WorkspaceTabs.svelte' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/components/ui/pagination/index.ts' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/styles/payments-list.css' );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/admin-list/DataTableFooter.svelte' );
-		$this->assertStringContainsString( 'DataTableFooter', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( 'WorkspaceTabs', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringNotContainsString( 'StatusTabs', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( 'KiriofCard', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertFileExists( PLUGIN_DIR . '/src/lib/ui/KiriofCard.svelte' );
-		$this->assertStringContainsString( 'kiriof-admin-list-table', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( 'date_range_invalid:', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( 'applyLabel={bootstrap.i18n.apply', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringNotContainsString( '<ListPagination', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( "'total' => \$total", $renderer );
-		$this->assertStringContainsString( 'import * as Pagination from \'$lib/components/ui/pagination\'', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );
-		$this->assertStringContainsString( 'm-0 gap-0.5', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/pagination/pagination-content.svelte' ) );
-		$this->assertStringContainsString( 'cn("mb-0", className)', file_get_contents( PLUGIN_DIR . '/src/lib/components/ui/pagination/pagination-item.svelte' ) );
-		$this->assertStringContainsString( 'ml-auto mr-0 w-auto justify-end', file_get_contents( PLUGIN_DIR . '/src/lib/admin-list/ListPagination.svelte' ) );
-		$this->assertStringContainsString( '![margin:0_0_0_auto]', file_get_contents( PLUGIN_DIR . '/src/styles/admin-list.css' ) );
-		$this->assertStringContainsString( '.kiriof-payments-table', file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
-		$this->assertStringContainsString( "body:has([data-kiriof-payments-page]) .update-nag", file_get_contents( PLUGIN_DIR . '/src/styles/payments-list.css' ) );
-		$this->assertStringContainsString( 'kiriof-workspace-shell', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
-		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( 'kiriof-workspace-shell', file_get_contents( PLUGIN_DIR . '/templates/request-pickup/view/index.php' ) );
-		$this->assertStringContainsString( '.kiriof-workspace-shell .kiriof-app-toolbar', file_get_contents( PLUGIN_DIR . '/src/styles/toolbar.css' ) );
-		$this->assertStringContainsString( "'admin-workspace': 'src/entries/admin-workspace.ts'", file_get_contents( PLUGIN_DIR . '/vite.config.ts' ) );
-		$this->assertStringContainsString( 'AutoRefresh', file_get_contents( PLUGIN_DIR . '/src/lib/payments/PaymentsList.svelte' ) );
-		$this->assertStringContainsString( "'autoRefresh'", $renderer );
-		$this->assertStringContainsString( "'refreshLabels'", $renderer );
-    }
 }
 
 final class PaymentListQueryWpdbFake

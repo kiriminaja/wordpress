@@ -1,15 +1,16 @@
 <?php
 /**
- * ParaTest bootstrap file for plugin validation tests.
+ * ParaTest bootstrap for unit, runtime, and plugin validation tests.
  *
- * These tests validate the plugin structure, coding standards,
- * and WordPress.org review requirements WITHOUT loading WordPress.
+ * Loads plugin classes and test doubles without booting WordPress.
  */
 
 define('PLUGIN_DIR', dirname(__DIR__));
 define('PLUGIN_SLUG', 'kiriminaja-official');
 define('PLUGIN_PREFIX', 'kiriof_');
 define('PLUGIN_DEFINE_PREFIX', 'KIRIOF_');
+
+require_once PLUGIN_DIR . '/vendor/autoload.php';
 
 if (!defined('ABSPATH')) {
     define('ABSPATH', PLUGIN_DIR . '/');
