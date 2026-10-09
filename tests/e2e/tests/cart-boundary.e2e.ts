@@ -14,7 +14,7 @@ function reactSource() {
   const dir = mkdtempSync(tmpdir() + '/kiriof-cart-react-');
   try {
     writeFileSync(dir + '/entry.js', `import * as React from ${JSON.stringify(root + 'node_modules/react/index.js')};import {createRoot} from ${JSON.stringify(root + 'node_modules/react-dom/client.js')};window.__React=React;window.__createRoot=createRoot;`);
-    execFileSync('rtk', ['proxy', 'bun', 'build', dir + '/entry.js', '--target=browser', '--outfile=' + dir + '/bundle.js']);
+    execFileSync('bun', ['build', dir + '/entry.js', '--target=browser', '--outfile=' + dir + '/bundle.js']);
     return reactBundle = readFileSync(dir + '/bundle.js', 'utf8');
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
