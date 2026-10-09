@@ -47,34 +47,68 @@ PHP;
 	public function test_tracking_uses_only_direct_instant_get_and_preserves_full_object_body(): void {
 		foreach ( array( '$tracking', 'json_decode( json_encode( $tracking ) )' ) as $body ) {
 			$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, ' . $body . ' ); $response = $repository->tracking( "order-1" ); $result = array( "object" => is_object( $response["data"] ), "response" => $response, "expected" => $tracking );' );
-			$this->assertTrue( $fixture['result']['object'] );
-			$this->assertTrue( $fixture['result']['response']['status'] );
-			$this->assertSame( $fixture['result']['expected'], $fixture['result']['response']['data'] );
-			$this->assertSame( array( array( 'GET', 'api/mitra/v4/instant/tracking/order-1', null ) ), $fixture['calls'] );
-			$this->assertSame( array(), $fixture['logs'] );
+			$this->assertSame(
+				array(
+					'object' => true,
+					'status' => true,
+					'data' => $fixture['result']['expected'],
+					'calls' => array( array( 'GET', 'api/mitra/v4/instant/tracking/order-1', null ) ),
+					'logs' => array(),
+				),
+				array(
+					'object' => $fixture['result']['object'],
+					'status' => $fixture['result']['response']['status'],
+					'data' => $fixture['result']['response']['data'],
+					'calls' => $fixture['calls'],
+					'logs' => $fixture['logs'],
+				)
+			);
 		}
 	}
 
 	public function test_cancellation_verifies_one_package_without_rewriting_remote_105(): void {
 		foreach ( array( 'gosend', 'grab_express' ) as $service ) {
 			$fixture = $this->run_fixture( '$cancel["code"] = "0"; $cancel["result"]["packages"][0]["service"] = ' . var_export( $service, true ) . '; $GLOBALS["transport"] = array( true, json_decode( json_encode( $cancel ) ) ); $response = $repository->cancel( "order-1" ); $result = array( "object" => is_object( $response["data"] ), "response" => $response, "expected" => $cancel );' );
-			$this->assertTrue( $fixture['result']['object'] );
-			$this->assertTrue( $fixture['result']['response']['status'] );
-			$this->assertTrue( $fixture['result']['response']['operation_accepted'] );
-			$this->assertSame( $fixture['result']['expected'], $fixture['result']['response']['data'] );
-			$this->assertSame( 105, $fixture['result']['response']['data']['result']['packages'][0]['status'] );
-			$this->assertArrayNotHasKey( 'remote_canceled', $fixture['result']['response'] );
-			$this->assertSame( array( array( 'DELETE', 'api/mitra/v4/instant/pickup/void/order-1', null ) ), $fixture['calls'] );
-			$this->assertSame( array(), $fixture['logs'] );
+			$this->assertSame(
+				array(
+					'object' => true,
+					'status' => true,
+					'operation_accepted' => true,
+					'data' => $fixture['result']['expected'],
+					'remote package status' => 105,
+					'remote_canceled present' => false,
+					'calls' => array( array( 'DELETE', 'api/mitra/v4/instant/pickup/void/order-1', null ) ),
+					'logs' => array(),
+				),
+				array(
+					'object' => $fixture['result']['object'],
+					'status' => $fixture['result']['response']['status'],
+					'operation_accepted' => $fixture['result']['response']['operation_accepted'],
+					'data' => $fixture['result']['response']['data'],
+					'remote package status' => $fixture['result']['response']['data']['result']['packages'][0]['status'],
+					'remote_canceled present' => array_key_exists( 'remote_canceled', $fixture['result']['response'] ),
+					'calls' => $fixture['calls'],
+					'logs' => $fixture['logs'],
+				)
+			);
 		}
 	}
 
 	public function test_tracking_not_found_is_only_the_documented_code_and_explicit_null_result(): void {
 		foreach ( array( 2, '2' ) as $code ) {
 			$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, array( "status" => false, "code" => ' . var_export( $code, true ) . ', "result" => null, "text" => "private recipient" ) ); $result = $repository->tracking( "order-1" );' );
-			$this->assertSame( array( 'status' => false, 'data' => 'Instant tracking data was not found.', 'not_found' => true ), $fixture['result'] );
-			$this->assertCount( 1, $fixture['calls'] );
-			$this->assertSame( array(), $fixture['logs'] );
+			$this->assertSame(
+				array(
+					'result' => array( 'status' => false, 'data' => 'Instant tracking data was not found.', 'not_found' => true ),
+					'calls count' => 1,
+					'logs' => array(),
+				),
+				array(
+					'result' => $fixture['result'],
+					'calls count' => count( $fixture['calls'] ),
+					'logs' => $fixture['logs'],
+				)
+			);
 		}
 	}
 
@@ -82,9 +116,18 @@ PHP;
 		foreach ( array( '', ' ', ' order-1', 'order-1 ', '../order', 'order/1', 'order?1', 'order%2f1', "order\n1", str_repeat( 'a', 101 ) ) as $id ) {
 			foreach ( array( 'tracking', 'cancel' ) as $method ) {
 				$fixture = $this->run_fixture( '$result = $repository->' . $method . '( ' . var_export( $id, true ) . ' );' );
-				$this->assertSame( array( 'status' => false, 'data' => 'Invalid Instant order ID.' ), $fixture['result'] );
-				$this->assertSame( array(), $fixture['calls'] );
-				$this->assertSame( array(), $fixture['logs'] );
+				$this->assertSame(
+					array(
+						'result' => array( 'status' => false, 'data' => 'Invalid Instant order ID.' ),
+						'calls' => array(),
+						'logs' => array(),
+					),
+					array(
+						'result' => $fixture['result'],
+						'calls' => $fixture['calls'],
+						'logs' => $fixture['logs'],
+					)
+				);
 			}
 		}
 		$fixture = $this->run_fixture( '$tracking["result"]["order_id"] = str_repeat( "a", 100 ); $tracking["code"] = "0"; $GLOBALS["transport"] = array( true, $tracking ); $result = $repository->tracking( str_repeat( "a", 100 ) );' );
@@ -135,8 +178,17 @@ PHP;
 
 	private function assert_sanitized_failure( string $method, string $body, string $mutation, string $transport_mutation = '' ): void {
 		$fixture = $this->run_fixture( $mutation . ' $GLOBALS["transport"] = array( true, ' . $body . ' ); ' . $transport_mutation . ' $result = $repository->' . $method . '( "order-1" );' );
-		$this->assertSame( array( 'status' => false, 'data' => 'tracking' === $method ? 'Instant tracking failed.' : 'Instant cancellation failed.' ), $fixture['result'] );
-		$this->assertCount( 1, $fixture['calls'] );
-		$this->assertSame( array(), $fixture['logs'] );
+		$this->assertSame(
+			array(
+				'result' => array( 'status' => false, 'data' => 'tracking' === $method ? 'Instant tracking failed.' : 'Instant cancellation failed.' ),
+				'calls count' => 1,
+				'logs' => array(),
+			),
+			array(
+				'result' => $fixture['result'],
+				'calls count' => count( $fixture['calls'] ),
+				'logs' => $fixture['logs'],
+			)
+		);
 	}
 }

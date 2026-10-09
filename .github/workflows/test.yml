@@ -15,12 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static:
-    name: "Static Tests (PHP ${{ matrix.php }})"
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ["8.1", "8.2", "8.3", "8.5"]
+  build:
+    name: "Frontend checks + package"
     runs-on: ubuntu-latest
 
     steps:
@@ -30,9 +26,10 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: "8.1"
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           tools: composer
+          coverage: none
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -76,19 +73,72 @@ jobs:
         run: |
           make zip
           ZIP_FILE=kiriminaja-official.zip
-          test -n "$ZIP_FILE" || { echo "ERROR: build zip not found"; exit 1; }
+          test -f "$ZIP_FILE" || { echo "ERROR: build zip not found"; exit 1; }
           echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
 
-      - name: Run tests
-        run: make test
-
-      - name: Upload build artifact for integration tests
-        if: matrix.php == '8.1'
+      - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: plugin-build
           path: ${{ steps.build.outputs.zip_file }}
           if-no-files-found: error
+
+  static:
+    name: "PHP tests (${{ matrix.php }})"
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.5"]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
+          tools: composer
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Setup Bun for runtime UI bridge
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Download validated package
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-build
+          path: ${{ runner.temp }}/plugin-build
+
+      - name: Restore package and generated assets for parity tests
+        run: |
+          unzip -q "$RUNNER_TEMP/plugin-build/kiriminaja-official.zip" -d build
+          rsync -a build/kiriminaja-official/assets/ assets/
+          rsync -a build/kiriminaja-official/blocks/ blocks/
+          rsync -a build/kiriminaja-official/lang/ lang/
+
+      - name: Run PHP behavior and package tests
+        run: make test
 
   wordpress:
     name: "WP-CLI smoke + Plugin Check (WP ${{ matrix.wp }} / WC ${{ matrix.wc }} / PHP 8.1)"

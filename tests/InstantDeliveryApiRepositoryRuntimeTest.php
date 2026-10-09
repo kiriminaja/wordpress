@@ -181,40 +181,87 @@ PHP;
 
 	public function test_price_maps_real_sdk_dto_and_retains_all_result_rows(): void {
 		$fixture = $this->run_fixture( '$result = $repository->price( $price );' );
-		$this->assertTrue( $fixture['result']['status'] );
-		$this->assertSame( 12000, $fixture['result']['data']['result'][0]['costs'][0]['price']['shipping_costs'] );
-		$this->assertCount( 1, $fixture['calls'] );
-		$this->assertSame( 'price', $fixture['calls'][0][0] );
-		$this->assertSame( array( 'gosend', 'grab_express' ), $fixture['calls'][0][1]['service'] );
-		$this->assertSame( 1000, $fixture['calls'][0][1]['weight'] );
-		$this->assertSame( 'WIB', $fixture['calls'][0][1]['timezone'] );
-		$this->assertSame( -7.8, $fixture['calls'][0][1]['origin']['lat'] );
+		$this->assertSame(
+			array(
+				'status' => true,
+				'shipping_costs' => 12000,
+				'calls count' => 1,
+				'calls' => 'price',
+				'service' => array( 'gosend', 'grab_express' ),
+				'weight' => 1000,
+				'timezone' => 'WIB',
+				'lat' => -7.8,
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'shipping_costs' => $fixture['result']['data']['result'][0]['costs'][0]['price']['shipping_costs'],
+				'calls count' => count( $fixture['calls'] ),
+				'calls' => $fixture['calls'][0][0],
+				'service' => $fixture['calls'][0][1]['service'],
+				'weight' => $fixture['calls'][0][1]['weight'],
+				'timezone' => $fixture['calls'][0][1]['timezone'],
+				'lat' => $fixture['calls'][0][1]['origin']['lat'],
+			)
+		);
 	}
 
 	public function test_booking_uses_literal_v62_endpoint_preserves_payload_and_never_legacy_sdk(): void {
 		$fixture = $this->run_fixture( '$book["packages"] = array_fill( 0, 10, $package ); $result = $repository->book( $book );' );
-		$this->assertTrue( $fixture['result']['status'] );
-		$this->assertCount( 1, $fixture['calls'] );
-		$this->assertSame( 'api/mitra/v6.2/instant/request_pickup', $fixture['calls'][0][1] );
-		$this->assertCount( 10, $fixture['calls'][0][2]['packages'] );
+		$this->assertSame(
+			array(
+				'status' => true,
+				'calls count' => 1,
+				'calls' => 'api/mitra/v6.2/instant/request_pickup',
+				'packages count' => 10,
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'calls count' => count( $fixture['calls'] ),
+				'calls' => $fixture['calls'][0][1],
+				'packages count' => count( $fixture['calls'][0][2]['packages'] ),
+			)
+		);
 		foreach ( array( 'address', 'phone', 'latitude', 'longitude', 'name', 'packages' ) as $field ) {
 			$this->assertArrayHasKey( $field, $fixture['calls'][0][2] );
 		}
-		$this->assertArrayNotHasKey( 'origin', $fixture['calls'][0][2] );
-		$this->assertArrayNotHasKey( 'schedule', $fixture['calls'][0][2] );
-		$this->assertSame( 'credit', $fixture['calls'][0][2]['payment_method'] );
-		$this->assertArrayNotHasKey( 'service', $fixture['calls'][0][2] );
-		$this->assertSame( '123456', $fixture['calls'][0][2]['pin'] );
-		$this->assertSame( 'instant-id', $fixture['result']['data']['result']['payment_id'] );
-		$this->assertSame( array(), $fixture['logs'] );
-		$this->assertSame( array( array( 'name' => 'item', 'price' => 10000, 'weight' => 1000 ) ), $fixture['calls'][0][2]['packages'][0]['items'] );
+		$this->assertSame(
+			array(
+				'origin present' => false,
+				'schedule present' => false,
+				'payment_method' => 'credit',
+				'service present' => false,
+				'pin' => '123456',
+				'payment_id' => 'instant-id',
+				'logs' => array(),
+				'items' => array( array( 'name' => 'item', 'price' => 10000, 'weight' => 1000 ) ),
+			),
+			array(
+				'origin present' => array_key_exists( 'origin', $fixture['calls'][0][2] ),
+				'schedule present' => array_key_exists( 'schedule', $fixture['calls'][0][2] ),
+				'payment_method' => $fixture['calls'][0][2]['payment_method'],
+				'service present' => array_key_exists( 'service', $fixture['calls'][0][2] ),
+				'pin' => $fixture['calls'][0][2]['pin'],
+				'payment_id' => $fixture['result']['data']['result']['payment_id'],
+				'logs' => $fixture['logs'],
+				'items' => $fixture['calls'][0][2]['packages'][0]['items'],
+			)
+		);
 	}
 
 	public function test_booking_preserves_full_success_body_as_an_object(): void {
 		$fixture = $this->run_fixture( '$body = array( "status" => true, "text" => "created", "result" => array( "payment_id" => "instant-id" ), "packages" => array( array( "order_id" => "order-1" ) ), "extra" => array( "value" => 42 ) ); $GLOBALS["transport"] = array( true, $body ); $response = $repository->book( $book ); $result = array( "is_object" => is_object( $response["data"] ), "body" => $response["data"] );' );
-		$this->assertTrue( $fixture['result']['is_object'] );
-		$this->assertSame( array( 'status' => true, 'text' => 'created', 'result' => array( 'payment_id' => 'instant-id' ), 'packages' => array( array( 'order_id' => 'order-1' ) ), 'extra' => array( 'value' => 42 ) ), $fixture['result']['body'] );
-		$this->assertCount( 1, $fixture['calls'] );
+		$this->assertSame(
+			array(
+				'is_object' => true,
+				'body' => array( 'status' => true, 'text' => 'created', 'result' => array( 'payment_id' => 'instant-id' ), 'packages' => array( array( 'order_id' => 'order-1' ) ), 'extra' => array( 'value' => 42 ) ),
+				'calls count' => 1,
+			),
+			array(
+				'is_object' => $fixture['result']['is_object'],
+				'body' => $fixture['result']['body'],
+				'calls count' => count( $fixture['calls'] ),
+			)
+		);
 	}
 
 	public function test_booking_limits_unsupported_couriers_and_coordinates_fail_without_transport(): void {
@@ -242,89 +289,204 @@ PHP;
 			'$book["packages"] = array( $package, array_replace( $package, array( "service" => "borzo" ) ) );',
 			'$book = array( "service" => "gosend", "packages" => array( array( "origin_address" => "origin", "origin_lat" => 0, "origin_long" => 0, "destination_address" => "destination", "destination_lat" => 0, "destination_long" => 0 ) ) );' ) as $mutation ) {
 			$fixture = $this->run_fixture( $mutation . '$result = $repository->book( $book );' );
-			$this->assertFalse( $fixture['result']['status'] );
-			$this->assertTrue( $fixture['result']['operation_not_submitted'] );
-			$this->assertSame( array(), $fixture['calls'] );
+			$this->assertSame(
+				array(
+					'status' => false,
+					'operation_not_submitted' => true,
+					'calls' => array(),
+				),
+				array(
+					'status' => $fixture['result']['status'],
+					'operation_not_submitted' => $fixture['result']['operation_not_submitted'],
+					'calls' => $fixture['calls'],
+				)
+			);
 		}
 	}
 
 	public function test_booking_needs_transport_and_explicit_api_status_and_does_not_retry(): void {
 		foreach ( array( 'array( false, "offline" )', 'array( true, array( "status" => false, "text" => "rejected" ) )', 'array( true, array( "result" => array() ) )', 'array( true, array( "status" => 1 ) )', 'array( true, array( "status" => "true" ) )', 'array( true, (object) array( "status" => true ) )', 'array( true, "PIN 123456" )', 'array( false, "PIN 123456" )' ) as $response ) {
 			$fixture = $this->run_fixture( '$GLOBALS["transport"] = ' . $response . '; $result = $repository->book( $book );' );
-			$this->assertFalse( $fixture['result']['status'] );
-			$this->assertCount( 1, $fixture['calls'] );
-			$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['result'] );
-			$this->assertSame( array(), $fixture['logs'] );
+			$this->assertSame(
+				array(
+					'status' => false,
+					'calls count' => 1,
+					'result' => array( 'status' => false, 'data' => 'Instant booking failed.' ),
+					'logs' => array(),
+				),
+				array(
+					'status' => $fixture['result']['status'],
+					'calls count' => count( $fixture['calls'] ),
+					'result' => $fixture['result'],
+					'logs' => $fixture['logs'],
+				)
+			);
 		}
 	}
 
 	public function test_booking_accepts_zero_coordinates_and_individual_supported_couriers(): void {
 		$fixture = $this->run_fixture( '$book["latitude"] = 0; $book["longitude"] = 0; $package["service"] = "grab_express"; $package["destination"]["latitude"] = 0; $package["destination"]["longitude"] = 0; $book["packages"][] = $package; $result = $repository->book( $book );' );
-		$this->assertTrue( $fixture['result']['status'] );
-		$this->assertCount( 1, $fixture['calls'] );
-		$this->assertSame( array( 'gosend', 'grab_express' ), array_column( $fixture['calls'][0][2]['packages'], 'service' ) );
+		$this->assertSame(
+			array(
+				'status' => true,
+				'calls count' => 1,
+				'packages' => array( 'gosend', 'grab_express' ),
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'calls count' => count( $fixture['calls'] ),
+				'packages' => array_column( $fixture['calls'][0][2]['packages'], 'service' ),
+			)
+		);
 	}
 
 	public function test_booking_transport_exception_is_sanitized_and_never_logged_or_retried(): void {
 		$fixture = $this->run_fixture( '$GLOBALS["throw_transport"] = true; $result = $repository->book( $book );' );
-		$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['result'] );
-		$this->assertCount( 1, $fixture['calls'] );
-		$this->assertSame( array(), $fixture['logs'] );
+		$this->assertSame(
+			array(
+				'result' => array( 'status' => false, 'data' => 'Instant booking failed.' ),
+				'calls count' => 1,
+				'logs' => array(),
+			),
+			array(
+				'result' => $fixture['result'],
+				'calls count' => count( $fixture['calls'] ),
+				'logs' => $fixture['logs'],
+			)
+		);
 	}
 
 	public function test_payment_selects_instant_and_keeps_numeric_state_without_guessing_paid(): void {
 		$fixture = $this->run_fixture( '$GLOBALS["sdk"] = new \KiriminAja\Responses\ServiceResponse( true, "loaded", array( "status_code" => 9, "qr_content" => "qr", "paid_at" => null ) ); $result = $repository->payment( "payment-id" );' );
-		$this->assertSame( array( 'payment', 'payment-id', true ), $fixture['calls'][0] );
-		$this->assertSame( 9, $fixture['result']['data']['result']['status_code'] );
-		$this->assertNull( $fixture['result']['data']['result']['paid_at'] );
+		$this->assertSame(
+			array(
+				'calls' => array( 'payment', 'payment-id', true ),
+				'status_code' => 9,
+				'paid_at' => null,
+			),
+			array(
+				'calls' => $fixture['calls'][0],
+				'status_code' => $fixture['result']['data']['result']['status_code'],
+				'paid_at' => $fixture['result']['data']['result']['paid_at'],
+			)
+		);
 	}
 
 	public function test_profile_keeps_sdk_profile_data(): void {
 		$fixture = $this->run_fixture( '$result = $repository->profile();' );
-		$this->assertSame( 'merchant', $fixture['result']['data']['results']['name'] );
-		$this->assertSame( 'QRIS', $fixture['result']['data']['results']['metadata']['payment_method'] );
+		$this->assertSame(
+			array(
+				'name' => 'merchant',
+				'payment_method' => 'QRIS',
+			),
+			array(
+				'name' => $fixture['result']['data']['results']['name'],
+				'payment_method' => $fixture['result']['data']['results']['metadata']['payment_method'],
+			)
+		);
 	}
 
 	public function test_credit_validates_once_and_checks_balance(): void {
 		$fixture = $this->run_fixture( '$result = $repository->validateCredit( "123456", 20000 );' );
-		$this->assertTrue( $fixture['result']['status'] );
-		$this->assertSame( array( 'profile', 'post', 'balance' ), array_column( $fixture['calls'], 0 ) );
-		$this->assertSame( 'api/mitra/v6.2/pin/validate', $fixture['calls'][1][1] );
-		$this->assertSame( array(), $fixture['logs'] );
+		$this->assertSame(
+			array(
+				'status' => true,
+				'calls' => array( 'profile', 'post', 'balance' ),
+				'calls check 2' => 'api/mitra/v6.2/pin/validate',
+				'logs' => array(),
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'calls' => array_column( $fixture['calls'], 0 ),
+				'calls check 2' => $fixture['calls'][1][1],
+				'logs' => $fixture['logs'],
+			)
+		);
 		$fixture = $this->run_fixture( '$result = $repository->validateCredit( "123456", 20001.5 );' );
-		$this->assertFalse( $fixture['result']['status'] );
-		$this->assertCount( 3, $fixture['calls'] );
+		$this->assertSame(
+			array(
+				'status' => false,
+				'calls count' => 3,
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'calls count' => count( $fixture['calls'] ),
+			)
+		);
 	}
 
 	public function test_top_and_invalid_pin_never_use_credit(): void {
 		$fixture = $this->run_fixture( '$GLOBALS["merchant"] = "TOP"; $result = $repository->validateCredit( "123456", 1 );' );
-		$this->assertFalse( $fixture['result']['status'] );
-		$this->assertSame( array( array( 'profile' ) ), $fixture['calls'] );
+		$this->assertSame(
+			array(
+				'status' => false,
+				'calls' => array( array( 'profile' ) ),
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'calls' => $fixture['calls'],
+			)
+		);
 		foreach ( array( '12345', '1234567', '12345a', '123456\n' ) as $pin ) {
 			$fixture = $this->run_fixture( '$result = $repository->validateCredit( ' . var_export( $pin, true ) . ', 1 );' );
-			$this->assertFalse( $fixture['result']['status'] );
-			$this->assertSame( array(), $fixture['calls'] );
+			$this->assertSame(
+				array(
+					'status' => false,
+					'calls' => array(),
+				),
+				array(
+					'status' => $fixture['result']['status'],
+					'calls' => $fixture['calls'],
+				)
+			);
 		}
 	}
 
 	public function test_failed_pin_is_remote_authoritative_not_retried_or_logged(): void {
 		$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, array( "status" => false, "text" => "123456 locked", "attempt" => 3, "max_attempt" => 3, "lock_until" => "tomorrow" ) ); $result = $repository->validateCredit( "123456", 1 );' );
-		$this->assertFalse( $fixture['result']['status'] );
-		$this->assertSame( array( 'profile', 'post' ), array_column( $fixture['calls'], 0 ) );
-		$this->assertSame( array(), $fixture['logs'] );
-		$this->assertStringNotContainsString( '123456', json_encode( $fixture['result'] ) );
+		$this->assertSame(
+			array(
+				'status' => false,
+				'calls' => array( 'profile', 'post' ),
+				'logs' => array(),
+				'redacts 123456' => false,
+			),
+			array(
+				'status' => $fixture['result']['status'],
+				'calls' => array_column( $fixture['calls'], 0 ),
+				'logs' => $fixture['logs'],
+				'redacts 123456' => str_contains( json_encode( $fixture['result'] ), '123456' ),
+			)
+		);
 	}
 
 	public function test_pin_transport_exception_is_sanitized_without_logging_or_retry(): void {
 		$fixture = $this->run_fixture( '$GLOBALS["throw_transport"] = true; $result = $repository->validateCredit( "123456", 1 );' );
-		$this->assertSame( array( 'status' => false, 'data' => 'PIN validation failed.' ), $fixture['result'] );
-		$this->assertSame( array( 'profile', 'post' ), array_column( $fixture['calls'], 0 ) );
-		$this->assertSame( array(), $fixture['logs'] );
+		$this->assertSame(
+			array(
+				'result' => array( 'status' => false, 'data' => 'PIN validation failed.' ),
+				'calls' => array( 'profile', 'post' ),
+				'logs' => array(),
+			),
+			array(
+				'result' => $fixture['result'],
+				'calls' => array_column( $fixture['calls'], 0 ),
+				'logs' => $fixture['logs'],
+			)
+		);
 	}
 
 	public function test_sdk_failure_uses_standard_error_shape(): void {
 		$fixture = $this->run_fixture( '$GLOBALS["sdk"] = new \KiriminAja\Responses\ServiceResponse( false, "remote rejected", null ); $result = $repository->price( $price );' );
-		$this->assertSame( array( 'status' => false, 'data' => 'remote rejected' ), $fixture['result'] );
-		$this->assertCount( 1, $fixture['calls'] );
+		$this->assertSame(
+			array(
+				'result' => array( 'status' => false, 'data' => 'remote rejected' ),
+				'calls count' => 1,
+			),
+			array(
+				'result' => $fixture['result'],
+				'calls count' => count( $fixture['calls'] ),
+			)
+		);
 	}
 }

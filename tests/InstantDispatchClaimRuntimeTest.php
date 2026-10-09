@@ -38,17 +38,34 @@ final class InstantDispatchClaimRuntimeTest extends TestCase {
             foreach ( array( null, '' ) as $empty ) {
                 [ $repository, $database ] = $this->repository( array( 'service' => $service, 'instant_payment_id' => $empty, 'awb' => $empty ) );
                 $competitor = new InstantDispatchClaimRepositoryFake();
-                $this->assertTrue( $repository->claimInstantDispatch( 'KA-1' ) );
-                $this->assertFalse( $competitor->claimInstantDispatch( 'KA-1' ) );
-                $this->assertSame( 'pending', $database->row['status'] );
-                $this->assertSame( 1, $repository->invalidations );
-                $this->assertSame( 0, $competitor->invalidations );
-                $this->assertCount( 2, $database->queries );
-                $this->assertTrue( $repository->releaseInstantDispatch( 'KA-1' ) );
-                $this->assertSame( 'new', $database->row['status'] );
-                $this->assertFalse( $repository->releaseInstantDispatch( 'KA-1' ) );
-                $this->assertSame( 2, $repository->invalidations );
-                $this->assertTrue( $competitor->claimInstantDispatch( 'KA-1' ) );
+                $this->assertSame(
+                	array(
+                		'first claim' => true,
+                		'competing claim' => false,
+                		'claimed status' => 'pending',
+                		'claim invalidations' => 1,
+                		'loser invalidations' => 0,
+                		'claim queries' => 2,
+                		'pre-send release' => true,
+                		'released status' => 'new',
+                		'repeated release' => false,
+                		'release invalidations' => 2,
+                		'retry claim' => true,
+                	),
+                	array(
+                		'first claim' => $repository->claimInstantDispatch( 'KA-1' ),
+                		'competing claim' => $competitor->claimInstantDispatch( 'KA-1' ),
+                		'claimed status' => $database->row['status'],
+                		'claim invalidations' => $repository->invalidations,
+                		'loser invalidations' => $competitor->invalidations,
+                		'claim queries' => count( $database->queries ),
+                		'pre-send release' => $repository->releaseInstantDispatch( 'KA-1' ),
+                		'released status' => $database->row['status'],
+                		'repeated release' => $repository->releaseInstantDispatch( 'KA-1' ),
+                		'release invalidations' => $repository->invalidations,
+                		'retry claim' => $competitor->claimInstantDispatch( 'KA-1' ),
+                	)
+                );
             }
         }
     }
@@ -72,18 +89,36 @@ final class InstantDispatchClaimRuntimeTest extends TestCase {
             foreach ( $blocked as $changes ) {
                 [ $repository, $database ] = $this->repository( array_replace( array( 'status' => $status ), $changes ) );
                 $before = $database->row;
-                $this->assertFalse( $repository->$method( 'KA-1' ), json_encode( $changes ) );
-                $this->assertSame( $before, $database->row );
-                $this->assertSame( 0, $repository->invalidations );
-                $this->assertCount( 1, $database->queries );
+                $this->assertSame(
+                	array(
+                		'method' => false,
+                		'database' => $before,
+                		'repository' => 0,
+                		'database count' => 1,
+                	),
+                	array(
+                		'method' => $repository->$method( 'KA-1' ),
+                		'database' => $database->row,
+                		'repository' => $repository->invalidations,
+                		'database count' => count( $database->queries ),
+                	)
+                );
             }
             foreach ( array( 'new', 'pending', 'shipped', 'canceled', 'closed', 'completed' ) as $wrongStatus ) {
                 if ( $wrongStatus === $status ) {
                     continue;
                 }
                 [ $repository ] = $this->repository( array( 'status' => $wrongStatus ) );
-                $this->assertFalse( $repository->$method( 'KA-1' ) );
-                $this->assertSame( 0, $repository->invalidations );
+                $this->assertSame(
+                	array(
+                		'method' => false,
+                		'repository' => 0,
+                	),
+                	array(
+                		'method' => $repository->$method( 'KA-1' ),
+                		'repository' => $repository->invalidations,
+                	)
+                );
             }
         }
     }
@@ -94,9 +129,18 @@ final class InstantDispatchClaimRuntimeTest extends TestCase {
             [ $repository, $database ] = $this->repository();
             $this->assertTrue( $repository->claimInstantDispatch( 'KA-1' ) );
             $database->row[ $field ] = $value;
-            $this->assertFalse( $repository->releaseInstantDispatch( 'KA-1' ) );
-            $this->assertSame( 'pending', $database->row['status'] );
-            $this->assertSame( 1, $repository->invalidations );
+            $this->assertSame(
+            	array(
+            		'repository' => false,
+            		'status' => 'pending',
+            		'subsequent repository' => 1,
+            	),
+            	array(
+            		'repository' => $repository->releaseInstantDispatch( 'KA-1' ),
+            		'status' => $database->row['status'],
+            		'subsequent repository' => $repository->invalidations,
+            	)
+            );
         }
     }
 
@@ -107,9 +151,18 @@ final class InstantDispatchClaimRuntimeTest extends TestCase {
                 [ $repository, $database ] = $this->repository( array( 'status' => $status ) );
                 $database->forcedResult = $result;
                 $database->last_error = $error;
-                $this->assertFalse( $repository->$method( 'KA-1' ) );
-                $this->assertSame( 0, $repository->invalidations );
-                $this->assertCount( 1, $database->queries );
+                $this->assertSame(
+                	array(
+                		'method' => false,
+                		'repository' => 0,
+                		'database count' => 1,
+                	),
+                	array(
+                		'method' => $repository->$method( 'KA-1' ),
+                		'repository' => $repository->invalidations,
+                		'database count' => count( $database->queries ),
+                	)
+                );
             }
         }
     }
@@ -118,17 +171,44 @@ final class InstantDispatchClaimRuntimeTest extends TestCase {
     public function string_ids_are_prepared_without_coercion_and_placeholders_match(): void {
         foreach ( array( '000123', "KA-' OR 1=1 -- %s", 'KA-雪' ) as $id ) {
             [ $repository, $database ] = $this->repository( array( 'order_id' => $id ) );
-            $this->assertFalse( $repository->claimInstantDispatch( 'different-id' ) );
-            $this->assertTrue( $repository->claimInstantDispatch( $id ) );
-            $this->assertTrue( $repository->releaseInstantDispatch( $id ) );
+            $this->assertSame(
+            	array(
+            		'repository' => false,
+            		'id' => true,
+            		'subsequent id' => true,
+            	),
+            	array(
+            		'repository' => $repository->claimInstantDispatch( 'different-id' ),
+            		'id' => $repository->claimInstantDispatch( $id ),
+            		'subsequent id' => $repository->releaseInstantDispatch( $id ),
+            	)
+            );
             foreach ( $database->prepared as [ $sql, $args ] ) {
-                $this->assertSame( 1, preg_match_all( '/%[sdf]/', $sql ) );
-                $this->assertCount( 1, $args );
-                $this->assertStringContainsString( 'WHERE order_id = %s', $sql );
+                $this->assertSame(
+                	array(
+                		'sql' => 1,
+                		'args count' => 1,
+                		'contains WHERE order_id = %s' => true,
+                	),
+                	array(
+                		'sql' => preg_match_all( '/%[sdf]/', $sql ),
+                		'args count' => count( $args ),
+                		'contains WHERE order_id = %s' => str_contains( $sql, 'WHERE order_id = %s' ),
+                	)
+                );
             }
-            $this->assertSame( array( $id ), $database->prepared[1][1] );
-            $this->assertStringContainsString( "WHERE order_id = '" . str_replace( "'", "''", $id ) . "'", $database->queries[1] );
-            $this->assertSame( 2, $repository->invalidations );
+            $this->assertSame(
+            	array(
+            		'database' => array( $id ),
+            		'contains WHERE order_id = \'" . str_replace( "\'", "\'\'", $id ) . ' => true,
+            		'repository' => 2,
+            	),
+            	array(
+            		'database' => $database->prepared[1][1],
+            		'contains WHERE order_id = \'" . str_replace( "\'", "\'\'", $id ) . ' => str_contains( $database->queries[1], "WHERE order_id = '" . str_replace( "'", "''", $id ) . "'" ),
+            		'repository' => $repository->invalidations,
+            	)
+            );
         }
     }
 }

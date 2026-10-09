@@ -32,10 +32,20 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 			array(),
 			'private-account-token'
 		);
-		$this->assertStringContainsString( 'PIN is invalid', $message );
-		$this->assertStringNotContainsString( 'private-', $message );
-		$this->assertStringNotContainsString( '<', $message );
-		$this->assertStringContainsString( '[redacted]', $message );
+		$this->assertSame(
+			array(
+				'contains PIN is invalid' => true,
+				'redacts private-' => false,
+				'redacts <' => false,
+				'contains [redacted]' => true,
+			),
+			array(
+				'contains PIN is invalid' => str_contains( $message, 'PIN is invalid' ),
+				'redacts private-' => str_contains( $message, 'private-' ),
+				'redacts <' => str_contains( $message, '<' ),
+				'contains [redacted]' => str_contains( $message, '[redacted]' ),
+			)
+		);
 	}
 
 	protected function tearDown(): void {
@@ -81,13 +91,26 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 
 	private function assertDiagnostics( InstantApiTransport $transport, string $code, ?int $http_status, bool $submitted = true ): void {
 		$diagnostics = $transport->diagnostics();
-		$this->assertSame( array( 'code', 'http_status', 'elapsed_ms', 'submitted' ), array_keys( array_diff_key( $diagnostics, array( 'error_body' => true ) ) ) );
-		$this->assertSame( $code, $diagnostics['code'] );
-		$this->assertSame( $http_status, $diagnostics['http_status'] );
-		$this->assertSame( $submitted, $diagnostics['submitted'] );
-		$this->assertIsInt( $diagnostics['elapsed_ms'] );
-		$this->assertGreaterThanOrEqual( 0, $diagnostics['elapsed_ms'] );
-		$this->assertStringNotContainsString( 'secret', json_encode( $diagnostics ) );
+		$this->assertSame(
+			array(
+				'diagnostics' => array( 'code', 'http_status', 'elapsed_ms', 'submitted' ),
+				'code' => $code,
+				'http_status' => $http_status,
+				'submitted' => $submitted,
+				'elapsed_ms integer' => true,
+				'elapsed_ms bound' => true,
+				'redacts secret' => false,
+			),
+			array(
+				'diagnostics' => array_keys( array_diff_key( $diagnostics, array( 'error_body' => true ) ) ),
+				'code' => $diagnostics['code'],
+				'http_status' => $diagnostics['http_status'],
+				'submitted' => $diagnostics['submitted'],
+				'elapsed_ms integer' => is_int( $diagnostics['elapsed_ms'] ),
+				'elapsed_ms bound' => $diagnostics['elapsed_ms'] >= 0,
+				'redacts secret' => str_contains( json_encode( $diagnostics ), 'secret' ),
+			)
+		);
 	}
 
 	public function test_diagnostics_are_empty_initially_reset_on_reuse_and_never_disclose_secrets(): void {
@@ -152,28 +175,68 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 			'private-customer-address'=>array('secret-token'),
 		), 'payment_id'=>'secret-payment' );
 		$transport = $this->transport( array( new Response(400, array(), json_encode($body)), new Response(200, array(), '{"status":true}') ) );
-		$this->assertSame(array(false, 'Instant network request failed.'), $transport->post('secret-endpoint', array()));
-		$this->assertSame($body, $transport->errorResponse());
+		$this->assertSame(
+			array(
+				'transport' => array(false, 'Instant network request failed.'),
+				'subsequent transport' => $body,
+			),
+			array(
+				'transport' => $transport->post('secret-endpoint', array()),
+				'subsequent transport' => $transport->errorResponse(),
+			)
+		);
 		$this->assertDiagnostics($transport, 'http_failure', 400);
 		$summary = $transport->diagnostics()['error_body'];
-		$this->assertSame('json_object', $summary['format']);
-		$this->assertFalse($summary['status']);
-		$this->assertTrue($summary['message_present']);
-		$this->assertSame(array('pin', 'credit_balance', 'authentication', 'validation'), $summary['message_categories']);
-		$this->assertContains('packages.destination.phone', $summary['validation_fields']);
-		$this->assertContains('packages.shipping_cost', $summary['validation_fields']);
-		$this->assertContains('packages.items.weight', $summary['validation_fields']);
-		$this->assertContains('pin', $summary['validation_fields']);
-		foreach(array('123456','081234567890','private','secret') as $secret) {
-			$this->assertStringNotContainsString($secret, json_encode($transport->diagnostics()));
+		$this->assertSame(
+			array(
+				'format' => 'json_object',
+				'status' => false,
+				'message_present' => true,
+				'message_categories' => array('pin', 'credit_balance', 'authentication', 'validation'),
+				'phone validation' => true,
+				'shipping cost validation' => true,
+				'item weight validation' => true,
+				'PIN validation' => true,
+			),
+			array(
+				'format' => $summary['format'],
+				'status' => $summary['status'],
+				'message_present' => $summary['message_present'],
+				'message_categories' => $summary['message_categories'],
+				'phone validation' => in_array( 'packages.destination.phone', $summary['validation_fields'] ),
+				'shipping cost validation' => in_array( 'packages.shipping_cost', $summary['validation_fields'] ),
+				'item weight validation' => in_array( 'packages.items.weight', $summary['validation_fields'] ),
+				'PIN validation' => in_array( 'pin', $summary['validation_fields'] ),
+			)
+		);
+		$redactions = array();
+		foreach ( array('123456','081234567890','private','secret') as $secret ) {
+			$redactions[ $secret ] = str_contains( json_encode($transport->diagnostics()), $secret );
 		}
+		$this->assertSame( array_fill_keys( array_keys( $redactions ), false ), $redactions, 'Diagnostic redaction contract' );
 		$transport->post('secret-endpoint', array());
-		$this->assertNull($transport->errorResponse());
-		$this->assertArrayNotHasKey('error_body', $transport->diagnostics());
+		$this->assertSame(
+			array(
+				'transport' => null,
+				'error_body present' => false,
+			),
+			array(
+				'transport' => $transport->errorResponse(),
+				'error_body present' => array_key_exists( 'error_body', $transport->diagnostics() ),
+			)
+		);
 		foreach(array(array('body'=>'null','format'=>'unexpected_json_shape'), array('body'=>'not-json secret-token','format'=>'invalid_json')) as $case) {
 			$transport = $this->transport(array(new Response(400, array(), $case['body'])));
-			$this->assertSame(array(false, 'Instant network request failed.'), $transport->post('secret-endpoint', array()));
-			$this->assertNull($transport->errorResponse());
+			$this->assertSame(
+				array(
+					'transport' => array(false, 'Instant network request failed.'),
+					'subsequent transport' => null,
+				),
+				array(
+					'transport' => $transport->post('secret-endpoint', array()),
+					'subsequent transport' => $transport->errorResponse(),
+				)
+			);
 			$this->assertDiagnostics($transport,'http_failure',400);
 			$this->assertSame($case['format'], $transport->diagnostics()['error_body']['format']);
 		}
@@ -182,8 +245,16 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 			array(new Response(422, array(), str_repeat('x',2097153)), 'oversized_response'),
 		) as $case) {
 			$transport = $this->transport(array($case[0]));
-			$this->assertSame(array(false, 'Instant network request failed.'), $transport->post('secret-endpoint', array()));
-			$this->assertNull($transport->errorResponse());
+			$this->assertSame(
+				array(
+					'transport' => array(false, 'Instant network request failed.'),
+					'subsequent transport' => null,
+				),
+				array(
+					'transport' => $transport->post('secret-endpoint', array()),
+					'subsequent transport' => $transport->errorResponse(),
+				)
+			);
 			$this->assertDiagnostics($transport, $case[1], $case[0]->getStatusCode());
 		}
 	}
@@ -210,13 +281,25 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 			$result = $query ? $transport->postWithQuery( 'booking', $payload ) : $transport->post( 'booking', $payload );
 			$this->assertSame( array( false, 'Instant network request failed.' ), $result );
 			$messages = $transport->diagnostics()['error_body']['messages'];
-			$this->assertStringContainsString( $prose, $messages['message'] );
-			$this->assertStringContainsString( 'gosend', $messages['message'] );
-			$this->assertStringContainsString( 'credit', $messages['message'] );
-			$this->assertSame( '[redacted] Request denied.', $messages['statusMessage'] );
+			$this->assertSame(
+				array(
+					'contains $prose' => true,
+					'contains gosend' => true,
+					'contains credit' => true,
+					'statusMessage' => '[redacted] Request denied.',
+				),
+				array(
+					'contains $prose' => str_contains( $messages['message'], $prose ),
+					'contains gosend' => str_contains( $messages['message'], 'gosend' ),
+					'contains credit' => str_contains( $messages['message'], 'credit' ),
+					'statusMessage' => $messages['statusMessage'],
+				)
+			);
+			$redactions = array();
 			foreach ( array( 'Nadia', 'Melati', '3456', '-7.81', '110.32', '4532', 'order-echo-alpha', 'Fragile parcel violet', 'Ceramic violet cup', '725', 'otherpin', 'labeltoken', 'anotherkey', 'unknowncredential', 'customer@example.test', 'https://example.test/private', 'secret-token' ) as $secret ) {
-				$this->assertStringNotContainsString( $secret, json_encode( $transport->diagnostics() ) );
+				$redactions[ $secret ] = str_contains( json_encode( $transport->diagnostics() ), $secret );
 			}
+			$this->assertSame( array_fill_keys( array_keys( $redactions ), false ), $redactions, 'Diagnostic redaction contract' );
 		}
 	}
 
@@ -226,8 +309,17 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 		$transport = $this->transport( array( new Response( 400, array(), json_encode( $body ) ) ) );
 		$transport->post( 'booking', array( 'address' => $secret ) );
 		$message = $transport->diagnostics()['error_body']['messages']['message'];
-		$this->assertLessThanOrEqual( 2048, strlen( $message ) );
-		$this->assertStringNotContainsString( 'private', $message );
-		$this->assertStringContainsString( '[redacted]', $message );
+		$this->assertSame(
+			array(
+				'message bound' => true,
+				'redacts private' => false,
+				'contains [redacted]' => true,
+			),
+			array(
+				'message bound' => strlen( $message ) <= 2048,
+				'redacts private' => str_contains( $message, 'private' ),
+				'contains [redacted]' => str_contains( $message, '[redacted]' ),
+			)
+		);
 	}
 }

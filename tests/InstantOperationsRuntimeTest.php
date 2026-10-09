@@ -167,29 +167,61 @@ final class InstantOperationsRuntimeTest extends TestCase {
 
     public function test_pending_booking_evidence_recovers_without_inventing_payment_or_pickup(): void {
         $r = $this->fixture(['row'=>['status'=>'pending','awb'=>null,'instant_payment_id'=>null,'instant_payment_status'=>'pending','instant_status_code'=>null]]);
-        $this->assertSame('reconciled', $r['results'][0]['rows'][0]['status']);
-        $this->assertSame('AWB-1', $r['rows']['KA-1']['awb']);
-        $this->assertNull($r['rows']['KA-1']['instant_payment_id']);
-        $this->assertSame('pending', $r['rows']['KA-1']['instant_payment_status']);
-        $this->assertNull($r['rows']['KA-1']['instant_status_code']);
-        $this->assertSame('pending', $r['rows']['KA-1']['status']);
-        $this->assertSame([['GET','KA-1']], $r['calls']);
-        $this->assertStringNotContainsString('private', json_encode($r['results']) . json_encode($r['cache']));
+        $this->assertSame(
+        	array(
+        		'status' => 'reconciled',
+        		'awb' => 'AWB-1',
+        		'instant_payment_id' => null,
+        		'instant_payment_status' => 'pending',
+        		'instant_status_code' => null,
+        		'shipment status' => 'pending',
+        		'calls' => [['GET','KA-1']],
+        		'redacts private' => false,
+        	),
+        	array(
+        		'status' => $r['results'][0]['rows'][0]['status'],
+        		'awb' => $r['rows']['KA-1']['awb'],
+        		'instant_payment_id' => $r['rows']['KA-1']['instant_payment_id'],
+        		'instant_payment_status' => $r['rows']['KA-1']['instant_payment_status'],
+        		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+        		'shipment status' => $r['rows']['KA-1']['status'],
+        		'calls' => $r['calls'],
+        		'redacts private' => str_contains( json_encode($r['results']) . json_encode($r['cache']), 'private' ),
+        	)
+        );
     }
 
     public function test_not_found_keeps_unknown_claim_untouched_and_never_rebooks(): void {
         $r = $this->fixture(['row'=>['status'=>'pending','instant_status_code'=>null,'rejected_reason'=>'Check remote state before retrying'],'tracking'=>['status'=>false,'not_found'=>true,'data'=>'private address']]);
-        $this->assertSame('not_found', $r['results'][0]['rows'][0]['status']);
-        $this->assertSame('pending', $r['rows']['KA-1']['status']);
-        $this->assertSame('Check remote state before retrying', $r['rows']['KA-1']['rejected_reason']);
-        $this->assertSame([], $r['writes']);
+        $this->assertSame(
+        	array(
+        		'status' => 'not_found',
+        		'shipment status' => 'pending',
+        		'rejected_reason' => 'Check remote state before retrying',
+        		'writes' => [],
+        	),
+        	array(
+        		'status' => $r['results'][0]['rows'][0]['status'],
+        		'shipment status' => $r['rows']['KA-1']['status'],
+        		'rejected_reason' => $r['rows']['KA-1']['rejected_reason'],
+        		'writes' => $r['writes'],
+        	)
+        );
     }
 
     public function test_selection_is_strict_and_batch_validation_precedes_network(): void {
         foreach ([[], ['KA-1','KA-1'], [1], ['../KA-1'], ['KA-1','missing'], array_fill(0, 11, 'KA-1')] as $ids) {
             $r = $this->fixture(['operations'=>[['method'=>'reconcile','ids'=>$ids]]]);
-            $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
-            $this->assertSame([], $r['calls']);
+            $this->assertSame(
+            	array(
+            		'error' => InvalidArgumentException::class,
+            		'calls' => [],
+            	),
+            	array(
+            		'error' => $r['results'][0]['error'],
+            		'calls' => $r['calls'],
+            	)
+            );
         }
         foreach ([['status'=>'new'], ['service'=>'borzo'], ['service'=>'jne','delivery_type'=>'express']] as $row) {
             $r = $this->fixture(['row'=>$row]);
@@ -201,11 +233,27 @@ final class InstantOperationsRuntimeTest extends TestCase {
 
     public function test_tracking_prefers_safe_local_url_but_reconcile_verifies_and_backoff_is_shared(): void {
         $r = $this->fixture(['row'=>['live_tracking_url'=>'https://tracking.example.test/local'],'operations'=>[['method'=>'track']]]);
-        $this->assertSame([], $r['calls']);
-        $this->assertSame('tracked', $r['results'][0]['rows'][0]['status']);
+        $this->assertSame(
+        	array(
+        		'calls' => [],
+        		'status' => 'tracked',
+        	),
+        	array(
+        		'calls' => $r['calls'],
+        		'status' => $r['results'][0]['rows'][0]['status'],
+        	)
+        );
         $r = $this->fixture(['operations'=>[['method'=>'reconcile'],['method'=>'track'],['method'=>'reconcile'],['method'=>'reconcile','expire_report'=>true]]]);
-        $this->assertCount(1, $r['calls']);
-        $this->assertSame('unknown', $r['results'][3]['rows'][0]['status']);
+        $this->assertSame(
+        	array(
+        		'calls count' => 1,
+        		'status' => 'unknown',
+        	),
+        	array(
+        		'calls count' => count( $r['calls'] ),
+        		'status' => $r['results'][3]['rows'][0]['status'],
+        	)
+        );
         foreach ($r['cache'] as $entry) { $this->assertSame(10, $entry['ttl']); }
         $this->assertSame($r['initial_now'] + 40, array_values($r['options'])[0]['expires']);
         foreach (['javascript:alert(1)', 'https://user:pass@example.test/', "https://example.test/\nsecret"] as $url) {
@@ -217,46 +265,106 @@ final class InstantOperationsRuntimeTest extends TestCase {
     public function test_atomic_insert_loser_and_unknown_expiry_fail_closed(): void {
         foreach (['legacy-owner', ['owner'=>'old'], ['owner'=>'old','expires'=>'1'], ['expires'=>1], ['owner'=>'active','expires_in'=>40]] as $claim) {
             $r = $this->fixture(['existing_claim'=>$claim, 'operations'=>[['method'=>'reconcile'], ['method'=>'cancel']]]);
-            $this->assertSame([], $r['calls']);
-            $this->assertSame([], $r['queries']);
-            $this->assertSame([], $r['claims']);
+            $this->assertSame(
+            	array(
+            		'calls' => [],
+            		'queries' => [],
+            		'claims' => [],
+            	),
+            	array(
+            		'calls' => $r['calls'],
+            		'queries' => $r['queries'],
+            		'claims' => $r['claims'],
+            	)
+            );
         }
         $r = $this->fixture(['add_race'=>['owner'=>'winner','expires_in'=>40]]);
-        $this->assertSame([], $r['calls']);
-        $this->assertSame('winner', array_values($r['options'])[0]['owner']);
-        $this->assertSame([], $r['cache_deletes']);
+        $this->assertSame(
+        	array(
+        		'calls' => [],
+        		'owner' => 'winner',
+        		'cache_deletes' => [],
+        	),
+        	array(
+        		'calls' => $r['calls'],
+        		'owner' => array_values($r['options'])[0]['owner'],
+        		'cache_deletes' => $r['cache_deletes'],
+        	)
+        );
     }
 
     public function test_active_owner_blocks_concurrent_modes_even_after_transport_timeout(): void {
         foreach (['track','reconcile','cancel'] as $method) {
             $r = $this->fixture(['concurrent'=>['method'=>$method,'advance'=>26]]);
-            $this->assertSame([['GET','KA-1']], $r['calls']);
-            $this->assertSame('unknown', $r['nested_results'][0]['rows'][0]['status']);
-            $this->assertSame([], $r['claims']);
-            $this->assertSame([], $r['queries']);
+            $this->assertSame(
+            	array(
+            		'calls' => [['GET','KA-1']],
+            		'status' => 'unknown',
+            		'claims' => [],
+            		'queries' => [],
+            	),
+            	array(
+            		'calls' => $r['calls'],
+            		'status' => $r['nested_results'][0]['rows'][0]['status'],
+            		'claims' => $r['claims'],
+            		'queries' => $r['queries'],
+            	)
+            );
         }
         $r = $this->fixture(['operations'=>[['method'=>'cancel']], 'concurrent'=>['method'=>'cancel','advance'=>26]]);
-        $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
-        $this->assertSame('unknown', $r['nested_results'][0]['rows'][0]['status']);
-        $this->assertSame([350], $r['delete_codes']);
-        $this->assertCount(1, $r['claims']);
+        $this->assertSame(
+        	array(
+        		'calls' => [['GET','KA-1'],['DELETE','KA-1']],
+        		'status' => 'unknown',
+        		'delete_codes' => [350],
+        		'claims count' => 1,
+        	),
+        	array(
+        		'calls' => $r['calls'],
+        		'status' => $r['nested_results'][0]['rows'][0]['status'],
+        		'delete_codes' => $r['delete_codes'],
+        		'claims count' => count( $r['claims'] ),
+        	)
+        );
     }
 
     public function test_expired_owner_cleanup_is_exact_and_preserves_replacement_owner(): void {
         $expired = ['owner'=>'expired','expires_in'=>-1];
         $r = $this->fixture(['existing_claim'=>$expired]);
-        $this->assertSame([['GET','KA-1']], $r['calls']);
-        $this->assertCount(1, $r['queries']);
-        $this->assertSame(serialize(['owner'=>'expired','expires'=>$r['initial_now'] - 1]), $r['queries'][0][1]);
-        $this->assertSame([[$r['queries'][0][0], 'options']], $r['cache_deletes']);
-        $this->assertSame('fixture-owner-1', array_values($r['options'])[0]['owner']);
-        $this->assertSame($r['initial_now'] + 40, array_values($r['options'])[0]['expires']);
+        $this->assertSame(
+        	array(
+        		'calls' => [['GET','KA-1']],
+        		'queries count' => 1,
+        		'queries' => serialize(['owner'=>'expired','expires'=>$r['initial_now'] - 1]),
+        		'cache_deletes' => [[$r['queries'][0][0], 'options']],
+        		'owner' => 'fixture-owner-1',
+        		'expires' => $r['initial_now'] + 40,
+        	),
+        	array(
+        		'calls' => $r['calls'],
+        		'queries count' => count( $r['queries'] ),
+        		'queries' => $r['queries'][0][1],
+        		'cache_deletes' => $r['cache_deletes'],
+        		'owner' => array_values($r['options'])[0]['owner'],
+        		'expires' => array_values($r['options'])[0]['expires'],
+        	)
+        );
         foreach (['reconcile','cancel'] as $method) {
             $r = $this->fixture(['existing_claim'=>$expired, 'delete_race'=>['owner'=>'replacement','expires_in'=>40], 'operations'=>[['method'=>$method]]]);
-            $this->assertSame([], $r['calls']);
-            $this->assertSame([], $r['cache_deletes']);
-            $this->assertSame([], $r['claims']);
-            $this->assertSame('replacement', array_values($r['options'])[0]['owner']);
+            $this->assertSame(
+            	array(
+            		'calls' => [],
+            		'cache_deletes' => [],
+            		'claims' => [],
+            		'owner' => 'replacement',
+            	),
+            	array(
+            		'calls' => $r['calls'],
+            		'cache_deletes' => $r['cache_deletes'],
+            		'claims' => $r['claims'],
+            		'owner' => array_values($r['options'])[0]['owner'],
+            	)
+            );
         }
     }
 
@@ -265,15 +373,35 @@ final class InstantOperationsRuntimeTest extends TestCase {
             ['method'=>'reconcile'], ['method'=>'track','advance'=>9], ['method'=>'reconcile','advance'=>2],
             ['method'=>'reconcile','advance'=>28], ['method'=>'reconcile','advance'=>1],
         ]]);
-        $this->assertSame([['GET','KA-1'],['GET','KA-1']], $r['calls']);
-        $this->assertSame('not_found', $r['results'][1]['rows'][0]['status']);
-        $this->assertSame('unknown', $r['results'][2]['rows'][0]['status']);
-        $this->assertSame('unknown', $r['results'][3]['rows'][0]['status']);
-        $this->assertSame('not_found', $r['results'][4]['rows'][0]['status']);
-        $this->assertCount(1, $r['queries']);
+        $this->assertSame(
+        	array(
+        		'calls' => [['GET','KA-1'],['GET','KA-1']],
+        		'status' => 'not_found',
+        		'shipment status' => 'unknown',
+        		'WooCommerce status' => 'unknown',
+        		'rows status' => 'not_found',
+        		'queries count' => 1,
+        	),
+        	array(
+        		'calls' => $r['calls'],
+        		'status' => $r['results'][1]['rows'][0]['status'],
+        		'shipment status' => $r['results'][2]['rows'][0]['status'],
+        		'WooCommerce status' => $r['results'][3]['rows'][0]['status'],
+        		'rows status' => $r['results'][4]['rows'][0]['status'],
+        		'queries count' => count( $r['queries'] ),
+        	)
+        );
         foreach ($r['options'] as $key=>$value) {
-            $this->assertMatchesRegularExpression('/^kiriof_instant_ops_throttle_[a-f0-9]{64}$/', $key);
-            $this->assertSame(['owner','expires'], array_keys($value));
+            $this->assertSame(
+            	array(
+            		'key format' => 1,
+            		'value' => ['owner','expires'],
+            	),
+            	array(
+            		'key format' => preg_match( '/^kiriof_instant_ops_throttle_[a-f0-9]{64}$/', $key ),
+            		'value' => array_keys($value),
+            	)
+            );
         }
         $this->assertStringNotContainsString('private', json_encode($r['options']));
     }
@@ -281,26 +409,58 @@ final class InstantOperationsRuntimeTest extends TestCase {
     public function test_remote_identity_and_awb_mismatches_never_write(): void {
         foreach ([['order_id'=>'OTHER'], ['service'=>'grab_express'], ['service_type'=>'same_day'], ['tracking_code'=>'OTHER'], ['status'=>true], ['status'=>999]] as $extra) {
             $r = $this->fixture(['tracking'=>$this->tracking($extra)]);
-            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
-            $this->assertSame([], $r['writes']);
+            $this->assertSame(
+            	array(
+            		'status' => 'unknown',
+            		'writes' => [],
+            	),
+            	array(
+            		'status' => $r['results'][0]['rows'][0]['status'],
+            		'writes' => $r['writes'],
+            	)
+            );
         }
     }
 
     public function test_authoritative_lifecycle_dates_and_stale_cas_cannot_regress_terminal_state(): void {
         foreach (['finished_at'=>['finished',200], 'canceled_at'=>['canceled',300]] as $date=>$expected) {
             $r = $this->fixture(['tracking'=>$this->tracking(['date'=>[$date=>'2025-01-01 10:00:00']])]);
-            $this->assertSame($expected[0], $r['rows']['KA-1']['status']);
-            $this->assertSame($expected[1], $r['rows']['KA-1']['instant_status_code']);
+            $this->assertSame(
+            	array(
+            		'status' => $expected[0],
+            		'instant_status_code' => $expected[1],
+            	),
+            	array(
+            		'status' => $r['rows']['KA-1']['status'],
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            	)
+            );
         }
         $r = $this->fixture(['race'=>['status'=>'finished','instant_status_code'=>200], 'tracking'=>$this->tracking(['status'=>105])]);
-        $this->assertSame('finished', $r['rows']['KA-1']['status']);
-        $this->assertSame(200, $r['rows']['KA-1']['instant_status_code']);
+        $this->assertSame(
+        	array(
+        		'status' => 'finished',
+        		'instant_status_code' => 200,
+        	),
+        	array(
+        		'status' => $r['rows']['KA-1']['status'],
+        		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+        	)
+        );
     }
 
     public function test_cancel_refresh_blocks_pickup_and_uncertain_local_bookings(): void {
         $r = $this->fixture(['tracking'=>$this->tracking(['status'=>106]),'operations'=>[['method'=>'cancel']]]);
-        $this->assertSame([['GET','KA-1']], $r['calls']);
-        $this->assertSame('shipped', $r['rows']['KA-1']['status']);
+        $this->assertSame(
+        	array(
+        		'calls' => [['GET','KA-1']],
+        		'status' => 'shipped',
+        	),
+        	array(
+        		'calls' => $r['calls'],
+        		'status' => $r['rows']['KA-1']['status'],
+        	)
+        );
         foreach ([['instant_payment_id'=>null], ['instant_status_code'=>350], ['status'=>'finished'], ['awb'=>null]] as $row) {
             $r = $this->fixture(['row'=>$row,'operations'=>[['method'=>'cancel']]]);
             $this->assertSame([], $r['calls']);
@@ -309,18 +469,40 @@ final class InstantOperationsRuntimeTest extends TestCase {
 
     public function test_cancel_acceptance_is_not_terminal_and_timeout_blocks_repeated_delete(): void {
         $r = $this->fixture(['operations'=>[['method'=>'cancel'],['method'=>'cancel']]]);
-        $this->assertSame('cancel_requested', $r['results'][0]['rows'][0]['status']);
-        $this->assertSame(350, $r['rows']['KA-1']['instant_status_code']);
-        $this->assertSame('request_pickup', $r['rows']['KA-1']['status']);
-        $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
-        $this->assertSame('processing', $r['woo']['status']);
-        $this->assertSame([], $r['woo']['notes']);
+        $this->assertSame(
+        	array(
+        		'status' => 'cancel_requested',
+        		'instant_status_code' => 350,
+        		'shipment status' => 'request_pickup',
+        		'calls' => [['GET','KA-1'],['DELETE','KA-1']],
+        		'WooCommerce status' => 'processing',
+        		'notes' => [],
+        	),
+        	array(
+        		'status' => $r['results'][0]['rows'][0]['status'],
+        		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+        		'shipment status' => $r['rows']['KA-1']['status'],
+        		'calls' => $r['calls'],
+        		'WooCommerce status' => $r['woo']['status'],
+        		'notes' => $r['woo']['notes'],
+        	)
+        );
         foreach ([['throw'=>true], ['cancel'=>['status'=>false,'data'=>'private address']]] as $input) {
             $r = $this->fixture($input + ['operations'=>[['method'=>'cancel'],['method'=>'cancel']]]);
-            $this->assertSame(350, $r['rows']['KA-1']['instant_status_code']);
-            $this->assertCount(2, $r['calls']);
-            $this->assertSame([], $r['woo']['notes']);
-            $this->assertStringNotContainsString('private', json_encode($r['results']));
+            $this->assertSame(
+            	array(
+            		'instant_status_code' => 350,
+            		'calls count' => 2,
+            		'notes' => [],
+            		'redacts private' => false,
+            	),
+            	array(
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            		'calls count' => count( $r['calls'] ),
+            		'notes' => $r['woo']['notes'],
+            		'redacts private' => str_contains( json_encode($r['results']), 'private' ),
+            	)
+            );
         }
     }
 
@@ -328,38 +510,85 @@ final class InstantOperationsRuntimeTest extends TestCase {
         foreach (['gosend','grab_express'] as $service) {
             $cancel = ['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['payment_id'=>'PAY-1','packages'=>[['order_id'=>'KA-1','service'=>$service,'status'=>300]]]]];
             $r = $this->fixture(['row'=>['service'=>$service], 'tracking'=>$this->tracking(['service'=>$service]), 'cancel'=>$cancel,'operations'=>[['method'=>'cancel']]]);
-            $this->assertSame('canceled', $r['results'][0]['rows'][0]['status']);
-            $this->assertSame('processing', $r['woo']['status']);
-            $this->assertCount(1, $r['woo']['notes']);
+            $this->assertSame(
+            	array(
+            		'status' => 'canceled',
+            		'shipment status' => 'processing',
+            		'notes count' => 1,
+            	),
+            	array(
+            		'status' => $r['results'][0]['rows'][0]['status'],
+            		'shipment status' => $r['woo']['status'],
+            		'notes count' => count( $r['woo']['notes'] ),
+            	)
+            );
         }
         $cancel['data']['result']['packages'][0]['order_id'] = 'OTHER';
         $r = $this->fixture(['cancel'=>$cancel,'tracking'=>$this->tracking([]),'operations'=>[['method'=>'cancel']]]);
-        $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
-        $this->assertSame(350, $r['rows']['KA-1']['instant_status_code']);
+        $this->assertSame(
+        	array(
+        		'status' => 'unknown',
+        		'instant_status_code' => 350,
+        	),
+        	array(
+        		'status' => $r['results'][0]['rows'][0]['status'],
+        		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+        	)
+        );
     }
 
     public function test_cancellation_claim_is_durable_before_delete_and_competitors_win(): void {
         $r = $this->fixture(['operations'=>[['method'=>'cancel'],['method'=>'cancel','expire_report'=>true,'expire_throttle'=>true]]]);
-        $this->assertSame([350], $r['delete_codes']);
-        $this->assertSame([['KA-1',100]], $r['claims']);
-        $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+        $this->assertSame(
+        	array(
+        		'delete_codes' => [350],
+        		'claims' => [['KA-1',100]],
+        		'calls' => [['GET','KA-1'],['DELETE','KA-1']],
+        	),
+        	array(
+        		'delete_codes' => $r['delete_codes'],
+        		'claims' => $r['claims'],
+        		'calls' => $r['calls'],
+        	)
+        );
         foreach ([['instant_status_code'=>350], ['status'=>'shipped','instant_status_code'=>106]] as $race) {
             $r = $this->fixture(['claim_race'=>$race,'operations'=>[['method'=>'cancel']]]);
-            $this->assertSame([['GET','KA-1']], $r['calls']);
-            $this->assertSame([], $r['delete_codes']);
-            $this->assertSame($race['instant_status_code'], $r['rows']['KA-1']['instant_status_code']);
-            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame(
+            	array(
+            		'calls' => [['GET','KA-1']],
+            		'delete_codes' => [],
+            		'instant_status_code' => $race['instant_status_code'],
+            		'status' => 'unknown',
+            	),
+            	array(
+            		'calls' => $r['calls'],
+            		'delete_codes' => $r['delete_codes'],
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            		'status' => $r['results'][0]['rows'][0]['status'],
+            	)
+            );
         }
     }
 
     public function test_dateless_tracking_preserves_pending_and_cancel_claim_without_woo_side_effects(): void {
         foreach ([['status'=>'pending','instant_status_code'=>null,'instant_payment_id'=>null,'awb'=>null], ['instant_status_code'=>350]] as $row) {
             $r = $this->fixture(['row'=>$row,'operations'=>[['method'=>'track']]]);
-            $this->assertSame('tracked', $r['results'][0]['rows'][0]['status']);
-            $this->assertSame($row['instant_status_code'], $r['rows']['KA-1']['instant_status_code']);
-            $this->assertSame($row['status'] ?? 'request_pickup', $r['rows']['KA-1']['status']);
-            $this->assertSame([], $r['woo']['notes']);
-            $this->assertSame('processing', $r['woo']['status']);
+            $this->assertSame(
+            	array(
+            		'status' => 'tracked',
+            		'instant_status_code' => $row['instant_status_code'],
+            		'shipment status' => $row['status'] ?? 'request_pickup',
+            		'notes' => [],
+            		'WooCommerce status' => 'processing',
+            	),
+            	array(
+            		'status' => $r['results'][0]['rows'][0]['status'],
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            		'shipment status' => $r['rows']['KA-1']['status'],
+            		'notes' => $r['woo']['notes'],
+            		'WooCommerce status' => $r['woo']['status'],
+            	)
+            );
         }
         foreach ([['status'=>100], ['status'=>false,'not_found'=>true], ['status'=>false,'data'=>['status'=>false,'code'=>2]]] as $remote) {
             $input = ['row'=>['instant_status_code'=>350]];
@@ -372,13 +601,29 @@ final class InstantOperationsRuntimeTest extends TestCase {
     public function test_terminal_dates_are_strict_normalized_utc_and_explicit_codes_take_precedence(): void {
         foreach (['2025-01-01T10:00:00.123456Z', '2025-01-01T12:00:00+02:00'] as $date) {
             $r = $this->fixture(['tracking'=>$this->tracking(['date'=>['finished_at'=>$date]])]);
-            $this->assertSame(200, $r['rows']['KA-1']['instant_status_code']);
-            $this->assertSame('2025-01-01 10:00:00', $r['rows']['KA-1']['finished_at']);
+            $this->assertSame(
+            	array(
+            		'instant_status_code' => 200,
+            		'finished_at' => '2025-01-01 10:00:00',
+            	),
+            	array(
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            		'finished_at' => $r['rows']['KA-1']['finished_at'],
+            	)
+            );
         }
         foreach (['2025-02-30 10:00:00', '2099-01-01 10:00:00', true, ['date'=>'2025-01-01 10:00:00']] as $date) {
             $r = $this->fixture(['tracking'=>$this->tracking(['date'=>['finished_at'=>$date]])]);
-            $this->assertSame(100, $r['rows']['KA-1']['instant_status_code']);
-            $this->assertSame('request_pickup', $r['rows']['KA-1']['status']);
+            $this->assertSame(
+            	array(
+            		'instant_status_code' => 100,
+            		'status' => 'request_pickup',
+            	),
+            	array(
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            		'status' => $r['rows']['KA-1']['status'],
+            	)
+            );
         }
         $r = $this->fixture(['tracking'=>$this->tracking(['status'=>105,'date'=>['canceled_at'=>'2025-01-01 10:00:00']])]);
         $this->assertSame(105, $r['rows']['KA-1']['instant_status_code']);
@@ -389,10 +634,20 @@ final class InstantOperationsRuntimeTest extends TestCase {
         foreach ([['order_id'=>'OTHER'], ['service'=>'grab_express'], ['service_type'=>'same_day'], ['awb'=>'OTHER'], ['status'=>true], ['status'=>999]] as $extra) {
             $cancel = ['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['packages'=>[array_replace($base,$extra)]]]];
             $r = $this->fixture(['cancel'=>$cancel,'operations'=>[['method'=>'cancel'],['method'=>'cancel','expire_report'=>true,'expire_throttle'=>true]]]);
-            $this->assertSame(350, $r['rows']['KA-1']['instant_status_code']);
-            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
-            $this->assertSame([350], $r['delete_codes']);
-            $this->assertSame([], $r['woo']['notes']);
+            $this->assertSame(
+            	array(
+            		'instant_status_code' => 350,
+            		'status' => 'unknown',
+            		'delete_codes' => [350],
+            		'notes' => [],
+            	),
+            	array(
+            		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
+            		'status' => $r['results'][0]['rows'][0]['status'],
+            		'delete_codes' => $r['delete_codes'],
+            		'notes' => $r['woo']['notes'],
+            	)
+            );
         }
     }
 }

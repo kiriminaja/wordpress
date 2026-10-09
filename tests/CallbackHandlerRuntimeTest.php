@@ -90,12 +90,21 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
-        $this->assertSame( 200, $response->status );
-        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
-        $this->assertSame( array( 'ORDER-1', 'ORDER-2' ), $transactionRepository->updatedOrderIds );
-        $this->assertSame( array( 'PICKUP-1', 'PICKUP-2' ), $paymentRepository->updatedPickupNumbers );
-        $this->assertSame( 'paid', $paymentRepository->payments['PICKUP-1']->status );
-        $this->assertSame( 'paid', $paymentRepository->payments['PICKUP-2']->status );
+        $this->assertSame( array(
+            'status' => 200,
+            'kiriof_callback_test_logs' => array(),
+            'updatedOrderIds' => array( 'ORDER-1', 'ORDER-2' ),
+            'updatedPickupNumbers' => array( 'PICKUP-1', 'PICKUP-2' ),
+            'payments PICKUP-1 status' => 'paid',
+            'payments PICKUP-2 status' => 'paid',
+        ), array(
+            'status' => $response->status,
+            'kiriof_callback_test_logs' => $GLOBALS['kiriof_callback_test_logs'],
+            'updatedOrderIds' => $transactionRepository->updatedOrderIds,
+            'updatedPickupNumbers' => $paymentRepository->updatedPickupNumbers,
+            'payments PICKUP-1 status' => $paymentRepository->payments['PICKUP-1']->status,
+            'payments PICKUP-2 status' => $paymentRepository->payments['PICKUP-2']->status,
+        ) );
     }
 
     #[Test]
@@ -109,10 +118,17 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
-        $this->assertSame( 503, $response->status );
-        $this->assertSame( array( 'ORDER-2' ), $response->data['unmatched_order_ids'] );
-        $this->assertSame( array(), $transactionRepository->updatedOrderIds );
-        $this->assertSame( array(), $paymentRepository->updatedPickupNumbers );
+        $this->assertSame( array(
+            'status' => 503,
+            'data unmatched_order_ids' => array( 'ORDER-2' ),
+            'updatedOrderIds' => array(),
+            'updatedPickupNumbers' => array(),
+        ), array(
+            'status' => $response->status,
+            'data unmatched_order_ids' => $response->data['unmatched_order_ids'],
+            'updatedOrderIds' => $transactionRepository->updatedOrderIds,
+            'updatedPickupNumbers' => $paymentRepository->updatedPickupNumbers,
+        ) );
     }
 
     #[Test]
@@ -133,11 +149,19 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
-        $this->assertSame( 503, $response->status );
-        $this->assertSame( array( 'ORDER-2' ), $response->data['failed_order_ids'] );
-        $this->assertSame( array(), $paymentRepository->updatedPickupNumbers );
-        $this->assertSame( 'error', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
-        $this->assertSame( array( 'ORDER-2' ), $GLOBALS['kiriof_callback_test_logs'][0]['context']['failed_order_ids'] );
+        $this->assertSame( array(
+            'status' => 503,
+            'data failed_order_ids' => array( 'ORDER-2' ),
+            'updatedPickupNumbers' => array(),
+            'kiriof_callback_test_logs level' => 'error',
+            'kiriof_callback_test_logs context failed_order_ids' => array( 'ORDER-2' ),
+        ), array(
+            'status' => $response->status,
+            'data failed_order_ids' => $response->data['failed_order_ids'],
+            'updatedPickupNumbers' => $paymentRepository->updatedPickupNumbers,
+            'kiriof_callback_test_logs level' => $GLOBALS['kiriof_callback_test_logs'][0]['level'],
+            'kiriof_callback_test_logs context failed_order_ids' => $GLOBALS['kiriof_callback_test_logs'][0]['context']['failed_order_ids'],
+        ) );
     }
 
     #[Test]
@@ -154,10 +178,17 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
-        $this->assertSame( 200, $response->status );
-        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
-        $this->assertSame( 'unpaid', $paymentRepository->payments['PICKUP-1']->status );
-        $this->assertSame( array(), $paymentRepository->updatedPickupNumbers );
+        $this->assertSame( array(
+            'status' => 200,
+            'kiriof_callback_test_logs' => array(),
+            'payments PICKUP-1 status' => 'unpaid',
+            'updatedPickupNumbers' => array(),
+        ), array(
+            'status' => $response->status,
+            'kiriof_callback_test_logs' => $GLOBALS['kiriof_callback_test_logs'],
+            'payments PICKUP-1 status' => $paymentRepository->payments['PICKUP-1']->status,
+            'updatedPickupNumbers' => $paymentRepository->updatedPickupNumbers,
+        ) );
     }
 
     #[Test]
@@ -177,10 +208,17 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
-        $this->assertSame( 200, $response->status );
-        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
-        $this->assertSame( array( 'ORDER-1', 'ORDER-2' ), $transactionRepository->updatedOrderIds );
-        $this->assertSame( array( 'PICKUP-1', 'PICKUP-2' ), $paymentRepository->updatedPickupNumbers );
+        $this->assertSame( array(
+            'status' => 200,
+            'kiriof_callback_test_logs' => array(),
+            'updatedOrderIds' => array( 'ORDER-1', 'ORDER-2' ),
+            'updatedPickupNumbers' => array( 'PICKUP-1', 'PICKUP-2' ),
+        ), array(
+            'status' => $response->status,
+            'kiriof_callback_test_logs' => $GLOBALS['kiriof_callback_test_logs'],
+            'updatedOrderIds' => $transactionRepository->updatedOrderIds,
+            'updatedPickupNumbers' => $paymentRepository->updatedPickupNumbers,
+        ) );
     }
 
     #[Test]
@@ -198,8 +236,13 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $this->service( $transactionRepository, $paymentRepository )->call();
 
-        $this->assertSame( 503, $response->status );
-        $this->assertSame( array( 'PICKUP-1' ), $response->data['pickup_numbers'] );
+        $this->assertSame( array(
+            'status' => 503,
+            'data pickup_numbers' => array( 'PICKUP-1' ),
+        ), array(
+            'status' => $response->status,
+            'data pickup_numbers' => $response->data['pickup_numbers'],
+        ) );
     }
 
     #[Test]
@@ -228,11 +271,19 @@ final class CallbackHandlerRuntimeTest extends TestCase {
 
         $response = $service->call();
 
-        $this->assertSame( 401, $response->status );
-        $this->assertSame( 'Authorization failed', $response->message );
-        $this->assertCount( 1, $GLOBALS['kiriof_callback_test_logs'] );
-        $this->assertSame( 'warning', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
-        $this->assertStringNotContainsString( 'wrong-secret', json_encode( $GLOBALS['kiriof_callback_test_logs'] ) );
+        $this->assertSame( array(
+            'status' => 401,
+            'message' => 'Authorization failed',
+            'kiriof_callback_test_logs count' => 1,
+            'kiriof_callback_test_logs level' => 'warning',
+            'excludes wrong-secret' => false,
+        ), array(
+            'status' => $response->status,
+            'message' => $response->message,
+            'kiriof_callback_test_logs count' => count( $GLOBALS['kiriof_callback_test_logs'] ),
+            'kiriof_callback_test_logs level' => $GLOBALS['kiriof_callback_test_logs'][0]['level'],
+            'excludes wrong-secret' => str_contains( json_encode( $GLOBALS['kiriof_callback_test_logs'] ), 'wrong-secret' ),
+        ) );
     }
 
     #[Test]
@@ -258,16 +309,33 @@ final class CallbackHandlerRuntimeTest extends TestCase {
             array( (object) array_merge( array( 'order_id' => 'ORDER-1' ), $packageData ) )
         )->call();
 
-        $this->assertSame( 200, $response->status );
-        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
+        $this->assertSame( array(
+            'status' => 200,
+            'kiriof_callback_test_logs' => array(),
+        ), array(
+            'status' => $response->status,
+            'kiriof_callback_test_logs' => $GLOBALS['kiriof_callback_test_logs'],
+        ) );
+        $changes = array();
         foreach ( $expectedChanges as $field => $value ) {
-            $this->assertSame( $value, $transactionRepository->transactions['ORDER-1']->{$field} );
+            $changes[$field] = $transactionRepository->transactions['ORDER-1']->{$field};
         }
-        $this->assertSame( $expectedOrderStatus, $order->updatedStatus );
-        $this->assertCount( $expectsCancelHooks ? 2 : 0, $GLOBALS['kiriof_callback_test_hooks'] );
+        $this->assertSame( $expectedChanges, $changes );
+        $this->assertSame( array(
+            'updatedStatus' => $expectedOrderStatus,
+            'kiriof_callback_test_hooks count' => $expectsCancelHooks ? 2 : 0,
+        ), array(
+            'updatedStatus' => $order->updatedStatus,
+            'kiriof_callback_test_hooks count' => count( $GLOBALS['kiriof_callback_test_hooks'] ),
+        ) );
         $replay = $this->eventService( $transactionRepository, $paymentRepository, $method, array( (object) array_merge( array( 'order_id' => 'ORDER-1' ), $packageData ) ) )->call();
-        $this->assertSame( 200, $replay->status );
-        $this->assertSame( array(), $GLOBALS['kiriof_callback_test_logs'] );
+        $this->assertSame( array(
+            'status' => 200,
+            'kiriof_callback_test_logs' => array(),
+        ), array(
+            'status' => $replay->status,
+            'kiriof_callback_test_logs' => $GLOBALS['kiriof_callback_test_logs'],
+        ) );
     }
 
     public static function packageEventProvider(): array {
@@ -331,14 +399,25 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $payments = new CallbackPaymentRepositoryFake( array() );
         $service = $this->service( $transactions, $payments )->body( $body );
         $response = $service->call();
-        $this->assertSame( 400, $response->status );
-        $this->assertSame( 'Invalid callback payload', $response->message );
-        $this->assertCount( 1, $GLOBALS['kiriof_callback_test_logs'] );
-        $this->assertSame( 'warning', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
-        $this->assertSame( array(), $response->data );
-        $this->assertSame( array(), $transactions->lookupOrderIds );
-        $this->assertSame( array(), $transactions->updatedOrderIds );
-        $this->assertSame( array(), $payments->updatedPickupNumbers );
+        $this->assertSame( array(
+            'status' => 400,
+            'message' => 'Invalid callback payload',
+            'kiriof_callback_test_logs count' => 1,
+            'kiriof_callback_test_logs level' => 'warning',
+            'data' => array(),
+            'lookupOrderIds' => array(),
+            'updatedOrderIds' => array(),
+            'updatedPickupNumbers' => array(),
+        ), array(
+            'status' => $response->status,
+            'message' => $response->message,
+            'kiriof_callback_test_logs count' => count( $GLOBALS['kiriof_callback_test_logs'] ),
+            'kiriof_callback_test_logs level' => $GLOBALS['kiriof_callback_test_logs'][0]['level'],
+            'data' => $response->data,
+            'lookupOrderIds' => $transactions->lookupOrderIds,
+            'updatedOrderIds' => $transactions->updatedOrderIds,
+            'updatedPickupNumbers' => $payments->updatedPickupNumbers,
+        ) );
     }
 
     public static function invalidRoutingProvider(): array {
@@ -349,13 +428,13 @@ final class CallbackHandlerRuntimeTest extends TestCase {
             'collection object' => (object) array( 'method' => 'validated_packages', 'data' => new stdClass() ),
             'null collection' => (object) array( 'method' => 'validated_packages', 'data' => null ),
         );
-        foreach ( array( '<b>ORDER-1</b>', 'ORDER%2d-1', ' ORDER-1', 'ORDER-1 ', '', str_repeat( 'a', 101 ), 123, null, array(), new stdClass() ) as $i => $id ) {
+        foreach ( array( 'HTML' => '<b>ORDER-1</b>', 'percent encoded' => 'ORDER%2d-1', 'leading whitespace' => ' ORDER-1', 'trailing whitespace' => 'ORDER-1 ', 'empty' => '', 'too long' => str_repeat( 'a', 101 ), 'integer' => 123, 'null' => null, 'array' => array(), 'object' => new stdClass() ) as $i => $id ) {
             $cases['id-' . $i] = (object) array( 'method' => 'validated_packages', 'data' => array( (object) array( 'order_id' => $id ) ) );
         }
         foreach ( array(
-            array( (object) array() ), array( null ),
-            array( array( 'order_id' => 'ORDER-1' ), array( 'order_id' => 'ORDER-1' ) ),
-            array_fill( 0, 201, array( 'order_id' => 'ORDER-1' ) ),
+            'missing identity' => array( (object) array() ), 'null package' => array( null ),
+            'duplicate identities' => array( array( 'order_id' => 'ORDER-1' ), array( 'order_id' => 'ORDER-1' ) ),
+            'oversize batch' => array_fill( 0, 201, array( 'order_id' => 'ORDER-1' ) ),
         ) as $i => $packages ) {
             $cases['packages-' . $i] = (object) array( 'method' => 'validated_packages', 'packages' => $packages );
         }
@@ -367,10 +446,17 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $transactions = new CallbackTransactionRepositoryFake( array( $this->transaction( 'ORDER-1', 'PICKUP-1' ) ) );
         $service = $this->eventService( $transactions, new CallbackPaymentRepositoryFake( array() ), 'rejected_packages',
             array( array( 'order_id' => 'ORDER-1', 'reason' => ' <b>Invalid</b> %41address ', 'rejected_at' => '<b>2026-07-30</b>' ) ) );
-        $this->assertSame( 200, $service->call()->status );
-        $this->assertSame( array( array( 'ORDER-1' ) ), $transactions->lookupOrderIds );
-        $this->assertSame( 'Invalid address', $transactions->transactions['ORDER-1']->rejected_reason );
-        $this->assertSame( '2026-07-30', $transactions->transactions['ORDER-1']->rejected_at );
+        $this->assertSame( array(
+            'call status' => 200,
+            'lookupOrderIds' => array( array( 'ORDER-1' ) ),
+            'transactions ORDER-1 rejected_reason' => 'Invalid address',
+            'transactions ORDER-1 rejected_at' => '2026-07-30',
+        ), array(
+            'call status' => $service->call()->status,
+            'lookupOrderIds' => $transactions->lookupOrderIds,
+            'transactions ORDER-1 rejected_reason' => $transactions->transactions['ORDER-1']->rejected_reason,
+            'transactions ORDER-1 rejected_at' => $transactions->transactions['ORDER-1']->rejected_at,
+        ) );
     }
 
     #[Test]
@@ -378,12 +464,23 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $transactions = new CallbackTransactionRepositoryFake( array( $this->transaction( '123', 'PICKUP-1' ) ) );
         $service = $this->service( $transactions, new CallbackPaymentRepositoryFake( array() ) );
         $service->body( (object) array( 'method' => 'validated_packages', 'data' => array(), 'packages' => array( array( 'order_id' => '123', 'shipping_cost' => 25000 ) ) ) );
-        $this->assertSame( 200, $service->call()->status );
-        $this->assertSame( array( array( '123' ) ), $transactions->lookupOrderIds );
+        $this->assertSame( array(
+            'call status' => 200,
+            'lookupOrderIds' => array( array( '123' ) ),
+        ), array(
+            'call status' => $service->call()->status,
+            'lookupOrderIds' => $transactions->lookupOrderIds,
+        ) );
         $service->body( (object) array( 'method' => 'validated_packages', 'data' => array() ) );
-        $this->assertSame( 'No Order ID Found', $service->call()->message );
-        $this->assertSame( array(), $service->packages );
-        $this->assertNull( $service->processing );
+        $this->assertSame( array(
+            'call message' => 'No Order ID Found',
+            'packages' => array(),
+            'processing' => null,
+        ), array(
+            'call message' => $service->call()->message,
+            'packages' => $service->packages,
+            'processing' => $service->processing,
+        ) );
     }
 
     #[Test]
@@ -397,9 +494,15 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         }
         $transactions = new CallbackTransactionRepositoryFake( $rows );
         $service = $this->eventService( $transactions, new CallbackPaymentRepositoryFake( array() ), 'validated_packages', $packages );
-        $this->assertSame( 200, $service->call()->status );
-        $this->assertSame( array_column( $packages, 'order_id' ), $transactions->lookupOrderIds[0] );
-        $this->assertCount( 200, $transactions->updatedOrderIds );
+        $this->assertSame( array(
+            'call status' => 200,
+            'lookupOrderIds' => array_column( $packages, 'order_id' ),
+            'updatedOrderIds count' => 200,
+        ), array(
+            'call status' => $service->call()->status,
+            'lookupOrderIds' => $transactions->lookupOrderIds[0],
+            'updatedOrderIds count' => count( $transactions->updatedOrderIds ),
+        ) );
     }
 
     #[Test]
@@ -408,8 +511,13 @@ final class CallbackHandlerRuntimeTest extends TestCase {
             $transactions = new CallbackTransactionRepositoryFake( array() );
             $service = $this->service( $transactions, new CallbackPaymentRepositoryFake( array() ) );
             $service->header( array( 'Authorization' => $header ) );
-            $this->assertSame( 401, $service->call()->status );
-            $this->assertSame( array(), $transactions->lookupOrderIds );
+            $this->assertSame( array(
+                'call status' => 401,
+                'lookupOrderIds' => array(),
+            ), array(
+                'call status' => $service->call()->status,
+                'lookupOrderIds' => $transactions->lookupOrderIds,
+            ) );
         }
     }
 
@@ -420,11 +528,19 @@ final class CallbackHandlerRuntimeTest extends TestCase {
         $instant->delivery_type = 'instant';
         $transactions = new CallbackTransactionRepositoryFake( array( $express, $instant ) );
         $response = $this->service( $transactions, new CallbackPaymentRepositoryFake( array() ) )->call();
-        $this->assertSame( 400, $response->status );
-        $this->assertSame( array(), $transactions->updatedOrderIds );
-        $this->assertCount( 1, $GLOBALS['kiriof_callback_test_logs'] );
-        $this->assertSame( 'warning', $GLOBALS['kiriof_callback_test_logs'][0]['level'] );
-        $this->assertStringContainsString( 'mixed Express and Instant', $GLOBALS['kiriof_callback_test_logs'][0]['message'] );
+        $this->assertSame( array(
+            'status' => 400,
+            'updatedOrderIds' => array(),
+            'kiriof_callback_test_logs count' => 1,
+            'kiriof_callback_test_logs level' => 'warning',
+            'contains mixed Express and Instant' => true,
+        ), array(
+            'status' => $response->status,
+            'updatedOrderIds' => $transactions->updatedOrderIds,
+            'kiriof_callback_test_logs count' => count( $GLOBALS['kiriof_callback_test_logs'] ),
+            'kiriof_callback_test_logs level' => $GLOBALS['kiriof_callback_test_logs'][0]['level'],
+            'contains mixed Express and Instant' => str_contains( $GLOBALS['kiriof_callback_test_logs'][0]['message'], 'mixed Express and Instant' ),
+        ) );
     }
 
     private function service( $transactionRepository, $paymentRepository ): CallbackHandlerService {

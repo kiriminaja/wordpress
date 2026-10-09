@@ -51,9 +51,11 @@ namespace KiriminAjaOfficial\Infrastructure {
 		$fixture = $this->run_fixture( 422, json_encode( $body ) );
 		$this->assertTrue( $fixture['response']['operation_rejected'] );
 		$this->assertContains( 'packages.destination.address_note', $fixture['diagnostics']['error_body']['validation_fields'] );
+		$redactions = array();
 		foreach ( array( 'Private name', 'Private address', '123456', 'private-token' ) as $secret ) {
-			$this->assertStringNotContainsString( $secret, json_encode( $fixture ) );
+			$redactions[ $secret ] = str_contains( json_encode( $fixture ), $secret );
 		}
+		$this->assertSame( array_fill_keys( array_keys( $redactions ), false ), $redactions, 'Diagnostic redaction contract' );
 		foreach ( array(
 			array('status'=>true), array('status'=>'false'), array('result'=>null), array('result'=>array('order_id'=>'remote')), array('payment_id'=>'remote'), array('packages'=>array()),
 			array('errors'=>array()), array('errors'=>array('address_note'=>'')), array('errors'=>array('address_note'=>123)), array('errors'=>array('address_note'=>array('payment_id'=>'remote'))),
@@ -104,40 +106,85 @@ PHP;
 	public function test_only_proven_pre_send_failures_allow_safe_retry(): void {
 		foreach ( array( 'invalid_local', 'insecure', 'client_exception' ) as $mode ) {
 			$fixture = $this->run_fixture( 200, '{}', $mode );
-			$this->assertFalse( $fixture['response']['status'] );
-			$this->assertTrue( $fixture['response']['operation_not_submitted'] );
-			$this->assertSame( array(), $fixture['calls'] );
-			$this->assertSame( array(), $fixture['logs'] );
+			$this->assertSame(
+				array(
+					'status' => false,
+					'operation_not_submitted' => true,
+					'calls' => array(),
+					'logs' => array(),
+				),
+				array(
+					'status' => $fixture['response']['status'],
+					'operation_not_submitted' => $fixture['response']['operation_not_submitted'],
+					'calls' => $fixture['calls'],
+					'logs' => $fixture['logs'],
+				)
+			);
 			if ( 'invalid_local' !== $mode ) {
 				$this->assertFalse( $fixture['diagnostics']['submitted'] );
 			}
-			$this->assertStringNotContainsString( 'private-token', json_encode( $fixture ) );
-			$this->assertStringNotContainsString( '123456', json_encode( $fixture ) );
+			$this->assertSame(
+				array(
+					'redacts private-token' => false,
+					'redacts 123456' => false,
+				),
+				array(
+					'redacts private-token' => str_contains( json_encode( $fixture ), 'private-token' ),
+					'redacts 123456' => str_contains( json_encode( $fixture ), '123456' ),
+				)
+			);
 		}
 	}
 
 	public function test_timeout_after_send_starts_is_ambiguous(): void {
 		$fixture = $this->run_fixture( 200, '{}', 'timeout' );
-		$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['response'] );
-		$this->assertTrue( $fixture['diagnostics']['submitted'] );
-		$this->assertSame( 'transport_exception', $fixture['diagnostics']['code'] );
-		$this->assertCount( 1, $fixture['calls'] );
-		$this->assertSame( array(), $fixture['logs'] );
+		$this->assertSame(
+			array(
+				'response' => array( 'status' => false, 'data' => 'Instant booking failed.' ),
+				'submitted' => true,
+				'code' => 'transport_exception',
+				'calls count' => 1,
+				'logs' => array(),
+			),
+			array(
+				'response' => $fixture['response'],
+				'submitted' => $fixture['diagnostics']['submitted'],
+				'code' => $fixture['diagnostics']['code'],
+				'calls count' => count( $fixture['calls'] ),
+				'logs' => $fixture['logs'],
+			)
+		);
 	}
 
 	public function test_http_success_with_explicit_empty_negative_is_safely_preserved(): void {
 		foreach ( array( array(200, '{}'), array(200, '[]'), array(400, '{}'), array(422, '[]') ) as $case ) {
 			$fixture = $this->run_fixture( $case[0], '{"status":false,"code":400,"message":"PIN 123456 private-token","text":"Private address","result":' . $case[1] . '}' );
-			$this->assertSame( array( 'status' => false, 'data' => array( 'status' => false, 'result' => array() ), 'operation_rejected' => true ), $fixture['response'] );
-			$this->assertTrue( $fixture['object'] );
-			$this->assertTrue( $fixture['empty_object'] );
-			$this->assertSame( array( array( 'POST', '/api/mitra/v6.2/instant/request_pickup' ) ), $fixture['calls'] );
-			$this->assertSame( array(), $fixture['logs'] );
-			$this->assertSame( $case[0] >= 400 ? 'http_failure' : 'transport_success', $fixture['diagnostics']['code'] );
-			$this->assertSame( $case[0], $fixture['diagnostics']['http_status'] );
-			$this->assertFalse( $fixture['diagnostics']['acknowledged'] );
-			$this->assertStringNotContainsString( '123456', json_encode( $fixture ) );
-			$this->assertStringNotContainsString( 'private-token', json_encode( $fixture ) );
+			$this->assertSame(
+				array(
+					'response' => array( 'status' => false, 'data' => array( 'status' => false, 'result' => array() ), 'operation_rejected' => true ),
+					'object' => true,
+					'empty_object' => true,
+					'calls' => array( array( 'POST', '/api/mitra/v6.2/instant/request_pickup' ) ),
+					'logs' => array(),
+					'code' => $case[0] >= 400 ? 'http_failure' : 'transport_success',
+					'http_status' => $case[0],
+					'acknowledged' => false,
+					'redacts 123456' => false,
+					'redacts private-token' => false,
+				),
+				array(
+					'response' => $fixture['response'],
+					'object' => $fixture['object'],
+					'empty_object' => $fixture['empty_object'],
+					'calls' => $fixture['calls'],
+					'logs' => $fixture['logs'],
+					'code' => $fixture['diagnostics']['code'],
+					'http_status' => $fixture['diagnostics']['http_status'],
+					'acknowledged' => $fixture['diagnostics']['acknowledged'],
+					'redacts 123456' => str_contains( json_encode( $fixture ), '123456' ),
+					'redacts private-token' => str_contains( json_encode( $fixture ), 'private-token' ),
+				)
+			);
 		}
 	}
 
@@ -159,12 +206,24 @@ PHP;
 			array( 200, 'broken PIN 123456' ),
 		) as $case ) {
 			$fixture = $this->run_fixture( $case[0], $case[1] );
-			$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['response'] );
-			$this->assertCount( 1, $fixture['calls'] );
-			$this->assertSame( array(), $fixture['logs'] );
-			$this->assertTrue( $fixture['diagnostics']['submitted'] );
-			$this->assertSame( $case[0] >= 400 ? 'http_failure' : ( str_starts_with( $case[1], 'broken' ) ? 'invalid_json' : 'transport_success' ), $fixture['diagnostics']['code'] );
-			$this->assertStringNotContainsString( '123456', json_encode( $fixture['diagnostics'] ) );
+			$this->assertSame(
+				array(
+					'response' => array( 'status' => false, 'data' => 'Instant booking failed.' ),
+					'calls count' => 1,
+					'logs' => array(),
+					'submitted' => true,
+					'code' => $case[0] >= 400 ? 'http_failure' : ( str_starts_with( $case[1], 'broken' ) ? 'invalid_json' : 'transport_success' ),
+					'redacts 123456' => false,
+				),
+				array(
+					'response' => $fixture['response'],
+					'calls count' => count( $fixture['calls'] ),
+					'logs' => $fixture['logs'],
+					'submitted' => $fixture['diagnostics']['submitted'],
+					'code' => $fixture['diagnostics']['code'],
+					'redacts 123456' => str_contains( json_encode( $fixture['diagnostics'] ), '123456' ),
+				)
+			);
 		}
 	}
 	public function test_actual_upstream_explanation_is_safe_in_runtime_diagnostics(): void {
@@ -173,11 +232,21 @@ PHP;
 			'status' => false,
 			'message' => $prose . ' Private name Private address 081234567890 -7.8 110.3 PIN "123456" token labeltoken private-token',
 		) ) );
-		$this->assertSame( array( 'status' => false, 'data' => 'Instant booking failed.' ), $fixture['response'] );
-		$this->assertStringContainsString( $prose, $fixture['diagnostics']['error_body']['messages']['message'] );
+		$this->assertSame(
+			array(
+				'response' => array( 'status' => false, 'data' => 'Instant booking failed.' ),
+				'contains $prose' => true,
+			),
+			array(
+				'response' => $fixture['response'],
+				'contains $prose' => str_contains( $fixture['diagnostics']['error_body']['messages']['message'], $prose ),
+			)
+		);
+		$redactions = array();
 		foreach ( array( 'Private name', 'Private address', '081234567890', '-7.8', '110.3', '123456', 'labeltoken', 'private-token' ) as $secret ) {
-			$this->assertStringNotContainsString( $secret, json_encode( $fixture ) );
+			$redactions[ $secret ] = str_contains( json_encode( $fixture ), $secret );
 		}
+		$this->assertSame( array_fill_keys( array_keys( $redactions ), false ), $redactions, 'Diagnostic redaction contract' );
 		$this->assertSame( array(), $fixture['logs'] );
 	}
 }
