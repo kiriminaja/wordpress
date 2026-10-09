@@ -1,0 +1,87 @@
+/* Geometry belongs to the map, not the theme's button/form-row rules. */
+.woocommerce form.checkout .kiriof-classic-pin.form-row {
+ display: block; clear: both; float: none; width: 100%; max-width: none; flex-basis: 100%; box-sizing: border-box;
+ margin: 0.75rem 0 1.25rem; padding: 0; border: 0; background: transparent; overflow: visible;
+}
+.woocommerce form.checkout .kiriof-classic-pin > label { display: block; position: static; margin: 0 0 0.5rem; font: inherit; }
+.woocommerce form.checkout .kiriof-classic-pin p { margin: 0.75rem 0; }
+.kiriof-classic-pin [hidden], .kiriof-classic-pin[hidden] { display: none !important; }
+.woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-map-viewport {
+ position: relative !important; display: block !important; width: 100%; height: 320px; min-height: 320px;
+ overflow: hidden; isolation: isolate; border: 1px solid #CBD5E1; border-radius: 4px; box-sizing: border-box;
+}
+.woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-map {
+ position: absolute !important; inset: 0; height: 100% !important; width: 100%; z-index: 0;
+}
+.woocommerce form.checkout .kiriof-classic-pin button.kiriof-classic-map-locate {
+ position: absolute !important; inset: 12px 12px auto auto; z-index: 1000; display: inline-flex !important;
+ align-items: center; justify-content: center; box-sizing: border-box; width: 44px !important; min-width: 44px !important;
+ max-width: 44px; height: 44px !important; min-height: 44px; max-height: 44px; padding: 0 !important; margin: 0 !important;
+ float: none; line-height: 1; letter-spacing: normal; border: 1px solid #CBD5E1; border-radius: 4px;
+ background: #FFFFFF !important; color: #1F2937 !important; box-shadow: 0 1px 4px #0002; text-decoration: none !important;
+}
+.woocommerce form.checkout .kiriof-classic-pin button.kiriof-classic-map-locate:hover { background: #F8FAFC !important; }
+.woocommerce form.checkout .kiriof-classic-pin button.kiriof-classic-map-locate:focus-visible { outline: 2px solid #1F2937; outline-offset: 2px; }
+.kiriof-classic-map-locate svg { display: block; width: 20px; height: 20px; flex-shrink: 0; }
+.woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-pin-state {
+ position: absolute !important; top: 8px; left: 8px; z-index: 2; display: flex; align-items: center; justify-content: center;
+ width: 16px; height: 16px; margin: 0; padding: 0; color: #64748B; pointer-events: none;
+}
+.woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-pin-state.is-complete { color: #166534; }
+.kiriof-classic-pin-state svg { width: 16px !important; height: 16px !important; fill: none; stroke: currentColor; flex-shrink: 0; }
+.kiriof-classic-map-indicator { position: absolute; left: 50%; top: 50%; width: 32px; height: 44px; transform: translate(-50%,-100%); z-index: 900; pointer-events: none; color: #a84400; }
+.kiriof-classic-map-indicator > svg { display: block; width: 32px; height: 44px; overflow: visible; fill: currentColor; stroke: #FFFFFF; stroke-width: 1.5; filter: drop-shadow(0 1px 2px #0005); }
+.kiriof-classic-map-coverage { position: absolute; top: 12px; left: 54px; z-index: 1000; display: inline-flex; align-items: center; gap: 4px; max-width: calc(100% - 122px); padding: 4px 7px; border: 1px solid #dba76a; border-radius: 4px; background: #fff8ed; color: #694516; font-size: 11px; line-height: 1.4; }
+.kiriof-classic-map-coverage svg { width: 14px; height: 14px; flex-shrink: 0; }
+.kiriof-map-screen-reader { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
+.woocommerce form.checkout .kiriof-classic-pin .leaflet-control-zoom a { text-decoration: none !important; font-family: Arial, sans-serif; line-height: 30px; color: #1F2937; }
+.woocommerce form.checkout .kiriof-classic-pin .leaflet-control-attribution { font-size: 10px; line-height: 1.4; max-width: calc(100% - 8px); }
+.woocommerce form.checkout .form-row-first { box-sizing: border-box; }
+.woocommerce form.checkout #billing_city_field, .woocommerce form.checkout #shipping_city_field,
+.woocommerce form.checkout #billing_postcode_field, .woocommerce form.checkout #shipping_postcode_field { width: calc(50% - 0.5rem); float: left; clear: both; }
+.woocommerce form.checkout #billing_state_field, .woocommerce form.checkout #shipping_state_field,
+.woocommerce form.checkout #billing_phone_field, .woocommerce form.checkout #shipping_phone_field { width: calc(50% - 0.5rem); float: right; clear: none; }
+.kiriof-classic-contact { display: flow-root; margin-bottom: 1.5rem; }
+.kiriof-classic-contact #billing_email_field { width: 100%; float: none; }
+.woocommerce form.checkout #kiriof_destination_area_field,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field { position: relative; clear: both; width: 100%; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-container,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-container { width: 100% !important; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection--single,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection--single { display: flex; align-items: center; min-height: 42px; height: auto; position: relative; padding: 8px 42px 8px 12px; box-sizing: border-box; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection__rendered,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection__rendered { line-height: 1.5; padding: 0; width: 100%; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection__arrow,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection__arrow { top: 50%; transform: translateY(-50%); right: 6px; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-selection__clear,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-selection__clear { position: absolute; right: 27px; top: 50%; transform: translateY(-50%); }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-dropdown,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-dropdown { z-index: 1000; box-sizing: border-box; }
+.woocommerce form.checkout #kiriof_destination_area_field .select2-search__field,
+.woocommerce form.checkout #kiriof_shipping_destination_area_field .select2-search__field { box-sizing: border-box; width: 100%; margin: 0; }
+@media (max-width: 480px) {
+ .woocommerce form.checkout #billing_city_field, .woocommerce form.checkout #shipping_city_field,
+ .woocommerce form.checkout #billing_postcode_field, .woocommerce form.checkout #shipping_postcode_field,
+ .woocommerce form.checkout #billing_state_field, .woocommerce form.checkout #shipping_state_field,
+ .woocommerce form.checkout #billing_phone_field, .woocommerce form.checkout #shipping_phone_field { width: 100%; float: none; clear: both; }
+}
+
+/* WC Booster/theme flex thirds must not own the plugin-extended address rows. */
+.woocommerce form.checkout .kiriof-classic-address-layout {
+ display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+ align-items: start !important; column-gap: 1rem; row-gap: 0; margin: 0 !important;
+}
+.woocommerce form.checkout .kiriof-classic-address-layout > .form-row {
+ grid-column: 1 / -1; flex: none !important; float: none !important; width: 100% !important;
+ max-width: none !important; min-width: 0; margin-left: 0 !important; margin-right: 0 !important;
+ box-sizing: border-box; clear: none; overflow: visible !important;
+}
+.woocommerce form.checkout .kiriof-classic-address-layout > :is(#billing_first_name_field, #shipping_first_name_field, #billing_city_field, #shipping_city_field, #billing_postcode_field, #shipping_postcode_field) { grid-column: 1; }
+.woocommerce form.checkout .kiriof-classic-address-layout > :is(#billing_last_name_field, #shipping_last_name_field, #billing_state_field, #shipping_state_field, #billing_phone_field, #shipping_phone_field) { grid-column: 2; }
+.woocommerce form.checkout .kiriof-classic-address-layout > .kiriof-classic-pin { grid-column: 1 / -1; padding-top: 0 !important; }
+.kiriof-classic-district-dropdown { z-index: 100010 !important; box-sizing: border-box; }
+.kiriof-classic-district-dropdown .select2-search__field { width: 100% !important; box-sizing: border-box; margin: 0 !important; }
+@media (max-width: 480px) {
+ .woocommerce form.checkout .kiriof-classic-address-layout { grid-template-columns: minmax(0, 1fr) !important; }
+ .woocommerce form.checkout .kiriof-classic-address-layout > .form-row { grid-column: 1 / -1 !important; }
+}

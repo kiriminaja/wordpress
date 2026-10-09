@@ -22,6 +22,7 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  function wp_send_json_success( $value ) { $GLOBALS['ajax_result'] = array( true, $value ); }
  function wp_send_json_error( $value ) { $GLOBALS['ajax_result'] = array( false, $value ); }
  define( 'KIRIOF_NONCE', 'policy' );
+ require %AUTOLOAD%;
  require %CATALOG%;
  require %REPOSITORY%;
  require %CONTROLLER%;
@@ -93,7 +94,8 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  $repository->storeCourierWhitelist( array( 'service_selection' => '{"mystery":["*"]}' ) );
  check( $repository->isCourierServiceEnabled( 'mystery', 'anything' ), true );
  // Exercise the real controller and repository together, including legacy CSV mirrors.
- $controller = new KiriminAjaOfficial\Controllers\SettingController();
+ require %COMPOSITION%;
+ $controller = courier_setting_controller( $repository );
  function save_selection( $json, $success ) {
      global $controller, $wpdb;
      $before = $wpdb->rows;
@@ -114,15 +116,17 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  $GLOBALS['transients']['kiriof_couriers_last_success_cache'] = $raw;
  $GLOBALS['api_result'] = array( 'status' => false );
  check( array_column( $api->get_couriers()->data, 'code' ), array( 'jne', 'mystery' ) );
+ $GLOBALS['transients']['kiriof_couriers_all_last_success_v1'] = $raw;
  $repository->storeCourierWhitelist( array( 'service_selection' => '{"ninja_inter":["*"],"jne":["REG"]}', 'origin_whitelist_expedition_id' => 'ninja_inter,jne' ) );
  $_POST = array( 'data' => array( 'nonce' => 'policy' ) );
  $controller->getCourierWhitelist();
  check( (array) $GLOBALS['ajax_result'][1]['data']['service_selection'], array( 'jne' => array( 'REG' ) ) );
  check( $GLOBALS['ajax_result'][1]['data']['whitelist_ids'], array( 'jne' ) );
  save_selection( '{"ninja_inter":["*"]}', false );
- check( strpos( $GLOBALS['ajax_result'][1]['message'], 'Remove international or instant couriers' ) !== false, true );
+ check( strpos( $GLOBALS['ajax_result'][1]['message'], 'Remove international or unsupported couriers' ) !== false, true );
  // Enable All from GET must be saveable, including numeric API codes and wildcard fallbacks.
  $GLOBALS['transients']['kiriof_couriers_list_v2'] = array( array( 'code' => 'idx', 'services' => array( array( 'code' => '00' ), array( 'code' => 7 ) ) ), array( 'code' => 'mystery' ), array( 'code' => 'jne', 'services' => array( array( 'code' => 'NEW' ) ) ) );
+ $GLOBALS['transients']['kiriof_couriers_all_v1'] = $GLOBALS['transients']['kiriof_couriers_list_v2'];
  $controller->getCourierWhitelist();
  $all = array();
  foreach ( $GLOBALS['ajax_result'][1]['data']['couriers'] as $courier ) { $all[$courier['code']] = array_column( $courier['services'], 'code' ); }
@@ -174,7 +178,7 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  catch ( RuntimeException $e ) { check( $e->getMessage(), 'Unable to save courier settings.' ); }
  echo 'ok';
 PHP;
-        $paths = array( '%CATALOG%' => 'inc/Services/CourierServiceCatalog.php', '%REPOSITORY%' => 'inc/Repositories/SettingRepository.php', '%CONTROLLER%' => 'inc/Controllers/SettingController.php', '%RESPONSE%' => 'inc/Utils/ServiceResponse.php', '%BASE%' => 'inc/Base/BaseService.php', '%API%' => 'inc/Services/KiriminajaApiService.php' );
+        $paths = array( '%COMPOSITION%' => 'tests/fixtures/courier-setting-controller.php', '%AUTOLOAD%' => 'vendor/autoload.php', '%CATALOG%' => 'inc/Services/CourierServiceCatalog.php', '%REPOSITORY%' => 'inc/Repositories/SettingRepository.php', '%CONTROLLER%' => 'inc/Controllers/SettingController.php', '%RESPONSE%' => 'inc/Utils/ServiceResponse.php', '%BASE%' => 'inc/Base/BaseService.php', '%API%' => 'inc/Services/KiriminajaApiService.php' );
         foreach ( $paths as $placeholder => $path ) { $script = str_replace( $placeholder, var_export( PLUGIN_DIR . '/' . $path, true ), $script ); }
         $file = tempnam( sys_get_temp_dir(), 'courier-policy-' );
         file_put_contents( $file, $script );

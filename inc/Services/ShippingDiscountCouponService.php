@@ -73,6 +73,11 @@ class ShippingDiscountCouponService {
             return $this->invalidForCoupon( $coupon, __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ) );
         }
 
+        $amount = (float) $coupon->get_amount();
+        if ( ! is_finite( $amount ) || $amount <= 0 ) {
+            return $this->invalidForCoupon( $coupon, __( 'Invalid coupon amount.', 'kiriminaja-official' ) );
+        }
+
         // Free shipping and a shipping discount coupon cannot both reduce the same shipping cost.
         if ( $this->hasActiveFreeShippingCoupon() ) {
             return $this->invalidForCoupon( $coupon, __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ) );
@@ -150,14 +155,12 @@ class ShippingDiscountCouponService {
     }
 
     private function isKiriminAjaShippingSelected(): bool {
-        foreach ( $this->getChosenShippingMethods() as $method ) {
-            if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
-                return true;
-            }
-        }
-
-        foreach ( $this->getAvailableShippingRateIds() as $method ) {
-            if ( is_string( $method ) && strpos( $method, 'kiriminaja-official' ) === 0 ) {
+        $chosen = $this->getChosenShippingMethods();
+        // A real selection is authoritative: available KiriminAja rates must not
+        // make an explicitly selected third-party method eligible.
+        $methods = ! empty( $chosen ) ? $chosen : $this->getAvailableShippingRateIds();
+        foreach ( $methods as $method ) {
+            if ( '' !== $this->extractCourierCodeFromMethodId( (string) $method ) ) {
                 return true;
             }
         }
@@ -228,6 +231,7 @@ class ShippingDiscountCouponService {
     }
 
     public function getAdjustedRatePricing( $option, float $baseCost ): array {
+        $baseCost = max( 0.0, $baseCost );
         $result = array(
             'original_cost' => $baseCost,
             'cost' => $baseCost,
@@ -237,25 +241,29 @@ class ShippingDiscountCouponService {
             'badge' => '',
         );
 
+        // Carrier/service identities must be known, even for unrestricted or
+        // free-shipping coupons. This helper never changes the carrier quote.
+        $courierCode = $this->getOptionCourierCode( $option );
+        if ( '' === $courierCode ) {
+            return $result;
+        }
+
         if ( $this->hasActiveFreeShippingCoupon() ) {
-            $result['notice'] = __( 'Shipping discount coupon not applied — free shipping is active.', 'kiriminaja-official' );
+            // Waive buyer delivery only; do not mutate the carrier quote used for
+            // insurance, COD fees, validation, or transaction submission.
+            $result['cost'] = 0.0;
+            $result['discount_amount'] = max( 0.0, $baseCost );
+            $result['eligible'] = true;
+            $result['notice'] = __( 'Free shipping', 'kiriminaja-official' );
+            $result['badge'] = __( 'Free shipping', 'kiriminaja-official' );
             return $result;
         }
 
         $coupons = $this->getShippingCoupons();
         if ( empty( $coupons ) ) {
-            $this->logPricingDiagnostic(
-                'Shipping discount pricing skipped because no shipping coupon is active.',
-                array(
-                    'base_cost' => $baseCost,
-                    'active_coupon_codes' => $this->getAppliedCouponCodesForLog(),
-                    'chosen_shipping_methods' => $this->getChosenShippingMethods(),
-                )
-            );
             return $result;
         }
 
-        $courierCode = $this->getOptionCourierCode( $option );
         $remainingCost = max( 0, $baseCost );
         $matchedDestination = false;
         $matchedCourier = false;
@@ -265,80 +273,37 @@ class ShippingDiscountCouponService {
         foreach ( $coupons as $coupon ) {
             $validation = $this->validateCouponForCart( $coupon, false, false );
             if ( ! $validation['valid'] ) {
-                $this->logPricingDiagnostic(
-                    'Shipping discount pricing skipped coupon because validation failed.',
-                    array(
-                        'coupon_code' => (string) $coupon->get_code(),
-                        'discount_type' => (string) $coupon->get_discount_type(),
-                        'validation_message' => (string) ( $validation['message'] ?? '' ),
-                        'rate_courier' => $courierCode,
-                        'base_cost' => $baseCost,
-                    )
-                );
                 continue;
             }
 
             $matchedDestination = true;
             if ( ! $this->couponAllowsCourier( $coupon, $courierCode ) ) {
-                $this->logPricingDiagnostic(
-                    'Shipping discount pricing skipped coupon because courier does not match.',
-                    array(
-                        'coupon_code' => (string) $coupon->get_code(),
-                        'rate_courier' => $courierCode,
-                        'coupon_couriers' => $this->getCouponCouriers( $coupon ),
-                    )
-                );
                 continue;
             }
 
             $matchedCourier = true;
             $couponAmount = max( 0, (float) $coupon->get_amount() );
             if ( $couponAmount <= 0 ) {
-                $this->logPricingDiagnostic(
-                    'Shipping discount pricing skipped coupon because amount is zero.',
-                    array(
-                        'coupon_code' => (string) $coupon->get_code(),
-                        'discount_type' => (string) $coupon->get_discount_type(),
-                        'rate_courier' => $courierCode,
-                    )
-                );
                 continue;
             }
 
             $applied = $this->calculateCouponDiscount( $coupon, $remainingCost, $couponAmount );
             if ( $applied <= 0 ) {
-                $this->logPricingDiagnostic(
-                    'Shipping discount pricing calculated zero discount.',
-                    array(
-                        'coupon_code' => (string) $coupon->get_code(),
-                        'discount_type' => (string) $coupon->get_discount_type(),
-                        'rate_courier' => $courierCode,
-                        'remaining_cost' => $remainingCost,
-                        'coupon_amount' => $couponAmount,
-                    )
-                );
                 continue;
             }
 
             $discountTotal += $applied;
             $remainingCost -= $applied;
             $appliedCouponTypes[] = $coupon->get_discount_type();
-            $this->logPricingDiagnostic(
-                'Shipping discount pricing applied coupon to rate.',
-                array(
-                    'coupon_code' => (string) $coupon->get_code(),
-                    'discount_type' => (string) $coupon->get_discount_type(),
-                    'rate_courier' => $courierCode,
-                    'base_cost' => $baseCost,
-                    'discount_amount' => $applied,
-                    'remaining_cost' => $remainingCost,
-                )
-            );
         }
 
         if ( $discountTotal > 0 ) {
-            $result['cost'] = max( 0, $baseCost - $discountTotal );
-            $result['discount_amount'] = $discountTotal;
+            $buyer_cost = max( 0.0, $baseCost - $discountTotal );
+            if ( function_exists( 'wc_format_decimal' ) && function_exists( 'wc_get_price_decimals' ) ) {
+                $buyer_cost = min( $baseCost, max( 0.0, (float) wc_format_decimal( $buyer_cost, wc_get_price_decimals() ) ) );
+            }
+            $result['cost'] = $buyer_cost;
+            $result['discount_amount'] = $baseCost - $buyer_cost;
             $result['eligible'] = true;
             $result['badge'] = $this->getAppliedDiscountBadge( $appliedCouponTypes );
             return $result;
@@ -349,14 +314,6 @@ class ShippingDiscountCouponService {
         }
 
         return $result;
-    }
-
-    private function logPricingDiagnostic( string $message, array $context = array() ): void {
-        if ( ! function_exists( 'kiriof_log' ) ) {
-            return;
-        }
-
-        kiriof_log( 'info', $message, $context, 'shipping_discount_coupon' );
     }
 
     public function getDestinationContext(): array {
@@ -428,10 +385,9 @@ class ShippingDiscountCouponService {
         foreach ( $chosenMethods as $packageIndex => $chosenMethodId ) {
             $chosenMethodId = (string) $chosenMethodId;
             $rates = (array) ( $packages[ $packageIndex ]['rates'] ?? array() );
-            $matchedRate = false;
 
             foreach ( $rates as $rateKey => $rate ) {
-                $rateId = is_object( $rate ) && isset( $rate->id ) ? (string) $rate->id : (string) $rateKey;
+                $rateId = is_object( $rate ) && method_exists( $rate, 'get_id' ) ? (string) $rate->get_id() : ( is_object( $rate ) && isset( $rate->id ) ? (string) $rate->id : (string) $rateKey );
                 if ( $chosenMethodId !== $rateId ) {
                     continue;
                 }
@@ -439,27 +395,23 @@ class ShippingDiscountCouponService {
                 // Discount meta is intentionally NOT stored on WC_Shipping_Rate->meta_data
                 // (to prevent block checkout rendering raw numbers as sub-lines).
                 // Always read discount/cost from session rate meta map instead.
-                $sessionMeta = $sessionRateMeta[ $chosenMethodId ] ?? array();
-                $sessionDiscount = isset( $sessionMeta['discount_amount'] ) ? max( 0, (float) $sessionMeta['discount_amount'] ) : $this->getRateDiscountAmount( $rate );
+                $sessionMeta = $sessionRateMeta[ $packageIndex ][ $chosenMethodId ] ?? $sessionRateMeta[ $chosenMethodId ] ?? array();
+                $rateCost = method_exists( $rate, 'get_cost' ) ? (float) $rate->get_cost() : (float) ( $rate->cost ?? 0 );
+                if ( ( isset( $sessionMeta['cost'] ) && abs( (float) $sessionMeta['cost'] - $rateCost ) > 0.00001 ) || ( ! $this->hasActiveShippingCouponInCart() && ! $this->hasActiveFreeShippingCoupon() ) ) {
+                    $sessionMeta = array();
+                }
+                $sessionDiscount = isset( $sessionMeta['discount_amount'] ) ? max( 0, (float) $sessionMeta['discount_amount'] ) : 0.0;
                 $discountTotal += $sessionDiscount;
 
                 if ( '' === $primaryRateLabel ) {
                     $primaryRateLabel = method_exists( $rate, 'get_label' ) ? (string) $rate->get_label() : '';
-                    $primaryCurrentCost = isset( $sessionMeta['cost'] ) ? (float) $sessionMeta['cost'] : ( isset( $rate->cost ) ? (float) $rate->cost : 0.0 );
+                    $primaryCurrentCost = isset( $sessionMeta['cost'] ) ? (float) $sessionMeta['cost'] : $rateCost;
                     $primaryOriginalCost = isset( $sessionMeta['original_cost'] ) ? (float) $sessionMeta['original_cost'] : $primaryCurrentCost;
                 }
-                $matchedRate = true;
                 break;
             }
 
-            if ( ! $matchedRate && isset( $sessionRateMeta[ $chosenMethodId ]['discount_amount'] ) ) {
-                $discountTotal += max( 0, (float) $sessionRateMeta[ $chosenMethodId ]['discount_amount'] );
-                if ( '' === $primaryRateLabel ) {
-                    $primaryRateLabel = (string) ( $sessionRateMeta[ $chosenMethodId ]['label'] ?? '' );
-                    $primaryCurrentCost = (float) ( $sessionRateMeta[ $chosenMethodId ]['cost'] ?? 0 );
-                    $primaryOriginalCost = (float) ( $sessionRateMeta[ $chosenMethodId ]['original_cost'] ?? $primaryCurrentCost );
-                }
-            }
+
         }
 
         return array(
@@ -483,14 +435,6 @@ class ShippingDiscountCouponService {
                 array( $this, 'isShippingCoupon' )
             )
         );
-    }
-
-    private function getAppliedCouponCodesForLog(): array {
-        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_applied_coupons' ) ) {
-            return array();
-        }
-
-        return array_values( array_map( 'strval', (array) WC()->cart->get_applied_coupons() ) );
     }
 
     private function couponMatchesDestination( $coupon, array $destination ): bool {
@@ -623,11 +567,11 @@ class ShippingDiscountCouponService {
 
         $raw = get_post_meta( $coupon->get_id(), self::META_COURIERS, true );
         if ( is_array( $raw ) ) {
-            return array_values( array_filter( array_map( array( $this, 'normalizeCourierCode' ), $raw ) ) );
+            return array_values( array_map( array( $this, 'normalizeCourierCode' ), $raw ) );
         }
 
         if ( is_string( $raw ) && '' !== $raw ) {
-            return array_values( array_filter( array_map( array( $this, 'normalizeCourierCode' ), explode( ',', $raw ) ) ) );
+            return array_values( array_map( array( $this, 'normalizeCourierCode' ), explode( ',', $raw ) ) );
         }
 
         return array();
@@ -748,31 +692,29 @@ class ShippingDiscountCouponService {
     }
 
     private function couponAllowsSelectedCourier( $coupon ): bool {
-        $couriers = $this->getCouponCouriers( $coupon );
-        if ( empty( $couriers ) ) {
-            return true;
-        }
-
         $chosenCourier = $this->getChosenKiriminAjaCourierCode();
-        if ( '' === $chosenCourier ) {
-            return true;
+        if ( '' !== $chosenCourier ) {
+            return $this->couponAllowsCourier( $coupon, $chosenCourier );
         }
-
-        return in_array( $chosenCourier, $couriers, true );
+        if ( ! empty( $this->getChosenShippingMethods() ) ) {
+            return false;
+        }
+        foreach ( $this->getAvailableShippingRateIds() as $methodId ) {
+            $courier = $this->extractCourierCodeFromMethodId( (string) $methodId );
+            if ( '' !== $courier && $this->couponAllowsCourier( $coupon, $courier ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function getChosenKiriminAjaCourierCode(): string {
-        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
-            return '';
-        }
-
         foreach ( $this->getChosenShippingMethods() as $methodId ) {
             $courierCode = $this->extractCourierCodeFromMethodId( (string) $methodId );
             if ( '' !== $courierCode ) {
                 return $courierCode;
             }
         }
-
         return '';
     }
 
@@ -780,46 +722,72 @@ class ShippingDiscountCouponService {
         if ( ! is_object( $option ) ) {
             return '';
         }
-
-        foreach ( array( 'service', 'courier', 'code', 'courier_code' ) as $field ) {
-            if ( empty( $option->{$field} ) ) {
-                continue;
+        // WC_Shipping_Rate has accessors and metadata, not a service property.
+        if ( method_exists( $option, 'get_id' ) ) {
+            $courier = $this->extractCourierCodeFromMethodId( (string) $option->get_id() );
+            if ( '' !== $courier ) {
+                return $courier;
             }
-
-            $courierCode = $this->normalizeCourierCode( (string) $option->{$field} );
-            if ( '' !== $courierCode ) {
-                return $courierCode;
+            $methodId = method_exists( $option, 'get_method_id' ) ? (string) $option->get_method_id() : '';
+            if ( in_array( $methodId, array( 'kiriminaja-official', 'kiriminaja-instant' ), true ) && method_exists( $option, 'get_meta' ) ) {
+                foreach ( array( 'kiriof_instant_courier', 'kiriof_rate_service', 'kiriof_rate_courier' ) as $key ) {
+                    $courier = $this->normalizeCourierCode( (string) $option->get_meta( $key, true ) );
+                    if ( '' !== $courier ) {
+                        return $courier;
+                    }
+                }
+            }
+            // Do not let third-party rate metadata masquerade as our method.
+            return '';
+        }
+        foreach ( array( 'courier', 'courier_code', 'code', 'service' ) as $field ) {
+            if ( ! empty( $option->{$field} ) ) {
+                $courier = $this->normalizeCourierCode( (string) $option->{$field} );
+                if ( '' !== $courier ) {
+                    return $courier;
+                }
             }
         }
-
         return '';
     }
 
     private function extractCourierCodeFromMethodId( string $methodId ): string {
-        if ( 0 === strpos( $methodId, 'kiriminaja-official_' ) ) {
-            $methodId = substr( $methodId, strlen( 'kiriminaja-official_' ) );
-        } elseif ( 0 === strpos( $methodId, 'kiriminaja-official:' ) ) {
-            $methodId = substr( $methodId, strlen( 'kiriminaja-official:' ) );
-        } else {
+        if ( preg_match( '/^kiriminaja-instant:[0-9]+:([^:]+):[^:]+$/', $methodId, $matches ) ) {
+            $courier = $this->normalizeCourierCode( $matches[1] );
+            return in_array( $courier, CourierServiceCatalog::instantCodes(), true ) ? $courier : '';
+        }
+        if ( ! preg_match( '/^kiriminaja-official(?:_|:)(?:[0-9]+:)?(.+)$/', $methodId, $matches ) ) {
             return '';
         }
-
-        $parts = explode( '_', $methodId );
+        // Match complete codes before the service delimiter (grab_express must
+        // never become grab). Longer codes win over overlapping prefixes.
+        $suffix = strtolower( $matches[1] );
+        $codes = array_keys( CourierServiceCatalog::available() );
+        usort( $codes, static function ( $left, $right ) { return strlen( $right ) <=> strlen( $left ); } );
+        foreach ( $codes as $code ) {
+            if ( $suffix === $code || str_starts_with( $suffix, $code . '_' ) || str_starts_with( $suffix, $code . ':' ) ) {
+                return $this->normalizeCourierCode( $code );
+            }
+        }
+        $parts = preg_split( '/[_:]/', $suffix );
         return $this->normalizeCourierCode( (string) ( $parts[0] ?? '' ) );
     }
 
     private function normalizeCourierCode( $value ): string {
-        $normalized = sanitize_key( (string) $value );
-        $normalized = str_replace( array( 'express', 'courier', 'logistics' ), '', $normalized );
-        $normalized = trim( $normalized );
-
+        $normalized = strtolower( trim( (string) $value ) );
+        // Exact aliases only. Never remove "express" from arbitrary codes.
         $aliases = array(
-            'jt' => 'jnt',
-            'jandt' => 'jnt',
-            'jtexpress' => 'jnt',
+            'jt' => 'jnt', 'j&t' => 'jnt', 'jandt' => 'jnt',
+            'jtexpress' => 'jnt', 'j&t express' => 'jnt', 'jnt express' => 'jnt',
+            'jne express' => 'jne', 'sap express' => 'sap',
+            'ncs courier' => 'ncs', 'rpx logistics' => 'rpx',
+            'go-send' => 'gosend', 'go send' => 'gosend',
+            'grabexpress' => 'grab_express', 'grab express' => 'grab_express',
+            'grab-express' => 'grab_express',
         );
-
-        return $aliases[ $normalized ] ?? $normalized;
+        $normalized = $aliases[ $normalized ] ?? $normalized;
+        $known = array_merge( CourierServiceCatalog::available(), CourierServiceCatalog::instantServices() );
+        return isset( $known[ $normalized ] ) ? $normalized : '';
     }
 
     private function getPostedDestinationId(): int {
@@ -888,6 +856,7 @@ class ShippingDiscountCouponService {
 
     private function getValidationMessages(): array {
         return array(
+            __( 'Invalid coupon amount.', 'kiriminaja-official' ),
             __( 'Add items to your cart first.', 'kiriminaja-official' ),
             __( 'This coupon requires a physical product with shipping.', 'kiriminaja-official' ),
             __( 'This coupon cannot be combined with a free shipping coupon.', 'kiriminaja-official' ),
@@ -900,7 +869,7 @@ class ShippingDiscountCouponService {
         );
     }
 
-    private function hasActiveFreeShippingCoupon(): bool {
+    public function hasActiveFreeShippingCoupon(): bool {
         if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart ) {
             return false;
         }

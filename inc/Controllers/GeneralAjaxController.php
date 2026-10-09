@@ -2,6 +2,8 @@
 
 namespace KiriminAjaOfficial\Controllers;
 
+use KiriminAjaOfficial\Services\CheckoutServiceFactory;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -9,6 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class GeneralAjaxController
 {
+    private CheckoutServiceFactory $checkout_service_factory;
+
+    public function __construct( CheckoutServiceFactory $checkout_service_factory )
+    {
+        $this->checkout_service_factory = $checkout_service_factory;
+    }
     public function register()
     {
         add_action('wp_ajax_kiriminaja_subdistrict_search', array($this, 'kiriminajaSubdistrictSearch'));
@@ -23,7 +31,7 @@ class GeneralAjaxController
     public function kiriminajaSubdistrictSearch()
     {
         try {
-            if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), KIRIOF_NONCE ) ) {
+            if ( ! isset( $_POST['nonce'] ) || ! is_string( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), KIRIOF_NONCE ) ) {
                 wp_send_json_error(
                     array(
                         'code'    => '401',
@@ -53,17 +61,19 @@ class GeneralAjaxController
                 wp_send_json_success( array() );
             }
 
-            $subdistrict_search = ( new \KiriminAjaOfficial\Services\KiriminajaApiService() )->sub_district_search( $search );
+            // Only the unslashed string '1' or integer 1 can bypass the cache.
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; strict literal allowlist below rejects arrays, booleans and coercible strings.
+            $retry_input = wp_unslash( $_POST['retry'] ?? null );
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above; preserve type for the strict retry allowlist instead of coercing via text sanitization.
+            $nested_retry_input = isset( $_POST['data'] ) && is_array( $_POST['data'] ) ? wp_unslash( $_POST['data']['retry'] ?? null ) : null;
+            $retry = in_array( $retry_input, array( '1', 1 ), true )
+                || in_array( $nested_retry_input, array( '1', 1 ), true );
+            $subdistrict_search = $retry
+                ? $this->checkout_service_factory->districtSearch( $search, true )
+                : $this->checkout_service_factory->districtSearch( $search );
             if ( 200 !== $subdistrict_search->status ) {
-                kiriof_log(
-                    'warning',
-                    'Subdistrict lookup failed.',
-                    array(
-                        'source'    => 'kiriminaja_shipping',
-                        'operation' => 'sub_district_search',
-                        'message'   => $subdistrict_search->message,
-                    )
-                );
+                // The address repository already records the fixed failure reason
+                // and transport metadata. Do not duplicate it per keystroke here.
                 wp_send_json_error(
                     array(
                         'code'    => 'subdistrict_lookup_failed',
@@ -81,6 +91,7 @@ class GeneralAjaxController
                     'source'            => 'kiriminaja_shipping',
                     'operation'         => 'sub_district_search',
                     'exception_class'   => get_class( $e ),
+                    'backtrace'         => false,
                     'exception_message' => $e->getMessage(),
                 )
             );
@@ -115,6 +126,25 @@ class GeneralAjaxController
         $different_address = ! empty($_POST['different_address']);
         $postcode = isset($_POST['postcode']) ? sanitize_text_field(wp_unslash($_POST['postcode'])) : '';
         $postcode = trim( preg_replace( '/\s+/', '', (string) $postcode ) );
+
+        // The legacy district endpoint still owns selection. Never carry a pin
+        // across districts/postcodes, including a delayed district response.
+        $pin = WC()->session->get( 'kiriof_buyer_destination', null );
+        if ( is_array( $pin ) ) {
+            try {
+                $pin = \KiriminAjaOfficial\Services\BuyerDestination::normalize( $pin );
+                $matches = 2 === $pin['version'] && (string) $destination_id === $pin['district_id']
+                    && \KiriminAjaOfficial\Services\BuyerDestination::postcode( $postcode ) === $pin['postcode'];
+            } catch ( \InvalidArgumentException $error ) {
+                $matches = false;
+            }
+            if ( ! $matches ) {
+                WC()->session->set( 'kiriof_buyer_destination', null );
+                WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
+                WC()->session->set( 'kiriof_instant_checkout_quotes', array() );
+                WC()->session->set( 'kiriof_instant_checkout_status', array() );
+            }
+        }
 
         if ($different_address) {
             WC()->session->set('shipping_destination_id', $destination_id);
@@ -181,7 +211,7 @@ class GeneralAjaxController
                 'is_cod'                => $payment_method === 'cod',
                 'wc_cart_contents'      => WC()->cart->cart_contents,
             ];
-            $service = (new \KiriminAjaOfficial\Services\CheckoutServices\CheckoutCalculationService($payload))->call();
+            $service = $this->checkout_service_factory->calculation($payload)->call();
 
             if (!empty($service->data)) {
 
@@ -229,6 +259,7 @@ class GeneralAjaxController
         $discount_context = $this->kiriof_get_cart_discount_context();
 
         return array(
+            'cart_hash'       => method_exists( WC()->cart, 'get_cart_hash' ) ? WC()->cart->get_cart_hash() : '',
             'shipping_method' => $shipping_method,
             'destination_id'  => $destination_id,
             'payment_method'  => $payment_method,

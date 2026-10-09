@@ -14,8 +14,138 @@ class Enqueue extends BaseInit{
         /* admin */
         add_action('admin_enqueue_scripts', array($this,'enqueueAdmin'));
         add_action( 'admin_footer', array( $this, 'renderOrderPreviewTemplate' ) );
+        add_filter( 'script_loader_tag', array( $this, 'filter_module_script_tag' ), 10, 3 );
         /* WP */
         add_action('wp_enqueue_scripts', array($this,'enqueueWp'));
+    }
+
+    private function classic_instant_enabled(): bool {
+        return ! empty( ( new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService(
+            new \KiriminAjaOfficial\Repositories\SettingRepository(),
+            new \KiriminAjaOfficial\Services\ShipmentLocationService()
+        ) )->enabledInstant() );
+    }
+
+	/**
+	 * Enqueue the single Svelte entry shared by the internal KiriminAja workspace pages.
+	 *
+	 * @param string $workspace_script Absolute path to the generated entry.
+	 * @param array  $dependencies    Legacy scripts required by the active route.
+	 * @return void
+	 */
+	private function enqueue_workspace_script( string $workspace_script, array $dependencies = array() ): void {
+		if ( ! file_exists( $workspace_script ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'kiriof-admin-workspace',
+			$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-workspace.js',
+			$dependencies,
+			(string) filemtime( $workspace_script ),
+			true
+		);
+		wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' );
+	}
+
+	/**
+	 * Enqueue styles emitted by the one shared workspace entry.
+	 *
+	 * @return void
+	 */
+	/**
+	 * Enqueue the Kiriof design tokens and component contracts shared by all
+	 * plugin admin pages. Page styles may add layout only; they must not own
+	 * component geometry or theme variables.
+	 *
+	 * @return void
+	 */
+	private function enqueue_kiriof_design_system(): void {
+		$var_style       = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-kiriof-var.css';
+		$component_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-kiriof-component.css';
+		$theme_script    = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-theme.js';
+
+		if ( file_exists( $theme_script ) ) {
+			wp_enqueue_script(
+				'kiriof-admin-theme',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-theme.js',
+				array(),
+				(string) filemtime( $theme_script ),
+				true
+			);
+			wp_script_add_data( 'kiriof-admin-theme', 'type', 'module' );
+		}
+
+		if ( file_exists( $var_style ) ) {
+			wp_enqueue_style(
+				'kiriof-var-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-kiriof-var.css',
+				array(),
+				(string) filemtime( $var_style )
+			);
+		}
+
+		if ( file_exists( $component_style ) ) {
+			wp_enqueue_style(
+				'kiriof-component-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-kiriof-component.css',
+				file_exists( $var_style ) ? array( 'kiriof-var-style' ) : array(),
+				(string) filemtime( $component_style )
+			);
+		}
+	}
+
+	private function enqueue_workspace_style(): void {
+		$this->enqueue_kiriof_design_system();
+		$workspace_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.css';
+		$admin_list_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-list.css';
+		if ( ! file_exists( $workspace_style ) ) {
+			return;
+		}
+
+		$dependencies = wp_style_is( 'kiriof-component-style', 'enqueued' ) ? array( 'kiriof-component-style' ) : array();
+		if ( file_exists( $admin_list_style ) ) {
+			wp_enqueue_style(
+				'kiriof-workspace-admin-list-style',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-list.css',
+				$dependencies,
+				(string) filemtime( $admin_list_style )
+			);
+			$dependencies[] = 'kiriof-workspace-admin-list-style';
+		}
+
+		wp_enqueue_style(
+			'kiriof-admin-workspace-style',
+			$this->plugin_url . 'assets/admin/dist/kiriminaja-admin-workspace.css',
+			$dependencies,
+			(string) filemtime( $workspace_style )
+		);
+	}
+
+    /**
+     * WordPress versions before module script metadata support need an explicit
+     * type attribute for the Vite ESM entries.
+     *
+     * @param string $tag    Script tag.
+     * @param string $handle Script handle.
+     * @param string $src    Script source URL.
+     * @return string
+     */
+    public function filter_module_script_tag( string $tag, string $handle, string $src ): string {
+        unset( $src );
+
+        $module_handles = array(
+			'kiriof-coupon-panels',
+			'kiriof-admin-workspace',
+			'kiriof-admin-theme',
+			'kiriof-onboarding-progress',
+			'kiriof-order-metabox',
+        );
+
+        if ( ! in_array( $handle, $module_handles, true ) || false !== strpos( $tag, ' type=' ) ) {
+            return $tag;
+        }
+        return str_replace( '<script ', '<script type="module" ', $tag );
     }
 
     /**
@@ -30,7 +160,7 @@ class Enqueue extends BaseInit{
     public function renderOrderPreviewTemplate() {
         $page = filter_input( INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS );
 
-        if ( 'kiriminaja-transaction-process' !== $page ) {
+        if ( 'kiriminaja-transaction' !== $page ) {
             return;
         }
 
@@ -53,6 +183,242 @@ class Enqueue extends BaseInit{
             }
         }
     }
+
+    public function buyer_checkout_config(): array {
+        $wc = function_exists( 'WC' ) && ( ! function_exists( 'is_admin' ) || ! is_admin() ) ? WC() : null;
+        $session = $wc->session ?? null;
+        $customer = $wc->customer ?? null;
+        $district = $customer ? ( new \KiriminAjaOfficial\Services\CustomerDistrictService() )->get( $customer, 'shipping' ) : array( 'id' => '', 'name' => '' );
+        $setting = $wc ? ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'enable_insurance' ) : null;
+
+        return array(
+            'enabled' => function_exists( 'woocommerce_store_api_register_update_callback' ) && function_exists( 'woocommerce_store_api_register_endpoint_data' ) && class_exists( '\Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema' ),
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'nonce' => wp_create_nonce( KIRIOF_NONCE ),
+            'globalInsurance' => $setting && 'yes' === $setting->value,
+            'map' => $this->map_checkout_config(),
+            'savedDistrictByPostcode' => $session ? (array) $session->get( 'kiriof_destination_postcode_map', array() ) : array(),
+            'savedDestination' => ( new \KiriminAjaOfficial\Services\CustomerShippingDestinationService() )->forCheckout( $session ),
+            'district' => $district,
+            'districtPostcode' => $customer ? (string) $customer->get_shipping_postcode() : '',
+            'billingCountry' => $customer && method_exists( $customer, 'get_billing_country' ) ? (string) $customer->get_billing_country() : '',
+            'shippingCountry' => $customer && method_exists( $customer, 'get_shipping_country' ) ? (string) $customer->get_shipping_country() : '',
+            'i18n' => array(
+                'district' => __( 'Subdistrict', 'kiriminaja-official' ),
+                'districtNotSet' => __( 'Subdistrict Not Set', 'kiriminaja-official' ),
+                'checkingDistrict' => __( 'Checking Subdistrict…', 'kiriminaja-official' ),
+                'pinLocation' => __( 'Pin Location', 'kiriminaja-official' ),
+                'needPinLocation' => __( 'Need Pin Location', 'kiriminaja-official' ),
+                'pinRequirement' => __( 'Optional for Express. Required for Instant delivery.', 'kiriminaja-official' ),
+                'selectDistrict' => __( 'Select Subdistrict', 'kiriminaja-official' ),
+                'postcodeRequired' => __( 'Enter your shipping postcode to find your subdistrict.', 'kiriminaja-official' ),
+                'districtRequired' => __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ),
+                'loading' => __( 'Loading subdistricts…', 'kiriminaja-official' ),
+                'empty' => __( 'No subdistricts found. Check your shipping postcode.', 'kiriminaja-official' ),
+                'emptyRetry' => __( 'No subdistricts were returned for this postcode. Retry the lookup or check your shipping postcode.', 'kiriminaja-official' ),
+                'lookupFailed' => __( 'Subdistricts could not be loaded. Please retry.', 'kiriminaja-official' ),
+                'lookupTimeout' => __( 'Subdistrict lookup timed out. Please retry.', 'kiriminaja-official' ),
+                'saveStalled' => __( 'Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed.', 'kiriminaja-official' ),
+                'reloadCheckout' => __( 'Reload checkout', 'kiriminaja-official' ),
+                'quoteRefreshFailed' => __( 'Instant prices could not be refreshed. Please retry before placing your order.', 'kiriminaja-official' ),
+                'shippingSelectionChanged' => __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' ),
+                'shippingSelectionUpdating' => __( 'Updating shipping options…', 'kiriminaja-official' ),
+                'instantUnavailable' => __( 'Instant delivery is unavailable. Choose another method or update the shipping address.', 'kiriminaja-official' ),
+                'saving' => __( 'Updating shipping totals…', 'kiriminaja-official' ),
+                'updateFailed' => __( 'Shipping totals could not be updated. Please retry.', 'kiriminaja-official' ),
+                'retry' => __( 'Retry', 'kiriminaja-official' ),
+                'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
+                'mapHelp' => __( 'Tap the map to place your delivery pin.', 'kiriminaja-official' ),
+                'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
+                'mapLocate' => __( 'Use my current location', 'kiriminaja-official' ),
+                'mapUnavailable' => __( 'Map is unavailable in this checkout.', 'kiriminaja-official' ),
+            ),
+        );
+    }
+    /** Public map settings: initial viewport is not buyer-selected coordinates. */
+    public function map_checkout_config(): array {
+        $coverage_service = new \KiriminAjaOfficial\Services\InstantMapCoverageService();
+        $coverage = function_exists( 'is_account_page' ) && is_account_page()
+            ? $coverage_service->defaultCoverage()
+            : $coverage_service->checkoutCoverage();
+        $tiles = (string) apply_filters( 'kiriof_map_checkout_tiles_url', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' );
+        if ( 0 !== strpos( $tiles, 'https://' ) ) {
+            $tiles = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        }
+        return array_merge( ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config(), array(
+            'enabled' => (bool) apply_filters( 'kiriof_map_checkout_enabled', true ),
+            'defaultCenter' => array( -6.2088, 106.8456 ),
+            'coverage' => $coverage,
+            'zoom' => 13,
+            'tiles' => $tiles,
+            'attribution' => wp_kses_post( (string) apply_filters( 'kiriof_map_checkout_attribution', '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' ) ),
+            'i18n' => array(
+                'mapTitle' => __( 'Delivery pin', 'kiriminaja-official' ),
+                'mapHelp' => __( 'Delivery location map', 'kiriminaja-official' ),
+                'mapDeviceNotice' => __( 'Current device location may differ from the delivery address. Check the pin and move it to the intended destination.', 'kiriminaja-official' ),
+                'mapCoverage' => __( 'Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area.', 'kiriminaja-official' ),
+                'mapCoverageBadge' => __( 'Instant ≤ 40 km', 'kiriminaja-official' ),
+                'mapOutsideRadius' => __( 'This pin is outside the 40 km Instant coverage area. You can still save this address for Express delivery.', 'kiriminaja-official' ),
+                'mapKeyboard' => __( 'Use arrow keys to move the map. Press Enter to select the center location.', 'kiriminaja-official' ),
+                'mapLocate' => __( 'Current location', 'kiriminaja-official' ),
+                'mapLocating' => __( 'Requesting location permission…', 'kiriminaja-official' ),
+                'mapPermission' => __( 'Location permission was denied. The map picker is hidden. You can allow location access in your browser settings and reopen this editor.', 'kiriminaja-official' ),
+                'mapLocationFailed' => __( 'Your location is unavailable or the request timed out. The map picker is hidden.', 'kiriminaja-official' ),
+                'mapInvalid' => __( 'This map location is invalid. Please choose another location.', 'kiriminaja-official' ),
+                'mapPlaced' => __( 'Delivery pin placed.', 'kiriminaja-official' ),
+                'mapMoving' => __( 'Move the map to position your delivery pin…', 'kiriminaja-official' ),
+                'mapUnavailable' => __( 'Map unavailable. You can continue with your shipping address.', 'kiriminaja-official' ),
+            ),
+        ) );
+    }
+
+    /** Google is loaded asynchronously by the map bundle; Leaflet remains local. */
+    public function register_map_provider_assets(): void {
+        $leaflet = 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'];
+        if ( $leaflet ) {
+            if ( ! wp_script_is( 'kiriof-leaflet', 'registered' ) ) {
+                wp_register_script( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
+            }
+            if ( ! wp_style_is( 'kiriof-leaflet', 'registered' ) ) {
+                wp_register_style( 'kiriof-leaflet', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
+            }
+        }
+        if ( ! wp_script_is( 'kiriof-map-provider', 'registered' ) ) {
+            wp_register_script( 'kiriof-map-provider', false, $leaflet ? array( 'kiriof-leaflet' ) : array(), KIRIOF_VERSION, true );
+        }
+    }
+
+    private function map_style_dependencies(): array {
+        return 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] ? array( 'kiriof-leaflet' ) : array();
+    }
+
+    /** Shared IIFE state/map factories have no WordPress or Blocks dependency. */
+    private function register_buyer_state_assets(): void {
+        if ( ! wp_script_is( 'kiriof-buyer-state', 'registered' ) ) {
+            $path = 'assets/buyer/dist/kiriminaja-buyer-state.js';
+            wp_register_script( 'kiriof-buyer-state', $this->plugin_url . $path, array(), file_exists( KIRIOF_DIR . $path ) ? (string) filemtime( KIRIOF_DIR . $path ) : KIRIOF_VERSION, true );
+        }
+        foreach ( array( 'kiriof-checkout-session', 'kiriof-shipping-selection', 'kiriof-map-checkout-classic', 'kiriof-classic-checkout-core' ) as $handle ) {
+            if ( ! wp_script_is( $handle, 'registered' ) ) {
+                wp_register_script( $handle, false, array( 'kiriof-buyer-state' ), KIRIOF_VERSION, true );
+            }
+        }
+    }
+
+    /** Register once for native Blocks and the legacy frontend fallback. */
+    public function register_buyer_checkout_assets( bool $localize = false ): void {
+        $this->register_buyer_state_assets();
+        $this->register_map_provider_assets();
+        $scripts = array(
+            'kiriof-buyer-blocks' => array( 'assets/buyer/dist/kiriminaja-buyer-blocks.js', array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-map-provider' ) ),
+            'kiriof-buyer-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-map-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-address-presentation' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-block-checkout' => array( false, array( 'kiriof-buyer-blocks' ) ),
+            'kiriof-map-checkout-editor' => array( 'blocks/map-checkout/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
+            'kiriof-checkout-district-editor' => array( 'blocks/checkout-district/edit.js', array( 'wp-blocks', 'wp-block-editor', 'wp-element', 'wp-i18n' ) ),
+        );
+        foreach ( $scripts as $handle => $asset ) {
+            if ( ! wp_script_is( $handle, 'registered' ) ) {
+                $asset_path = KIRIOF_DIR . $asset[0];
+                $asset_version = $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION;
+                wp_register_script( $handle, false === $asset[0] ? false : $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
+            }
+        }
+        if ( function_exists( 'wp_set_script_translations' ) ) {
+            foreach ( array( 'kiriof-map-checkout-editor', 'kiriof-checkout-district-editor' ) as $editor_handle ) {
+                wp_set_script_translations( $editor_handle, 'kiriminaja-official', KIRIOF_DIR . 'lang' );
+            }
+        }
+
+        if ( ! wp_style_is( 'kiriof-buyer-checkout', 'registered' ) ) {
+            $style_path = KIRIOF_DIR . 'assets/buyer/css/kiriof-buyer-checkout.css';
+            wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/buyer/css/kiriof-buyer-checkout.css', $this->map_style_dependencies(), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
+        }
+        if ( $localize ) {
+            $map_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
+            if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+            }
+            $data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
+            if ( ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' ) ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+            }
+            $coupon_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
+            if ( ! is_string( $coupon_data ) || false === strpos( $coupon_data, 'kiriofBlockCheckoutStrings' ) ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBlockCheckoutStrings', array(
+                    /* translators: 1: shipping coupon code, 2: other applied coupon codes. */
+                    'couponCombined' => __( 'Shipping discount "%1$s" applied and combined with: %2$s.', 'kiriminaja-official' ),
+                    /* translators: %s: shipping coupon code. */
+                    'couponApplied' => __( 'Shipping discount "%s" applied to your cart.', 'kiriminaja-official' ),
+                ) );
+            }
+        }
+    }
+
+    /** Register Classic checkout without a dependency on WooCommerce Blocks APIs. */
+    public function register_classic_checkout_assets( bool $localize = false ): void {
+        $this->register_buyer_state_assets();
+        $this->register_map_provider_assets();
+        $scripts = array(
+            'kiriof-classic-checkout' => array( 'assets/buyer/dist/kiriminaja-buyer-pin.js', array( 'jquery', 'kiriof-buyer-state', 'kiriof-map-provider' ) ),
+        );
+        foreach ( $scripts as $handle => $asset ) {
+            if ( ! wp_script_is( $handle, 'registered' ) ) {
+                $asset_path = KIRIOF_DIR . $asset[0];
+                $asset_version = $asset[0] && file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION;
+                wp_register_script( $handle, false === $asset[0] ? false : $this->plugin_url . $asset[0], $asset[1], $asset_version, true );
+            }
+        }
+        $styles = array(
+            'kiriof-classic-checkout' => array( 'assets/buyer/css/kiriof-classic-checkout.css', $this->map_style_dependencies() ),
+        );
+        foreach ( $styles as $handle => $asset ) {
+            if ( ! wp_style_is( $handle, 'registered' ) ) {
+                $asset_path = KIRIOF_DIR . $asset[0];
+                wp_register_style( $handle, $this->plugin_url . $asset[0], $asset[1], file_exists( $asset_path ) ? (string) filemtime( $asset_path ) : KIRIOF_VERSION );
+            }
+        }
+        if ( $localize ) {
+            $data = wp_scripts()->get_data( 'kiriof-classic-checkout', 'data' );
+            if ( ! is_string( $data ) || false === strpos( $data, 'kiriofClassicCheckoutConfig' ) ) {
+                $config = $this->buyer_checkout_config();
+                // Classic checkout does not require Store API registration support.
+                $config['enabled'] = $this->classic_instant_enabled();
+                $config['ownsDistrict'] = false;
+                $config['i18n']['pinSaveFailed'] = __( 'Could not save the delivery pin. Please retry.', 'kiriminaja-official' );
+                $config['i18n']['pinSaving'] = __( 'Saving delivery pin…', 'kiriminaja-official' );
+                $config['pinErrors'] = array(
+                    'kiriof_pin_instant_disabled' => __( 'Instant delivery is not enabled.', 'kiriminaja-official' ),
+                    'kiriof_pin_address_mismatch' => __( 'The delivery pin country or postcode does not match the checkout address. Please select the pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_snapshot_mismatch' => __( 'The delivery pin address has changed. Please select the pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_district_mismatch' => __( 'The selected subdistrict has changed. Please select the delivery pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_district_changed' => __( 'The selected subdistrict changed while verifying the delivery pin. Please try again.', 'kiriminaja-official' ),
+                    'kiriof_pin_district_not_mapped' => __( 'The selected subdistrict does not belong to the delivery pin postcode. Please select the subdistrict again.', 'kiriminaja-official' ),
+                    'kiriof_pin_lookup_unavailable' => __( 'Could not verify the delivery pin subdistrict. Please try again.', 'kiriminaja-official' ),
+                    'kiriof_pin_invalid_coordinates' => __( 'The delivery pin coordinates or address snapshot are invalid. Please select the pin again.', 'kiriminaja-official' ),
+                    'kiriof_pin_invalid_destination' => __( 'The delivery pin destination is invalid. Please select it again.', 'kiriminaja-official' ),
+                    'kiriof_pin_invalid_scope' => __( 'The delivery pin address scope is invalid.', 'kiriminaja-official' ),
+                    'kiriof_pin_checkout_unavailable' => __( 'The checkout session is not available for a delivery pin. Please refresh checkout.', 'kiriminaja-official' ),
+                );
+                $config['i18n']['contactInformation'] = __( 'Contact Information', 'kiriminaja-official' );
+                $config['needsShipping'] = function_exists( 'WC' ) && WC() && WC()->cart ? WC()->cart->needs_shipping() : true;
+                wp_localize_script( 'kiriof-classic-checkout', 'kiriofClassicCheckoutConfig', $config );
+            }
+            $map_data = wp_scripts()->get_data( 'kiriof-classic-checkout', 'data' );
+            if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
+                wp_localize_script( 'kiriof-classic-checkout', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+            }
+        }
+    }
+
+    /** Only the editable shortcode checkout is owned by the Classic adapter. */
+    private function isClassicCheckoutPage(): bool {
+        return function_exists( 'is_checkout' ) && is_checkout()
+            && ! $this->isBlockCartOrCheckoutPage()
+            && ! ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'order-received' ) );
+    }
+
     /** Add Enqueue CSS & JS*/
     function enqueueWp(){
         // Only load on pages where the plugin's UI actually runs: cart, checkout,
@@ -63,7 +429,9 @@ class Enqueue extends BaseInit{
 
         wp_enqueue_script( 'select2' );
         wp_enqueue_style( 'select2' );
-        wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/wp/css/kj-wp-style.css', array(), KIRIOF_VERSION, 'all' );
+        $front_style = KIRIOF_DIR . 'assets/buyer/css/kj-wp-style.css';
+        wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/buyer/css/kj-wp-style.css', array(), file_exists( $front_style ) ? (string) filemtime( $front_style ) : KIRIOF_VERSION, 'all' );
+        wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style' ), KIRIOF_VERSION, 'all' );
 
         // Tracking shortcode-specific styles. Loaded as a real stylesheet so the
         // rules are present in <head> by the time [kiriminaja-tracking-front-page]
@@ -73,11 +441,12 @@ class Enqueue extends BaseInit{
         if ( $this->isTrackingPage() ) {
             wp_enqueue_style(
                 'kiriof-tracking-style',
-                $this->plugin_url . 'assets/wp/css/kj-tracking.css',
+                $this->plugin_url . 'assets/buyer/css/kj-tracking.css',
                 array( 'kiriof-style' ),
                 KIRIOF_VERSION,
                 'all'
             );
+
         }
 
         // Option 1: Manually enqueue the wp-util library.
@@ -85,22 +454,40 @@ class Enqueue extends BaseInit{
         // Option 2: Make wp-util a dependency of your script (usually better).
         wp_enqueue_script(
             'kiriof-script',
-            $this->plugin_url . 'assets/wp/js/kj-wp-script.js',
+            $this->plugin_url . 'assets/buyer/js/kj-wp-script.js',
             array( 'wp-util', 'jquery', 'select2' ),
             KIRIOF_VERSION,
             array( 'in_footer' => true )
         );
+        $legacy_dependencies = $this->isBlockCartOrCheckoutPage() ? array( 'kiriof-script', 'kiriof-buyer-checkout' ) : ( $this->isClassicCheckoutPage() && $this->classic_instant_enabled() ? array( 'kiriof-script', 'kiriof-classic-checkout' ) : array( 'kiriof-script' ) );
+        $this->register_buyer_state_assets();
+        if ( $this->isClassicCheckoutPage() ) { $legacy_dependencies[] = 'kiriof-shipping-selection'; }
+        foreach ( array( 'state', 'blocks-compatibility', 'classic-district', 'shipping-payment' ) as $module ) {
+            $handle = 'kiriof-checkout-' . $module;
+            $relative_path = 'assets/buyer/js/checkout/' . $module . '.js';
+            wp_register_script( $handle, $this->plugin_url . $relative_path, $legacy_dependencies, (string) filemtime( KIRIOF_DIR . $relative_path ), array( 'in_footer' => true ) );
+            $legacy_dependencies = array( $handle );
+        }
+        if ( $this->isClassicCheckoutPage() ) {
+            wp_register_style( 'kiriof-classic-choices', $this->plugin_url . 'assets/buyer/dist/kiriminaja-buyer-classic.css', array( 'kiriof-style' ), file_exists( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.css' ) ? (string) filemtime( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.css' ) : KIRIOF_VERSION );
+            wp_register_style( 'kiriof-classic-shipping-layout', $this->plugin_url . 'assets/buyer/css/kiriof-classic-choices.css', array( 'kiriof-classic-choices' ), (string) filemtime( KIRIOF_DIR . 'assets/buyer/css/kiriof-classic-choices.css' ) );
+            wp_register_script( 'kiriof-classic-choices', $this->plugin_url . 'assets/buyer/dist/kiriminaja-buyer-classic.js', array_merge( $legacy_dependencies, array( 'kiriof-buyer-state', 'wc-country-select' ) ), file_exists( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.js' ) ? (string) filemtime( KIRIOF_DIR . 'assets/buyer/dist/kiriminaja-buyer-classic.js' ) : KIRIOF_VERSION, array( 'in_footer' => true ) );
+            $legacy_dependencies[] = 'kiriof-classic-choices';
+            wp_register_script( 'kiriof-classic-shipping-options', $this->plugin_url . 'assets/buyer/js/checkout/shipping-options.js', $legacy_dependencies, (string) filemtime( KIRIOF_DIR . 'assets/buyer/js/checkout/shipping-options.js' ), array( 'in_footer' => true ) );
+            $legacy_dependencies[] = 'kiriof-classic-shipping-options';
+            wp_enqueue_style( 'kiriof-classic-shipping-layout' );
+        }
         wp_register_script(
             'kiriof-form-billing-address',
-            $this->plugin_url . 'assets/wp/js/form-billing-address.js',
-            array( 'kiriof-script' ),
-            KIRIOF_VERSION,
+            $this->plugin_url . 'assets/buyer/js/form-billing-address.js',
+            $legacy_dependencies,
+            (string) filemtime( KIRIOF_DIR . 'assets/buyer/js/form-billing-address.js' ),
             array( 'in_footer' => true )
         );
-        if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) ) {
+        if ( function_exists( 'is_account_page' ) && is_account_page() && function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'edit-address' ) && 'shipping' !== get_query_var( 'edit-address' ) ) {
             wp_enqueue_script(
                 'kiriof-account-address',
-                KIRIOF_URL . 'assets/wp/js/account-address.js',
+                KIRIOF_URL . 'assets/buyer/js/account-address.js',
                 array( 'kiriof-script', 'jquery', 'select2' ),
                 KIRIOF_VERSION,
                 array( 'in_footer' => true )
@@ -112,6 +499,14 @@ class Enqueue extends BaseInit{
                     'selectOption' => __( 'Select Option', 'kiriminaja-official' ),
                 )
             );
+
+			if ( $is_order_screen ) {
+				$order_metabox_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-order-metabox.js';
+				if ( file_exists( $order_metabox_script ) ) {
+					wp_enqueue_script( 'kiriof-order-metabox', $this->plugin_url . 'assets/admin/dist/kiriminaja-order-metabox.js', array( 'kiriof-cod-adjustment' ), (string) filemtime( $order_metabox_script ), true );
+					wp_script_add_data( 'kiriof-order-metabox', 'type', 'module' );
+				}
+			}
         }
 
         // Localize script to pass ajax URL and nonce
@@ -127,11 +522,12 @@ class Enqueue extends BaseInit{
         );
 
         if ( $this->isTrackingPage() ) {
+            $tracking_path = 'assets/buyer/dist/kiriminaja-buyer-tracking.js';
             wp_enqueue_script(
                 'kiriof-tracking-script',
-                $this->plugin_url . 'assets/wp/js/kj-tracking.js',
-                array( 'jquery', 'kiriof-script' ),
-                KIRIOF_VERSION,
+                $this->plugin_url . $tracking_path,
+                array( 'kiriof-script' ),
+                file_exists( KIRIOF_DIR . $tracking_path ) ? (string) filemtime( KIRIOF_DIR . $tracking_path ) : KIRIOF_VERSION,
                 array( 'in_footer' => true )
             );
 
@@ -149,37 +545,23 @@ class Enqueue extends BaseInit{
             );
         }
 
+        if ( $this->isClassicCheckoutPage() && $this->classic_instant_enabled() ) {
+            $this->register_classic_checkout_assets( true );
+            wp_enqueue_script( 'kiriof-classic-checkout' );
+            wp_enqueue_style( 'kiriof-classic-checkout' );
+        }
+
         if ( $this->isBlockCartOrCheckoutPage() ) {
-            wp_enqueue_script(
-                'kiriof-block-checkout',
-                $this->plugin_url . 'assets/wp/js/kiriof-block-checkout.js',
-                array( 'kiriof-script', 'wp-element', 'wp-plugins', 'wp-data', 'wp-notices', 'wc-blocks-checkout' ),
-                KIRIOF_VERSION,
-                array( 'in_footer' => true )
-            );
+            $this->register_buyer_checkout_assets( true );
+            wp_enqueue_script( 'kiriof-buyer-checkout' );
+            wp_enqueue_script( 'kiriof-map-checkout' );
+            wp_enqueue_style( 'kiriof-buyer-checkout' );
         }
     }
 
     private function isBlockCartOrCheckoutPage() {
-        $checkout_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
-        if ( $checkout_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/checkout', $checkout_page_id ) ) {
-            return true;
-        }
-        $cart_page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'cart' ) : 0;
-        if ( $cart_page_id > 0 && function_exists( 'has_block' ) && has_block( 'woocommerce/cart', $cart_page_id ) ) {
-            return true;
-        }
-        if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_checkout_block_default' ) ) {
-            if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_checkout_block_default() ) {
-                return true;
-            }
-        }
-        if ( class_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils' ) && method_exists( '\Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils', 'is_cart_block_default' ) ) {
-            if ( \Automattic\WooCommerce\Blocks\Utils\CartCheckoutUtils::is_cart_block_default() ) {
-                return true;
-            }
-        }
-        if ( function_exists( 'wp_is_block_theme' ) && wp_is_block_theme() ) {
+        global $post;
+        if ( function_exists( 'has_block' ) && $post && ( has_block( 'woocommerce/checkout', $post ) || has_block( 'woocommerce/cart', $post ) ) ) {
             return true;
         }
         return false;
@@ -213,6 +595,9 @@ class Enqueue extends BaseInit{
      * @return bool
      */
     private function shouldEnqueueFront() {
+        if ( $this->isBlockCartOrCheckoutPage() ) {
+            return true;
+        }
         // WooCommerce commerce pages.
         if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
             return true;
@@ -247,10 +632,10 @@ class Enqueue extends BaseInit{
 		}
 
         $is_plugin_page = in_array( $page, array(
-            'kiriminaja-konfigurasi',
-            'kiriminaja-transaction-process',
+            'kiriminaja-setting',
+            'kiriminaja-transaction',
+            'kiriminaja-transaction-detail',
             'kiriminaja-request-pickup',
-            'kiriminaja-request-pickup-detail',
         ), true );
 
         $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );
@@ -272,10 +657,18 @@ class Enqueue extends BaseInit{
         wp_enqueue_script( 'heartbeat' );
 
         wp_enqueue_style( 'list-tables' );
+        add_filter( 'admin_body_class', static function ( string $classes ): string {
+            return trim( $classes . ' kiriof-admin' );
+        } );
         
         wp_enqueue_style( 'kiriof-style', $this->plugin_url . 'assets/admin/css/kj-admin-style.css', array(), KIRIOF_VERSION, 'all' );
+        $this->enqueue_kiriof_design_system();
+        wp_enqueue_style( 'kiriof-badge-style', $this->plugin_url . 'assets/admin/css/kj-badge.css', array( 'kiriof-style', 'kiriof-component-style' ), KIRIOF_VERSION, 'all' );
 
-        $needs_leaflet = 'kiriminaja-konfigurasi' === $page || $is_wc_warehouses_settings || $is_wc_general_settings;
+
+
+        // Lists can navigate into detail through the workspace without a full reload.
+        $needs_leaflet = 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] && ( in_array( $page, array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) || $is_wc_warehouses_settings || $is_wc_general_settings );
 
         if ( $needs_leaflet ) {
             wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
@@ -283,14 +676,16 @@ class Enqueue extends BaseInit{
         }
 
         $kiriof_script_dependencies = array( 'jquery', 'select2' );
+        if ( $is_wc_warehouses_settings || $is_wc_general_settings ) {
+            $map_bridge_path = 'assets/buyer/dist/kiriminaja-buyer-admin-maps.js';
+            wp_enqueue_script( 'kiriof-admin-maps', $this->plugin_url . $map_bridge_path, array(), file_exists( KIRIOF_DIR . $map_bridge_path ) ? (string) filemtime( KIRIOF_DIR . $map_bridge_path ) : KIRIOF_VERSION, true );
+            wp_localize_script( 'kiriof-admin-maps', 'kiriofAdminMapsConfig', ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config() );
+            $kiriof_script_dependencies[] = 'kiriof-admin-maps';
+        }
         if ( $needs_leaflet ) {
             $kiriof_script_dependencies[] = 'kiriof-leaflet-script';
         }
 
-        if ( 'kiriminaja-konfigurasi' === $page ) {
-            $this->enqueueCourierServices();
-            $kiriof_script_dependencies[] = 'kiriof-courier-services';
-        }
         wp_enqueue_script( 'kiriof-script', $this->plugin_url . 'assets/admin/js/kj-admin-script.js', $kiriof_script_dependencies, KIRIOF_VERSION, true );
         
         // Localize script to pass ajax URL and nonce
@@ -305,29 +700,13 @@ class Enqueue extends BaseInit{
             )
         );
         
-        wp_enqueue_style( 'kiriof-grid-style', $this->plugin_url . 'assets/admin/css/bootstrap-grid.css', array(), KIRIOF_VERSION );
-
-        if ( 'kiriminaja-transaction-process' === $page ) {
+        if ( in_array( $page, array( 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) ) {
             wp_enqueue_style( 'woocommerce_admin_styles' );
-            // Load only the native order-preview scripts. Do not enqueue the
-            // `woocommerce_admin` bundle: WC localizes its global only on native
-            // screens, which causes a ReferenceError on this custom page.
-            foreach ( array( 'wc-backbone-modal', 'wc-orders', 'wc-admin-order' ) as $order_script ) {
-                if ( wp_script_is( $order_script, 'registered' ) ) {
-                    wp_enqueue_script( $order_script );
-                }
-            }
-            if ( wp_script_is( 'wc-backbone-modal', 'registered' ) ) {
-                wp_enqueue_script( 'wc-backbone-modal' );
-            }
-            wp_enqueue_script( 'kiriof-pin-input', $this->plugin_url . 'assets/lib/pin-input/pin-input.js', array(), '0.2.0', true );
-            wp_script_add_data( 'kiriof-pin-input', 'type', 'module' );
+			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
+			$this->enqueue_workspace_style();
+            $this->enqueue_workspace_script( $workspace_script, $needs_leaflet ? array( 'kiriof-leaflet-script' ) : array() );
         }
 
-        /** print */
-        wp_enqueue_style( 'kiriof-print-style', $this->plugin_url . 'assets/admin/css/print.min.css', array(), KIRIOF_VERSION );
-        wp_enqueue_script( 'kiriof-print-script', $this->plugin_url . 'assets/admin/js/print.min.js', array(), KIRIOF_VERSION, true );
-        
         /** Select 2 - use WooCommerce's bundled copy */
         wp_enqueue_script( 'select2' );
 
@@ -361,13 +740,9 @@ class Enqueue extends BaseInit{
         ' );
 
         /**
-         * QR Code — use WooCommerce's bundled jquery-qrcode (handle: wc-qrcode)
-         * for the "Scan to Pay" modal on the Request Pickup page.
-         */
-        /**
          * COD Adjustment JS — enqueued on the order edit screen and transaction process page.
          */
-        if ( $is_order_screen || 'kiriminaja-transaction-process' === $page ) {
+        if ( $is_order_screen ) {
             wp_enqueue_script(
                 'kiriof-cod-adjustment',
                 $this->plugin_url . 'assets/js/kiriof-cod-adjustment.js',
@@ -393,145 +768,42 @@ class Enqueue extends BaseInit{
             );
         }
 
-        /**
-         * Change Origin JS — enqueued on the transaction process page.
-         */
-        if ( 'kiriminaja-transaction-process' === $page ) {
-            wp_enqueue_script(
-                'kiriof-change-origin',
-                $this->plugin_url . 'assets/js/kiriof-change-origin.js',
-                array( 'jquery', 'select2', 'wp-util', 'underscore', 'backbone', 'wc-jquery-blockui', 'wc-backbone-modal' ),
-                file_exists( KIRIOF_DIR . 'assets/js/kiriof-change-origin.js' ) ? filemtime( KIRIOF_DIR . 'assets/js/kiriof-change-origin.js' ) : KIRIOF_VERSION,
-                true
-            );
-            wp_localize_script(
-                'kiriof-change-origin',
-                'kiriofChangeOrigin',
-                array(
-                    'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
-                    'previewNonce' => wp_create_nonce( 'woocommerce-preview-order' ),
-                    'i18n' => array(
-                        'selectLocation' => __( 'Please select a shipment location first.', 'kiriminaja-official' ),
-                        'checkFailed'    => __( 'Shipping check failed.', 'kiriminaja-official' ),
-                        'updateFailed'   => __( 'Failed to update the shipment origin.', 'kiriminaja-official' ),
-                        'priceImpact'    => __( 'Order price impact', 'kiriminaja-official' ),
-                        'previousCourier'=> __( 'Previous courier', 'kiriminaja-official' ),
-                        'newCourier'     => __( 'New courier', 'kiriminaja-official' ),
-                        'previousShipping' => __( 'Previous shipping', 'kiriminaja-official' ),
-                        'newShipping'    => __( 'New shipping', 'kiriminaja-official' ),
-                        'shippingDiscount' => __( 'Shipping discount', 'kiriminaja-official' ),
-                        'courier'          => __( 'Courier', 'kiriminaja-official' ),
-                        'orderTotal'     => __( 'Order total', 'kiriminaja-official' ),
-                        'priceIncrease'  => __( 'increases', 'kiriminaja-official' ),
-                        'priceDecrease'  => __( 'decreases', 'kiriminaja-official' ),
-                        'noChange'       => __( 'No change', 'kiriminaja-official' ),
-                        'checkingShipping' => __( 'Checking shipping route...', 'kiriminaja-official' ),
-                        'replacementCourier' => __( 'Select a replacement courier with your consent.', 'kiriminaja-official' ),
-                        'selectCourier' => __( 'Select courier', 'kiriminaja-official' ),
-                        'replacementConsent' => __( 'I consent to use this replacement courier.', 'kiriminaja-official' ),
-                        'orderBreakdown' => __( 'Order summary', 'kiriminaja-official' ),
-                        'subTotal' => __( 'Sub Total', 'kiriminaja-official' ),
-                        'shipping' => __( 'Shipping', 'kiriminaja-official' ),
-                        'change' => __( 'Change', 'kiriminaja-official' ),
-                        'collapse' => __( 'Collapse', 'kiriminaja-official' ),
-                        'changeBlocked' => __( 'Change cannot be processed.', 'kiriminaja-official' ),
-                        'refundRequired' => __( 'The adjusted order total would be below Rp0. Reconcile or refund the buyer {amount} before making this change.', 'kiriminaja-official' ),
-                        'blocked' => __( 'Blocked', 'kiriminaja-official' ),
-                    ),
-                )
-            );
+
+        if ( 'kiriminaja-request-pickup' === $page ) {
+			$workspace_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-admin-workspace.js';
+			$this->enqueue_workspace_style();
+			$this->enqueue_workspace_script( $workspace_script );
         }
 
-        if ( 'kiriminaja-request-pickup' === $page || 'kiriminaja-request-pickup-detail' === $page ) {
-            if ( ! wp_script_is( 'wc-qrcode', 'registered' ) && defined( 'WC_PLUGIN_FILE' ) ) {
-                $wc_version = defined( 'WC_VERSION' ) ? \WC_VERSION : KIRIOF_VERSION;
-                wp_register_script(
-                    'wc-qrcode',
-                    plugin_dir_url( WC_PLUGIN_FILE ) . 'assets/js/jquery-qrcode/jquery.qrcode.js',
-                    array( 'jquery' ),
-                    $wc_version,
-                    true
-                );
-            }
-            wp_enqueue_script( 'wc-qrcode' );
-            wp_enqueue_script(
-                'kiriof-qr-code-styling',
-                $this->plugin_url . 'assets/lib/qr-code-styling/qr-code-styling.min.js',
-                array(),
-                KIRIOF_VERSION,
-                true
-            );
-        }
    
     }
 
-	/** Enqueue the shared accessible courier and service picker. */
-	private function enqueueCourierServices(): void {
-		wp_enqueue_style( 'kiriof-courier-services', $this->plugin_url . 'assets/admin/css/kj-courier-services.css', array(), KIRIOF_VERSION );
-		wp_enqueue_script( 'kiriof-courier-services', $this->plugin_url . 'assets/admin/js/kj-courier-services.js', array(), KIRIOF_VERSION, true );
-		wp_localize_script(
-			'kiriof-courier-services',
-			'kiriofCourierServicesI18n',
-			array(
-				/* translators: %1$s: enabled count, %2$s: total count. */
-				'enabledCount' => __( '%1$s of %2$s enabled', 'kiriminaja-official' ),
-				/* translators: %s: courier name. */
-				'enableCourier' => __( 'Enable %s services', 'kiriminaja-official' ),
-				/* translators: %1$s: service name, %2$s: courier name. */
-				'enableService' => __( 'Enable %1$s for %2$s', 'kiriminaja-official' ),
-				'allServices' => __( 'All services', 'kiriminaja-official' ),
-				'noCouriers' => __( 'No couriers are available for this account.', 'kiriminaja-official' ),
-				'loading' => __( 'Loading couriers…', 'kiriminaja-official' ),
-				'loadFailed' => __( 'Could not load couriers. Reload this page and try again.', 'kiriminaja-official' ),
-				'saveFailed' => __( 'Could not save courier settings.', 'kiriminaja-official' ),
-				'saving' => __( 'Saving courier services…', 'kiriminaja-official' ),
-				'saved' => __( 'Courier services saved.', 'kiriminaja-official' ),
-				'selectService' => __( 'Select at least one courier service.', 'kiriminaja-official' ),
-			)
-		);
-	}
-
 	private function enqueueOnboarding(): void {
-		$this->enqueueCourierServices();
-		wp_enqueue_style( 'dashicons' );
-		wp_enqueue_style( 'woocommerce_admin_styles' );
-		wp_enqueue_script( 'jquery' );
-		wp_enqueue_style( 'kiriof-choices-style', $this->plugin_url . 'assets/lib/choices/choices.min.css', array(), '11.2.4' );
-		wp_enqueue_script( 'kiriof-choices-script', $this->plugin_url . 'assets/lib/choices/choices.min.js', array(), '11.2.4', true );
-		wp_add_inline_script( 'kiriof-choices-script', 'window.kiriofChoices = window.Choices;', 'after' );
-		wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
-		wp_enqueue_script( 'kiriof-leaflet-script', $this->plugin_url . 'assets/lib/leaflet/leaflet.js', array(), '1.9.4', true );
-		wp_enqueue_style( 'kiriof-onboarding-style', $this->plugin_url . 'assets/admin/css/kj-onboarding.css', array(), KIRIOF_VERSION );
-		wp_enqueue_script(
-			'kiriof-onboarding-script',
-			$this->plugin_url . 'assets/admin/js/kj-onboarding.js',
-			array( 'jquery', 'kiriof-choices-script', 'kiriof-leaflet-script', 'kiriof-courier-services' ),
-			KIRIOF_VERSION,
-			true
-		);
-		wp_localize_script(
-			'kiriof-onboarding-script',
-			'kiriofOnboarding',
-			array(
-				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
-				'nonce'         => wp_create_nonce( KIRIOF_NONCE ),
-				'settingsUrl'   => admin_url( 'admin.php?page=kiriminaja-konfigurasi' ),
-				'shippingUrl'   => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-				'subdistrictPlaceholder' => __( 'Search subdistrict', 'kiriminaja-official' ),
-				'subdistrictLoading' => __( 'Searching subdistricts...', 'kiriminaja-official' ),
-				'subdistrictNoResults' => __( 'No subdistricts found.', 'kiriminaja-official' ),
-				'subdistrictTypeMore' => __( 'Type at least 3 characters.', 'kiriminaja-official' ),
-				'accountRequired' => __( 'Connect your KiriminAja account before continuing.', 'kiriminaja-official' ),
-				'currentLocation' => __( 'Use current location', 'kiriminaja-official' ),
-				'currentLocationFailed' => __( 'Could not detect your current location.', 'kiriminaja-official' ),
-				'currentLocationUnavailable' => __( 'Current location is not available in this browser.', 'kiriminaja-official' ),
-				'disconnectConfirm' => __( 'Disconnect KiriminAja integration?', 'kiriminaja-official' ),
-				'disconnectFailed' => __( 'Disconnect failed.', 'kiriminaja-official' ),
-				'networkError'  => __( 'Network error. Please try again.', 'kiriminaja-official' ),
-				'saveFailed'    => __( 'Could not save this step.', 'kiriminaja-official' ),
-				'subdistrictSearchFailed' => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
-			)
-		);
+		$this->register_map_provider_assets();
+		if ( 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] ) {
+			wp_enqueue_style( 'kiriof-leaflet' );
+		}
+		$progress_script = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.js';
+		if ( file_exists( $progress_script ) ) {
+			$progress_style = KIRIOF_DIR . 'assets/admin/dist/kiriminaja-onboarding-progress.css';
+			$this->enqueue_kiriof_design_system();
+			if ( file_exists( $progress_style ) ) {
+				wp_enqueue_style(
+					'kiriof-onboarding-progress',
+					$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.css',
+					wp_style_is( 'kiriof-component-style', 'enqueued' ) ? array( 'kiriof-component-style' ) : array(),
+					(string) filemtime( $progress_style )
+				);
+			}
+			wp_enqueue_script(
+				'kiriof-onboarding-progress',
+				$this->plugin_url . 'assets/admin/dist/kiriminaja-onboarding-progress.js',
+				array( 'kiriof-map-provider' ),
+				(string) filemtime( $progress_script ),
+				true
+			);
+			wp_script_add_data( 'kiriof-onboarding-progress', 'type', 'module' );
+		}
 	}
 
     /**

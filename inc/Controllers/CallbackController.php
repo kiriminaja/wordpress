@@ -7,6 +7,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class CallbackController{
+    private \KiriminAjaOfficial\Services\CallbackHandlerService $callback_handler;
+
+    public function __construct( \KiriminAjaOfficial\Services\CallbackHandlerService $callback_handler ) {
+        $this->callback_handler = $callback_handler;
+    }
+
     public function register(){
         /** Adding New Route*/
         add_action( 'init', function (){
@@ -53,17 +59,17 @@ class CallbackController{
                 }
             }
 
-            $raw_body = file_get_contents("php://input");
-            $body = json_decode($raw_body);
-            
-            // Validate and sanitize the decoded body
-            if (json_last_error() !== JSON_ERROR_NONE) {
+            // Read at most 2 MiB plus one byte, irrespective of Content-Length.
+            $raw_body = file_get_contents( 'php://input', false, null, 0, 2097153 );
+            $body = is_string( $raw_body ) && strlen( $raw_body ) <= 2097152 ? json_decode( $raw_body ) : null;
+
+            // Only JSON objects are callback envelopes. Do not normalize identity values.
+            if ( ! is_object( $body ) || JSON_ERROR_NONE !== json_last_error() ) {
                 kiriof_log(
                     'warning',
                     'KiriminAja webhook request was rejected because the JSON body was invalid.',
                     array(
-                        'source'     => 'kiriminaja_webhook',
-                        'json_error' => json_last_error_msg(),
+                        'source' => 'kiriminaja_webhook',
                     )
                 );
 
@@ -78,28 +84,18 @@ class CallbackController{
                 wp_die();
             }
 
-            // Recursively sanitize all decoded values before passing them downstream.
-            $body = kiriof_sanitize_recursive( $body );
-
-            // Sanitize header values as well; they are forwarded into downstream services.
-            $sanitized_header = array();
-            foreach ( $header as $h_key => $h_val ) {
-                $sanitized_header[ sanitize_text_field( (string) $h_key ) ] = is_scalar( $h_val ) ? sanitize_text_field( (string) $h_val ) : '';
+            // Authentication must compare the original header bytes. Normalize names only;
+            // the handler owns Bearer parsing and payload validation after authentication.
+            $normalized_header = array();
+            foreach ( (array) $header as $h_key => $h_val ) {
+                if ( is_string( $h_key ) && preg_match( '/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/D', $h_key ) && is_scalar( $h_val ) ) {
+                    $normalized_header[ strtolower( $h_key ) ] = (string) $h_val;
+                }
             }
-            $header = $sanitized_header;
+            $header = $normalized_header;
 
-            $service = (new \KiriminAjaOfficial\Services\CallbackHandlerService())->header($header)->body($body)->call();
+            $service = $this->callback_handler->header($header)->body($body)->call();
             if ($service->status!==200){
-                kiriof_log(
-                    'warning',
-                    'KiriminAja webhook dispatch completed with an application error.',
-                    array(
-                        'source'         => 'kiriminaja_webhook',
-                        'callback_method' => is_object( $body ) ? (string) ( $body->method ?? '' ) : '',
-                        'message'        => $service->message,
-                    )
-                );
-
                 wp_send_json_error(
                     array(
                         'status' => false,
@@ -124,14 +120,14 @@ class CallbackController{
                 'KiriminAja webhook controller failed before the request could be completed.',
                 array(
                     'source'  => 'kiriminaja_webhook',
-                    'message' => $th->getMessage(),
+                    'exception_class' => get_class( $th ),
                 )
             );
 
             wp_send_json_error(
                 array(
                     'status' => false,
-                    'text'   => $th->getMessage(),
+                    'text'   => 'Unable to process KiriminAja callback. Please retry.',
                     'data'   => array(),
                 ),
                 500

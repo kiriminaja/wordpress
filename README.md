@@ -20,8 +20,8 @@ A WordPress/WooCommerce plugin that integrates [KiriminAja](https://kiriminaja.c
 
 ## Requirements
 
-- WordPress 6.0+
-- WooCommerce 8.5+
+- WordPress 6.8+
+- WooCommerce 8.5+ (checkout fixtures cover 10.6)
 - PHP 8.1+
 
 ## Installation
@@ -46,18 +46,28 @@ https://developer.kiriminaja.com/docs
 git clone git@github.com:kiriminaja/plugin-wp.git
 cd plugin-wp
 composer install
+bun install --frozen-lockfile
 ```
 
 ### Running Tests
 
 ```bash
+make zip                     # required before source/package parity checks
 make test
 ```
 
-This runs 400+ ParaTest-backed tests covering security, escaping, prefix compliance, template structure, and build integrity.
+This runs the PHP unit/runtime tests and repository validation checks.
 The suite is executed through ParaTest so test files run in parallel using `paratest.xml`.
 
-> **Note:** Your workspace/IDE must be opened at the WordPress root directory so the plugin is located at `wp-content/plugins/kiriminaja-official`. Tests depend on WordPress core paths (`ABSPATH`) and will not work if you open the plugin folder in isolation.
+For PHP behavior tests, call the production method and use Mockery at repository, API, and WooCommerce boundaries. Use `MockeryPHPUnitIntegration` so expectations are verified and mocks are closed after each test. Assert returned values and side effects, not PHP source snippets or private implementation details. Keep static checks for packaging and repository-wide standards, and test independent input rules separately instead of multiplying unrelated permutations.
+
+```bash
+vendor/bin/paratest --configuration paratest.xml --filter SettingServiceDependencyInjectionRuntimeTest
+```
+
+The required unit/runtime suites run from the plugin root without a WordPress server or network API. PHP needs the curl, SQLite3 and PDO SQLite extensions for runtime fixtures. Frontend checks require Bun 1.4.2 and Node 20.19+ or 22.12+ (Vite 8); CI uses Node 22. Locked React, React DOM and Happy DOM development dependencies are required: DOM suites fail rather than skip when dependencies are missing. These VM/DOM and compiled Svelte tests execute production code with fixture transport/UI boundaries; they are not live-browser E2E coverage.
+
+`make zip` includes `bun run frontend:check` (formatting, lint, Svelte checking, style checks and payment/buyer/instant runtime suites) and the frontend build. The pre-commit hook runs frontend checks for staged frontend assets, blocks, tests, scripts, locks, translations and PHP integration changes. PR CI tests PHP 8.1, 8.2, 8.3 and 8.5; WP-CLI smoke checks cover the declared WordPress 6.8 / WooCommerce 8.5 minimum and WordPress 6.8 / WooCommerce 10.6, without starting a browser server.
 
 ### Logging
 
@@ -86,7 +96,7 @@ Available filters:
 make zip
 ```
 
-Produces a `kiriminaja-official-{version}.zip` ready for distribution.
+Produces `kiriminaja-official.zip` ready for distribution (`make zip dev` and `make zip stg` use versioned environment-specific names).
 
 ### Releasing
 
@@ -111,6 +121,8 @@ make tag                      # create local git tag v$(VERSION)
 `BUMP` rules: `patch` auto-rolls to `minor` at `.99`; `minor` auto-rolls to `major` at `.99`.
 
 Changelogs use GitHub's generated release notes, with one entry per pull request rather than individual commits. Install the GitHub CLI, run `gh auth login`, and push the release branch before running `make changelog` or `make release`. `FROM` selects the previous release tag, for example `make changelog FROM=v2.4.2`.
+
+Tag publishing first builds the official zip, then runs `make test` against that exact source/staged artifact before GitHub release or SVN deployment. No artifact is rebuilt after verification.
 
 The publish workflow reads the version's saved changelog from `readme.txt` and uses the same notes for the GitHub release. You can edit that entry before tagging without having GitHub generate a different change list. No version bump or release is created by opening a pull request.
 

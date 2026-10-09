@@ -7,6 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+use KiriminAjaOfficial\Repositories\WpPostMetaRepository;
+use KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService;
 class CheckoutCalculationService extends BaseService{
     
     /*
@@ -29,14 +33,25 @@ class CheckoutCalculationService extends BaseService{
     private $selectedExpedition;
     private $pricingData;
     private $expeditionParts;
+    private SettingRepository $setting_repository;
+    private KiriminajaApiRepository $api_repository;
+    private WpPostMetaRepository $post_meta_repository;
     
-    public function __construct($payload){
+    public function __construct(
+        $payload,
+        SettingRepository $setting_repository,
+        KiriminajaApiRepository $api_repository,
+        WpPostMetaRepository $post_meta_repository
+    ){
         $this->payload = $payload;
         $this->destination_area_id  = $payload['destination_area_id'] ?? 0;
         $this->expedition           = $payload['expedition'] ?? '';
         $this->wc_cart_contents     = $payload['wc_cart_contents'] ?? [];
         $this->is_insurance         = $payload['is_insurance'] ?? false;
         $this->is_cod               = $payload['is_cod'] ?? false;
+        $this->setting_repository   = $setting_repository;
+        $this->api_repository       = $api_repository;
+        $this->post_meta_repository = $post_meta_repository;
         
         // Cache expedition parts to avoid multiple explode calls
         $this->expeditionParts = $this->expedition ? explode('_', $this->expedition, 2) : ['', ''];
@@ -53,46 +68,30 @@ class CheckoutCalculationService extends BaseService{
         }
         
         /** Origin Data*/
-        $settingRepo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('origin_sub_district_id');
-        if(!$settingRepo||$settingRepo->value === null){
-            return self::error([],'Terjadi Kesalahan!');
+        if ( ! empty( $this->payload['blocks_quote_validation'] ) && is_array( $this->payload['origin'] ?? null ) ) {
+            $originDistrict = (int) ( $this->payload['origin']['origin_sub_district_id'] ?? 0 );
+            if ( $originDistrict < 1 ) { return self::error( array(), 'Invalid Express checkout origin.' ); }
+        } else {
+            $settingRepo = $this->setting_repository->getSettingByKey('origin_sub_district_id');
+            if(!$settingRepo||$settingRepo->value === null){
+                return self::error([],'Terjadi Kesalahan!');
+            }
+            $originDistrict = (int) $settingRepo->value;
         }
         /** Cart Attribute Data*/
-        $cartAttributes = (new \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService([
+        $cartAttributes = (new GetWCCartAttributeService([
             'wc_cart_contents' => $this->wc_cart_contents
-        ]))->call();
+        ], $this->post_meta_repository))->call();
         if ($cartAttributes->status !== 200){
             return self::error([],'Terjadi Kesalahan!');
         }
 
-        if ($this->hasActiveFreeShippingCoupon()) {
-            $this->selectedExpedition = (object) [
-                'cost' => 0,
-                'discount_amount' => 0,
-                'discount_percentage' => 0,
-                'service' => $this->expeditionParts[0] ?? '',
-                'service_type' => $this->expeditionParts[1] ?? '',
-                'setting' => (object) [
-                    'cod_fee_amount' => 0,
-                    'minimum_cod_fee' => 0,
-                ],
-            ];
-
-            $checkoutCalculation = $this->checkoutCalculation();
-
-            return self::success([
-                'cart'                  => $this->carts,
-                'pricing'               => null,
-                'payload'               => $this->payload,
-                'calculation_result'    => $checkoutCalculation,
-                'carts_attribute'       => $cartAttributes->data,
-                'pricing_payload'       => [],
-            ]);
-        }
-        
+        // Coupons waive buyer delivery only; always obtain real carrier fees.
         $courier = $this->expeditionParts[0];
         $pricingPayload = [
-            'subdistrict_origin'        => (int) $settingRepo->value,
+            'origin_postcode' => (string) ( ! empty( $this->payload['blocks_quote_validation'] ) ? ( $this->payload['origin']['origin_zip_code'] ?? '' ) : ( $this->setting_repository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ),
+            'destination_postcode' => (string) ( $this->payload['destination_postcode'] ?? ( function_exists( 'WC' ) && WC() && isset( WC()->customer ) ? WC()->customer->get_shipping_postcode() : '' ) ),
+            'subdistrict_origin'        => $originDistrict,
             'subdistrict_destination'   => $this->destination_area_id,
             'weight'                    => $cartAttributes->data['weight'],
             "length"                    => $cartAttributes->data['length'],
@@ -103,7 +102,6 @@ class CheckoutCalculationService extends BaseService{
             'courier'                   => [$courier]
         ];
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $pricingPayload',[$pricingPayload]);
         
         $cachedPricingData = PricingCacheService::get( $pricingPayload );
         if ( $cachedPricingData ) {
@@ -125,9 +123,8 @@ class CheckoutCalculationService extends BaseService{
             ]);
         }
 
-        $kiriofPricing = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->getPricing($pricingPayload);
+        $kiriofPricing = $this->api_repository->getPricing($pricingPayload);
         
-        (new \KiriminAjaOfficial\Base\BaseInit())->logThis('ck $kiriofPricing',[$kiriofPricing]);
         
         if($kiriofPricing['status'] != 200){
             return self::error([],@$kiriofPricing['message'] ?? 'Terjadi Kesalahan!');
@@ -258,7 +255,7 @@ class CheckoutCalculationService extends BaseService{
     }
     
     private function getCalculateInsuranceFee(){
-        $global_enabled = ((new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('enable_insurance'))->value ?? 'yes';
+        $global_enabled = ( $this->setting_repository->getSettingByKey('enable_insurance') )->value ?? 'yes';
         if ($this->isInsurance() || ($this->selectedExpedition->force_insurance ?? false) || 'yes' === $global_enabled) { 
             return (float) ($this->selectedExpedition->insurance ?? 0);
         }

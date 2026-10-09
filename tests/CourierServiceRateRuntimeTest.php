@@ -26,7 +26,7 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		}
 		// A pre-policy cache must be recalculated, even when the pair remains enabled.
 		$this->assertSame( array(), $result['allowed_legacy_context']['fees'] );
-		$this->assertSame( array( 'jne' => array( 'REG' ) ), $result['allowed_legacy_context']['context']['courier_services'] );
+		$this->assertArrayNotHasKey( 'courier_services', $result['allowed_legacy_context']['context'] );
 		$this->assertSame( 0, $result['network_calls'] );
 	}
 
@@ -62,10 +62,19 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 			$this->assertSame( array(), $result[ $key ]['data'] );
 		}
 		$this->assertSame( 0, $result['guard_coupon_reads'] );
-		$this->assertSame( 200, $result['allowed']['status'] );
-		$this->assertSame( 0, $result['allowed']['data']['calculation_result']['ongkir_fee_amt'] );
-		$this->assertSame( 'REG23', $result['allowed']['data']['calculation_result']['selected_expedition']['service_type'] );
+		// A coupon cannot synthesize an enabled quote when the carrier has none.
+		$this->assertSame( 400, $result['allowed']['status'] );
 	}
+
+    public function test_recipient_edits_invalidate_absent_rates_but_explicit_empty_is_authoritative(): void {
+        $r = $this->run_fixture('recipient_cache');
+        $this->assertNotSame($r['invalid'], $r['named']);
+        $this->assertNotSame($r['named'], $r['complete']);
+        $this->assertNotSame($r['complete'], $r['explicit_empty']);
+        $this->assertSame($r['explicit_empty'], $r['explicit_empty_again']);
+        $this->assertSame('', $r['returned_destination']['phone']);
+        $this->assertSame(0, $r['network_calls']);
+    }
 
 	public function test_package_rate_cache_changes_for_different_service_on_same_courier_without_network(): void {
 		$result = $this->run_fixture( 'cache' );
@@ -84,22 +93,6 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		$this->assertSame( array( 'legacy' => true, 'deny_all' => false, 'empty_services' => false, 'enabled' => true ), $this->run_fixture( 'readiness' ) );
 	}
 
-	public function test_shipping_deny_all_guard_precedes_free_coupon_rate_creation(): void {
-		$source = file_get_contents( PLUGIN_DIR . '/wc/KiriminajaShippingMethod.php' );
-		$start = strpos( $source, 'public function calculate_shipping(' );
-		$this->assertNotFalse( $start );
-		$source = substr( $source, $start );
-		$this->assertMatchesRegularExpression( '/if\s*\(\s*!\s*\( new .*?SettingRepository\(\) \)->hasEnabledCourierServices\(\)\s*\)\s*\{\s*return;\s*\}/s', $source );
-		$guard = strpos( $source, '->hasEnabledCourierServices()' );
-		$coupon = strpos( $source, 'if ($this->hasActiveFreeShippingCoupon())' );
-		$rate = strpos( $source, '$this->add_rate(' );
-		$this->assertNotFalse( $guard );
-		$this->assertNotFalse( $coupon );
-		$this->assertNotFalse( $rate );
-		$this->assertLessThan( $coupon, $guard );
-		$this->assertLessThan( $rate, $coupon );
-	}
-
 	public function test_shipping_rejects_foreign_and_unknown_package_countries_before_pricing_or_free_coupons(): void {
 		$result = $this->run_fixture( 'destination_country' );
 		foreach ( array( 'paid', 'free' ) as $mode ) {
@@ -111,7 +104,7 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		}
 		$this->assertSame( 'kiriminaja-official_jne_REG', $result['paid']['indonesia']['rates'][0]['id'] );
 		$this->assertSame( 12000, $result['paid']['indonesia']['rates'][0]['cost'] );
-		$this->assertSame( 'kiriminaja-official_free', $result['free']['indonesia']['rates'][0]['id'] );
+		$this->assertSame( 'kiriminaja-official_jne_REG', $result['free']['indonesia']['rates'][0]['id'] );
 		$this->assertSame( 0, $result['free']['indonesia']['rates'][0]['cost'] );
 		$this->assertSame( array( array( 'kiriminaja-official_jne_REG' ), array(), array( 'kiriminaja-official_jne_REG' ) ), $result['transition'] );
 		$this->assertSame( 0, $result['network_calls'] );

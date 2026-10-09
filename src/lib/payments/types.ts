@@ -1,0 +1,50 @@
+export type PaymentAction = {
+  type: 'pay' | 'reschedule' | 'details';
+  label: string;
+  href?: string;
+};
+export type PaymentRow = {
+  number: number;
+  rowKey: string;
+  deliveryType: 'express' | 'instant';
+  identity: string;
+  pickupNumber: string;
+  orderIds: string[];
+  requestedAt: string;
+  schedule: string;
+  fees: string;
+  orders: number;
+  method: string;
+  status: 'paid' | 'unpaid' | 'pending' | 'refunded';
+  actions: PaymentAction[];
+};
+export type PaymentsBootstrap = {
+  toolbar: ToolbarConfig;
+  rows: PaymentRow[];
+  filters: {
+    key: string;
+    month: string;
+    status: string;
+    date_from?: string;
+    date_to?: string;
+    date_range_invalid?: boolean;
+  };
+  monthOptions: Record<string, string>;
+  statusTabs: Array<{ value: string; label: string; count: number }>;
+  pagination: { page: number; totalPages: number; total: number; perPage: number };
+  ajax: { url: string; nonce: string };
+  i18n: Record<string, string> & {
+    autoRefresh: string;
+    refreshLabels: Record<string, string>;
+  };
+  modals: Record<string, string>;
+};
+import type { ToolbarConfig } from '$lib/ui/toolbar';
+
+export interface PaymentMethodOption {
+  value: 'credit' | 'qris';
+  title: string;
+  description?: string;
+  disabled?: boolean;
+  balance?: number | null;
+}

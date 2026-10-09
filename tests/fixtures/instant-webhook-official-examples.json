@@ -1,0 +1,154 @@
+{
+  "processed_shipment": {
+    "method": "processed_packages",
+    "data": [
+      {
+        "order_id": "KA-1",
+        "awb": "AWB-1",
+        "date": "2026-10-05T10:12:22Z",
+        "shipped_at": null,
+        "finished_at": null,
+        "returned_at": null,
+        "rejected_at": null,
+        "reason": "",
+        "sorting_code": null
+      }
+    ],
+    "payment": {
+      "payment_id": "PAY-1",
+      "amount": 12000,
+      "status_code": 0,
+      "qr_content": "some-random-qr-string",
+      "pay_time": "2026-10-05T03:12:23.446201Z"
+    },
+    "packages": [
+      {
+        "awb": "AWB-1",
+        "order_id": "KA-1",
+        "service": "gosend",
+        "service_type": "Instant",
+        "status": 105,
+        "live_tracking_url": null,
+        "poly_line": "~pfn@c|t`TZw@z@`@",
+        "origin": {
+          "name": "Fixture origin",
+          "address": "Fixture street",
+          "phone": "0800000000",
+          "latitude": -7.7394435,
+          "longitude": 110.3763841
+        },
+        "destination": {
+          "name": "Fixture destination",
+          "address": "Fixture street",
+          "phone": "0800000000",
+          "latitude": -7.7395336,
+          "longitude": 110.3764254
+        },
+        "driver": {
+          "name": null,
+          "phone": null,
+          "image": null
+        }
+      }
+    ]
+  },
+  "shipped": {
+    "method": "shipped_packages",
+    "data": [
+      {
+        "order_id": "KA-1",
+        "awb": "AWB-1",
+        "date": "2025-08-05T06:59:31.000000Z",
+        "shipped_at": "2025-08-05T07:00:05.000000Z",
+        "finished_at": null,
+        "returned_at": null,
+        "rejected_at": null,
+        "reason": null
+      }
+    ],
+    "payment": {
+      "payment_id": "PAY-1",
+      "amount": 30500,
+      "status_code": 0,
+      "qr_content": null,
+      "pay_time": null
+    },
+    "packages": [
+      {
+        "awb": "AWB-1",
+        "order_id": "KA-1",
+        "service": "gosend",
+        "service_type": "instant",
+        "status": 106,
+        "live_tracking_url": "https://example.com/live-tracking",
+        "poly_line": "encoded-polyline"
+      }
+    ]
+  },
+  "canceled": {
+    "method": "canceled_packages",
+    "data": [
+      {
+        "order_id": "KA-1",
+        "awb": "AWB-1",
+        "date": "2025-08-05T06:59:31.000000Z",
+        "shipped_at": "2025-08-05T07:00:05.000000Z",
+        "finished_at": null,
+        "returned_at": null,
+        "rejected_at": null,
+        "reason": null
+      }
+    ],
+    "payment": {
+      "payment_id": "PAY-1",
+      "amount": 30500,
+      "status_code": 0,
+      "qr_content": null,
+      "pay_time": null
+    },
+    "packages": [
+      {
+        "awb": "AWB-1",
+        "order_id": "KA-1",
+        "service": "gosend",
+        "service_type": "instant",
+        "status": 300,
+        "live_tracking_url": null,
+        "poly_line": "encoded-polyline"
+      }
+    ]
+  },
+  "finished": {
+    "method": "finished_packages",
+    "data": [
+      {
+        "order_id": "KA-1",
+        "awb": "AWB-1",
+        "date": "2025-08-05T06:59:31.000000Z",
+        "shipped_at": "2025-08-05T07:00:05.000000Z",
+        "finished_at": "2025-08-05T07:00:43.000000Z",
+        "returned_at": null,
+        "rejected_at": null,
+        "reason": null
+      }
+    ],
+    "payment": {
+      "payment_id": "PAY-1",
+      "amount": 30500,
+      "status_code": 0,
+      "qr_content": null,
+      "pay_time": null
+    },
+    "packages": [
+      {
+        "awb": "AWB-1",
+        "order_id": "KA-1",
+        "service": "gosend",
+        "service_type": "instant",
+        "status": 200,
+        "live_tracking_url": "https://example.com/live-tracking",
+        "poly_line": "encoded-polyline"
+      }
+    ]
+  }
+}

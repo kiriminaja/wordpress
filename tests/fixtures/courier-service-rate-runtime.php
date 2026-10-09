@@ -4,6 +4,7 @@
 // Keep warnings/errors visible, but prevent unrelated deprecations corrupting JSON.
 error_reporting( E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED );
 define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+require_once ABSPATH . 'vendor/autoload.php';
 
 final class CourierRateDb {
 	public $prefix = 'rate_';
@@ -48,7 +49,7 @@ final class CourierRateCountries {
 }
 function WC() { return $GLOBALS['rate_wc']; }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
-function sanitize_key( $value ) { return strtolower( $value ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ); }
 function wp_json_encode( $value ) { return json_encode( $value, JSON_THROW_ON_ERROR ); }
 function get_transient( $key ) { return false; }
 function get_option( $key, $default = false ) { return $default; }
@@ -56,6 +57,10 @@ function __( $text, $domain = '' ) { return $text; }
 function add_action( ...$args ) {}
 function add_filter( ...$args ) {}
 function kiriof_log( ...$args ) {}
+function plugin_dir_path( $path ) { return dirname( $path ) . '/'; }
+function plugin_dir_url( $path ) { return ''; }
+function plugin_basename( $path ) { return basename( $path ); }
+function home_url() { return 'https://example.test'; }
 function set_transient( ...$args ) { return true; }
 function wp_strip_all_tags( $text ) { return strip_tags( $text ); }
 function wc_price( $amount ) { return (string) $amount; }
@@ -88,6 +93,33 @@ $wpdb = new CourierRateDb();
 $GLOBALS['rate_wc'] = (object) array( 'session' => new CourierRateSession(), 'cart' => new CourierRateCart(), 'countries' => new CourierRateCountries() );
 $GLOBALS['rate_network_calls'] = 0;
 $repo = new SettingRepository();
+// API construction configures the SDK; none of these scenarios needs remote rates.
+// Inject an explicit fail-fast API boundary rather than silently allowing network calls.
+$GLOBALS['rate_api'] = new class extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
+    public function __construct() {}
+    public function get_pricing( $payload ) { return (object) array( 'status' => false, 'results' => array() ); }
+};
+$GLOBALS['rate_meta'] = new \KiriminAjaOfficial\Repositories\WpPostMetaRepository();
+function rate_service( string $class, array $payload ) {
+    return new $class( $payload, $GLOBALS['repo'], $GLOBALS['rate_api'], $GLOBALS['rate_meta'] );
+}
+function rate_factory(): \KiriminAjaOfficial\Services\CheckoutServiceFactory {
+    $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+    $cod = new class extends \KiriminAjaOfficial\Repositories\CodFeeApiRepository {
+        public function __construct() {}
+    };
+    $factory = new \KiriminAjaOfficial\Services\CheckoutServiceFactory(
+        $GLOBALS['repo'], $transactions, $GLOBALS['rate_meta'], $GLOBALS['rate_api'], $cod,
+        new \KiriminAjaOfficial\Services\ShipmentLocationService( null, $GLOBALS['repo'] )
+    );
+    return $factory;
+}
+function rate_controller(): CheckoutController {
+    return new CheckoutController( $GLOBALS['repo'], new \KiriminAjaOfficial\Repositories\TransactionRepository(), $GLOBALS['rate_meta'], rate_factory() );
+}
+function kiriof_setting_repository() { return $GLOBALS['repo']; }
+function kiriof_checkout_service_factory() { return rate_factory(); }
+function kiriof_api_repository() { return $GLOBALS['rate_api']; }
 function rate_policy( $selection ) {
 	( new SettingRepository() )->storeCourierWhitelist( array( 'origin_whitelist_expedition_id' => 'jne', 'service_selection' => $selection ) );
 }
@@ -101,12 +133,12 @@ function rate_rows() {
 	);
 }
 function rate_selected( $expedition, $rows ) {
-	$service = new CheckoutCalculationService( array( 'expedition' => $expedition ) );
+	$service = rate_service( CheckoutCalculationService::class, array( 'expedition' => $expedition ) );
 	( new ReflectionProperty( $service, 'pricingData' ) )->setValue( $service, (object) array( 'results' => $rows ) );
 	return ( new ReflectionMethod( $service, 'getSelectedExpedition' ) )->invoke( $service );
 }
 function rate_calculation( $expedition ) {
-	return ( new CheckoutCalculationService( array( 'expedition' => $expedition, 'is_cod' => true, 'is_insurance' => true ) ) )->call();
+	return ( rate_service( CheckoutCalculationService::class, array( 'expedition' => $expedition, 'is_cod' => true, 'is_insurance' => true ) ) )->call();
 }
 function rate_checkout_fees( $method, $legacy_context = false ) {
 	WC()->cart->fees = array();
@@ -114,7 +146,7 @@ function rate_checkout_fees( $method, $legacy_context = false ) {
 	WC()->session->set( 'chosen_payment_method', 'cod' );
 	WC()->session->set( 'kiriof_insurance', 1 );
 	$context = ( new ReflectionMethod( \KiriminAjaOfficial\Controllers\GeneralAjaxController::class, 'kiriof_get_fee_cache_context' ) )->invoke(
-		new \KiriminAjaOfficial\Controllers\GeneralAjaxController(), $method, 456, 'cod', 1
+		new \KiriminAjaOfficial\Controllers\GeneralAjaxController( rate_factory() ), $method, 456, 'cod', 1
 	);
 	if ( $legacy_context ) {
 		unset( $context['courier_services'] );
@@ -122,7 +154,7 @@ function rate_checkout_fees( $method, $legacy_context = false ) {
 	WC()->session->set( 'kiriof_cached_insurance_amt', 1500 );
 	WC()->session->set( 'kiriof_cached_cod_amt', 2500 );
 	WC()->session->set( 'kiriof_cached_fee_context', $context );
-	( new CheckoutController() )->kiriof_shipping_method_update();
+	( rate_controller() )->kiriof_shipping_method_update();
 	return array(
 		'fees' => WC()->cart->fees,
 		'insurance' => WC()->session->get( 'kiriof_cached_insurance_amt' ),
@@ -141,7 +173,7 @@ switch ( $argv[1] ?? '' ) {
 		$result['deny_all'] = $repo->validateWhiteListExpedition( $rows );
 		break;
 	case 'options':
-		$service = new OngkirPricingService( array( 'is_cod' => false, 'destination_area_id' => 456 ) );
+		$service = rate_service( OngkirPricingService::class, array( 'is_cod' => false, 'destination_area_id' => 456 ) );
 		$filter = new ReflectionMethod( $service, 'filterOptions' );
 		$pricing = (object) array( 'results' => array_slice( rate_rows(), 0, 2 ) );
 		rate_policy( '{"jne":["REG"]}' );
@@ -170,7 +202,7 @@ switch ( $argv[1] ?? '' ) {
 		$result['allowed'] = rate_calculation( 'jne_REG23' );
 		break;
 	case 'cache':
-		$controller = new CheckoutController();
+		$controller = rate_controller();
 		$package = array( array( 'destination' => array( 'country' => 'ID', 'postcode' => '12345' ) ) );
 		rate_policy( '{"jne":["REG"]}' );
 		$result['couriers_before'] = $repo->getWhitelistExpeditionIds();
@@ -199,6 +231,27 @@ switch ( $argv[1] ?? '' ) {
 		$result['foreign_country'] = $controller->kiriof_shipping_rate_cache_invalidation( $package )[0]['rate_cache'];
 		$result['network_calls'] = $GLOBALS['rate_network_calls'];
 		break;
+	case 'recipient_cache':
+        $controller = rate_controller();
+        $address = array('address_1' => 'Buyer street', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID');
+        WC()->customer = new class($address) {
+            public array $billing;
+            public function __construct($address) { $this->billing = $address + array('first_name' => '', 'last_name' => '', 'phone' => ''); }
+            public function __call($name, $args) { return str_starts_with($name, 'get_billing_') ? ($this->billing[substr($name, 12)] ?? '') : ''; }
+        };
+        $package = array(array('destination' => $address));
+        $result['invalid'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['first_name'] = 'Buyer';
+        $result['named'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['phone'] = '081234567890';
+        $result['complete'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        $package[0]['destination']['phone'] = '';
+        $result['explicit_empty'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        WC()->customer->billing['phone'] = '081234567899';
+        $result['explicit_empty_again'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['rate_cache'];
+        $result['returned_destination'] = $controller->kiriof_shipping_rate_cache_invalidation($package)[0]['destination'];
+        $result['network_calls'] = $GLOBALS['rate_network_calls'];
+        break;
 	case 'fees':
 		rate_policy( '{"jne":["REG"]}' );
 		$result['disabled_legacy'] = rate_checkout_fees( 'kiriminaja-official_jne_YES', true );
@@ -237,7 +290,7 @@ switch ( $argv[1] ?? '' ) {
 			'item_value' => 10000,
 			'courier' => array( 'jne' ),
 		);
-		$pricing = (object) array( 'results' => array( (object) array(
+		$pricing = (object) array( 'status' => true, 'results' => array( (object) array(
 			'service' => 'jne',
 			'service_type' => 'REG',
 			'service_name' => 'Regular',
@@ -257,7 +310,7 @@ switch ( $argv[1] ?? '' ) {
 				if ( null !== $country ) {
 					$destination['country'] = $country;
 				}
-				WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'stale' => array( 'cost' => 12000 ) ) );
+				WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'kiriminaja-official_ninja_STANDARD' => array( 'cost' => 12000 ) ) );
 				WC()->cart->coupon_reads = 0;
 				$method = ( new ReflectionClass( 'Kiriof_Shipping_Method_Controller' ) )->newInstanceWithoutConstructor();
 				$method->calculate_shipping( array( 'contents' => array(), 'destination' => $destination ) );

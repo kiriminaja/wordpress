@@ -98,7 +98,7 @@ do_action( 'woocommerce_before_shipping_calculator' ); ?>
                 }
 				woocommerce_form_field( 'kiriof_destination_area', array(
 					'type'        => 'select',
-					'label'       => esc_html__('District', 'kiriminaja-official'),
+					'label'       => esc_html__('Subdistrict', 'kiriminaja-official'),
 					'required'    => true,
 					'label_class' => $kiriof_is_cart_shipping_calculator ? array( 'screen-reader-text' ) : array(),
 					'options'     => $kiriof_options,

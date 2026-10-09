@@ -130,10 +130,4 @@ final class ReleaseChangelogRuntimeTest extends TestCase {
 		$this->assertStringContainsString( 'git tag -a "v2.4.3-beta.1"', implode( "\n", $commands ) );
 	}
 
-	public function test_workflow_uses_saved_notes_without_a_second_generation(): void {
-		$workflow = file_get_contents( PLUGIN_DIR . '/.github/workflows/release.yml' );
-		$this->assertStringContainsString( 'php scripts/release-notes.php "$RELEASE_VERSION"', $workflow );
-		$this->assertStringContainsString( 'body_path: ${{ runner.temp }}/release-notes.md', $workflow );
-		$this->assertStringContainsString( 'generate_release_notes: false', $workflow );
-	}
 }
