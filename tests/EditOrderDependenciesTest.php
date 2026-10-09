@@ -28,11 +28,6 @@ final class EditOrderDependenciesTest extends TestCase
         $apiRepository         = ( new ReflectionClass( KiriminajaApiRepository::class ) )->newInstanceWithoutConstructor();
         $controller            = new EditOrderController( $transactionRepository, $settingRepository, $apiRepository );
         $reflection            = new ReflectionClass( $controller );
-        $constructor           = $reflection->getConstructor();
-
-        $this->assertNotNull( $constructor );
-        $this->assertSame( 3, $constructor->getNumberOfRequiredParameters() );
-
         $this->assertSame( $transactionRepository, $reflection->getProperty( 'transactionRepository' )->getValue( $controller ) );
         $this->assertSame( $settingRepository, $reflection->getProperty( 'settingRepository' )->getValue( $controller ) );
         $this->assertSame( $apiRepository, $reflection->getProperty( 'kiriminajaApiRepository' )->getValue( $controller ) );

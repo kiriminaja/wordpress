@@ -20,7 +20,6 @@ final class MapProviderAssetsRuntimeTest extends TestCase {
 			foreach ( $contexts as $name => $context ) {
 				$context['key'] = $key;
 				$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/map-provider-assets-runtime.php' ) . ' ' . escapeshellarg( json_encode( $context, JSON_THROW_ON_ERROR ) ) );
-				self::assertNotNull( $output );
 				$result = json_decode( $output, true, 512, JSON_THROW_ON_ERROR );
 				$leaflet = $forbiddenDependencies = array();
 				foreach ( array( 'scripts', 'styles' ) as $type ) {

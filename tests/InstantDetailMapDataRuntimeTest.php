@@ -40,7 +40,6 @@ final class InstantDetailMapDataRuntimeTest extends TestCase {
     private function detail(array $payload, string $mode = 'detail'): array {
         $payload = array_merge(['delivery_type' => 'instant', 'service' => 'gosend'], $payload, ['mode' => $mode]);
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
-        $this->assertNotNull($output);
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 

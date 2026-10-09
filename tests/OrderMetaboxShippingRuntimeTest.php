@@ -5,7 +5,6 @@ use PHPUnit\Framework\TestCase;
 final class OrderMetaboxShippingRuntimeTest extends TestCase {
     private function render(array $payload = []): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/order-metabox-shipping-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
-        $this->assertNotNull($output);
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 

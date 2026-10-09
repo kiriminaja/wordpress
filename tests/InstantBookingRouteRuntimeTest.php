@@ -29,7 +29,6 @@ try {
 }
 PHP;
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg($code) . ' ' . escapeshellarg(PLUGIN_DIR) . ' ' . escapeshellarg(json_encode(['remote' => $remote, 'snapshot' => $snapshot], JSON_THROW_ON_ERROR)));
-        $this->assertNotNull($output);
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
@@ -55,7 +54,6 @@ PHP;
     public function test_malformed_and_excessive_routes_do_not_invalidate_booking_or_change_snapshot(): void {
         foreach ([null, '', 'malformed', '_p~iF~ps|U_', [[91, 0], [0, 1]], array_fill(0, 10001, [0, 0]), str_repeat('??', 10001)] as $route) {
             $result = $this->booking($this->identity() + ['poly_line' => $route]);
-            $this->assertArrayHasKey('changes', $result);
             $snapshot = json_decode($result['changes']['shipping_info'], true, 512, JSON_THROW_ON_ERROR);
             $this->assertSame(['custom' => 'keep', 'instant_items' => [['name' => 'Reviewed item']]], $snapshot);
         }

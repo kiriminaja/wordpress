@@ -7,7 +7,6 @@ use PHPUnit\Framework\TestCase;
 final class TransactionDetailOrderRoutingTest extends TestCase {
     private function route( array $input ): array {
         $output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/transaction-detail-order-routing-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
-        $this->assertNotNull( $output );
         return json_decode( $output, true, 512, JSON_THROW_ON_ERROR );
     }
     private function rows(): array {

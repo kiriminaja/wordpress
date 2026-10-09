@@ -127,7 +127,6 @@ final class ShipmentDetailContractsTest extends TestCase {
             'shipping_info' => json_encode(['_kiriof_instant_admin_fee' => 9999]),
             'wc_order' => ['paid' => true, 'meta' => ['_kiriof_instant_admin_fee' => 8000], 'fees' => [['type' => 'instant_admin_fee', 'total' => 1500]]]];
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/shipment-detail-amounts-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
-        $this->assertNotNull($output);
         $shipment = json_decode($output, true, 512, JSON_THROW_ON_ERROR)['transaction']['shipment'];
         $this->assertSame([62000, 12500, 12000, 0, 12000, 200, 300, 1500, 14000], array_map(static fn($key) => $shipment['costs'][$key], ['orderTotal', 'totalShipping', 'actualShipping', 'shippingDiscount', 'shipping', 'insurance', 'codFee', 'adminFee', 'total']));
         $this->assertSame(['IN-1', 'pending', 'qris', 'Paid'], array_map(static fn($key) => $shipment[$key], ['paymentId', 'paymentStatus', 'paymentMethod', 'buyerPaymentStatus']));

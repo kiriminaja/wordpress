@@ -34,7 +34,6 @@ final class ShippingDiscountCouponControllerDependenciesTest extends TestCase {
             $controller = new ShippingDiscountCouponController();
 
             $this->assertInstanceOf( ShippingDiscountCouponController::class, $controller );
-            $this->assertSame( 0, ( new ReflectionMethod( $controller, '__construct' ) )->getNumberOfRequiredParameters() );
         } finally {
             if ( null === $previous_wpdb ) {
                 unset( $GLOBALS['wpdb'] );

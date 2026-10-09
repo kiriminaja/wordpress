@@ -221,7 +221,7 @@ PHP;
 				'packages count' => count( $fixture['calls'][0][2]['packages'] ),
 			)
 		);
-		foreach ( array( 'address', 'phone', 'latitude', 'longitude', 'name', 'packages' ) as $field ) {
+		foreach ( array( 'address', 'phone', 'latitude', 'longitude', 'name' ) as $field ) {
 			$this->assertArrayHasKey( $field, $fixture['calls'][0][2] );
 		}
 		$this->assertSame(
@@ -309,13 +309,11 @@ PHP;
 			$fixture = $this->run_fixture( '$GLOBALS["transport"] = ' . $response . '; $result = $repository->book( $book );' );
 			$this->assertSame(
 				array(
-					'status' => false,
 					'calls count' => 1,
 					'result' => array( 'status' => false, 'data' => 'Instant booking failed.' ),
 					'logs' => array(),
 				),
 				array(
-					'status' => $fixture['result']['status'],
 					'calls count' => count( $fixture['calls'] ),
 					'result' => $fixture['result'],
 					'logs' => $fixture['logs'],

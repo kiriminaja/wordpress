@@ -7,7 +7,6 @@ use PHPUnit\Framework\TestCase;
 final class BuyerOrderShipmentRuntimeTest extends TestCase {
 	private function render( array $input ): string {
 		$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/buyer-order-shipment-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
-		$this->assertNotNull( $output );
 		return json_decode( $output, true, 512, JSON_THROW_ON_ERROR )['html'];
 	}
 

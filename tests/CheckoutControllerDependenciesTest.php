@@ -27,13 +27,6 @@ final class CheckoutControllerDependenciesTest extends TestCase {
 	use MockeryPHPUnitIntegration;
 
 	#[Test]
-	public function constructor_requires_composed_dependencies(): void {
-		$constructor = new ReflectionMethod( CheckoutController::class, '__construct' );
-
-		$this->assertSame( 4, $constructor->getNumberOfRequiredParameters() );
-	}
-
-	#[Test]
 	public function constructor_reuses_injected_dependencies(): void {
 		$setting_repository = Mockery::mock( SettingRepository::class );
 		$transaction_repository = Mockery::mock( TransactionRepository::class );

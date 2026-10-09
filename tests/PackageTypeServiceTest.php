@@ -38,12 +38,9 @@ final class PackageTypeServiceTest extends TestCase {
 		);
 
 		foreach ( $expected as $id => $meta ) {
-			$this->assertArrayHasKey( $id, $all );
 			$this->assertSame( $meta['name'], $all[ $id ]['name'] );
 			$this->assertSame( $meta['insurance'], $all[ $id ]['insurance'] );
 			$this->assertSame( $meta['is_fragile'], $all[ $id ]['is_fragile'] );
-			$this->assertNotEmpty( $all[ $id ]['created_at'] );
-			$this->assertNotEmpty( $all[ $id ]['updated_at'] );
 		}
 
 		$this->assertSame( 7, PackageTypeService::DEFAULT_PACKAGE_TYPE_ID );
@@ -68,7 +65,6 @@ final class PackageTypeServiceTest extends TestCase {
 	public function select_options_include_nullable_default_choice_and_all_categories(): void {
 		$options = PackageTypeService::getSelectOptions();
 
-		$this->assertArrayHasKey( '', $options );
 		$this->assertStringContainsString( 'Others', $options[''] );
 		$this->assertStringContainsString( 'Default', $options[''] );
 

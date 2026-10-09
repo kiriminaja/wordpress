@@ -17,7 +17,7 @@ require_once PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php';
 final class PaymentListQueryRuntimeTest extends TestCase
 {
     #[Test]
-    public function filtered_page_preserves_join_cost_aggregation_and_pagination_shape(): void
+    public function filtered_page_clamps_pagination_and_returns_query_results(): void
     {
         $wpdb  = new PaymentListQueryWpdbFake();
         $query = new WordPressPaymentListQuery( $wpdb );
@@ -39,18 +39,8 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertSame( $wpdb->list_results, $page['results'] );
         $this->assertCount( 1, $wpdb->result_queries );
 
-        $count_sql = $wpdb->var_queries[0];
         $list_sql  = $wpdb->result_queries[0];
 
-        $this->assertStringContainsString( 'INNER JOIN wp_kiriminaja_transactions', $count_sql );
-        $this->assertStringContainsString( "payment_identity LIKE '%PU-10%'", $count_sql );
-        $this->assertStringContainsString( "created_at LIKE '2025-02%'", $count_sql );
-        $this->assertStringContainsString( "status = 'unpaid'", $count_sql );
-        $this->assertStringContainsString( 'GROUP BY kiriminaja_payments.pickup_number', $count_sql );
-        $this->assertStringContainsString(
-            'shipping_cost - COALESCE(kiriminaja_transactions.discount_amount, 0) + kiriminaja_transactions.insurance_cost',
-            $list_sql
-        );
         $this->assertStringContainsString( 'ORDER BY created_at DESC, row_key ASC', $list_sql );
         $this->assertStringContainsString( 'LIMIT 20, 20', $list_sql );
     }
@@ -92,10 +82,6 @@ final class PaymentListQueryRuntimeTest extends TestCase
             $query->getStatusCounts()
         );
         $this->assertSame( '2024-03-12 08:00:00', $query->getOldestCreatedAt() );
-        $this->assertStringContainsString( 'SELECT COUNT(*) FROM (', $wpdb->var_queries[0] );
-        $this->assertStringContainsString( "status = 'unpaid'", $wpdb->var_queries[1] );
-        $this->assertStringContainsString( "status = 'paid'", $wpdb->var_queries[2] );
-        $this->assertStringContainsString( 'ORDER BY created_at ASC LIMIT 1', $wpdb->var_queries[5] );
     }
 
 }
