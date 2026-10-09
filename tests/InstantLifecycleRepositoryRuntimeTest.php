@@ -39,9 +39,19 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
     public function metadata_only_zero_row_write_cannot_bypass_any_snapshot_guard(): void {
         foreach ( array( 'status' => 'canceled', 'instant_status_code' => 350, 'instant_payment_status' => 'refunded', 'instant_payment_id' => 'PAY-2', 'awb' => '' ) as $field => $value ) {
             [ $repo, $db ] = $this->repository( array( $field => $value, 'rejected_reason' => 'already applied' ) );
-            $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), array( 'rejected_reason' => 'already applied' ) ), $field );
-            $this->assertCount( 1, $db->updates );
-            $this->assertSame( 1, $db->reads );
+            $this->assertSame(
+                [
+                    'repo.compareAndSwapInstant( \'KA-1\', this.expected(), array( \'rejected_reason\' => \'already applied\' ) )' => false,
+                    'count(db.updates)' => 1,
+                    '.reads' => 1,
+                ],
+                [
+                    'repo.compareAndSwapInstant( \'KA-1\', this.expected(), array( \'rejected_reason\' => \'already applied\' ) )' => $repo->compareAndSwapInstant( 'KA-1', $this->expected(), array( 'rejected_reason' => 'already applied' ) ),
+                    'count(db.updates)' => count($db->updates),
+                    '.reads' => $db->reads,
+                ],
+                $field
+            );
         }
     }
 
@@ -49,14 +59,33 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
     public function overwritten_expectations_allow_only_the_exact_idempotent_final_state(): void {
         [ $repo, $db ] = $this->repository();
         $changes = array( 'status' => 'request_pickup', 'instant_status_code' => '000101', 'instant_payment_status' => ' PAID ' );
-        $this->assertTrue( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ) );
-        $this->assertSame( 0, $db->reads );
-        $this->assertSame( 101, $db->updates[0][0]['instant_status_code'] );
+        $this->assertSame(
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', this.expected(), changes )' => true,
+                '.reads' => 0,
+                '.updates.0.0.instant_status_code' => 101,
+            ],
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', this.expected(), changes )' => $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ),
+                '.reads' => $db->reads,
+                '.updates.0.0.instant_status_code' => $db->updates[0][0]['instant_status_code'],
+            ],
+            __FUNCTION__
+        );
         $db->row['instant_status_code'] = '101';
         $this->assertTrue( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ) );
         $db->row['status'] = 'shipped';
-        $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ) );
-        $this->assertSame( 'instant', $db->updates[0][1]['delivery_type'] );
+        $this->assertSame(
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', this.expected(), changes )' => false,
+                '.updates.0.1.delivery_type' => 'instant',
+            ],
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', this.expected(), changes )' => $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ),
+                '.updates.0.1.delivery_type' => $db->updates[0][1]['delivery_type'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
@@ -80,21 +109,49 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
         );
         foreach ( $invalid as $changes ) {
             [ $repo, $db ] = $this->repository();
-            $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ) );
-            $this->assertSame( array(), $db->updates );
-            $this->assertSame( 0, $db->reads );
+            $this->assertSame(
+                [
+                    'repo.compareAndSwapInstant( \'KA-1\', this.expected(), changes )' => false,
+                    '.updates' => array(),
+                    '.reads' => 0,
+                ],
+                [
+                    'repo.compareAndSwapInstant( \'KA-1\', this.expected(), changes )' => $repo->compareAndSwapInstant( 'KA-1', $this->expected(), $changes ),
+                    '.updates' => $db->updates,
+                    '.reads' => $db->reads,
+                ],
+                __FUNCTION__
+            );
         }
         [ $repo, $db ] = $this->repository();
-        $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', array( 'status' => 'pending' ), array( 'rejected_reason' => null ) ) );
-        $this->assertSame( array(), $db->updates );
+        $this->assertSame(
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', array( \'status\' => \'pending\' ), array( \'rejected_reason\' => null ) )' => false,
+                '.updates' => array(),
+            ],
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', array( \'status\' => \'pending\' ), array( \'rejected_reason\' => null ) )' => $repo->compareAndSwapInstant( 'KA-1', array( 'status' => 'pending' ), array( 'rejected_reason' => null ) ),
+                '.updates' => $db->updates,
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function expected_snapshot_is_not_normalized_and_express_never_matches(): void {
         [ $repo, $db ] = $this->repository();
         $expected = array_replace( $this->expected(), array( 'instant_payment_status' => ' PAID ' ) );
-        $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $expected, array( 'rejected_reason' => null ) ) );
-        $this->assertSame( ' PAID ', $db->updates[0][1]['instant_payment_status'] );
+        $this->assertSame(
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', expected, array( \'rejected_reason\' => null ) )' => false,
+                '.updates.0.1.instant_payment_status' => ' PAID ',
+            ],
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', expected, array( \'rejected_reason\' => null ) )' => $repo->compareAndSwapInstant( 'KA-1', $expected, array( 'rejected_reason' => null ) ),
+                '.updates.0.1.instant_payment_status' => $db->updates[0][1]['instant_payment_status'],
+            ],
+            __FUNCTION__
+        );
         [ $repo ] = $this->repository( array( 'delivery_type' => 'express' ) );
         $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), array( 'rejected_reason' => null ) ) );
     }
@@ -106,13 +163,27 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                 foreach ( array( null, '', 'AWB-1' ) as $awb ) {
                     [ $repo, $db ] = $this->repository( array( 'service' => $service, 'instant_status_code' => $code, 'awb' => $awb ) );
                     $competitor = new InstantLifecycleRepositoryCacheSpy();
-                    $this->assertTrue( $repo->claimInstantCancellation( 'KA-1', $code ) );
-                    $this->assertFalse( $competitor->claimInstantCancellation( 'KA-1', $code ) );
-                    $this->assertSame( 350, $db->row['instant_status_code'] );
-                    $this->assertSame( 'Instant cancellation requires reconciliation.', $db->row['rejected_reason'] );
-                    $this->assertSame( 0, $db->reads );
-                    $this->assertSame( 1, $repo->invalidations );
-                    $this->assertSame( 0, $competitor->invalidations );
+                    $this->assertSame(
+                        [
+                            'repo.claimInstantCancellation( \'KA-1\', code )' => true,
+                            'competitor.claimInstantCancellation( \'KA-1\', code )' => false,
+                            '.row.instant_status_code' => 350,
+                            '.row.rejected_reason' => 'Instant cancellation requires reconciliation.',
+                            '.reads' => 0,
+                            'repo.invalidations' => 1,
+                            'competitor.invalidations' => 0,
+                        ],
+                        [
+                            'repo.claimInstantCancellation( \'KA-1\', code )' => $repo->claimInstantCancellation( 'KA-1', $code ),
+                            'competitor.claimInstantCancellation( \'KA-1\', code )' => $competitor->claimInstantCancellation( 'KA-1', $code ),
+                            '.row.instant_status_code' => $db->row['instant_status_code'],
+                            '.row.rejected_reason' => $db->row['rejected_reason'],
+                            '.reads' => $db->reads,
+                            'repo.invalidations' => $repo->invalidations,
+                            'competitor.invalidations' => $competitor->invalidations,
+                        ],
+                        __FUNCTION__
+                    );
                 }
             }
         }
@@ -129,9 +200,19 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
         foreach ( $blocked as $changes ) {
             [ $repo, $db ] = $this->repository( $changes );
             $before = $db->row;
-            $this->assertFalse( $repo->claimInstantCancellation( 'KA-1', 100 ) );
-            $this->assertSame( $before, $db->row );
-            $this->assertSame( 0, $repo->invalidations );
+            $this->assertSame(
+                [
+                    'repo.claimInstantCancellation( \'KA-1\', 100 )' => false,
+                    '.row' => $before,
+                    'repo.invalidations' => 0,
+                ],
+                [
+                    'repo.claimInstantCancellation( \'KA-1\', 100 )' => $repo->claimInstantCancellation( 'KA-1', 100 ),
+                    '.row' => $db->row,
+                    'repo.invalidations' => $repo->invalidations,
+                ],
+                __FUNCTION__
+            );
         }
         [ $repo ] = $this->repository();
         $this->assertFalse( $repo->claimInstantCancellation( 'KA-1', 101 ) );
@@ -144,29 +225,67 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
         foreach ( array( false, 0, 2, '1' ) as $result ) {
             [ $repo, $db ] = $this->repository();
             $db->forcedResult = $result;
-            $this->assertFalse( $repo->claimInstantCancellation( 'KA-1', 100 ) );
-            $this->assertSame( 0, $repo->invalidations );
+            $this->assertSame(
+                [
+                    'repo.claimInstantCancellation( \'KA-1\', 100 )' => false,
+                    'repo.invalidations' => 0,
+                ],
+                [
+                    'repo.claimInstantCancellation( \'KA-1\', 100 )' => $repo->claimInstantCancellation( 'KA-1', 100 ),
+                    'repo.invalidations' => $repo->invalidations,
+                ],
+                __FUNCTION__
+            );
         }
         [ $repo, $db ] = $this->repository();
         $db->forcedResult = false;
-        $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $this->expected(), array( 'rejected_reason' => null ) ) );
-        $this->assertSame( 0, $db->reads );
+        $this->assertSame(
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', this.expected(), array( \'rejected_reason\' => null ) )' => false,
+                '.reads' => 0,
+            ],
+            [
+                'repo.compareAndSwapInstant( \'KA-1\', this.expected(), array( \'rejected_reason\' => null ) )' => $repo->compareAndSwapInstant( 'KA-1', $this->expected(), array( 'rejected_reason' => null ) ),
+                '.reads' => $db->reads,
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function ids_are_exact_and_sql_placeholders_are_prepared_even_for_injection_strings(): void {
         foreach ( array( '000123', "KA-' OR 1=1 -- %s", 'KA-雪' ) as $id ) {
             [ $repo, $db ] = $this->repository( array( 'order_id' => $id ) );
-            $this->assertFalse( $repo->claimInstantCancellation( 'different-id', 100 ) );
-            $this->assertTrue( $repo->claimInstantCancellation( $id, 100 ) );
-            $this->assertSame( array( $id, 100 ), $db->prepared[1][1] );
+            $this->assertSame(
+                [
+                    'repo.claimInstantCancellation( \'different-id\', 100 )' => false,
+                    'repo.claimInstantCancellation( id, 100 )' => true,
+                    '.prepared.1.1' => array( $id, 100 ),
+                ],
+                [
+                    'repo.claimInstantCancellation( \'different-id\', 100 )' => $repo->claimInstantCancellation( 'different-id', 100 ),
+                    'repo.claimInstantCancellation( id, 100 )' => $repo->claimInstantCancellation( $id, 100 ),
+                    '.prepared.1.1' => $db->prepared[1][1],
+                ],
+                __FUNCTION__
+            );
             foreach ( $db->prepared as [ $sql, $args ] ) {
                 $this->assertSame( count( $args ), preg_match_all( '/%[sd]/', $sql ) );
             }
             [ $repo, $db ] = $this->repository( array( 'order_id' => $id ) );
-            $this->assertTrue( $repo->compareAndSwapInstant( $id, $this->expected(), array( 'rejected_reason' => 'updated' ) ) );
-            $this->assertSame( $id, $db->updates[0][1]['order_id'] );
-            $this->assertFalse( $repo->compareAndSwapInstant( 'different-id', $this->expected(), array( 'rejected_reason' => 'updated' ) ) );
+            $this->assertSame(
+                [
+                    'repo.compareAndSwapInstant( id, this.expected(), array( \'rejected_reason\' => \'updated\' ) )' => true,
+                    '.updates.0.1.order_id' => $id,
+                    'repo.compareAndSwapInstant( \'different-id\', this.expected(), array( \'rejected_reason\' => \'updated\' ) )' => false,
+                ],
+                [
+                    'repo.compareAndSwapInstant( id, this.expected(), array( \'rejected_reason\' => \'updated\' ) )' => $repo->compareAndSwapInstant( $id, $this->expected(), array( 'rejected_reason' => 'updated' ) ),
+                    '.updates.0.1.order_id' => $db->updates[0][1]['order_id'],
+                    'repo.compareAndSwapInstant( \'different-id\', this.expected(), array( \'rejected_reason\' => \'updated\' ) )' => $repo->compareAndSwapInstant( 'different-id', $this->expected(), array( 'rejected_reason' => 'updated' ) ),
+                ],
+                __FUNCTION__
+            );
         }
     }
 }

@@ -17,13 +17,12 @@ final class TransactionMultiFilterDatabaseTest extends TestCase
         }
         $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-multi-filter-database.php') . ' ' . escapeshellarg(json_encode(['hpos' => $hpos, 'requests' => $requests], JSON_THROW_ON_ERROR));
         $output = shell_exec($command);
-        $this->assertNotNull($output, 'Database fixture must execute successfully.');
         $responses = json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
-        $this->assertCount(count($requests), $responses);
-        foreach ($responses as $response) {
-            $this->assertSame('', $response['last_error'], implode("\n", $response['queries']));
-            $this->assertNotEmpty($response['queries'], 'Must execute SQL, not return canned rows/counts.');
+        $execution = [];
+        foreach ($responses as $index => $response) {
+            $execution[$index] = ['error' => $response['last_error'], 'executed' => [] !== $response['queries']];
         }
+        $this->assertSame(array_fill(0, count($requests), ['error' => '', 'executed' => true]), $execution);
         return $responses;
     }
 
@@ -35,11 +34,14 @@ final class TransactionMultiFilterDatabaseTest extends TestCase
     private function assertSet(array $expected, array $response, string $message = ''): void
     {
         $actual = $this->ids($response);
-        $this->assertCount(count(array_unique($actual)), $actual, 'Rows must be unique. ' . $message);
         sort($expected);
         sort($actual);
-        $this->assertSame($expected, $actual, $message . "\n" . implode("\n", $response['queries']));
-        $this->assertSame(count($expected), $response['page']['total'], 'Executed count must agree with full result set. ' . $message);
+        // Keeping duplicates in actual IDs also proves uniqueness.
+        $this->assertSame(
+            ['ids' => $expected, 'total' => count($expected)],
+            ['ids' => $actual, 'total' => $response['page']['total']],
+            $message . "\n" . implode("\n", $response['queries'])
+        );
     }
 
     #[Test]
@@ -150,11 +152,10 @@ final class TransactionMultiFilterDatabaseTest extends TestCase
                 $seen = [];
                 foreach ($responses as $i => $response) {
                     $expectedPage = min($i + 1, $pages);
-                    $this->assertSame(count($orderedIds), $response['page']['total']);
-                    $this->assertSame($pages, $response['page']['total_pages']);
-                    $this->assertSame($expectedPage, $response['page']['page']);
-                    $this->assertSame(2, $response['page']['items_per_page']);
-                    $this->assertSame(array_slice($orderedIds, ($expectedPage - 1) * 2, 2), $this->ids($response));
+                    $this->assertSame(
+                        ['total' => count($orderedIds), 'total_pages' => $pages, 'page' => $expectedPage, 'items_per_page' => 2, 'ids' => array_slice($orderedIds, ($expectedPage - 1) * 2, 2)],
+                        ['total' => $response['page']['total'], 'total_pages' => $response['page']['total_pages'], 'page' => $response['page']['page'], 'items_per_page' => $response['page']['items_per_page'], 'ids' => $this->ids($response)]
+                    );
                     if ($i < $pages) { $seen = array_merge($seen, $this->ids($response)); }
                 }
                 $this->assertSame($orderedIds, $seen);

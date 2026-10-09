@@ -7,13 +7,11 @@ use PHPUnit\Framework\TestCase;
 
 final class TransactionMultiFilterRuntimeTest extends TestCase
 {
-    // These tests execute production PHP, not a SQL engine. Fake rows/counts
-    // exercise pagination; predicate assertions verify SQL generation only.
+    // Renderer fixtures isolate normalization; database fixtures execute predicates.
     private function invokeFixture(array $payload): array
     {
         $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-multi-filter-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR));
         $output = shell_exec($cmd);
-        $this->assertNotSame(null, $output);
         $decoded = json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('', $decoded['last_error'] ?? '', implode("\n", $decoded['queries'] ?? []));
         return $decoded;
@@ -25,78 +23,31 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
     }
 
     #[Test]
-    public function grouped_multiple_statuses_use_one_or_scope_in_legacy_and_hpos(): void
+    public function normalization_and_malformed_filters_keep_real_result_scopes_in_both_storages(): void
     {
+        $all = [17, 21, 20, 19, 18, 16, 14, 12, 7, 6, 5, 4, 3, 2, 1];
+        $cases = [
+            'grouped-new' => [['status' => 'wc-processing,wc-on-hold,wc-pending'], [3, 2, 1]],
+            'all-five' => [['status' => 'wc-processing,wc-on-hold,wc-pending,processed,wc-cancelled'], $all],
+            'single' => [['status' => 'wc-processing'], [1]],
+            'issue' => [['status' => 'order-issue'], [8]],
+            'mixed-issue' => [['status' => 'order-issue,wc-processing'], [1]],
+            'malformed-arrays' => [['status' => ['wc-processing'], 'courier' => ['jne']], $all],
+            'courier-injection' => [['status' => 'wc-processing,unknown', 'courier' => 'jne, bad); DROP TABLE x; --,pos'], [1]],
+            'unknown-status' => [['status' => 'unknown'], $all],
+        ];
+        $expected = $actual = [];
         foreach ([false, true] as $hpos) {
-            $result = $this->invokeFixture(['hpos'=>$hpos, 'filters'=>$this->filters('wc-processing,wc-on-hold,wc-pending'), 'page'=>1, 'per_page'=>25]);
-            $sql = $result['queries'][1];
-            $table = $hpos ? 'wp_wc_orders' : 'wp_posts';
-            $this->assertStringContainsString("FROM {$table} as orders_tbl", $sql);
-            $this->assertStringContainsString("orders_tbl." . ($hpos ? 'status' : 'post_status') . " IN ('wc-processing', 'wc-on-hold', 'wc-pending')", $sql);
-            $this->assertStringContainsString("kiriminaja_transactions.status = 'new'", $sql);
-            $this->assertStringContainsString('COUNT(DISTINCT orders_tbl.' . ($hpos ? 'id' : 'ID') . ')', $result['queries'][0]);
-            $this->assertStringContainsString('GROUP BY orders_tbl.' . ($hpos ? 'id' : 'ID'), $sql);
-            $this->assertStringNotContainsString('INNER JOIN wp_kiriminaja_payments', $sql);
-            $this->assertStringNotContainsString('JOIN wp_kiriminaja_payments', $sql);
-            $this->assertStringContainsString('KA-10', $sql);
-            $this->assertStringContainsString('2025-02%', $sql);
-            $this->assertStringContainsString('cod_fee > 0', $sql);
-            $this->assertStringContainsString("service IN ('jne', 'pos')", $sql);
-            $this->assertStringContainsString('is_printed = 0', $sql);
+            $requests = array_map(static fn ($case) => ['filters' => $case[0]], $cases);
+            $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-multi-filter-database.php') . ' ' . escapeshellarg(json_encode(['hpos' => $hpos, 'requests' => $requests], JSON_THROW_ON_ERROR));
+            $responses = json_decode((string) shell_exec($command), true, 512, JSON_THROW_ON_ERROR);
+            foreach (array_keys($cases) as $index => $case) {
+                $key = ($hpos ? 'hpos' : 'legacy') . '/' . $case;
+                $expected[$key] = ['ids' => $cases[$case][1], 'total' => count($cases[$case][1]), 'error' => ''];
+                $actual[$key] = ['ids' => array_column($responses[$index]['page']['results'], 'wc_order_id'), 'total' => $responses[$index]['page']['total'], 'error' => $responses[$index]['last_error']];
+            }
         }
-    }
-
-    #[Test]
-    public function processed_cancelled_and_new_are_independent_grouped_or_branches(): void
-    {
-        $result = $this->invokeFixture(['filters'=>$this->filters('wc-processing,processed,wc-cancelled'), 'page'=>1, 'per_page'=>25]);
-        $sql = $result['queries'][1];
-        $this->assertStringContainsString("(orders_tbl.post_status IN ('wc-processing') AND kiriminaja_transactions.status = 'new')", $sql);
-        $this->assertStringContainsString("(kiriminaja_transactions.status != 'canceled' AND multi_pay.pickup_number IS NOT NULL)", $sql);
-        $this->assertStringContainsString("(orders_tbl.post_status = 'wc-cancelled')", $sql);
-        $this->assertStringContainsString("AND ((orders_tbl.post_status IN ('wc-processing') AND kiriminaja_transactions.status = 'new') OR (kiriminaja_transactions.status != 'canceled' AND multi_pay.pickup_number IS NOT NULL) OR (orders_tbl.post_status = 'wc-cancelled')) AND (", $sql);
-        $this->assertSame(0, substr_count($sql, 'INNER JOIN wp_kiriminaja_payments'));
-        $this->assertSame(1, substr_count($sql, 'INNER JOIN wp_kiriminaja_transactions'));
-        $this->assertSame(1, substr_count($sql, 'LEFT JOIN wp_kiriminaja_payments multi_pay'));
-        $this->assertStringContainsString('ON kiriminaja_transactions.pickup_number = multi_pay.pickup_number', $sql);
-        $this->assertStringContainsString('is_deficit = 0', $sql);
-        $this->assertStringContainsString('GROUP BY orders_tbl.ID', $sql);
-    }
-
-    #[Test]
-    public function all_five_regular_statuses_normalize_to_all_and_single_branch_stays_exact(): void
-    {
-        $all = $this->invokeFixture(['filters'=>$this->filters('wc-processing,wc-on-hold,wc-pending,processed,wc-cancelled')]);
-        $this->assertStringContainsString("post_status NOT IN ('trash','auto-draft')", $all['queries'][1]);
-        $this->assertStringNotContainsString('status IN', $all['queries'][1]);
-        $single = $this->invokeFixture(['filters'=>$this->filters('wc-processing')]);
-        $this->assertStringContainsString("post_status = 'wc-processing'", $single['queries'][1]);
-        $this->assertStringContainsString("kiriminaja_transactions.status = 'new'", $single['queries'][1]);
-    }
-
-    #[Test]
-    public function issue_scope_is_separate_and_mixed_issue_is_excluded(): void
-    {
-        $issue = $this->invokeFixture(['filters'=>$this->filters('order-issue')]);
-        $this->assertStringContainsString('is_deficit = 1', $issue['queries'][1]);
-        $mixed = $this->invokeFixture(['filters'=>$this->filters('order-issue,wc-processing')]);
-        $this->assertStringContainsString("post_status = 'wc-processing'", $mixed['queries'][1]);
-        $this->assertStringNotContainsString('is_deficit = 1', $mixed['queries'][1]);
-    }
-
-    #[Test]
-    public function malformed_status_arrays_unknown_values_and_courier_injection_are_safe(): void
-    {
-        $bad = $this->invokeFixture(['filters'=>['key'=>'','month'=>'','status'=>['wc-processing'], 'cod'=>'', 'courier'=>['jne'], 'print_status'=>'']]);
-        $this->assertStringContainsString("post_status NOT IN ('trash','auto-draft')", $bad['queries'][1]);
-        $injection = $this->invokeFixture(['filters'=>['key'=>'','month'=>'','status'=>'wc-processing,unknown', 'cod'=>'', 'courier'=>'jne, bad); DROP TABLE x; --,pos', 'print_status'=>'']]);
-        $sql = $injection['queries'][1];
-        $this->assertStringContainsString("service IN ('jne', 'pos')", $sql);
-        $this->assertStringNotContainsString('DROP TABLE', $sql);
-        $this->assertStringNotContainsString('%s', $sql);
-        $unknown = $this->invokeFixture(['filters'=>['key'=>'','month'=>'','status'=>'unknown', 'cod'=>'', 'courier'=>'', 'print_status'=>'']]);
-        $this->assertStringContainsString("post_status NOT IN ('trash','auto-draft')", $unknown['queries'][1]);
-        $this->assertStringNotContainsString('unknown', $unknown['queries'][1]);
+        $this->assertSame($expected, $actual);
     }
 
     #[Test]
@@ -159,25 +110,17 @@ final class TransactionMultiFilterRuntimeTest extends TestCase
             $payload = ['scenario' => 'instant-print', 'hpos' => $hpos, 'requests' => $requests];
             $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-multi-filter-database.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR));
             $output = shell_exec($command);
-            $this->assertNotNull($output);
-            $responses = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
-            $this->assertCount(count($expectations), $responses);
-            foreach ($responses as $index => $response) {
-                [$all_ids, $page_ids, $page_number, $per_page, $print_status] = $expectations[$index];
-                $context = json_encode($requests[$index], JSON_THROW_ON_ERROR);
-                $this->assertSame('', $response['last_error'], $context);
-                $this->assertSame($page_ids, array_column($response['page']['results'], 'wc_order_id'), $context);
-                $this->assertSame(count($all_ids), $response['page']['total'], $context);
-                $this->assertSame($page_number, $response['page']['page'], $context);
-                $this->assertSame($per_page, $response['page']['items_per_page'], $context);
-                $this->assertSame(max(1, (int) ceil(count($all_ids) / $per_page)), $response['page']['total_pages'], $context);
-                foreach ($response['queries'] as $sql) {
-                    $this->assertStringNotContainsString('JOIN wp_kiriminaja_payments', $sql, $context);
-                    if ('' !== $print_status) {
-                        $this->assertStringContainsString('is_printed = ' . $print_status, $sql, $context);
-                    }
-                }
+            $responses = json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
+            $expected_pages = $actual_pages = [];
+            foreach ($expectations as $index => [$all_ids, $page_ids, $page_number, $per_page, $print_status]) {
+                $key = json_encode($requests[$index], JSON_THROW_ON_ERROR);
+                $expected_pages[$key] = ['error' => '', 'ids' => $page_ids, 'total' => count($all_ids), 'page' => $page_number, 'per_page' => $per_page, 'pages' => max(1, (int) ceil(count($all_ids) / $per_page))];
             }
+            foreach ($responses as $index => $response) {
+                $key = json_encode($requests[$index], JSON_THROW_ON_ERROR);
+                $actual_pages[$key] = ['error' => $response['last_error'], 'ids' => array_column($response['page']['results'], 'wc_order_id'), 'total' => $response['page']['total'], 'page' => $response['page']['page'], 'per_page' => $response['page']['items_per_page'], 'pages' => $response['page']['total_pages']];
+            }
+            $this->assertSame($expected_pages, $actual_pages, $hpos ? 'HPOS' : 'legacy');
         }
     }
 

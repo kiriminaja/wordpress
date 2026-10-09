@@ -46,38 +46,56 @@ final class ListDateRangeRuntimeTest extends TestCase {
 
     #[Test]
     public function every_storage_status_and_partition_filters_rows_and_contextual_count_not_global_counters(): void {
+        $scopes = [
+            'express' => ['all' => [6, 5, 4], 'processed' => [6, 4], 'order-issue' => [], 'wc-cancelled' => [6, 5], 'wc-processing' => [], 'wc-on-hold' => [], 'wc-pending' => [], 'processed,wc-processing,wc-cancelled' => [6, 5, 4]],
+            'instant' => ['all' => [6, 5, 4], 'processed' => [6, 5], 'order-issue' => [], 'wc-cancelled' => [], 'wc-processing' => [], 'wc-on-hold' => [], 'wc-pending' => [4], 'processed,wc-processing,wc-cancelled' => [6, 5]],
+        ];
+        $expected = $actual = [];
         foreach ([false, true] as $hpos) {
-            foreach (['express', 'instant'] as $delivery) {
-                foreach (['all', 'processed', 'order-issue', 'wc-cancelled', 'wc-processing', 'wc-on-hold', 'wc-pending', 'processed,wc-processing,wc-cancelled'] as $status) {
-                    $result = $this->runFixture('transaction-delivery-runtime', ['hpos'=>$hpos, 'filters'=>['delivery_type'=>$delivery, 'status'=>$status, 'month'=>'2024-01', 'date_from'=>'2025-02-28', 'date_to'=>'2025-03-01']]);
-                    $column = $hpos ? 'date_created_gmt' : 'post_date';
-                    foreach (array_slice($result['queries'], 0, 4) as $sql) {
-                        $this->assertStringContainsString("orders_tbl.$column >= '2025-02-28 00:00:00'", $sql);
-                        $this->assertStringContainsString("orders_tbl.$column < '2025-03-02 00:00:00'", $sql);
-                        $this->assertStringNotContainsString('2024-01', $sql);
-                        $this->assertStringNotContainsString('BETWEEN', $sql);
-                    }
-                    foreach (array_slice($result['queries'], 4) as $sql) {
-                        $this->assertStringNotContainsString('2025-02-28', $sql);
-                    }
-                    $args = array_merge(...array_column($result['prepared'], 1));
-                    $this->assertContains('2025-02-28 00:00:00', $args);
-                    $this->assertContains('2025-03-02 00:00:00', $args);
+            foreach ($scopes as $delivery => $statuses) {
+                $requests = [];
+                foreach ($statuses as $status => $ids) {
+                    $requests[] = ['filters' => ['delivery_type' => $delivery, 'status' => $status, 'month' => '2024-01', 'date_from' => '2025-02-04', 'date_to' => '2025-02-06']];
                 }
+                $responses = $this->runFixture('transaction-multi-filter-database', ['hpos' => $hpos, 'scenario' => 'instant' === $delivery ? 'instant-print' : '', 'requests' => $requests]);
+                foreach (array_keys($statuses) as $index => $status) {
+                    $key = ($hpos ? 'hpos' : 'legacy') . '/' . $delivery . '/' . $status;
+                    $expected[$key] = ['ids' => $statuses[$status], 'total' => count($statuses[$status]), 'error' => ''];
+                    $actual[$key] = ['ids' => array_column($responses[$index]['page']['results'], 'wc_order_id'), 'total' => $responses[$index]['page']['total'], 'error' => $responses[$index]['last_error']];
+                }
+                $badges = $this->runFixture('transaction-badge-counts-runtime', ['hpos' => $hpos, 'requests' => [
+                    ['filters' => ['delivery_type' => $delivery]],
+                    ['filters' => ['delivery_type' => $delivery, 'date_from' => '2025-02-04', 'date_to' => '2025-02-06']],
+                ]]);
+                $key = ($hpos ? 'hpos' : 'legacy') . '/' . $delivery . '/global-counts';
+                $expected[$key] = [$badges[0]['counts'], $badges[0]['status_counts']];
+                $actual[$key] = [$badges[1]['counts'], $badges[1]['status_counts']];
             }
         }
+        $this->assertSame($expected, $actual);
     }
 
     #[Test]
     public function malformed_inverted_and_array_endpoints_fail_closed_and_maximum_day_does_not_overflow(): void {
-        foreach ([['date_from'=>'2025-02-29'], ['date_to'=>'2025-2-01'], ['date_from'=>['2025-01-01']], ['date_to'=>"2025-01-01' OR 1=1"], ['date_from'=>'2025-03-01','date_to'=>'2025-02-28']] as $filters) {
-            $result = $this->runFixture('transaction-delivery-runtime', ['filters'=>$filters + ['month'=>'2024-01']]);
-            $this->assertStringContainsString('AND 1 = 0', $result['queries'][0]);
-            $this->assertStringNotContainsString('2024-01', $result['queries'][0]);
+        $cases = [
+            'invalid-leap-day' => ['date_from' => '2025-02-29'],
+            'non-padded' => ['date_to' => '2025-2-01'],
+            'array' => ['date_from' => ['2025-01-01']],
+            'injection' => ['date_to' => "2025-01-01' OR 1=1"],
+            'inverted' => ['date_from' => '2025-03-01', 'date_to' => '2025-02-28'],
+            'maximum' => ['date_to' => '9999-12-31'],
+        ];
+        $expected = $actual = [];
+        foreach ([false, true] as $hpos) {
+            $requests = array_map(static fn ($filters) => ['filters' => $filters + ['month' => '2024-01']], $cases);
+            $responses = $this->runFixture('transaction-multi-filter-database', ['hpos' => $hpos, 'requests' => $requests]);
+            foreach (array_keys($cases) as $index => $case) {
+                $key = ($hpos ? 'hpos' : 'legacy') . '/' . $case;
+                $expected[$key] = ['total' => 'maximum' === $case ? 15 : 0, 'error' => ''];
+                $actual[$key] = ['total' => $responses[$index]['page']['total'], 'error' => $responses[$index]['last_error']];
+            }
         }
-        $result = $this->runFixture('transaction-delivery-runtime', ['filters'=>['date_to'=>'9999-12-31']]);
-        $this->assertStringNotContainsString('10000', implode(' ', $result['queries']));
-        $this->assertStringContainsString('orders_tbl.post_date IS NOT NULL', $result['queries'][0]);
+        $this->assertSame($expected, $actual);
     }
 
     #[Test]

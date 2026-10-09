@@ -73,20 +73,44 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $expected=array('processed_shipment'=>array(105,'request_pickup'),'shipped'=>array(106,'shipped'),'canceled'=>array(300,'canceled'),'finished'=>array(200,'finished'));
         foreach($examples as $name=>$body) {
             $r=$this->runFixture(array('events'=>array(),'row'=>array('awb'=>null,'instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'webhook'=>$body));
-            $this->assertSame(200,$r['webhook']['http_status'],$name);
-            $this->assertSame($expected[$name][0],$r['row']['instant_status_code']);
-            $this->assertSame($expected[$name][1],$r['row']['status']);
-            $this->assertSame('paid',$r['row']['instant_payment_status']);
-            $this->assertSame('AWB-1',$r['row']['awb']);
-            $this->assertSame('finished'===$name?'completed':'processing',$r['woo']['status']);
-            $this->assertStringNotContainsString('Fixture street',json_encode($r['row']));
-            $this->assertStringNotContainsString('some-random-qr-string',json_encode($r['row']));
+            $this->assertSame(
+                [
+                    'webhook.http_status' => 200,
+                    'row.instant_status_code' => $expected[$name][0],
+                    'row.status' => $expected[$name][1],
+                    'row.instant_payment_status' => 'paid',
+                    'row.awb' => 'AWB-1',
+                    'woo.status' => 'finished'===$name?'completed':'processing',
+                    'redaction: json_encode(r.row), \'Fixture street\'' => 0,
+                    'redaction: json_encode(r.row), \'some-random-qr-string\'' => 0,
+                ],
+                [
+                    'webhook.http_status' => $r['webhook']['http_status'],
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'row.status' => $r['row']['status'],
+                    'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                    'row.awb' => $r['row']['awb'],
+                    'woo.status' => $r['woo']['status'],
+                    'redaction: json_encode(r.row), \'Fixture street\'' => substr_count(json_encode($r['row']), 'Fixture street'),
+                    'redaction: json_encode(r.row), \'some-random-qr-string\'' => substr_count(json_encode($r['row']), 'some-random-qr-string'),
+                ],
+                $name
+            );
             if('shipped'===$name) $this->assertSame('2025-08-05 07:00:05',$r['row']['shipped_at']);
             if('finished'===$name) $this->assertSame('2025-08-05 07:00:43',$r['row']['finished_at']);
             if('processed_shipment'===$name) {
                 $snapshot=json_decode($r['row']['shipping_info'],true);
-                $this->assertCount(3,$snapshot['instant_route_points']);
-                $this->assertArrayNotHasKey('poly_line',$snapshot);
+                $this->assertSame(
+                    [
+                        'count(snapshot.instant_route_points)' => 3,
+                        'absent fields: snapshot, .poly_line\' => true' => [],
+                    ],
+                    [
+                        'count(snapshot.instant_route_points)' => count($snapshot['instant_route_points']),
+                        'absent fields: snapshot, .poly_line\' => true' => array_intersect_key($snapshot, ['poly_line' => true]),
+                    ],
+                    __FUNCTION__
+                );
             }
         }
     }
@@ -98,15 +122,34 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
                 $body=array('method'=>$method,'data'=>array(array('order_id'=>'KA-1','date'=>'2025-08-05T07:00:05.123456Z')));
                 if($null) $body['payment']=null;
                 $r=$this->runFixture(array('events'=>array(),'row'=>array('instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'webhook'=>$body));
-                $this->assertSame(200,$r['webhook']['http_status']);
-                $this->assertSame($code,$r['row']['instant_status_code']);
-                $this->assertSame('unpaid',$r['row']['instant_payment_status']);
+                $this->assertSame(
+                    [
+                        'webhook.http_status' => 200,
+                        'row.instant_status_code' => $code,
+                        'row.instant_payment_status' => 'unpaid',
+                    ],
+                    [
+                        'webhook.http_status' => $r['webhook']['http_status'],
+                        'row.instant_status_code' => $r['row']['instant_status_code'],
+                        'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                    ],
+                    __FUNCTION__
+                );
             }
         }
         $body=array('method'=>'processed_packages','data'=>array(array('order_id'=>'KA-1')),'payment'=>array('payment_id'=>'PAY-1','status_code'=>'9'));
         $r=$this->runFixture(array('events'=>array(),'row'=>array('instant_payment_status'=>'unpaid'),'webhook'=>$body));
-        $this->assertSame(200,$r['webhook']['http_status']);
-        $this->assertSame('unpaid',$r['row']['instant_payment_status']);
+        $this->assertSame(
+            [
+                'webhook.http_status' => 200,
+                'row.instant_payment_status' => 'unpaid',
+            ],
+            [
+                'webhook.http_status' => $r['webhook']['http_status'],
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
@@ -115,9 +158,19 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $event['event']='shipped_packages';
         $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"preserved"}'),'events'=>array($event,$event)));
         $snapshot=json_decode($r['row']['shipping_info'],true);
-        $this->assertSame('preserved',$snapshot['local']);
-        $this->assertCount(3,$snapshot['instant_route_points']);
-        $this->assertFalse($r['results'][1]['changed']);
+        $this->assertSame(
+            [
+                'local' => 'preserved',
+                'count(snapshot.instant_route_points)' => 3,
+                'results.1.changed' => false,
+            ],
+            [
+                'local' => $snapshot['local'],
+                'count(snapshot.instant_route_points)' => count($snapshot['instant_route_points']),
+                'results.1.changed' => $r['results'][1]['changed'],
+            ],
+            __FUNCTION__
+        );
         $stale=$event; $stale['package']['status']=105; $stale['package']['poly_line']='~pfn@c|t`TZw@z@`@'; $stale['event']='processed_packages';
         $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"preserved"}'),'events'=>array($event,$stale)));
         $this->assertSame($snapshot['instant_route_points'],json_decode($r['row']['shipping_info'],true)['instant_route_points']);
@@ -126,8 +179,17 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         foreach(array(null,'bad',str_repeat('?',100001)) as $route) {
             $event['package']['poly_line']=$route;
             $r=$this->runFixture(array('row'=>array('shipping_info'=>'{"local":"preserved"}'),'events'=>array($event)));
-            $this->assertSame('shipped',$r['row']['status']);
-            $this->assertSame('{"local":"preserved"}',$r['row']['shipping_info']);
+            $this->assertSame(
+                [
+                    'row.status' => 'shipped',
+                    'row.shipping_info' => '{"local":"preserved"}',
+                ],
+                [
+                    'row.status' => $r['row']['status'],
+                    'row.shipping_info' => $r['row']['shipping_info'],
+                ],
+                __FUNCTION__
+            );
         }
     }
     #[Test]
@@ -136,18 +198,40 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $payment = array('payment_id'=>'PAY-1','status_code'=>0,'amount'=>12000,'pay_time'=>'2026-10-05T03:12:23.446201Z');
         $body = array('method'=>'processed_packages','data'=>array(array('order_id'=>'KA-1','awb'=>'AWB-1','date'=>'2026-10-05T03:12:22Z')),'payment'=>$payment,'packages'=>array($package));
         $r = $this->runFixture(array('row'=>array('awb'=>null,'instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'events'=>array(),'webhook'=>$body));
-        $this->assertSame(200,$r['webhook']['http_status']);
-        $this->assertSame('request_pickup',$r['row']['status']);
-        $this->assertSame(105,$r['row']['instant_status_code']);
-        $this->assertSame('paid',$r['row']['instant_payment_status']);
-        $this->assertSame('AWB-1',$r['row']['awb']);
-        $this->assertSame('processing',$r['woo']['status']);
+        $this->assertSame(
+            [
+                'webhook.http_status' => 200,
+                'row.status' => 'request_pickup',
+                'row.instant_status_code' => 105,
+                'row.instant_payment_status' => 'paid',
+                'row.awb' => 'AWB-1',
+                'woo.status' => 'processing',
+            ],
+            [
+                'webhook.http_status' => $r['webhook']['http_status'],
+                'row.status' => $r['row']['status'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                'row.awb' => $r['row']['awb'],
+                'woo.status' => $r['woo']['status'],
+            ],
+            __FUNCTION__
+        );
         $event = array('package'=>$package,'payment'=>$payment,'event'=>'processed_packages');
         $r = $this->runFixture(array('row'=>array('instant_status_code'=>110,'instant_payment_status'=>'unpaid'),'events'=>array($event,$event)));
         $this->assertFalse($r['results'][1]['changed']);
         $r = $this->runFixture(array('row'=>array('status'=>'shipped','instant_status_code'=>106),'events'=>array($event)));
-        $this->assertSame('shipped',$r['row']['status']);
-        $this->assertSame(106,$r['row']['instant_status_code']);
+        $this->assertSame(
+            [
+                'row.status' => 'shipped',
+                'row.instant_status_code' => 106,
+            ],
+            [
+                'row.status' => $r['row']['status'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+            ],
+            __FUNCTION__
+        );
     }
     private function runFixture(array $input = []): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' --fixture ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
@@ -161,13 +245,27 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     #[Test]
     public function shipment_progress_is_monotonic_and_duplicates_have_no_notes(): void {
         $r = $this->runFixture(['events'=>[$this->event(106), $this->event(101), $this->event(200), $this->event(200), $this->event(300)]]);
-        $this->assertSame('finished', $r['row']['status']);
-        $this->assertSame(200, $r['row']['instant_status_code']);
-        $this->assertFalse($r['results'][1]['changed']);
-        $this->assertFalse($r['results'][3]['changed']);
-        $this->assertFalse($r['results'][4]['changed']);
-        $this->assertSame('completed', $r['woo']['status']);
-        $this->assertCount(1, $r['woo']['notes']);
+        $this->assertSame(
+            [
+                'row.status' => 'finished',
+                'row.instant_status_code' => 200,
+                'results.1.changed' => false,
+                'results.3.changed' => false,
+                'results.4.changed' => false,
+                'woo.status' => 'completed',
+                'count(r.woo.notes)' => 1,
+            ],
+            [
+                'row.status' => $r['row']['status'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+                'results.1.changed' => $r['results'][1]['changed'],
+                'results.3.changed' => $r['results'][3]['changed'],
+                'results.4.changed' => $r['results'][4]['changed'],
+                'woo.status' => $r['woo']['status'],
+                'count(r.woo.notes)' => count($r['woo']['notes']),
+            ],
+            __FUNCTION__
+        );
         foreach ([[300,200], [200,300], [400,200], [200,400]] as $codes) {
             $r = $this->runFixture(['events'=>[$this->event($codes[0]), $this->event($codes[1])]]);
             $this->assertSame($codes[0], $r['row']['instant_status_code']);
@@ -178,8 +276,17 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     public function invalid_identity_and_unknown_codes_never_write(): void {
         foreach ([['order_id'=>1], ['order_id'=>'KA-2'], ['awb'=>'OTHER'], ['awb'=>'<script>'], ['service'=>'borzo'], ['service_type'=>'same_day'], ['status'=>0], ['status'=>true], ['status'=>999], ['status'=>null]] as $extra) {
             $r = $this->runFixture(['events'=>[$this->event(106, $extra)]]);
-            $this->assertSame([], $r['writes'], json_encode($extra));
-            $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
+            $this->assertSame(
+                [
+                    'writes' => [],
+                    'results.0.error' => InvalidArgumentException::class,
+                ],
+                [
+                    'writes' => $r['writes'],
+                    'results.0.error' => $r['results'][0]['error'],
+                ],
+                json_encode($extra)
+            );
         }
         foreach ([['status'=>'new'], ['service'=>'borzo']] as $row) {
             $r = $this->runFixture(['row'=>$row]);
@@ -194,35 +301,93 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     #[Test]
     public function cas_reloads_and_null_codes_and_exhaustion_are_explicit(): void {
         $r = $this->runFixture(['race'=>['status'=>'finished','instant_status_code'=>200]]);
-        $this->assertSame(2, $r['reads']);
-        $this->assertSame('finished', $r['row']['status']);
-        $this->assertFalse($r['results'][0]['changed']);
+        $this->assertSame(
+            [
+                'reads' => 2,
+                'row.status' => 'finished',
+                'results.0.changed' => false,
+            ],
+            [
+                'reads' => $r['reads'],
+                'row.status' => $r['row']['status'],
+                'results.0.changed' => $r['results'][0]['changed'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['row'=>['status'=>'pending','instant_status_code'=>null, 'instant_payment_id'=>null], 'events'=>[$this->event(100, [], ['id'=>'PAY-2','status_code'=>0])]]);
-        $this->assertNull($r['writes'][0]['condition']['instant_status_code']);
-        $this->assertSame('request_pickup', $r['row']['status']);
-        $this->assertSame('PAY-2', $r['row']['instant_payment_id']);
+        $this->assertSame(
+            [
+                'writes.0.condition.instant_status_code' => null,
+                'row.status' => 'request_pickup',
+                'row.instant_payment_id' => 'PAY-2',
+            ],
+            [
+                'writes.0.condition.instant_status_code' => $r['writes'][0]['condition']['instant_status_code'],
+                'row.status' => $r['row']['status'],
+                'row.instant_payment_id' => $r['row']['instant_payment_id'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['fail'=>true]);
-        $this->assertCount(3, $r['writes']);
-        $this->assertSame(503, $r['results'][0]['code']);
-        $this->assertSame([], $r['woo']['notes']);
+        $this->assertSame(
+            [
+                'count(r.writes)' => 3,
+                'results.0.code' => 503,
+                'woo.notes' => [],
+            ],
+            [
+                'count(r.writes)' => count($r['writes']),
+                'results.0.code' => $r['results'][0]['code'],
+                'woo.notes' => $r['woo']['notes'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function safe_metadata_and_payment_do_not_regress_on_stale_events(): void {
         $r = $this->runFixture(['events'=>[$this->event(106, ['live_tracking_url'=>'https://example.com/first']), $this->event(100, ['live_tracking_url'=>'https://example.com/stale'], ['id'=>'PAY-1','status_code'=>9])]]);
-        $this->assertSame('https://example.com/first', $r['row']['live_tracking_url']);
-        $this->assertSame('paid', $r['row']['instant_payment_status']);
+        $this->assertSame(
+            [
+                'row.live_tracking_url' => 'https://example.com/first',
+                'row.instant_payment_status' => 'paid',
+            ],
+            [
+                'row.live_tracking_url' => $r['row']['live_tracking_url'],
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+            ],
+            __FUNCTION__
+        );
         foreach (['javascript:alert(1)', 'https://user:pass@example.com/', "https://example.com/\nsecret", 'https://example.com\\evil'] as $url) {
             $r = $this->runFixture(['events'=>[$this->event(106, ['live_tracking_url'=>$url,'pin'=>'123456','qr_content'=>'secret'])]]);
-            $this->assertSame('', $r['row']['live_tracking_url']);
-            $this->assertArrayNotHasKey('pin', $r['row']);
-            $this->assertArrayNotHasKey('qr_content', $r['row']);
+            $this->assertSame(
+                [
+                    'row.live_tracking_url' => '',
+                    'absent fields: r.row, .pin\' => true' => [],
+                    'absent fields: r.row, .qr_content\' => true' => [],
+                ],
+                [
+                    'row.live_tracking_url' => $r['row']['live_tracking_url'],
+                    'absent fields: r.row, .pin\' => true' => array_intersect_key($r['row'], ['pin' => true]),
+                    'absent fields: r.row, .qr_content\' => true' => array_intersect_key($r['row'], ['qr_content' => true]),
+                ],
+                __FUNCTION__
+            );
         }
         $r = $this->runFixture(['events'=>[$this->event(100, [], ['id'=>'PAY-1','status'=>'refunded']), $this->event(100, [], ['id'=>'PAY-1','status_code'=>0])]]);
         $this->assertSame('refunded', $r['row']['instant_payment_status']);
         $r = $this->runFixture(['row'=>['status'=>'shipped','instant_status_code'=>106], 'events'=>[$this->event(100, ['tracking_url'=>'https://example.com/fill'])]]);
-        $this->assertSame('https://example.com/fill', $r['row']['live_tracking_url']);
-        $this->assertSame(106, $r['row']['instant_status_code']);
+        $this->assertSame(
+            [
+                'row.live_tracking_url' => 'https://example.com/fill',
+                'row.instant_status_code' => 106,
+            ],
+            [
+                'row.live_tracking_url' => $r['row']['live_tracking_url'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
@@ -235,29 +400,77 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $this->assertArrayHasKey('error', $r['results'][0]);
         foreach ([350,500,555,701,702,703,704,303,301,333] as $code) {
             $r = $this->runFixture(['events'=>[$this->event($code)]]);
-            $this->assertSame('request_pickup', $r['row']['status']);
-            $this->assertSame($code, $r['row']['instant_status_code']);
-            $this->assertFalse($r['cancelable']);
+            $this->assertSame(
+                [
+                    'row.status' => 'request_pickup',
+                    'row.instant_status_code' => $code,
+                    'cancelable' => false,
+                ],
+                [
+                    'row.status' => $r['row']['status'],
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'cancelable' => $r['cancelable'],
+                ],
+                __FUNCTION__
+            );
         }
         $r = $this->runFixture(['events'=>[$this->event(100)]]);
-        $this->assertTrue($r['cancelable']);
-        $this->assertFalse($r['results'][0]['changed']);
+        $this->assertSame(
+            [
+                'cancelable' => true,
+                'results.0.changed' => false,
+            ],
+            [
+                'cancelable' => $r['cancelable'],
+                'results.0.changed' => $r['results'][0]['changed'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function woo_failure_is_retryable_after_commit_and_cancel_is_shipment_only(): void {
         $r = $this->runFixture(['woo_fail'=>true, 'events'=>[$this->event(200), $this->event(200)]]);
-        $this->assertSame(503, $r['results'][0]['code']);
-        $this->assertFalse($r['results'][1]['changed']);
-        $this->assertSame('completed', $r['woo']['status']);
-        $this->assertCount(1, $r['woo']['notes']);
+        $this->assertSame(
+            [
+                'results.0.code' => 503,
+                'results.1.changed' => false,
+                'woo.status' => 'completed',
+                'count(r.woo.notes)' => 1,
+            ],
+            [
+                'results.0.code' => $r['results'][0]['code'],
+                'results.1.changed' => $r['results'][1]['changed'],
+                'woo.status' => $r['woo']['status'],
+                'count(r.woo.notes)' => count($r['woo']['notes']),
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['events'=>[$this->event(300), $this->event(300)]]);
-        $this->assertSame('processing', $r['woo']['status']);
-        $this->assertCount(1, $r['woo']['notes']);
+        $this->assertSame(
+            [
+                'woo.status' => 'processing',
+                'count(r.woo.notes)' => 1,
+            ],
+            [
+                'woo.status' => $r['woo']['status'],
+                'count(r.woo.notes)' => count($r['woo']['notes']),
+            ],
+            __FUNCTION__
+        );
         foreach (['cancelled', 'refunded', 'completed'] as $status) {
             $r = $this->runFixture(['woo_status'=>$status,'events'=>[$this->event(200)]]);
-            $this->assertSame($status, $r['woo']['status']);
-            $this->assertSame([], $r['woo']['notes']);
+            $this->assertSame(
+                [
+                    'woo.status' => $status,
+                    'woo.notes' => [],
+                ],
+                [
+                    'woo.status' => $r['woo']['status'],
+                    'woo.notes' => $r['woo']['notes'],
+                ],
+                __FUNCTION__
+            );
         }
     }
     #[Test]
@@ -265,8 +478,17 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $r = $this->runFixture(['events'=>[$this->event(106, ['service'=>'gosend', 'service_type'=>'instant'])]]);
         $this->assertSame('shipped', $r['row']['status']);
         $r = $this->runFixture(['row'=>['service_name'=>'same_day', 'service_type'=>'instant'], 'events'=>[$this->event(106, ['service_type'=>'instant'])]]);
-        $this->assertSame([], $r['writes']);
-        $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
+        $this->assertSame(
+            [
+                'writes' => [],
+                'results.0.error' => InvalidArgumentException::class,
+            ],
+            [
+                'writes' => $r['writes'],
+                'results.0.error' => $r['results'][0]['error'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['row'=>['service_name'=>null, 'service_type'=>'instant'], 'events'=>[$this->event(106, ['service_type'=>'instant'])]]);
         $this->assertSame('shipped', $r['row']['status']);
     }
@@ -276,8 +498,17 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         foreach (['shipped_packages'=>[105, 200, 300], 'finished_packages'=>[105, 106, 302], 'canceled_packages'=>[105, 106, 200], 'unknown'=>[106]] as $method=>$codes) {
             foreach ($codes as $code) {
                 $r = $this->runFixture(['events'=>[array_merge($this->event($code), ['event'=>$method])]]);
-                $this->assertSame([], $r['writes']);
-                $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
+                $this->assertSame(
+                    [
+                        'writes' => [],
+                        'results.0.error' => InvalidArgumentException::class,
+                    ],
+                    [
+                        'writes' => $r['writes'],
+                        'results.0.error' => $r['results'][0]['error'],
+                    ],
+                    __FUNCTION__
+                );
             }
         }
         foreach (['shipped_packages'=>[106], 'finished_packages'=>[200], 'canceled_packages'=>[300,302]] as $method=>$codes) {
@@ -303,13 +534,32 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     #[Test]
     public function null_awb_is_omission_and_cancel_does_not_require_awb(): void {
         $r = $this->runFixture(['events'=>[$this->event(105, ['awb'=>null])]]);
-        $this->assertSame('AWB-1', $r['row']['awb']);
-        $this->assertTrue($r['cancelable']);
+        $this->assertSame(
+            [
+                'row.awb' => 'AWB-1',
+                'cancelable' => true,
+            ],
+            [
+                'row.awb' => $r['row']['awb'],
+                'cancelable' => $r['cancelable'],
+            ],
+            __FUNCTION__
+        );
         foreach ([null, ''] as $awb) {
             $r = $this->runFixture(['row'=>['awb'=>$awb], 'events'=>[$this->event(105, ['awb'=>null])]]);
-            $this->assertTrue($r['cancelable']);
-            $this->assertSame(105, $r['row']['instant_status_code']);
-            $this->assertSame('request_pickup', $r['row']['status']);
+            $this->assertSame(
+                [
+                    'cancelable' => true,
+                    'row.instant_status_code' => 105,
+                    'row.status' => 'request_pickup',
+                ],
+                [
+                    'cancelable' => $r['cancelable'],
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'row.status' => $r['row']['status'],
+                ],
+                __FUNCTION__
+            );
             // Only the caller of an accepted DELETE maps the operation to code 300.
             $r = $this->runFixture(['row'=>['awb'=>$awb], 'events'=>[$this->event(300, ['awb'=>null])]]);
             $this->assertSame('canceled', $r['row']['status']);
@@ -321,23 +571,53 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     #[Test]
     public function failed_cancel_note_retries_on_duplicate_and_dead_orders_fail_closed(): void {
         $r = $this->runFixture(['note_fail'=>true, 'events'=>[$this->event(300), $this->event(300), $this->event(300)]]);
-        $this->assertSame(503, $r['results'][0]['code']);
-        $this->assertFalse($r['results'][1]['changed']);
-        $this->assertCount(1, $r['woo']['notes']);
-        $this->assertSame('canceled', $r['woo']['meta']['_kiriof_instant_lifecycle_status']);
+        $this->assertSame(
+            [
+                'results.0.code' => 503,
+                'results.1.changed' => false,
+                'count(r.woo.notes)' => 1,
+                'woo.meta._kiriof_instant_lifecycle_status' => 'canceled',
+            ],
+            [
+                'results.0.code' => $r['results'][0]['code'],
+                'results.1.changed' => $r['results'][1]['changed'],
+                'count(r.woo.notes)' => count($r['woo']['notes']),
+                'woo.meta._kiriof_instant_lifecycle_status' => $r['woo']['meta']['_kiriof_instant_lifecycle_status'],
+            ],
+            __FUNCTION__
+        );
         foreach ([['missing_order'=>true], ['row'=>['wp_wc_order_stat_order_id'=>null]], ['row'=>['wp_wc_order_stat_order_id'=>0]], ['row'=>['wp_wc_order_stat_order_id'=>'invalid']]] as $input) {
             $r = $this->runFixture($input);
-            $this->assertSame(503, $r['results'][0]['code']);
-            $this->assertSame([], $r['writes']);
+            $this->assertSame(
+                [
+                    'results.0.code' => 503,
+                    'writes' => [],
+                ],
+                [
+                    'results.0.code' => $r['results'][0]['code'],
+                    'writes' => $r['writes'],
+                ],
+                __FUNCTION__
+            );
         }
     }
 
     #[Test]
     public function terminal_stale_metadata_is_guarded_and_never_overwrites_tracking_or_payment(): void {
         $r = $this->runFixture(['row'=>['status'=>'finished', 'instant_status_code'=>200, 'live_tracking_url'=>'https://example.com/final'], 'events'=>[$this->event(105, ['awb'=>null, 'live_tracking_url'=>'https://example.com/stale'], ['id'=>'PAY-1','status_code'=>9])]]);
-        $this->assertSame([], $r['writes']);
-        $this->assertSame('https://example.com/final', $r['row']['live_tracking_url']);
-        $this->assertSame('paid', $r['row']['instant_payment_status']);
+        $this->assertSame(
+            [
+                'writes' => [],
+                'row.live_tracking_url' => 'https://example.com/final',
+                'row.instant_payment_status' => 'paid',
+            ],
+            [
+                'writes' => $r['writes'],
+                'row.live_tracking_url' => $r['row']['live_tracking_url'],
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['row'=>['status'=>'finished', 'instant_status_code'=>200, 'awb'=>null], 'events'=>[$this->event(105, ['awb'=>'AWB-NEW', 'live_tracking_url'=>'https://example.com/fill'])]]);
         $this->assertSame(200, $r['row']['instant_status_code']);
         foreach (['awb', 'live_tracking_url', 'instant_payment_id', 'instant_payment_status'] as $field) {
@@ -349,31 +629,88 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     public function documented_webhook_shape_runs_through_real_writer(): void {
         $body = ['method'=>'shipped_packages', 'data'=>[['order_id'=>'KA-1', 'shipped_at'=>'2025-01-02T10:30:00.123456Z', 'awb'=>null]], 'packages'=>[['order_id'=>'KA-1', 'service'=>'gosend', 'service_type'=>'instant', 'status'=>106, 'awb'=>null]], 'payment'=>['payment_id'=>'PAY-1','status_code'=>0]];
         $r = $this->runFixture(['events'=>[], 'webhook'=>$body]);
-        $this->assertSame(200, $r['webhook']['http_status']);
-        $this->assertSame('2025-01-02 10:30:00', $r['row']['shipped_at']);
-        $this->assertSame('AWB-1', $r['row']['awb']);
+        $this->assertSame(
+            [
+                'webhook.http_status' => 200,
+                'row.shipped_at' => '2025-01-02 10:30:00',
+                'row.awb' => 'AWB-1',
+            ],
+            [
+                'webhook.http_status' => $r['webhook']['http_status'],
+                'row.shipped_at' => $r['row']['shipped_at'],
+                'row.awb' => $r['row']['awb'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['events'=>[], 'missing_order'=>true, 'webhook'=>$body]);
-        $this->assertSame(503, $r['webhook']['http_status']);
-        $this->assertSame([], $r['writes']);
+        $this->assertSame(
+            [
+                'webhook.http_status' => 503,
+                'writes' => [],
+            ],
+            [
+                'webhook.http_status' => $r['webhook']['http_status'],
+                'writes' => $r['writes'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['events'=>[], 'row'=>['status'=>'new'], 'webhook'=>$body]);
-        $this->assertSame(400, $r['webhook']['http_status']);
-        $this->assertSame([], $r['writes']);
+        $this->assertSame(
+            [
+                'webhook.http_status' => 400,
+                'writes' => [],
+            ],
+            [
+                'webhook.http_status' => $r['webhook']['http_status'],
+                'writes' => $r['writes'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['events'=>[], 'row'=>['service_name'=>'same_day', 'service_type'=>'instant'], 'webhook'=>$body]);
-        $this->assertSame(400, $r['webhook']['http_status']);
-        $this->assertSame([], $r['writes']);
+        $this->assertSame(
+            [
+                'webhook.http_status' => 400,
+                'writes' => [],
+            ],
+            [
+                'webhook.http_status' => $r['webhook']['http_status'],
+                'writes' => $r['writes'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function late_paid_is_independent_and_payment_refresh_requires_existing_exact_identity(): void {
         $r = $this->runFixture(['row'=>['status'=>'finished','instant_status_code'=>200,'instant_payment_status'=>'pending'], 'events'=>[$this->event(105, [], ['id'=>'PAY-1','status_code'=>0]), ['mode'=>'payment','payment'=>['id'=>'PAY-1','status'=>'pending']], ['mode'=>'payment','payment'=>['id'=>'PAY-1','status'=>'refunded']], ['mode'=>'payment','payment'=>['id'=>'PAY-1','status_code'=>0]]]]);
-        $this->assertSame('finished', $r['row']['status']);
-        $this->assertSame(200, $r['row']['instant_status_code']);
-        $this->assertSame(['id'=>'PAY-1','status'=>'paid'], $r['results'][1]);
-        $this->assertSame('refunded', $r['results'][3]['status']);
+        $this->assertSame(
+            [
+                'row.status' => 'finished',
+                'row.instant_status_code' => 200,
+                'results.1' => ['id'=>'PAY-1','status'=>'paid'],
+                'results.3.status' => 'refunded',
+            ],
+            [
+                'row.status' => $r['row']['status'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+                'results.1' => $r['results'][1],
+                'results.3.status' => $r['results'][3]['status'],
+            ],
+            __FUNCTION__
+        );
         foreach ([null, 'OTHER'] as $id) {
             $r = $this->runFixture(['row'=>['instant_payment_id'=>$id], 'events'=>[['mode'=>'payment','payment'=>['id'=>'PAY-1','status'=>0]]]]);
-            $this->assertSame([], $r['writes']);
-            $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
+            $this->assertSame(
+                [
+                    'writes' => [],
+                    'results.0.error' => InvalidArgumentException::class,
+                ],
+                [
+                    'writes' => $r['writes'],
+                    'results.0.error' => $r['results'][0]['error'],
+                ],
+                __FUNCTION__
+            );
         }
         $r = $this->runFixture(['row'=>['status'=>'finished','instant_status_code'=>200,'instant_payment_id'=>null], 'events'=>[$this->event(105, [], ['id'=>'PAY-1','status'=>0])]]);
         $this->assertSame([], $r['writes']);
@@ -384,14 +721,34 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     #[Test]
     public function tracking_metadata_is_not_lifecycle_evidence_and_cancel_requested_is_absorbing_for_pickup(): void {
         $r = $this->runFixture(['row'=>['status'=>'pending','instant_status_code'=>null,'awb'=>null], 'missing_order'=>true, 'events'=>[['mode'=>'metadata','package'=>['order_id'=>'KA-1','awb'=>'AWB-2','status'=>300,'tracking_url'=>'https://example.com/live']]]]);
-        $this->assertSame('pending', $r['row']['status']);
-        $this->assertNull($r['row']['instant_status_code']);
-        $this->assertSame('AWB-2', $r['row']['awb']);
-        $this->assertSame([], $r['woo']['notes']);
+        $this->assertSame(
+            [
+                'row.status' => 'pending',
+                'row.instant_status_code' => null,
+                'row.awb' => 'AWB-2',
+                'woo.notes' => [],
+            ],
+            [
+                'row.status' => $r['row']['status'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+                'row.awb' => $r['row']['awb'],
+                'woo.notes' => $r['woo']['notes'],
+            ],
+            __FUNCTION__
+        );
         foreach ([100,101,105,110] as $code) {
             $r = $this->runFixture(['row'=>['instant_status_code'=>350], 'events'=>[$this->event($code, ['live_tracking_url'=>'https://example.com/live'])]]);
-            $this->assertSame(350, $r['row']['instant_status_code']);
-            $this->assertFalse($r['cancelable']);
+            $this->assertSame(
+                [
+                    'row.instant_status_code' => 350,
+                    'cancelable' => false,
+                ],
+                [
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'cancelable' => $r['cancelable'],
+                ],
+                __FUNCTION__
+            );
         }
     }
 
@@ -401,80 +758,191 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $booking = ['mode'=>'booking', 'package'=>['order_id'=>'KA-1','status'=>105,'service'=>'gosend','service_type'=>'instant','awb'=>'AWB-1'], 'payment'=>['id'=>'PAY-1','status'=>'pending'], 'metadata'=>$metadata];
         foreach (['pending','paid','refunded'] as $paymentStatus) {
             $r = $this->runFixture(['row'=>['status'=>'pending','instant_status_code'=>null,'instant_payment_id'=>null,'instant_payment_status'=>$paymentStatus], 'events'=>[$this->event(106), $this->event(200), $booking, $booking]]);
-            $this->assertSame('finished', $r['row']['status']);
-            $this->assertSame(200, $r['row']['instant_status_code']);
-            $this->assertSame('PAY-1', $r['row']['instant_payment_id']);
-            $this->assertSame($paymentStatus, $r['row']['instant_payment_status']);
+            $this->assertSame(
+                [
+                    'row.status' => 'finished',
+                    'row.instant_status_code' => 200,
+                    'row.instant_payment_id' => 'PAY-1',
+                    'row.instant_payment_status' => $paymentStatus,
+                ],
+                [
+                    'row.status' => $r['row']['status'],
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'row.instant_payment_id' => $r['row']['instant_payment_id'],
+                    'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                ],
+                __FUNCTION__
+            );
             foreach ($metadata as $field=>$value) { $this->assertSame($value, $r['row'][$field]); }
-            $this->assertFalse($r['results'][3]['changed']);
-            $this->assertCount(1, $r['woo']['notes']);
+            $this->assertSame(
+                [
+                    'results.3.changed' => false,
+                    'count(r.woo.notes)' => 1,
+                ],
+                [
+                    'results.3.changed' => $r['results'][3]['changed'],
+                    'count(r.woo.notes)' => count($r['woo']['notes']),
+                ],
+                __FUNCTION__
+            );
         }
         $booking['payment']['status'] = 'paid';
         $r = $this->runFixture(['row'=>['status'=>'finished','instant_status_code'=>200,'instant_payment_id'=>null,'instant_payment_status'=>'pending'], 'events'=>[$booking]]);
-        $this->assertSame('paid', $r['row']['instant_payment_status']);
-        $this->assertSame('completed', $r['woo']['status']);
+        $this->assertSame(
+            [
+                'row.instant_payment_status' => 'paid',
+                'woo.status' => 'completed',
+            ],
+            [
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                'woo.status' => $r['woo']['status'],
+            ],
+            __FUNCTION__
+        );
         $r = $this->runFixture(['race'=>['status'=>'finished','instant_status_code'=>200,'instant_payment_status'=>'refunded'], 'events'=>[$booking]]);
-        $this->assertSame(2, $r['reads']);
-        $this->assertSame('finished', $r['row']['status']);
-        $this->assertSame('refunded', $r['row']['instant_payment_status']);
+        $this->assertSame(
+            [
+                'reads' => 2,
+                'row.status' => 'finished',
+                'row.instant_payment_status' => 'refunded',
+            ],
+            [
+                'reads' => $r['reads'],
+                'row.status' => $r['row']['status'],
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function late_booking_preserves_callback_issues_but_still_attaches_paid_metadata(): void {
+        $expectedContracts = [];
+        $actualContracts = [];
+
         $metadata = ['shipping_info'=>'{"instant_items":[{"name":"Item"}]}', 'shipment_location_snapshot'=>'{"name":"Origin","timezone":"Asia/Jakarta"}', 'vehicle'=>'motor', 'shipping_cost'=>15000, 'instant_payment_method'=>'balance', 'request_pickup_at'=>'2025-01-02 10:30:00'];
         $booking = ['mode'=>'booking', 'package'=>['order_id'=>'KA-1','status'=>105,'service'=>'gosend','service_type'=>'instant','awb'=>'AWB-1','tracking_url'=>'https://example.com/booking'], 'payment'=>['id'=>'PAY-1','status'=>'paid'], 'metadata'=>$metadata];
         foreach (['pending'=>'paid', 'paid'=>'paid', 'refunded'=>'refunded'] as $previousPayment=>$expectedPayment) {
             $row = ['status'=>'pending','instant_status_code'=>500,'rejected_reason'=>'Callback reported a shipment problem.', 'instant_payment_id'=>null,'instant_payment_status'=>$previousPayment,'awb'=>null];
             $r = $this->runFixture(['row'=>$row, 'events'=>[$booking, $booking]]);
-            $this->assertSame('pending', $r['row']['status']);
-            $this->assertSame(500, $r['row']['instant_status_code']);
-            $this->assertSame($row['rejected_reason'], $r['row']['rejected_reason']);
-            $this->assertSame('PAY-1', $r['row']['instant_payment_id']);
-            $this->assertSame($expectedPayment, $r['row']['instant_payment_status']);
-            $this->assertSame('AWB-1', $r['row']['awb']);
-            $this->assertSame('https://example.com/booking', $r['row']['live_tracking_url']);
-            foreach ($metadata as $field=>$value) { $this->assertSame($value, $r['row'][$field]); }
-            $this->assertTrue($r['results'][0]['changed']);
-            $this->assertFalse($r['results'][1]['changed']);
-            $this->assertFalse($r['cancelable']);
-            $this->assertSame([], $r['woo']['notes']);
-            $this->assertCount(1, $r['writes']);
-            foreach ($row as $field=>$value) { $this->assertSame($value, $r['writes'][0]['condition'][$field]); }
+            $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+            $expectedContracts[$case] = [
+                    'row.status' => 'pending',
+                    'row.instant_status_code' => 500,
+                    'row.rejected_reason' => $row['rejected_reason'],
+                    'row.instant_payment_id' => 'PAY-1',
+                    'row.instant_payment_status' => $expectedPayment,
+                    'row.awb' => 'AWB-1',
+                    'row.live_tracking_url' => 'https://example.com/booking',
+                ];
+            $actualContracts[$case] = [
+                    'row.status' => $r['row']['status'],
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'row.rejected_reason' => $r['row']['rejected_reason'],
+                    'row.instant_payment_id' => $r['row']['instant_payment_id'],
+                    'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                    'row.awb' => $r['row']['awb'],
+                    'row.live_tracking_url' => $r['row']['live_tracking_url'],
+                ];
+            foreach ($metadata as $field=>$value) { $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+        $expectedContracts[$case] = $value;
+        $actualContracts[$case] = $r['row'][$field]; }
+            $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+            $expectedContracts[$case] = [
+                    'results.0.changed' => true,
+                    'results.1.changed' => false,
+                    'cancelable' => false,
+                    'woo.notes' => [],
+                    'count(r.writes)' => 1,
+                ];
+            $actualContracts[$case] = [
+                    'results.0.changed' => $r['results'][0]['changed'],
+                    'results.1.changed' => $r['results'][1]['changed'],
+                    'cancelable' => $r['cancelable'],
+                    'woo.notes' => $r['woo']['notes'],
+                    'count(r.writes)' => count($r['writes']),
+                ];
+            foreach ($row as $field=>$value) { $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+        $expectedContracts[$case] = $value;
+        $actualContracts[$case] = $r['writes'][0]['condition'][$field]; }
             foreach (array_keys($metadata) as $field) { $this->assertNull($r['writes'][0]['condition'][$field]); }
             foreach (['status','instant_status_code','rejected_reason'] as $field) { $this->assertArrayNotHasKey($field, $r['writes'][0]['changes']); }
         }
-    }
+    
+        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
+}
 
     #[Test]
     public function booking_issue_precedence_is_scoped_and_recomputed_after_cas_conflicts(): void {
+        $expectedContracts = [];
+        $actualContracts = [];
+
         foreach ([405,500,555,701,702,703,704,303,301,333] as $issue) {
             foreach ([100,101,105,110] as $code) {
                 $r = $this->runFixture(['row'=>['status'=>'pending','instant_status_code'=>(string) $issue,'rejected_reason'=>'Issue'], 'events'=>[array_merge($this->event($code), ['mode'=>'booking'])]]);
-                $this->assertSame((string) $issue, $r['row']['instant_status_code']);
-                $this->assertSame('pending', $r['row']['status']);
-                $this->assertSame('Issue', $r['row']['rejected_reason']);
-                $this->assertSame([], $r['writes']);
+                $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+                $expectedContracts[$case] = [
+                        'row.instant_status_code' => (string) $issue,
+                        'row.status' => 'pending',
+                        'row.rejected_reason' => 'Issue',
+                        'writes' => [],
+                    ];
+                $actualContracts[$case] = [
+                        'row.instant_status_code' => $r['row']['instant_status_code'],
+                        'row.status' => $r['row']['status'],
+                        'row.rejected_reason' => $r['row']['rejected_reason'],
+                        'writes' => $r['writes'],
+                    ];
             }
             // Explicit authenticated tracking may recover even to a pre-pickup state.
             $r = $this->runFixture(['row'=>['status'=>'pending','instant_status_code'=>$issue,'rejected_reason'=>'Issue'], 'events'=>[$this->event(105)]]);
-            $this->assertSame(105, $r['row']['instant_status_code']);
-            $this->assertNull($r['row']['rejected_reason']);
+            $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+            $expectedContracts[$case] = [
+                    'row.instant_status_code' => 105,
+                    'row.rejected_reason' => null,
+                ];
+            $actualContracts[$case] = [
+                    'row.instant_status_code' => $r['row']['instant_status_code'],
+                    'row.rejected_reason' => $r['row']['rejected_reason'],
+                ];
             foreach ([106=>'shipped', 200=>'finished'] as $code=>$status) {
                 $r = $this->runFixture(['row'=>['status'=>'pending','instant_status_code'=>$issue,'rejected_reason'=>'Issue'], 'events'=>[array_merge($this->event($code), ['event'=>106 === $code ? 'shipped_packages' : 'finished_packages'])]]);
-                $this->assertSame($code, $r['row']['instant_status_code']);
-                $this->assertSame($status, $r['row']['status']);
-                $this->assertNull($r['row']['rejected_reason']);
+                $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+                $expectedContracts[$case] = [
+                        'row.instant_status_code' => $code,
+                        'row.status' => $status,
+                        'row.rejected_reason' => null,
+                    ];
+                $actualContracts[$case] = [
+                        'row.instant_status_code' => $r['row']['instant_status_code'],
+                        'row.status' => $r['row']['status'],
+                        'row.rejected_reason' => $r['row']['rejected_reason'],
+                    ];
             }
         }
         $r = $this->runFixture(['race'=>['status'=>'pending','instant_status_code'=>500,'rejected_reason'=>'Concurrent issue','instant_payment_status'=>'refunded'], 'events'=>[array_merge($this->event(105, [], ['id'=>'PAY-1','status'=>'paid']), ['mode'=>'booking','metadata'=>['vehicle'=>'motor']])]]);
-        $this->assertSame(2, $r['reads']);
-        $this->assertSame('pending', $r['row']['status']);
-        $this->assertSame(500, $r['row']['instant_status_code']);
-        $this->assertSame('Concurrent issue', $r['row']['rejected_reason']);
-        $this->assertSame('refunded', $r['row']['instant_payment_status']);
-        $this->assertSame('motor', $r['row']['vehicle']);
-        $this->assertSame('Concurrent issue', $r['writes'][1]['condition']['rejected_reason']);
-    }
+        $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+        $expectedContracts[$case] = [
+                'reads' => 2,
+                'row.status' => 'pending',
+                'row.instant_status_code' => 500,
+                'row.rejected_reason' => 'Concurrent issue',
+                'row.instant_payment_status' => 'refunded',
+                'row.vehicle' => 'motor',
+                'writes.1.condition.rejected_reason' => 'Concurrent issue',
+            ];
+        $actualContracts[$case] = [
+                'reads' => $r['reads'],
+                'row.status' => $r['row']['status'],
+                'row.instant_status_code' => $r['row']['instant_status_code'],
+                'row.rejected_reason' => $r['row']['rejected_reason'],
+                'row.instant_payment_status' => $r['row']['instant_payment_status'],
+                'row.vehicle' => $r['row']['vehicle'],
+                'writes.1.condition.rejected_reason' => $r['writes'][1]['condition']['rejected_reason'],
+            ];
+    
+        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
+}
 
     #[Test]
     public function booking_rejects_untrusted_fields_ambiguous_codes_and_changed_snapshots(): void {
@@ -482,8 +950,17 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         foreach ([['service'=>'grab_express'], ['service_type'=>'same_day'], ['service_name'=>'same_day'], ['awb'=>'OTHER'], ['live_tracking_url'=>'https://user:secret@example.com/'], ['status'=>0]] as $extra) {
             $event = $base; $event['package'] = array_replace($event['package'], $extra);
             $r = $this->runFixture(['events'=>[$event]]);
-            $this->assertSame([], $r['writes']);
-            $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
+            $this->assertSame(
+                [
+                    'writes' => [],
+                    'results.0.error' => InvalidArgumentException::class,
+                ],
+                [
+                    'writes' => $r['writes'],
+                    'results.0.error' => $r['results'][0]['error'],
+                ],
+                __FUNCTION__
+            );
         }
         foreach (['null', '123', '"text"', '[]'] as $json) {
             $event = $base; $event['metadata']['shipping_info'] = $json;

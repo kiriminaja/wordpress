@@ -6,13 +6,9 @@ use PHPUnit\Framework\TestCase;
 use KiriminAjaOfficial\Services\InstantShipmentState;
 
 final class InstantOperationUiTest extends TestCase {
-    private function source(string $path): string {
-        return file_get_contents(PLUGIN_DIR . '/' . $path);
-    }
-
     private function row(array $payload): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
-        $this->assertNotNull($output);
+
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
@@ -73,26 +69,50 @@ final class InstantOperationUiTest extends TestCase {
             $this->assertFalse( InstantShipmentState::canRecheck( array_replace( $payload, array( $field => $value ) ) ), $field );
         }
         foreach ( array( 'list', 'detail', 'fallback' ) as $mode ) {
-            $this->assertSame( 'fallback' !== $mode, $this->row( $payload + array( 'mode' => $mode ) )['actions']['reconcile'] );
-            $this->assertFalse( $this->row( array_replace( $payload, array( 'mode' => $mode, 'instant_payment_id' => 'PAY-1' ) ) )['actions']['reconcile'] );
+            $this->assertSame(
+                [
+                '1: row( payload + array( mode => mode ) )[actions][reconcile]' => 'fallback' !== $mode,
+                '2: row( array_replace( payload, array( mode => mode, instant_payment_id => PAY-1 ) ) )[ac' => false,
+                ],
+                [
+                '1: row( payload + array( mode => mode ) )[actions][reconcile]' => $this->row( $payload + array( 'mode' => $mode ) )['actions']['reconcile'],
+                '2: row( array_replace( payload, array( mode => mode, instant_payment_id => PAY-1 ) ) )[ac' => $this->row( array_replace( $payload, array( 'mode' => $mode, 'instant_payment_id' => 'PAY-1' ) ) )['actions']['reconcile'],
+                ]
+            );
         }
     }
 
     public function test_tracking_requires_route_and_reconciliation_is_never_available(): void {
+        $expectedCases = $actualCases = [];
         foreach (['gosend', 'grab_express', 'borzo', 'jne'] as $service) {
             foreach (['new', 'pending', 'request_pickup', 'shipped', 'finished', 'canceled'] as $status) {
                 foreach (['list', 'detail', 'fallback'] as $mode) {
                     $row = $this->row(array_replace($this->confirmedBooking(), compact('service', 'status', 'mode'), ['instant_tracking_payload' => json_encode(['result' => ['polyline' => '_p~iF~ps|U_ulLnnqC_mqNvxq`@']])]));
                     $expected = $mode !== 'fallback' && $status !== 'new' && in_array($service, ['gosend', 'grab_express'], true);
-                    $this->assertSame($expected, $row['actions']['track'], "$service/$status/$mode");
-                    $this->assertFalse($row['actions']['reconcile'], "$service/$status/$mode");
+                    $contractCase = 'case ' . count( $expectedCases );
+                    $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
+                        '1: row[actions][track]' => $expected,
+                        '2: row[actions][reconcile]' => false,
+                        ];
+                    $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
+                        '1: row[actions][track]' => $row['actions']['track'],
+                        '2: row[actions][reconcile]' => $row['actions']['reconcile'],
+                        ];
                     if ($mode !== 'list') {
-                        $this->assertFalse($row['supportsLiveTracking']);
-                        $this->assertSame([], $row['steps']);
+                        $contractCase = 'case ' . count( $expectedCases );
+                        $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
+                            '1: row[supportsLiveTracking]' => false,
+                            '2: row[steps]' => [],
+                            ];
+                        $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
+                            '1: row[supportsLiveTracking]' => $row['supportsLiveTracking'],
+                            '2: row[steps]' => $row['steps'],
+                            ];
                     }
                 }
             }
         }
+        $this->assertSame( $expectedCases, $actualCases );
     }
 
     public function test_tracking_links_expose_only_valid_credential_free_http_urls(): void {
@@ -117,34 +137,61 @@ final class InstantOperationUiTest extends TestCase {
     }
 
     public function test_empty_or_malformed_routes_never_expose_tracking_even_with_a_safe_url(): void {
+        $expectedCases = $actualCases = [];
         foreach ([null, '', ' ', '{}', '[]', 'null', [], [[]], [[], []], [[1, 2]], [[91, 2], [3, 4]], [[1, 'NaN'], [3, 4]], 'https://tracking.example.test/route', 'not a route', '_p~iF~ps|U'] as $polyline) {
             foreach (['list', 'detail', 'fallback'] as $mode) {
                 $row = $this->row(array_replace($this->confirmedBooking(), [
                     'mode' => $mode, 'live_tracking_url' => 'https://tracking.example.test/KA-1',
                     'instant_tracking_payload' => json_encode(['result' => ['polyline' => $polyline]]),
                 ]));
-                $this->assertFalse($row['actions']['track'], json_encode($polyline) . "/$mode");
-                $this->assertSame('', $mode === 'list' ? $row['actions']['liveTrackingUrl'] : $row['shipment']['liveTrackingUrl']);
+                $contractCase = 'case ' . count( $expectedCases );
+                $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
+                    '1: row[actions][track]' => false,
+                    '2: mode === list ? row[actions][liveTrackingUrl] : row[shipment][liveTrackingUrl]' => '',
+                    ];
+                $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
+                    '1: row[actions][track]' => $row['actions']['track'],
+                    '2: mode === list ? row[actions][liveTrackingUrl] : row[shipment][liveTrackingUrl]' => $mode === 'list' ? $row['actions']['liveTrackingUrl'] : $row['shipment']['liveTrackingUrl'],
+                    ];
             }
         }
         foreach (['{bad json', '{"result":null}', '{"result":{"courier":{"coords":[[1,2],[3,4]]},"origin":{"lat":1,"long":2},"destination":{"lat":3,"long":4}}}', '{"polyline":"_p~iF~ps|U_ulLnnqC_mqNvxq`@","result":{"polyline":[]}}'] as $payload) {
             $row = $this->row(array_replace($this->confirmedBooking(), ['instant_tracking_payload' => $payload, 'live_tracking_url' => 'https://tracking.example.test/KA-1']));
-            $this->assertFalse($row['actions']['track']);
-            $this->assertSame('', $row['actions']['liveTrackingUrl']);
+            $contractCase = 'case ' . count( $expectedCases );
+            $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
+                '1: row[actions][track]' => false,
+                '2: row[actions][liveTrackingUrl]' => '',
+                ];
+            $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
+                '1: row[actions][track]' => $row['actions']['track'],
+                '2: row[actions][liveTrackingUrl]' => $row['actions']['liveTrackingUrl'],
+                ];
         }
+        $this->assertSame( $expectedCases, $actualCases );
     }
 
     public function test_valid_routes_expose_only_the_persisted_safe_url(): void {
+        $expectedCases = $actualCases = [];
         foreach (['_p~iF~ps|U_ulLnnqC_mqNvxq`@', [[-7.8, 110.3], [-7.7, 110.4]], [['lat' => -7.8, 'long' => 110.3], ['lat' => -7.7, 'long' => 110.4]]] as $polyline) {
             foreach (['list', 'detail', 'fallback'] as $mode) {
                 $payload = array_replace($this->confirmedBooking(), ['mode' => $mode, 'instant_tracking_payload' => json_encode(['result' => ['polyline' => $polyline, 'live_tracking_url' => 'https://user:secret@tracking.example.test/KA-1']])]);
                 $row = $this->row($payload + ['live_tracking_url' => 'https://tracking.example.test/KA-1']);
-                $this->assertSame($mode !== 'fallback', $row['actions']['track']);
-                $this->assertSame('https://tracking.example.test/KA-1', $mode === 'list' ? $row['actions']['liveTrackingUrl'] : $row['shipment']['liveTrackingUrl']);
+                $contractCase = 'case ' . count( $expectedCases );
+                $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
+                    '1: row[actions][track]' => $mode !== 'fallback',
+                    '2: mode === list ? row[actions][liveTrackingUrl] : row[shipment][liveTrackingUrl]' => 'https://tracking.example.test/KA-1',
+                    ];
+                $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
+                    '1: row[actions][track]' => $row['actions']['track'],
+                    '2: mode === list ? row[actions][liveTrackingUrl] : row[shipment][liveTrackingUrl]' => $mode === 'list' ? $row['actions']['liveTrackingUrl'] : $row['shipment']['liveTrackingUrl'],
+                    ];
                 $row = $this->row($payload);
-                $this->assertSame('', $mode === 'list' ? $row['actions']['liveTrackingUrl'] : $row['shipment']['liveTrackingUrl'], 'Never fall back to raw payload URLs');
+                $contractCase = 'Never fall back to raw payload URLs';
+                $expectedCases[$contractCase . " / " . count( $expectedCases )] = '';
+                $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = $mode === 'list' ? $row['actions']['liveTrackingUrl'] : $row['shipment']['liveTrackingUrl'];
             }
         }
+        $this->assertSame( $expectedCases, $actualCases );
     }
 
 }

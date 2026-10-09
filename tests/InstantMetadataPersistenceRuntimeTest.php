@@ -18,18 +18,40 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
         foreach ([[], ['fresh' => true], ['suffix' => '_staging!']] as $input) {
             $result = $this->runFixture(array_replace(['mode' => 'migration'], $input));
             $suffix = isset($input['suffix']) ? '_staging' : '';
-            $this->assertSame('1', $result['options']['kiriof_instant_metadata_v1' . $suffix]);
-            $this->assertSame('1', $result['options']['kiriof_transaction_partition_v1' . $suffix]);
-            $this->assertSame('v3', $result['options']['kiriof_sync_version']);
-            $this->assertSame(count($result['first_queries']), count($result['queries']));
-            $this->assertSame([], array_diff(self::FIELDS, $result['columns']));
+            $this->assertSame(
+                [
+                    'options.kiriof_instant_metadata_v1\' . suffix' => '1',
+                    'options.kiriof_transaction_partition_v1\' . suffix' => '1',
+                    'options.kiriof_sync_version' => 'v3',
+                    'count(result.queries)' => count($result['first_queries']),
+                    'array_diff(self::FIELDS, result.columns)' => [],
+                ],
+                [
+                    'options.kiriof_instant_metadata_v1\' . suffix' => $result['options']['kiriof_instant_metadata_v1' . $suffix],
+                    'options.kiriof_transaction_partition_v1\' . suffix' => $result['options']['kiriof_transaction_partition_v1' . $suffix],
+                    'options.kiriof_sync_version' => $result['options']['kiriof_sync_version'],
+                    'count(result.queries)' => count($result['queries']),
+                    'array_diff(self::FIELDS, result.columns)' => array_diff(self::FIELDS, $result['columns']),
+                ],
+                __FUNCTION__
+            );
             $sql = implode("\n", $result['queries']);
             foreach (['instant_status_code' => 'int', 'instant_payment_status' => 'varchar(20)', 'instant_payment_method' => 'varchar(20)', 'instant_payment_id' => 'varchar(100)', 'destination_latitude' => 'double', 'destination_longitude' => 'double', 'live_tracking_url' => 'text'] as $field => $type) {
                 $this->assertStringContainsString("`$field` $type DEFAULT NULL", $sql);
             }
-            $this->assertStringNotContainsString('UPDATE ', $sql);
-            $this->assertSame(101, $result['row']['instant_status_code']);
-            $this->assertSame('shipped', $result['row']['status']);
+            $this->assertSame(
+                [
+                    'redaction: sql, \'UPDATE \'' => 0,
+                    'row.instant_status_code' => 101,
+                    'row.status' => 'shipped',
+                ],
+                [
+                    'redaction: sql, \'UPDATE \'' => substr_count($sql, 'UPDATE '),
+                    'row.instant_status_code' => $result['row']['instant_status_code'],
+                    'row.status' => $result['row']['status'],
+                ],
+                __FUNCTION__
+            );
         }
         $done = $this->runFixture(['mode' => 'migration', 'complete' => true]);
         $this->assertSame([], $done['queries']);
@@ -38,13 +60,33 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
     #[Test]
     public function partial_ddl_failure_retries_only_missing_fields_and_requires_final_verification(): void {
         $result = $this->runFixture(['mode' => 'migration', 'columns' => ['instant_status_code'], 'fail_field' => 'instant_payment_status']);
-        $this->assertArrayNotHasKey('kiriof_instant_metadata_v1', $result['first_options']);
-        $this->assertSame('1', $result['options']['kiriof_instant_metadata_v1']);
-        $this->assertSame($result['second_count'], count($result['queries']));
+        $this->assertSame(
+            [
+                'absent fields: result.first_options, .kiriof_instant_metadata_v1\' => true' => [],
+                'options.kiriof_instant_metadata_v1' => '1',
+                'count(result.queries)' => $result['second_count'],
+            ],
+            [
+                'absent fields: result.first_options, .kiriof_instant_metadata_v1\' => true' => array_intersect_key($result['first_options'], ['kiriof_instant_metadata_v1' => true]),
+                'options.kiriof_instant_metadata_v1' => $result['options']['kiriof_instant_metadata_v1'],
+                'count(result.queries)' => count($result['queries']),
+            ],
+            __FUNCTION__
+        );
         $retry = implode("\n", array_slice($result['queries'], count($result['first_queries'])));
-        $this->assertStringContainsString('ADD `instant_payment_status`', $retry);
-        $this->assertStringNotContainsString('ADD `instant_status_code`', $retry);
-        $this->assertStringNotContainsString('ADD `destination_latitude`', $retry);
+        $this->assertSame(
+            [
+                'message fragment: retry' => 'ADD `instant_payment_status`',
+                'redaction: retry, \'ADD `instant_status_code`\'' => 0,
+                'redaction: retry, \'ADD `destination_latitude`\'' => 0,
+            ],
+            [
+                'message fragment: retry' => substr($retry, strpos($retry, 'ADD `instant_payment_status`') === false ? strlen($retry) : strpos($retry, 'ADD `instant_payment_status`'), strlen('ADD `instant_payment_status`')),
+                'redaction: retry, \'ADD `instant_status_code`\'' => substr_count($retry, 'ADD `instant_status_code`'),
+                'redaction: retry, \'ADD `destination_latitude`\'' => substr_count($retry, 'ADD `destination_latitude`'),
+            ],
+            __FUNCTION__
+        );
         foreach ([['exists' => false], ['fail_describe' => true], ['ghost_field' => 'instant_payment_id']] as $input) {
             $failed = $this->runFixture(array_replace(['mode' => 'migration'], $input));
             $this->assertArrayNotHasKey('kiriof_instant_metadata_v1', $failed['options']);
@@ -56,18 +98,43 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
         $result = $this->runFixture(['mode' => 'insert', 'changes' => ['service' => 'gosend', 'instant_status_code' => '000100', 'instant_payment_status' => 'PAID', 'instant_payment_method' => 'QRIS', 'instant_payment_id' => '<b>pay-123</b>', 'destination_latitude' => 0, 'destination_longitude' => '0', 'live_tracking_url' => 'https://example.test/track']]);
         $this->assertTrue($result['ok']);
         [$sql, $args] = $result['prepared'][0];
-        $this->assertCount(34, $args);
-        $this->assertSame(count($args), preg_match_all('/%[sdf]/', $sql));
-        $this->assertSame(8, substr_count($sql, "NULLIF(%s, '')"));
-        $this->assertSame('100', $result['row']['instant_status_code']);
-        $this->assertSame('paid', $result['row']['instant_payment_status']);
-        $this->assertSame('qris', $result['row']['instant_payment_method']);
-        $this->assertSame('pay-123', $result['row']['instant_payment_id']);
-        $this->assertSame('0', $result['row']['destination_latitude']);
-        $this->assertSame('0', $result['row']['destination_longitude']);
+        $this->assertSame(
+            [
+                'count(args)' => 34,
+                'preg_match_all(\'/%.sdf/\', sql)' => count($args),
+                'redaction: sql, "NULLIF(%s, \'\')"' => 8,
+                'row.instant_status_code' => '100',
+                'row.instant_payment_status' => 'paid',
+                'row.instant_payment_method' => 'qris',
+                'row.instant_payment_id' => 'pay-123',
+                'row.destination_latitude' => '0',
+                'row.destination_longitude' => '0',
+            ],
+            [
+                'count(args)' => count($args),
+                'preg_match_all(\'/%.sdf/\', sql)' => preg_match_all('/%[sdf]/', $sql),
+                'redaction: sql, "NULLIF(%s, \'\')"' => substr_count($sql, "NULLIF(%s, '')"),
+                'row.instant_status_code' => $result['row']['instant_status_code'],
+                'row.instant_payment_status' => $result['row']['instant_payment_status'],
+                'row.instant_payment_method' => $result['row']['instant_payment_method'],
+                'row.instant_payment_id' => $result['row']['instant_payment_id'],
+                'row.destination_latitude' => $result['row']['destination_latitude'],
+                'row.destination_longitude' => $result['row']['destination_longitude'],
+            ],
+            __FUNCTION__
+        );
         $express = $this->runFixture(['mode' => 'insert']);
-        $this->assertTrue($express['ok']);
-        $this->assertSame('express', $express['row']['delivery_type']);
+        $this->assertSame(
+            [
+                'ok' => true,
+                'row.delivery_type' => 'express',
+            ],
+            [
+                'ok' => $express['ok'],
+                'row.delivery_type' => $express['row']['delivery_type'],
+            ],
+            __FUNCTION__
+        );
         foreach (self::FIELDS as $field) { $this->assertNull($express['row'][$field]); }
     }
 
@@ -75,27 +142,56 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
     public function incoming_only_updates_preserve_partition_and_omitted_metadata_without_lookup_or_cache_reset(): void {
         foreach (['callback', 'verified'] as $writer) {
             $result = $this->runFixture(['writer' => $writer, 'changes' => ['instant_status_code' => '102', 'destination_latitude' => 0, 'instant_payment_method' => ' TOP ']]);
-            $this->assertTrue($result['ok']);
-            $this->assertSame([], $result['queries']);
-            $this->assertSame([], $result['deleted']);
-            $this->assertSame(['instant_status_code' => 102, 'destination_latitude' => 0, 'instant_payment_method' => 'top'], $result['updates'][0]);
-            $this->assertSame('old-payment', $result['row']['instant_payment_id']);
-            $this->assertSame('paid', $result['row']['instant_payment_status']);
-            $this->assertSame('instant', $result['row']['delivery_type']);
-            $this->assertSame('motor', $result['row']['vehicle']);
-            $this->assertSame('shipped', $result['row']['status']);
+            $this->assertSame(
+                [
+                    'ok' => true,
+                    'queries' => [],
+                    'deleted' => [],
+                    'updates.0' => ['instant_status_code' => 102, 'destination_latitude' => 0, 'instant_payment_method' => 'top'],
+                    'row.instant_payment_id' => 'old-payment',
+                    'row.instant_payment_status' => 'paid',
+                    'row.delivery_type' => 'instant',
+                    'row.vehicle' => 'motor',
+                    'row.status' => 'shipped',
+                ],
+                [
+                    'ok' => $result['ok'],
+                    'queries' => $result['queries'],
+                    'deleted' => $result['deleted'],
+                    'updates.0' => $result['updates'][0],
+                    'row.instant_payment_id' => $result['row']['instant_payment_id'],
+                    'row.instant_payment_status' => $result['row']['instant_payment_status'],
+                    'row.delivery_type' => $result['row']['delivery_type'],
+                    'row.vehicle' => $result['row']['vehicle'],
+                    'row.status' => $result['row']['status'],
+                ],
+                __FUNCTION__
+            );
             $clear = $this->runFixture(['writer' => $writer, 'changes' => array_fill_keys(self::FIELDS, null)]);
             $this->assertTrue($clear['ok']);
             foreach (self::FIELDS as $field) { $this->assertNull($clear['row'][$field]); }
         }
         $full = $this->runFixture(['writer' => 'full', 'changes' => ['instant_status_code' => '100', 'instant_payment_method' => 'CREDIT']]);
-        $this->assertTrue($full['ok']);
-        $this->assertSame(100, $full['row']['instant_status_code']);
-        $this->assertSame('credit', $full['row']['instant_payment_method']);
+        $this->assertSame(
+            [
+                'full.ok' => true,
+                'full.row.instant_status_code' => 100,
+                'full.row.instant_payment_method' => 'credit',
+            ],
+            [
+                'full.ok' => $full['ok'],
+                'full.row.instant_status_code' => $full['row']['instant_status_code'],
+                'full.row.instant_payment_method' => $full['row']['instant_payment_method'],
+            ],
+            __FUNCTION__
+        );
     }
 
     #[Test]
     public function invalid_metadata_is_rejected_before_any_sql_or_partial_write(): void {
+        $expectedContracts = [];
+        $actualContracts = [];
+
         $invalid = [
             'instant_status_code' => [-1, '-1', '1.0', 1.5, '1e2', ' 100 ', true, [], '2147483648', '999999999999999999999999'],
             'instant_payment_status' => ['unknown', '', [], true],
@@ -109,22 +205,43 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
             foreach ($values as $value) {
                 foreach (['insert', 'callback', 'verified', 'full'] as $writer) {
                     $result = $this->runFixture(['mode' => 'insert' === $writer ? 'insert' : 'update', 'writer' => $writer, 'changes' => [$field => $value]]);
-                    $this->assertFalse($result['ok'], "$writer $field " . json_encode($value));
-                    $this->assertSame([], $result['prepared']);
-                    $this->assertSame([], $result['queries']);
-                    $this->assertSame([], $result['updates']);
-                    $this->assertSame([], $result['deleted']);
+                    $case = ("$writer $field " . json_encode($value)) . ' #' . count($expectedContracts);
+                    $expectedContracts[$case] = [
+                            'ok' => false,
+                            'prepared' => [],
+                            'queries' => [],
+                            'updates' => [],
+                            'deleted' => [],
+                        ];
+                    $actualContracts[$case] = [
+                            'ok' => $result['ok'],
+                            'prepared' => $result['prepared'],
+                            'queries' => $result['queries'],
+                            'updates' => $result['updates'],
+                            'deleted' => $result['deleted'],
+                        ];
                 }
             }
         }
-    }
+    
+        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
+}
 
     #[Test]
     public function boundary_values_enums_and_explicit_null_are_accepted(): void {
         foreach ([0, '0', 2147483647, '2147483647', null] as $code) {
             $result = $this->runFixture(['changes' => ['instant_status_code' => $code, 'destination_latitude' => -90, 'destination_longitude' => 180, 'instant_payment_id' => str_repeat('x', 100)]]);
-            $this->assertTrue($result['ok']);
-            $this->assertSame(null === $code ? null : (int) $code, $result['row']['instant_status_code']);
+            $this->assertSame(
+                [
+                    'ok' => true,
+                    'row.instant_status_code' => null === $code ? null : (int) $code,
+                ],
+                [
+                    'ok' => $result['ok'],
+                    'row.instant_status_code' => $result['row']['instant_status_code'],
+                ],
+                __FUNCTION__
+            );
         }
         foreach (['paid', 'unpaid', 'pending', 'refunded'] as $status) {
             $this->assertTrue($this->runFixture(['changes' => ['instant_payment_status' => $status]])['ok']);
@@ -135,17 +252,37 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
     public function database_write_failure_returns_false_even_without_last_error(): void {
         foreach (['insert', 'callback', 'verified', 'full'] as $writer) {
             $result = $this->runFixture(['mode' => 'insert' === $writer ? 'insert' : 'update', 'writer' => $writer, 'fail_write' => true, 'changes' => ['instant_status_code' => 102]]);
-            $this->assertFalse($result['ok']);
-            $this->assertSame(101, $result['row']['instant_status_code']);
+            $this->assertSame(
+                [
+                    'ok' => false,
+                    'row.instant_status_code' => 101,
+                ],
+                [
+                    'ok' => $result['ok'],
+                    'row.instant_status_code' => $result['row']['instant_status_code'],
+                ],
+                __FUNCTION__
+            );
         }
     }
 
     #[Test]
     public function metadata_validation_uses_wordpress_helpers_and_removes_script_contents(): void {
         $result = $this->runFixture(['changes' => ['instant_payment_id' => '<script>discard</script><b>PAY-1</b>', 'live_tracking_url' => 'https://example.test/track']]);
-        $this->assertTrue($result['ok']);
-        $this->assertSame('PAY-1', $result['row']['instant_payment_id']);
-        $this->assertSame('https://example.test/track', $result['row']['live_tracking_url']);
-        $this->assertSame(['sanitize_text_field', 'wp_parse_url', 'esc_url_raw'], $result['wordpress_helpers']);
+        $this->assertSame(
+            [
+                'ok' => true,
+                'row.instant_payment_id' => 'PAY-1',
+                'row.live_tracking_url' => 'https://example.test/track',
+                'wordpress_helpers' => ['sanitize_text_field', 'wp_parse_url', 'esc_url_raw'],
+            ],
+            [
+                'ok' => $result['ok'],
+                'row.instant_payment_id' => $result['row']['instant_payment_id'],
+                'row.live_tracking_url' => $result['row']['live_tracking_url'],
+                'wordpress_helpers' => $result['wordpress_helpers'],
+            ],
+            __FUNCTION__
+        );
     }
 }

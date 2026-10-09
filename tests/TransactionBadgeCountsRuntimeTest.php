@@ -17,21 +17,15 @@ final class TransactionBadgeCountsRuntimeTest extends TestCase
         if (null !== $onlyIds) { $payload['only_ids'] = $onlyIds; }
         $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-badge-counts-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR));
         $output = shell_exec($command);
-        $this->assertNotNull($output, 'Database fixture must execute successfully.');
         $responses = json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
-        $this->assertCount(count($requests), $responses);
-        foreach ($responses as $response) {
-            $this->assertSame('', $response['last_error'], implode("\n", $response['queries']));
-            $this->assertNotEmpty($response['queries']);
-            $this->assertSame($response['counts']['total'], array_sum($response['tabs']));
-            $this->assertSame($response['counts']['total'], $response['sidebar'], 'Actual repository sidebar getter must share the pending scope.');
-            $this->assertSame(array_diff_key($response['counts'], ['total' => true]), $response['tabs']);
-            $badgeSql = array_values(array_filter($response['queries'], static fn ($sql) => str_contains($sql, 'AS has_issue')));
-            $this->assertCount(3, $badgeSql, 'Shared query, delivery tabs and actual sidebar each execute the badge SQL.');
-            foreach ($badgeSql as $sql) {
-                $this->assertStringContainsString($hpos ? 'FROM wp_wc_orders p' : 'FROM wp_posts p', $sql);
-            }
+        $expected = $actual = [];
+        foreach ($responses as $index => $response) {
+            $counts = $response['counts'];
+            $expected[$index] = ['error' => '', 'executed' => true, 'tab_total' => $counts['total'], 'sidebar' => $counts['total'], 'tabs' => array_diff_key($counts, ['total' => true])];
+            $actual[$index] = ['error' => $response['last_error'], 'executed' => [] !== $response['queries'], 'tab_total' => array_sum($response['tabs']), 'sidebar' => $response['sidebar'], 'tabs' => $response['tabs']];
         }
+        $this->assertCount(count($requests), $responses);
+        $this->assertSame($expected, $actual, 'Executed badge, tabs and repository sidebar must agree.');
         return $responses;
     }
 

@@ -13,6 +13,9 @@ final class ClassicPinBackendRuntimeTest extends TestCase {
         }
     }
     public function test_pin_failures_return_specific_safe_diagnostics_and_write_nothing(): void {
+        $expectedContracts = [];
+        $actualContracts = [];
+
         $cases = array(
             'disabled' => array( 'instant_disabled', 409 ),
             'bad-shape' => array( 'invalid_destination', 422 ),
@@ -38,44 +41,109 @@ final class ClassicPinBackendRuntimeTest extends TestCase {
         );
         foreach ( $cases as $mode => list( $reason, $status ) ) {
             $result = $this->runCase( $mode );
-            $this->assertSame( array(), $result['writes'], $mode );
+            $case = ($mode) . ' #' . count($expectedContracts);
+            $expectedContracts[$case] = array();
+            $actualContracts[$case] = $result['writes'];
             $response = $result['response'];
-            $this->assertFalse( $response['success'], $mode );
-            $this->assertSame( $status, $response['status'], $mode );
-            $this->assertSame( 'kiriof_pin_' . $reason, $response['data']['code'], $mode );
+            $case = ($mode) . ' #' . count($expectedContracts);
+            $expectedContracts[$case] = [
+                    'response.success' => false,
+                    'response.status' => $status,
+                    'response.data.code' => 'kiriof_pin_' . $reason,
+                ];
+            $actualContracts[$case] = [
+                    'response.success' => $response['success'],
+                    'response.status' => $response['status'],
+                    'response.data.code' => $response['data']['code'],
+                ];
             $this->assertNotEmpty( $response['data']['message'], $mode );
-            $this->assertSame( $response['data']['message'], $response['data']['msg'], $mode );
+            $case = ($mode) . ' #' . count($expectedContracts);
+            $expectedContracts[$case] = $response['data']['message'];
+            $actualContracts[$case] = $response['data']['msg'];
             foreach ( array( '55581', '12345', 'Main street', 'Other street', 'secret', 'credentials', '<private>' ) as $private ) {
                 $this->assertStringNotContainsString( $private, $response['data']['message'], $mode );
             }
         }
-        $this->assertSame( array( '55581' ), $this->runCase( 'not-mapped' )['lookups'] );
-        $this->assertSame( array(), $this->runCase( 'cached-lookup-fails' )['lookups'] );
-        $this->assertSame( array(), $this->runCase( 'nonce' )['lookups'] );
-    }
+        $case = (__FUNCTION__) . ' #' . count($expectedContracts);
+        $expectedContracts[$case] = [
+                'fixture.lookups' => array( '55581' ),
+                'fixture.lookups' => array(),
+                'fixture.lookups' => array(),
+            ];
+        $actualContracts[$case] = [
+                'fixture.lookups' => $this->runCase( 'not-mapped' )['lookups'],
+                'fixture.lookups' => $this->runCase( 'cached-lookup-fails' )['lookups'],
+                'fixture.lookups' => $this->runCase( 'nonce' )['lookups'],
+            ];
+    
+        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
+}
     public function test_pin_bridge_only_writes_pin_and_quote_state(): void {
         $result = $this->runCase( 'pin' );
-        $this->assertSame( array( 'success' => true, 'data' => array( 'pin_saved' => true ), 'status' => 200 ), $result['response'] );
-        $this->assertSame( array( 'kiriof_buyer_destination', 'kiriof_buyer_destination_coordinates', 'kiriof_instant_checkout_quotes', 'kiriof_instant_checkout_status' ), $result['writes'] );
-        $this->assertSame( 'Authoritative district', $result['session']['kiriof_buyer_destination']['district_label'] );
-        $this->assertSame( '123', $result['session']['destination_id'] );
-        $this->assertSame( 'cod', $result['session']['chosen_payment_method'] );
-        $this->assertSame( 1, $result['session']['kiriof_insurance'] );
-        $this->assertSame( array( 'legacy' ), $result['session']['chosen_shipping_methods'] );
+        $this->assertSame(
+            [
+                'response' => array( 'success' => true, 'data' => array( 'pin_saved' => true ), 'status' => 200 ),
+                'writes' => array( 'kiriof_buyer_destination', 'kiriof_buyer_destination_coordinates', 'kiriof_instant_checkout_quotes', 'kiriof_instant_checkout_status' ),
+                'session.kiriof_buyer_destination.district_label' => 'Authoritative district',
+                'session.destination_id' => '123',
+                'session.chosen_payment_method' => 'cod',
+                'session.kiriof_insurance' => 1,
+                'session.chosen_shipping_methods' => array( 'legacy' ),
+            ],
+            [
+                'response' => $result['response'],
+                'writes' => $result['writes'],
+                'session.kiriof_buyer_destination.district_label' => $result['session']['kiriof_buyer_destination']['district_label'],
+                'session.destination_id' => $result['session']['destination_id'],
+                'session.chosen_payment_method' => $result['session']['chosen_payment_method'],
+                'session.kiriof_insurance' => $result['session']['kiriof_insurance'],
+                'session.chosen_shipping_methods' => $result['session']['chosen_shipping_methods'],
+            ],
+            __FUNCTION__
+        );
     }
     public function test_explicit_clear_does_not_rewrite_legacy_selection(): void {
         $result = $this->runCase( 'clear' );
-        $this->assertNull( $result['session']['kiriof_buyer_destination'] );
-        $this->assertNull( $result['session']['kiriof_buyer_destination_coordinates'] );
-        $this->assertSame( '123', $result['session']['destination_id'] );
-        $this->assertCount( 4, $result['writes'] );
+        $this->assertSame(
+            [
+                'session.kiriof_buyer_destination' => null,
+                'session.kiriof_buyer_destination_coordinates' => null,
+                'session.destination_id' => '123',
+                'count(result.writes)' => 4,
+            ],
+            [
+                'session.kiriof_buyer_destination' => $result['session']['kiriof_buyer_destination'],
+                'session.kiriof_buyer_destination_coordinates' => $result['session']['kiriof_buyer_destination_coordinates'],
+                'session.destination_id' => $result['session']['destination_id'],
+                'count(result.writes)' => count($result['writes']),
+            ],
+            __FUNCTION__
+        );
     }
     public function test_legacy_district_endpoint_preserves_same_and_clears_changed_pin(): void {
-        $this->assertSame( 2, $this->runCase( 'district-same' )['session']['kiriof_buyer_destination']['version'] );
-        $this->assertNull( $this->runCase( 'district-changed' )['session']['kiriof_buyer_destination'] );
+        $this->assertSame(
+            [
+                'fixture.session.kiriof_buyer_destination.version' => 2,
+                'fixture.session.kiriof_buyer_destination' => null,
+            ],
+            [
+                'fixture.session.kiriof_buyer_destination.version' => $this->runCase( 'district-same' )['session']['kiriof_buyer_destination']['version'],
+                'fixture.session.kiriof_buyer_destination' => $this->runCase( 'district-changed' )['session']['kiriof_buyer_destination'],
+            ],
+            __FUNCTION__
+        );
     }
     public function test_legacy_fee_updates_preserve_only_matching_valid_pins(): void {
-        $this->assertSame( 2, $this->runCase( 'legacy-same' )['session']['kiriof_buyer_destination']['version'] );
-        $this->assertNull( $this->runCase( 'legacy-changed' )['session']['kiriof_buyer_destination'] );
+        $this->assertSame(
+            [
+                'fixture.session.kiriof_buyer_destination.version' => 2,
+                'fixture.session.kiriof_buyer_destination' => null,
+            ],
+            [
+                'fixture.session.kiriof_buyer_destination.version' => $this->runCase( 'legacy-same' )['session']['kiriof_buyer_destination']['version'],
+                'fixture.session.kiriof_buyer_destination' => $this->runCase( 'legacy-changed' )['session']['kiriof_buyer_destination'],
+            ],
+            __FUNCTION__
+        );
     }
 }

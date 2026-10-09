@@ -14,6 +14,11 @@ final class TransactionDeliveryTypeRuntimeTest extends TestCase {
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
     }
 
+    private function databaseFixture(array $input): array {
+        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-multi-filter-database.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
+    }
+
     #[Test]
     public function strict_helper_classifies_only_documented_codes_and_exact_partition_values(): void {
         $helper = \KiriminAjaOfficial\Services\TransactionDeliveryType::class;
@@ -32,53 +37,65 @@ final class TransactionDeliveryTypeRuntimeTest extends TestCase {
 
     #[Test]
     public function every_list_and_badge_branch_partitions_legacy_and_hpos_without_losing_pagination(): void {
-        foreach ([false,true] as $hpos) {
-            foreach (['all','order-issue','processed','wc-cancelled','wc-processing','wc-processing,processed,wc-cancelled'] as $status) {
-                foreach (['express','instant'] as $type) {
-                    $result = $this->runFixture(['hpos'=>$hpos,'filters'=>['status'=>$status,'delivery_type'=>$type]]);
-                    $scope = 'order-issue' === $status ? 'express' : $type;
-                    foreach ($result['queries'] as $sql) {
-                        $this->assertStringContainsString("delivery_type = '", $sql);
-                        if (str_contains($sql, 'is_deficit = 1')) {
-                            $this->assertStringContainsString("delivery_type = 'express'", $sql);
-                        } else {
-                            $this->assertStringContainsString("delivery_type = '$scope'", $sql);
-                        }
-                    }
-                    $sql = implode("\n", $result['queries']);
-                    $this->assertStringContainsString($hpos ? 'wp_wc_orders' : 'wp_posts', $sql);
-                    if ('instant' === $scope) {
-                        $this->assertSame(55, $result['counts']['processed']);
-                        $this->assertStringContainsString('instant_status_code IS NOT NULL', $sql);
-                        $this->assertStringContainsString("instant_payment_id != ''", $sql);
-                        $this->assertStringNotContainsString('kiriminaja_payments', $sql);
-                    }
-                    $this->assertSame(55, $result['page']['total']);
-                    $this->assertSame(3, $result['page']['page']);
-                    $this->assertStringContainsString('LIMIT 25 OFFSET 50', $sql);
-
+        // Execute both storage implementations: counts and IDs prove partitions,
+        // booking evidence, issue scope and clamped pagination without SQL spelling.
+        $scopes = [
+            'express' => ['all' => [10, 9], 'order-issue' => [], 'processed' => [10], 'wc-cancelled' => [], 'wc-processing' => [9], 'wc-processing,processed,wc-cancelled' => [10, 9]],
+            'instant' => ['all' => [14, 13, 12, 11, 8, 7, 6, 5, 4, 3, 2, 1], 'order-issue' => [], 'processed' => [12, 11, 8, 6, 5], 'wc-cancelled' => [8, 7], 'wc-processing' => [2, 1], 'wc-processing,processed,wc-cancelled' => [12, 11, 8, 7, 6, 5, 2, 1]],
+        ];
+        $expected = $actual = [];
+        foreach ([false, true] as $hpos) {
+            $requests = [];
+            $keys = [];
+            foreach ($scopes as $type => $statuses) {
+                foreach ($statuses as $status => $ids) {
+                    $key = ($hpos ? 'hpos' : 'legacy') . '/' . $type . '/' . $status;
+                    $keys[] = $key;
+                    $requests[] = ['filters' => ['status' => $status, 'delivery_type' => $type], 'page' => 99, 'per_page' => 2];
+                    $pages = (int) ceil(count($ids) / 2);
+                    $expected[$key] = ['ids' => array_slice($ids, ($pages - 1) * 2, 2), 'total' => count($ids), 'page' => $pages ?: 99, 'pages' => $pages, 'per_page' => 2, 'error' => ''];
                 }
             }
+            foreach ($this->databaseFixture(['hpos' => $hpos, 'scenario' => 'instant-print', 'requests' => $requests]) as $index => $response) {
+                $actual[$keys[$index]] = ['ids' => array_column($response['page']['results'], 'wc_order_id'), 'total' => $response['page']['total'], 'page' => $response['page']['page'], 'pages' => $response['page']['total_pages'], 'per_page' => $response['page']['items_per_page'], 'error' => $response['last_error']];
+            }
         }
+        $this->assertSame($expected, $actual);
     }
 
     #[Test]
     public function instant_payment_identity_filter_is_exact_and_stays_in_instant_partition(): void {
+        $expected = $actual = [];
         foreach ([false, true] as $hpos) {
-            $result = $this->runFixture(['hpos'=>$hpos, 'filters'=>['delivery_type'=>'instant', 'status'=>'all', 'key'=>"ipid:pay'100%_id"]]);
-            $sql = implode("\n", $result['queries']);
-            $this->assertStringContainsString("kiriminaja_transactions.instant_payment_id = 'pay''100%_id'", $sql);
-            $this->assertStringContainsString("delivery_type = 'instant'", $sql);
-            $this->assertStringNotContainsString('pickup_number =', $sql);
+            $cases = [
+                'exact' => ['delivery_type' => 'instant', 'key' => 'ipid:INSTANT-PAY-6'],
+                'prefix-is-not-identity' => ['delivery_type' => 'instant', 'key' => 'ipid:INSTANT-PAY-'],
+                'quoted-literal' => ['delivery_type' => 'instant', 'key' => "ipid:pay'100%_id"],
+                'wrong-partition' => ['delivery_type' => 'express', 'key' => 'ipid:INSTANT-PAY-6'],
+            ];
+            $responses = $this->databaseFixture(['hpos' => $hpos, 'scenario' => 'instant-print', 'requests' => array_map(static fn ($filters) => ['filters' => $filters], $cases)]);
+            foreach (array_keys($cases) as $index => $case) {
+                $key = ($hpos ? 'hpos' : 'legacy') . '/' . $case;
+                $ids = 'exact' === $case ? [6] : [];
+                $expected[$key] = ['ids' => $ids, 'total' => count($ids), 'error' => ''];
+                $actual[$key] = ['ids' => array_column($responses[$index]['page']['results'], 'wc_order_id'), 'total' => $responses[$index]['page']['total'], 'error' => $responses[$index]['last_error']];
+            }
         }
+        $this->assertSame($expected, $actual);
     }
 
     #[Test]
     public function invalid_partition_defaults_express_and_instance_scope_and_caches_reset(): void {
-        foreach ([null, [], 'Instant', "instant' OR 1=1"] as $value) {
-            $result = $this->runFixture(['filters'=>['delivery_type'=>$value]]);
-            foreach ($result['queries'] as $sql) { $this->assertStringContainsString("delivery_type = 'express'", $sql); }
+        $expected = $actual = [];
+        foreach ([false, true] as $hpos) {
+            $requests = array_map(static fn ($value) => ['filters' => ['delivery_type' => $value]], [null, [], 'Instant', "instant' OR 1=1"]);
+            foreach ($this->databaseFixture(['hpos' => $hpos, 'scenario' => 'instant-print', 'requests' => $requests]) as $index => $response) {
+                $key = ($hpos ? 'hpos' : 'legacy') . '/' . $index;
+                $expected[$key] = ['ids' => [10, 9], 'total' => 2, 'error' => ''];
+                $actual[$key] = ['ids' => array_column($response['page']['results'], 'wc_order_id'), 'total' => $response['page']['total'], 'error' => $response['last_error']];
+            }
         }
+        $this->assertSame($expected, $actual);
         $result = $this->runFixture(['filters'=>['delivery_type'=>'instant'],'reset'=>true]);
         $this->assertSame(['kiriof_distinct_couriers_instant','kiriof_distinct_couriers_express'], $result['cache_keys']);
         $this->assertStringContainsString("t.delivery_type = 'express'", end($result['queries']));
