@@ -11,26 +11,25 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		return json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
 	}
 
-	private array $rejectedExpected = [];
-	private array $rejectedActual = [];
-
-	private function assert_rejected( array $input, string $message = self::INVALID ): array {
+	private function assert_rejected( array $input, string $message = self::INVALID, string $case = '' ): array {
 		$result = $this->run_controller( $input );
+		$context = ( $input['operation'] ?? 'quote' ) . ': ' . ( $case ?: json_encode( $input, JSON_THROW_ON_ERROR ) );
 		$labels = 'labels' === ( $input['operation'] ?? '' );
-		$case = json_encode($input, JSON_THROW_ON_ERROR) . ' #' . count($this->rejectedExpected);
-		$this->rejectedExpected[$case] = [
-			'calls' => [], 'html' => '', 'headers' => [],
-			'responses' => $labels ? [['die' => $message]] : [['success' => false, 'data' => ['status' => 400, 'message' => $message]]],
-			'sentinel' => $labels ? 'die' : 'json-error',
-		];
-		$this->rejectedActual[$case] = [
-			'calls' => $result['calls'], 'html' => $result['html'], 'headers' => $result['headers'],
-			'responses' => $result['responses'], 'sentinel' => $result['sentinel'],
-		];
-		if (!$labels) {
-			$this->rejectedExpected[$case]['http_status'] = 400;
-			$this->rejectedActual[$case]['http_status'] = $result['http_status'];
+		$expected = array(
+			'calls'     => array(),
+			'html'      => '',
+			'headers'   => array(),
+			'responses' => $labels ? array( array( 'die' => $message ) ) : array( array( 'success' => false, 'data' => array( 'status' => 400, 'message' => $message ) ) ),
+			'sentinel'  => $labels ? 'die' : 'json-error',
+		);
+		if ( ! $labels ) {
+			$expected['http_status'] = 400;
 		}
+		$actual = array();
+		foreach ( $expected as $key => $value ) {
+			$actual[ $key ] = $result[ $key ];
+		}
+		$this->assertSame( $expected, $actual, $context . ' rejects without service calls or rendering' );
 		return $result;
 	}
 
@@ -94,90 +93,72 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	}
 
 	#[Test]
-	public function all_ajax_routes_authorize_before_nonce_and_service_calls(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
+	public function every_ajax_route_checks_permissions_nonce_payload_and_ids_before_services(): void {
 		foreach ( self::AJAX as $operation ) {
-			$result = $this->assert_rejected( array( 'operation' => $operation, 'capable' => false, 'data' => null ), 'Insufficient permissions' );
-			$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-			$expectedContracts[$case] = array( array( 'capability', 'manage_woocommerce' ) );
-			$actualContracts[$case] = $result['events'];
-			foreach ( array( null, '', 'wrong', 'valid:kiriof_instant_labels', array( 'valid:kiriof_ajax' ), 123, '<b>valid:kiriof_ajax</b>', ' valid:kiriof_ajax ', 'valid:kiriof_ajax\\' ) as $nonce ) {
-				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'nonce' => $nonce ) ), 'Security check failed' );
-			}
-			$this->assert_rejected( array( 'operation' => $operation, 'unset' => array( 'nonce' ) ), 'Security check failed' );
+			$result = $this->assert_rejected( array( 'operation' => $operation, 'capable' => false, 'data' => null ), 'Insufficient permissions', 'permission precedes malformed payload' );
+			$this->assertSame( array( array( 'capability', 'manage_woocommerce' ) ), $result['events'], $operation . ' permission precedes nonce' );
+			$this->assert_rejected( array( 'operation' => $operation, 'unset' => array( 'nonce' ) ), 'Security check failed', 'missing nonce' );
+			$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'nonce' => 'wrong' ) ), 'Security check failed', 'wrong nonce' );
+			$this->assert_rejected( array( 'operation' => $operation, 'data' => 'data' ), self::INVALID, 'non-array payload' );
+			$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => '["A/B"]' ) ), self::INVALID, 'unsafe ID' );
 		}
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+	}
 
 	#[Test]
-	public function every_ajax_route_rejects_malformed_payloads_and_json_without_scalar_coercion(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
-		foreach ( self::AJAX as $operation ) {
-			foreach ( array( null, true, 'data', 42 ) as $data ) {
-				$this->assert_rejected( array( 'operation' => $operation, 'data' => $data ) );
-			}
-			foreach ( array( null, array( 'KA-1' ), true, 42, '', '[', '{}', '{"0":"KA-1"}', '"KA-1"', 'null', 'true', '1' ) as $ids ) {
-				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => $ids ) ) );
-			}
-			$this->assert_rejected( array( 'operation' => $operation, 'unset' => array( 'order_ids' ) ) );
+	public function shared_ajax_nonce_validation_rejects_non_strings_wrong_actions_and_sanitized_lookalikes(): void {
+		// All AJAX routes use ajax(); labels has a separate authorization path below.
+		foreach ( array(
+			'null' => null, 'empty' => '', 'wrong token' => 'wrong', 'label action' => 'valid:kiriof_instant_labels',
+			'array' => array( 'valid:kiriof_ajax' ), 'integer' => 123, 'markup' => '<b>valid:kiriof_ajax</b>',
+			'whitespace' => ' valid:kiriof_ajax ', 'literal backslash' => 'valid:kiriof_ajax\\',
+		) as $case => $nonce ) {
+			$this->assert_rejected( array( 'operation' => 'quote', 'fields' => array( 'nonce' => $nonce ) ), 'Security check failed', $case );
 		}
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+	}
 
 	#[Test]
-	public function id_batches_enforce_one_to_fifty_unique_exact_safe_string_or_integer_ids(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
-		$invalid = array( array(), array( 'KA-1', 'KA-1' ), array( 1, '1' ), range( 1, 51 ) );
-		foreach ( array( '', ' KA-1', 'KA-1 ', '-KA', '_KA', 'A.B', 'A/B', 'A\\B', 'A\\\\B', 'A,B', "A\nB", '<b>A</b>', 'é', str_repeat( 'a', 101 ), null, true, false, 1.2, array( 'KA' ), (object) array( 'id' => 'KA' ) ) as $id ) { $invalid[] = array( $id ); }
-		foreach ( self::AJAX as $operation ) {
-			foreach ( $invalid as $ids ) {
-				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
-			}
-			$valid = array( array( 1 ), array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), range( 1, 50 ) );
-			if ( in_array( $operation, array( 'tracking', 'reconcile', 'cancel' ), true ) ) {
-				$valid = 'cancel' === $operation ? array( array( 'KA_2-x' ) ) : array( array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), array_map( 'strval', range( 1, 10 ) ) );
-			}
-			foreach ( $valid as $ids ) {
-				$result = $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
-				$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-				$expectedContracts[$case] = [
-				        'responses.0.success' => true,
-				        'calls.0.1. \'dispatch\' === operation ? 1 : 0 ' => $ids,
-				    ];
-				$actualContracts[$case] = [
-				        'responses.0.success' => $result['responses'][0]['success'],
-				        'calls.0.1. \'dispatch\' === operation ? 1 : 0 ' => $result['calls'][0][1][ 'dispatch' === $operation ? 1 : 0 ],
-				    ];
-			}
+	public function shared_ajax_payload_and_posted_ids_require_an_array_payload_and_a_json_list(): void {
+		foreach ( array( 'null' => null, 'boolean' => true, 'string' => 'data', 'integer' => 42 ) as $case => $data ) {
+			$this->assert_rejected( array( 'operation' => 'quote', 'data' => $data ), self::INVALID, $case . ' payload' );
 		}
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+		foreach ( array(
+			'null field' => null, 'native array' => array( 'KA-1' ), 'boolean field' => true, 'integer field' => 42,
+			'empty JSON' => '', 'broken JSON' => '[', 'object' => '{}', 'numeric-key object' => '{"0":"KA-1"}',
+			'JSON string' => '"KA-1"', 'JSON null' => 'null', 'JSON boolean' => 'true', 'JSON number' => '1',
+		) as $case => $ids ) {
+			$this->assert_rejected( array( 'operation' => 'quote', 'fields' => array( 'order_ids' => $ids ) ), self::INVALID, $case );
+		}
+		$this->assert_rejected( array( 'operation' => 'quote', 'unset' => array( 'order_ids' ) ), self::INVALID, 'missing IDs' );
+	}
+
+	#[Test]
+	public function shared_id_validation_rejects_unsafe_types_duplicates_and_out_of_bounds_batches(): void {
+		// postedIds() and labels() converge on validateIds(); exercise its full boundaries once.
+		$invalid = array( 'empty batch' => array(), 'duplicate strings' => array( 'KA-1', 'KA-1' ), 'integer-string collision' => array( 1, '1' ), '51 IDs' => range( 1, 51 ) );
+		foreach ( array(
+			'empty ID' => '', 'leading whitespace' => ' KA-1', 'trailing whitespace' => 'KA-1 ',
+			'leading hyphen' => '-KA', 'leading underscore' => '_KA', 'dot' => 'A.B', 'slash' => 'A/B',
+			'backslash' => 'A\\B', 'double backslash' => 'A\\\\B', 'comma' => 'A,B', 'newline' => "A\nB",
+			'markup' => '<b>A</b>', 'non-ASCII' => 'é', '101 characters' => str_repeat( 'a', 101 ),
+			'null' => null, 'true' => true, 'false' => false, 'float' => 1.2,
+			'nested array' => array( 'KA' ), 'object' => (object) array( 'id' => 'KA' ),
+		) as $case => $id ) { $invalid[$case] = array( $id ); }
+		foreach ( $invalid as $case => $ids ) {
+			$this->assert_rejected( array( 'operation' => 'quote', 'fields' => array( 'order_ids' => json_encode( $ids ) ) ), self::INVALID, $case );
+		}
+	}
+
+	#[Test]
+	public function shared_id_validation_preserves_integer_string_and_maximum_length_and_batch_boundaries(): void {
+		foreach ( array( 'one integer' => array( 1 ), 'zero and safe punctuation and 100 characters' => array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), '50 IDs' => range( 1, 50 ) ) as $case => $ids ) {
+			$result = $this->run_controller( array( 'operation' => 'quote', 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
+			$this->assertTrue( $result['responses'][0]['success'], $case );
+			$this->assertSame( array( array( 'quote', array( $ids ) ) ), $result['calls'], $case . ' exact forwarding' );
+		}
+	}
 
 	#[Test]
 	public function lifecycle_routes_enforce_string_ids_limits_and_explicit_single_cancel_consent(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
 		foreach ( array( 'tracking', 'reconcile', 'cancel' ) as $operation ) {
 			foreach ( array( array( 1 ), array( 'KA-1', 2 ), array_map( 'strval', range( 1, 11 ) ) ) as $ids ) {
 				$this->assert_rejected( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
@@ -190,49 +171,36 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		$this->assert_rejected( array( 'operation' => 'cancel', 'fields' => array( 'order_ids' => '["KA-1","KA-2"]' ) ) );
 		foreach ( array( 'tracking' => 'track', 'reconcile' => 'reconcile', 'cancel' => 'cancel' ) as $operation => $method ) {
 			$result = $this->run_controller( array( 'operation' => $operation, 'unset' => array( 'token', 'method', 'pin', 'payment_id' ) ) );
-			$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-			$expectedContracts[$case] = [
-			        'calls' => array( array( $method, array( array( 'KA-1' ) ) ) ),
-			        'events' => array( array( 'capability', 'manage_woocommerce' ), array( 'nonce', 'valid:kiriof_ajax', 'kiriof_ajax' ), array( 'service', $method ) ),
-			        'responses' => array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => array( 'spy_result' => $method ) ) ) ),
-			    ];
-			$actualContracts[$case] = [
-			        'calls' => $result['calls'],
-			        'events' => $result['events'],
-			        'responses' => $result['responses'],
-			    ];
+			$this->assertSame( array( array( $method, array( array( 'KA-1' ) ) ) ), $result['calls'], $operation . ' exact service arguments' );
+			$this->assertSame( array( array( 'capability', 'manage_woocommerce' ), array( 'nonce', 'valid:kiriof_ajax', 'kiriof_ajax' ), array( 'service', $method ) ), $result['events'], $operation . ' guard and service ordering' );
+			$this->assertSame( array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => array( 'spy_result' => $method ) ) ) ), $result['responses'], $operation . ' response contract' );
 		}
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+	}
+
+	#[Test]
+	public function lifecycle_routes_forward_safe_string_ids_and_accept_ten_but_cancel_accepts_only_one(): void {
+		foreach ( array( 'tracking' => 'track', 'reconcile' => 'reconcile', 'cancel' => 'cancel' ) as $operation => $method ) {
+			$valid = 'cancel' === $operation ? array( array( 'KA_2-x' ) ) : array( array( '0', 'KA_2-x', str_repeat( 'a', 100 ) ), array_map( 'strval', range( 1, 10 ) ) );
+			foreach ( $valid as $ids ) {
+				$result = $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'order_ids' => json_encode( $ids ) ) ) );
+				$this->assertTrue( $result['responses'][0]['success'], $operation . ' accepts valid lifecycle batch' );
+				$this->assertSame( array( array( $method, array( $ids ) ) ), $result['calls'], $operation . ' preserves string IDs' );
+			}
+		}
+	}
 
 	#[Test]
 	public function lifecycle_unknown_reports_are_returned_as_success_without_retries_or_other_services(): void {
 		$report = array( 'rows' => array( array( 'id' => 'KA-1', 'status' => 'unknown', 'tracking_url' => '', 'message' => 'Reconciliation required.' ) ) );
 		foreach ( array( 'tracking', 'reconcile', 'cancel' ) as $operation ) {
 			$result = $this->run_controller( array( 'operation' => $operation, 'service_result' => $report ) );
-			$this->assertSame(
-			    [
-			        'count(result.calls)' => 1,
-			        'responses' => array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => $report ) ) ),
-			    ],
-			    [
-			        'count(result.calls)' => count($result['calls']),
-			        'responses' => $result['responses'],
-			    ],
-			    __FUNCTION__
-			);
+			$this->assertCount( 1, $result['calls'], $operation . ' invokes only one service' );
+			$this->assertSame( array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => $report ) ) ), $result['responses'], $operation . ' returns unknown report unchanged' );
 		}
 	}
 
 	#[Test]
 	public function dispatch_requires_literal_yes_and_valid_scalar_token_method_and_optional_pin(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
 		foreach ( array( null, true, false, 1, 'true', 'YES', ' yes', 'yes ', '<b>yes</b>', array( 'yes' ) ) as $confirmed ) {
 			$this->assert_rejected( array( 'operation' => 'dispatch', 'fields' => array( 'confirmed' => $confirmed ) ), 'Review and confirm the Instant shipping costs before dispatch.' );
 		}
@@ -248,22 +216,12 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		}
 		foreach ( array( array( 'unset' => array( 'pin' ) ), array( 'fields' => array( 'pin' => '' ) ) ) as $input ) {
 			$result = $this->run_controller( array_merge( array( 'operation' => 'dispatch' ), $input ) );
-			$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-			$expectedContracts[$case] = array( array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '' ) ) );
-			$actualContracts[$case] = $result['calls'];
+			$this->assertSame( array( array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '' ) ) ), $result['calls'] );
 		}
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+	}
 
 	#[Test]
 	public function credit_validation_requires_exact_token_and_pin_without_dispatch_consent(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
 		foreach ( array( 'token', 'pin' ) as $key ) {
 			foreach ( array( null, true, 42, array( 'value' ), ' value ', '<b>value</b>' ) as $value ) {
 				$this->assert_rejected( array( 'operation' => 'validateCredit', 'fields' => array( $key => $value ) ) );
@@ -272,58 +230,25 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		}
 		$this->assert_rejected( array( 'operation' => 'validateCredit', 'fields' => array( 'token' => '' ) ) );
 		$result = $this->run_controller( array( 'operation' => 'validateCredit', 'unset' => array( 'confirmed', 'method' ), 'fields' => array( 'pin' => '123456' ), 'service_result' => array( 'valid' => true ) ) );
-		$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-		$expectedContracts[$case] = [
-		        'calls' => array( array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '123456' ) ) ),
-		        'responses' => array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => array( 'valid' => true ) ) ) ),
-		    ];
-		$actualContracts[$case] = [
-		        'calls' => $result['calls'],
-		        'responses' => $result['responses'],
-		    ];
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+		$this->assertSame( array( array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '123456' ) ) ), $result['calls'], 'validateCredit exact service arguments' );
+		$this->assertSame( array( array( 'success' => true, 'data' => array( 'status' => 200, 'data' => array( 'valid' => true ) ) ) ), $result['responses'], 'credit validation response' );
+	}
 
 	#[Test]
 	public function valid_routes_forward_exact_arguments_and_emit_one_success_outside_the_service_try(): void {
 		foreach ( array( 'quote' => array( 'quote', array( array( 'KA-1', 2 ) ) ), 'validateCredit' => array( 'validateCredit', array( array( 'KA-1', 2 ), 'quote-token', '1234' ) ), 'dispatch' => array( 'dispatch', array( 'quote-token', array( 'KA-1', 2 ), 'credit', '1234' ) ), 'payment' => array( 'refreshPayment', array( array( 'KA-1', 2 ), 'PAY-1' ) ), 'labelPreview' => array( 'preview', array( array( 'KA-1', 2 ) ) ) ) as $operation => $call ) {
 			$result = $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'ignored_field' => array( 'untrusted' ) ) ) );
-			$this->assertSame(
-			    [
-			        'calls' => array( $call ),
-			        'count(result.responses)' => 1,
-			        'sentinel' => 'json-success',
-			        'responses.0.data.status' => 200,
-			        'responses.0.success' => true,
-			    ],
-			    [
-			        'calls' => $result['calls'],
-			        'count(result.responses)' => count($result['responses']),
-			        'sentinel' => $result['sentinel'],
-			        'responses.0.data.status' => $result['responses'][0]['data']['status'],
-			        'responses.0.success' => $result['responses'][0]['success'],
-			    ],
-			    __FUNCTION__
-			);
+			$this->assertSame( array( $call ), $result['calls'], $operation . ' exact service arguments' );
+			$this->assertCount( 1, $result['responses'], $operation . ' emits one response' );
+			$this->assertSame( 'json-success', $result['sentinel'], $operation . ' success terminates outside service try' );
+			$this->assertSame( 200, $result['responses'][0]['data']['status'], $operation . ' success status' );
+			$this->assertTrue( $result['responses'][0]['success'], $operation . ' success response' );
 			if ( 'labelPreview' === $operation ) {
 				$data = $result['responses'][0]['data']['data'];
-				$this->assertSame(
-				    [
-				        'type' => 'html',
-				        'provider' => 'local',
-				        'carrier_available' => false,
-				        'message fragment: data.fallback_reason' => 'not a courier-issued label',
-				    ],
-				    [
-				        'type' => $data['type'],
-				        'provider' => $data['provider'],
-				        'carrier_available' => $data['carrier_available'],
-				        'message fragment: data.fallback_reason' => substr($data['fallback_reason'], strpos($data['fallback_reason'], 'not a courier-issued label') === false ? strlen($data['fallback_reason']) : strpos($data['fallback_reason'], 'not a courier-issued label'), strlen('not a courier-issued label')),
-				    ],
-				    __FUNCTION__
-				);
+				$this->assertSame( 'html', $data['type'] );
+				$this->assertSame( 'local', $data['provider'] );
+				$this->assertFalse( $data['carrier_available'] );
+				$this->assertStringContainsString( 'not a courier-issued label', $data['fallback_reason'] );
 				parse_str( parse_url( $data['url'], PHP_URL_QUERY ), $query );
 				$this->assertSame( array( 'action' => 'kiriof_instant_labels', 'oids' => 'KA-1,2', '_wpnonce' => 'valid:kiriof_instant_labels' ), $query );
 			} else {
@@ -343,11 +268,6 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 
 	#[Test]
 	public function payment_id_is_validated_only_for_payment_and_other_endpoints_ignore_it(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
 		foreach ( array( null, array( 'PAY' ), 123, true, '', ' PAY ', '<b>PAY</b>' ) as $value ) {
 			$this->assert_rejected( array( 'operation' => 'payment', 'fields' => array( 'payment_id' => $value ) ) );
 		}
@@ -356,102 +276,49 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 			$this->assertTrue( $this->run_controller( array( 'operation' => $operation, 'fields' => array( 'payment_id' => array( 'unknown' ) ) ) )['responses'][0]['success'] );
 		}
 		$result = $this->run_controller( array( 'operation' => 'payment', 'fields' => array( 'payment_id' => 'UNKNOWN-PAYMENT' ) ) );
-		$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-		$expectedContracts[$case] = 'UNKNOWN-PAYMENT';
-		$actualContracts[$case] = $result['calls'][0][1][1];
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+		$this->assertSame( 'UNKNOWN-PAYMENT', $result['calls'][0][1][1] );
+	}
 
 	#[Test]
 	public function label_render_requires_dedicated_nonce_and_cannot_use_legacy_bypass(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
 		$result = $this->assert_rejected( array( 'operation' => 'labels', 'capable' => false ), 'Insufficient permissions' );
-		$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-		$expectedContracts[$case] = array( array( 'capability', 'manage_woocommerce' ) );
-		$actualContracts[$case] = $result['events'];
-		foreach ( array( null, '', 'wrong', 'valid:kiriof_ajax', array( 'valid:kiriof_instant_labels' ), '<b>valid:kiriof_instant_labels</b>', ' valid:kiriof_instant_labels ', 'valid:kiriof_instant_labels\\' ) as $nonce ) {
-			$this->assert_rejected( array( 'operation' => 'labels', 'legacy_bypass' => true, 'get' => array( '_wpnonce' => $nonce, 'oids' => 'KA-1' ) ), 'Security check failed' );
+		$this->assertSame( array( array( 'capability', 'manage_woocommerce' ) ), $result['events'] );
+		foreach ( array( 'null' => null, 'empty' => '', 'wrong token' => 'wrong', 'AJAX action' => 'valid:kiriof_ajax', 'array' => array( 'valid:kiriof_instant_labels' ), 'markup' => '<b>valid:kiriof_instant_labels</b>', 'whitespace' => ' valid:kiriof_instant_labels ', 'literal backslash' => 'valid:kiriof_instant_labels\\' ) as $case => $nonce ) {
+			$this->assert_rejected( array( 'operation' => 'labels', 'legacy_bypass' => true, 'get' => array( '_wpnonce' => $nonce, 'oids' => 'KA-1' ) ), 'Security check failed', $case );
 		}
-		$this->assert_rejected( array( 'operation' => 'labels', 'legacy_bypass' => true, 'get' => array( 'oids' => 'KA-1' ) ), 'Security check failed' );
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+		$this->assert_rejected( array( 'operation' => 'labels', 'legacy_bypass' => true, 'get' => array( 'oids' => 'KA-1' ) ), 'Security check failed', 'missing dedicated nonce' );
+	}
 
 	#[Test]
 	public function render_validates_ids_then_prepares_and_renders_local_template_with_security_headers(): void {
-        $expectedContracts = [];
-        $actualContracts = [];
-        $this->rejectedExpected = [];
-        $this->rejectedActual = [];
-
-		foreach ( array( null, array( 'KA' ), 1, '', 'KA,KA', 'KA,', ',KA', ' KA', 'KA\\1', '<b>KA</b>', implode( ',', range( 1, 51 ) ) ) as $oids ) {
-			$this->assert_rejected( array( 'operation' => 'labels', 'get' => array( '_wpnonce' => 'valid:kiriof_instant_labels', 'oids' => $oids ) ) );
+		foreach ( array( 'null' => null, 'array' => array( 'KA' ), 'integer' => 1, 'empty' => '', 'duplicate IDs' => 'KA,KA', 'trailing empty ID' => 'KA,', 'leading empty ID' => ',KA', 'whitespace' => ' KA', 'literal backslash' => 'KA\\1', 'markup' => '<b>KA</b>', '51 IDs' => implode( ',', range( 1, 51 ) ) ) as $case => $oids ) {
+			$this->assert_rejected( array( 'operation' => 'labels', 'get' => array( '_wpnonce' => 'valid:kiriof_instant_labels', 'oids' => $oids ) ), self::INVALID, $case );
 		}
 		$this->assert_rejected( array( 'operation' => 'labels', 'get' => array( '_wpnonce' => 'valid:kiriof_instant_labels' ) ) );
 		foreach ( array( array( 'KA-1' ), array_map( 'strval', range( 1, 50 ) ) ) as $ids ) {
 			$result = $this->run_controller( array( 'operation' => 'labels', 'get' => array( '_wpnonce' => 'valid:kiriof_instant_labels', 'oids' => implode( ',', $ids ) ) ) );
-			$case = (__FUNCTION__) . ' #' . count($expectedContracts);
-			$expectedContracts[$case] = [
-			        'calls' => array( array( 'prepare', array( $ids ) ) ),
-			        'events' => array( array( 'capability', 'manage_woocommerce' ), array( 'nonce', 'valid:kiriof_instant_labels', 'kiriof_instant_labels' ), array( 'nocache' ), array( 'service', 'prepare' ) ),
-			        'html' => 'LOCAL-TEMPLATE:{"spy_result":"prepare"}',
-			        'responses' => array(),
-			        'headers' => array( 'Content-Type: text/html; charset=UTF-8', 'X-Frame-Options: SAMEORIGIN', "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'" ),
-			    ];
-			$actualContracts[$case] = [
-			        'calls' => $result['calls'],
-			        'events' => $result['events'],
-			        'html' => $result['html'],
-			        'responses' => $result['responses'],
-			        'headers' => $result['headers'],
-			    ];
+			$this->assertSame( array( array( 'prepare', array( $ids ) ) ), $result['calls'], 'labels ' . ' exact service arguments' );
+			$this->assertSame( array( array( 'capability', 'manage_woocommerce' ), array( 'nonce', 'valid:kiriof_instant_labels', 'kiriof_instant_labels' ), array( 'nocache' ), array( 'service', 'prepare' ) ), $result['events'], 'labels ' . ' guard and service ordering' );
+			$this->assertSame( 'LOCAL-TEMPLATE:{"spy_result":"prepare"}', $result['html'], 'html' );
+			$this->assertSame( array(), $result['responses'], 'labels ' . ' response contract' );
+			$this->assertSame( array( 'Content-Type: text/html; charset=UTF-8', 'X-Frame-Options: SAMEORIGIN', "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'" ), $result['headers'], 'headers' );
 		}
-	
-        $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
-        $this->assertSame($this->rejectedExpected, $this->rejectedActual, __FUNCTION__ . ' rejection matrix');
-}
+	}
 
 	#[Test]
 	public function service_failures_emit_fixed_messages_without_rendering_or_leaking_remote_details(): void {
 		foreach ( array_merge( self::AJAX, array( 'labels' ) ) as $operation ) {
 			foreach ( array( 'validation' => 'Fixed validation message.', 'runtime' => 'Unable to complete the Instant request. Please try again.' ) as $error => $message ) {
 				$result = $this->run_controller( array( 'operation' => $operation, 'service_error' => $error ) );
-				$this->assertSame(
-				    [
-				        'count(result.calls)' => 1,
-				        'count(result.responses)' => 1,
-				        'html' => '',
-				        'headers' => array(),
-				        '\'labels\' === operation ? result.responses.0.die : result.responses.0.data.message' => $message,
-				    ],
-				    [
-				        'count(result.calls)' => count($result['calls']),
-				        'count(result.responses)' => count($result['responses']),
-				        'html' => $result['html'],
-				        'headers' => $result['headers'],
-				        '\'labels\' === operation ? result.responses.0.die : result.responses.0.data.message' => 'labels' === $operation ? $result['responses'][0]['die'] : $result['responses'][0]['data']['message'],
-				    ],
-				    __FUNCTION__
-				);
+				$case = $operation . ': ' . $error . ' service failure';
+				$this->assertCount( 1, $result['calls'], $case . ' no retries' );
+				$this->assertCount( 1, $result['responses'], $case . ' one response' );
+				$this->assertSame( '', $result['html'], $case . ' no rendering' );
+				$this->assertSame( array(), $result['headers'], $case . ' no label headers' );
+				$this->assertSame( $message, 'labels' === $operation ? $result['responses'][0]['die'] : $result['responses'][0]['data']['message'], $case . ' fixed public message' );
 				if ( 'labels' !== $operation ) {
-					$this->assertSame(
-					    [
-					        'http_status' => 'validation' === $error ? 400 : 503,
-					        'responses.0.data.status' => $result['http_status'],
-					    ],
-					    [
-					        'http_status' => $result['http_status'],
-					        'responses.0.data.status' => $result['responses'][0]['data']['status'],
-					    ],
-					    __FUNCTION__
-					);
+					$this->assertSame( 'validation' === $error ? 400 : 503, $result['http_status'], $case . ' HTTP status' );
+					$this->assertSame( $result['http_status'], $result['responses'][0]['data']['status'], $case . ' response status' );
 				}
 				$this->assertSame( 'labels' === $operation ? 'die' : 'json-error', $result['sentinel'] );
 			}

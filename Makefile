@@ -111,7 +111,7 @@ test:
 frontend:
 	@test -x "$(BUN)" || (echo "Bun is required to build frontend assets." && exit 127)
 	$(BUN) run frontend:check
-	$(BUN) run build
+	$(BUN) run build:admin
 
 changelog:
 	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"

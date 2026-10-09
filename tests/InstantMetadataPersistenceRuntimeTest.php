@@ -11,7 +11,7 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
     private function runFixture(array $input): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-metadata-persistence-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
-    }
+        }
 
     #[Test]
     public function fresh_schema_and_upgrade_use_an_independent_suffix_scoped_marker(): void {
@@ -201,10 +201,39 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
             'destination_longitude' => [-180.01, 180.01, '1e999', [], true],
             'live_tracking_url' => ['javascript:alert(1)', 'https://', [], true],
         ];
+        // All four writers call normalizeInstantMetadata before preparing SQL or
+        // normalizing the delivery partition. Exercise each semantic rejection
+        // once through callback, rather than multiplying the shared validator's
+        // cases by four. Keep a rejection smoke for every field on every other
+        // writer, including each column's distinct enum/range/length/URL rule.
+        // The full invalid corpus remains here: integer syntax and INT overflow,
+        // string-only inputs, enums, both coordinate limits, non-finite numeric
+        // strings, payment ID length, and URL scheme/structure validation.
+        $prior = [
+            'service' => 'gosend', 'delivery_type' => 'instant', 'vehicle' => 'motor',
+            'status' => 'shipped', 'awb' => 'existing-awb', 'instant_status_code' => 101,
+            'instant_payment_status' => 'paid', 'instant_payment_id' => 'old-payment',
+            'instant_payment_method' => 'qris', 'destination_latitude' => -6,
+            'destination_longitude' => 106, 'live_tracking_url' => 'https://example.test/old',
+        ];
+        // Valid sibling metadata and a courier change must not be partially
+        // persisted or cause a partition lookup/cache reset when one field fails.
+        $validChanges = [
+            'service' => 'jne', 'status' => 'finished', 'instant_status_code' => 102,
+            'instant_payment_status' => 'refunded', 'instant_payment_method' => 'top',
+            'instant_payment_id' => 'new-payment', 'destination_latitude' => 0,
+            'destination_longitude' => 0, 'live_tracking_url' => 'https://example.test/new',
+        ];
         foreach ($invalid as $field => $values) {
-            foreach ($values as $value) {
-                foreach (['insert', 'callback', 'verified', 'full'] as $writer) {
-                    $result = $this->runFixture(['mode' => 'insert' === $writer ? 'insert' : 'update', 'writer' => $writer, 'changes' => [$field => $value]]);
+            foreach (['callback', 'insert', 'verified', 'full'] as $writer) {
+                $writerValues = 'callback' === $writer ? $values : [$values[0]];
+                foreach ($writerValues as $value) {
+                    $result = $this->runFixture([
+                        'mode' => 'insert' === $writer ? 'insert' : 'update',
+                        'writer' => $writer,
+                        'prior' => $prior,
+                        'changes' => array_replace($validChanges, [$field => $value]),
+                    ]);
                     $case = ("$writer $field " . json_encode($value)) . ' #' . count($expectedContracts);
                     $expectedContracts[$case] = [
                             'ok' => false,
@@ -212,6 +241,7 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
                             'queries' => [],
                             'updates' => [],
                             'deleted' => [],
+                            'row' => $prior,
                         ];
                     $actualContracts[$case] = [
                             'ok' => $result['ok'],
@@ -219,6 +249,7 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
                             'queries' => $result['queries'],
                             'updates' => $result['updates'],
                             'deleted' => $result['deleted'],
+                            'row' => $result['row'],
                         ];
                 }
             }

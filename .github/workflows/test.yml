@@ -119,11 +119,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Setup Bun for runtime UI bridge
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.4.2"
-
       - name: Download validated package
         uses: actions/download-artifact@v4
         with:
@@ -151,7 +146,7 @@ jobs:
           - wp: "6.8"
             wc: "10.6.0"
     runs-on: ubuntu-latest
-    needs: static
+    needs: build
 
     services:
       mysql:
