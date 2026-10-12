@@ -108,7 +108,14 @@ namespace {
         private $manager;
         public function __construct( $manager ) {
             $this->manager = $manager;
-            $this->cart = new class { public function needs_shipping() { return $GLOBALS['scenario']['needs_shipping']; } };
+            $this->cart = new class {
+                public function needs_shipping() { return $GLOBALS['scenario']['needs_shipping']; }
+                public function get_cart() {
+                    return array( array( 'data' => new class {
+                        public function needs_shipping() { return $GLOBALS['scenario']['needs_shipping']; }
+                    }, 'quantity' => 1 ) );
+                }
+            };
             $this->session = new class {
                 public array $data = array();
                 public function get( $key, $default = null ) { return $this->data[$key] ?? $default; }
