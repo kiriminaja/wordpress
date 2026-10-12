@@ -89,11 +89,44 @@ class CheckoutController
     }
 
     private function kiriof_cart_needs_shipping(): bool {
-        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'needs_shipping' ) ) {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->cart ) || ! WC()->cart || ! method_exists( WC()->cart, 'get_cart' ) ) {
             return true;
         }
 
-        return WC()->cart->needs_shipping();
+        // Cart-level shipping filters can temporarily suppress shipping for physical items.
+        // Do not classify an unavailable/unloaded cart as virtual or recurse into that filter.
+        if ( function_exists( 'did_action' ) && ! did_action( 'wp_loaded' ) ) {
+            return true;
+        }
+
+        foreach ( WC()->cart->get_cart() as $item ) {
+            if ( isset( $item['quantity'] ) && 0 >= (float) $item['quantity'] ) {
+                continue;
+            }
+
+            $product = $item['data'] ?? null;
+            if ( ! is_object( $product ) || ! method_exists( $product, 'needs_shipping' ) || $product->needs_shipping() ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function kiriof_is_local_pickup_selected(): bool {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only field configuration; WooCommerce verifies checkout requests.
+        $methods = isset( $_POST['shipping_method'] ) ? wp_unslash( $_POST['shipping_method'] ) : WC()->session->get( 'chosen_shipping_methods', array() );
+        if ( ! is_array( $methods ) || empty( $methods ) ) {
+            return false;
+        }
+
+        foreach ( $methods as $method ) {
+            if ( ! is_string( $method ) || ! in_array( explode( ':', $method, 2 )[0], array( 'local_pickup', 'pickup_location' ), true ) ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function kiriof_order_needs_shipping( $order ): bool {
@@ -234,6 +267,10 @@ class CheckoutController
     function kiriof_shipping_method_update() {
         if ( ! $this->kiriof_cart_needs_shipping() ) {
             $this->kiriof_clear_logistics_session();
+            return;
+        }
+
+        if ( ! isset( WC()->cart ) || ! WC()->cart || ( function_exists( 'did_action' ) && ! did_action( 'wp_loaded' ) ) || ! WC()->cart->needs_shipping() ) {
             return;
         }
 
@@ -593,8 +630,8 @@ class CheckoutController
         return false;
     }
 
-    function kiriof_filter_cart_needs_shipping( $needs_shipping ) {
-        if ( ! $needs_shipping ) {
+    public function kiriof_filter_cart_needs_shipping( $needs_shipping ) {
+        if ( ! $needs_shipping && ! $this->kiriof_cart_needs_shipping() ) {
             $this->kiriof_clear_logistics_session();
         }
 
@@ -647,6 +684,10 @@ class CheckoutController
 
             if ( ! $this->kiriof_cart_needs_shipping() ) {
                 $this->kiriof_clear_logistics_session();
+                return;
+            }
+
+            if ( $this->kiriof_is_local_pickup_selected() ) {
                 return;
             }
 
@@ -1742,6 +1783,10 @@ class CheckoutController
             return;
         }
 
+        if ( $this->kiriof_is_local_pickup_selected() ) {
+            return;
+        }
+
             $this->kiriof_normalize_classic_destination_post_data();
             $kiriof_address_too_short = $this->kiriof_checkout_posted_address_is_too_short();
             if ( $kiriof_address_too_short ) {
@@ -1809,10 +1854,11 @@ class CheckoutController
         $fields = $this->kiriof_configure_classic_address_fields( $fields, $fields_selected );
         /** Add field Subdistrict */
         $fields = self::kiriof_add_field_subdistrict( $fields );
+        $is_local_pickup = $this->kiriof_is_local_pickup_selected();
         foreach ( array( 'billing', 'shipping' ) as $group ) {
             $key = 'shipping' === $group ? $this->field_shipping_destination_key : $this->field_destination_key;
             $is_indonesia = 'ID' === $this->kiriof_get_classic_address_country( $group );
-            $fields[ $group ][ $key ]['required'] = $is_indonesia;
+            $fields[ $group ][ $key ]['required'] = $is_indonesia && ! $is_local_pickup;
             if ( ! $is_indonesia ) {
                 $fields[ $group ][ $key ]['class'][] = 'kiriof-classic-address-hidden';
             }

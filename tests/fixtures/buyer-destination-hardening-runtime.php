@@ -63,6 +63,11 @@ namespace {
     class CheckoutRaceCart {
         public array $cart_contents = array();
         public string $hash = 'quantity-one';
+        public function __construct() {
+            $this->cart_contents = array( array( 'data' => new class {
+                public function needs_shipping() { return true; }
+            }, 'quantity' => 1 ) );
+        }
         public function get_cart_hash() { return $this->hash; }
         public function get_cart() { return $this->cart_contents; }
         public function add_fee( ...$args ) {}
