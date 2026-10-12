@@ -34,7 +34,11 @@ final class CourierRateCart {
 	public $free_shipping = true;
 	public $fees = array();
 	public function needs_shipping() { return true; }
-	public function get_cart() { return array(); }
+	public function get_cart() {
+		return array( array( 'data' => new class {
+			public function needs_shipping() { return true; }
+		}, 'quantity' => 1 ) );
+	}
 	public function add_fee( $name, $amount, $taxable = false ) { $this->fees[] = array( 'name' => $name, 'amount' => $amount ); }
 	public function get_cart_hash() { return 'unchanged-cart'; }
 	public function get_coupons() { ++$this->coupon_reads; return $this->free_shipping ? array( 'free' => new CourierRateCoupon() ) : array(); }
