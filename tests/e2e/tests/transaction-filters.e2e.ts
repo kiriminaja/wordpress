@@ -22,6 +22,8 @@ const i18n = {
   codFee: 'COD Fee', itemDiscount: 'Item Discount', shippingDiscount: 'Shipping Discount',
   copyAwb: 'Copy AWB', copyKaOrderId: 'Copy KA Order ID', copied: 'Copied',
   refreshLabels: { '60': '1 minute', '180': '3 minutes', '300': '5 minutes' },
+  scanToPay: 'Scan to Pay', detail: 'Shipment detail', liveTracking: 'Live tracking', instantRecheck: 'Recheck booking',
+  instantCancel: 'Cancel Instant shipment', vehicle: 'Vehicle', vehicleUnavailable: 'Unavailable',
 };
 
 // Only the HTTP/WordPress boundary is synthetic. Mount the deployed entry (not
@@ -43,7 +45,16 @@ function html(url: URL): string {
     couriers: [{ value: 'gosend', label: longCourier }, { value: 'grab', label: 'GrabExpress' }],
     shipmentLocations: [], locationsUrl: '/wp-admin/admin.php?page=kiriminaja-setting&tab=locations',
     pagination: { page: Number(params.get('cpage') || 1), totalPages: 1, total: 0, perPage: Number(params.get('per_page') || 25) },
-    rows: [],
+    rows: params.get('row_actions') === '1' ? [{
+      id: 1, kaOrderId: 'KA-1', wcOrderId: 42, wcOrderUrl: '/order/42', detailUrl: '/detail/KA-1', deliveryType: 'instant',
+      customer: { name: 'Fixture buyer', phone: '' }, courier: { code: 'fixture', service: 'Fixture courier', paymentLabel: 'NON COD' },
+      vehicle: 'motorbike', status: { code: 105, label: 'Waiting for pickup', tone: 'info' }, printStatus: 'printed',
+      route: { origin: 'Warehouse', destination: 'Destination', addressLines: [] },
+      package: { weight: 1000, quantity: 1, actualShipping: 12000, paidShipping: 12000 },
+      selection: { disabled: true, canPickup: false, canPrint: false, title: '' },
+      actions: { preview: true, paymentUrl: '/wp-admin/admin.php?page=kiriminaja-request-pickup&instant_payment_id=PAY-1&open_payment=1', print: true, cancel: true, process: true, track: true, reconcile: true },
+      actionData: {}, awb: 'AWB-1', createdAt: '2026-01-02',
+    }] : [],
     bulk: { showPrint: true, printAction: 'kiriof_print', printNonce: 'isolated', printPreviewNonce: 'isolated', ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'isolated', pickupUrl: '/wp-admin/admin.php?page=kiriminaja-request-pickup' },
     i18n,
   };
@@ -203,5 +214,49 @@ for (const width of [1440, 1100, 390]) {
       await assertGeometry(browser, width, 'instant', true);
     }
     expect(boundary.unexpected).toEqual([]);
+  });
+}
+
+for (const width of [390, 1440]) {
+  test(`transaction Scan to Pay belongs to a connected accessible action group at ${width}px`, async ({ app, browser }) => {
+    const state = await fixture(browser);
+    await browser.setViewport({ width, height: 1000 });
+    await app.open('/wp-admin/admin.php?page=kiriminaja-transaction&delivery_type=instant&row_actions=1');
+    const payment = browser.locator('td.is-actions a[aria-label="Scan to Pay"]');
+    await expect(payment).toBeVisible();
+    const geometry = await browser.evaluate(() => {
+      const row = document.querySelector<HTMLTableRowElement>('.kiriof-transactions-table tbody tr')!;
+      const group = row.querySelector<HTMLElement>('[data-slot="button-group"]')!;
+      const buttons = [...group.querySelectorAll<HTMLElement>('[data-slot="button"]')];
+      const bounds = group.getBoundingClientRect();
+      return { role: group.getAttribute('role'), label: group.getAttribute('aria-label'),
+        courierHasPayment: Boolean(row.children[2].querySelector('[aria-label="Scan to Pay"]')),
+        labels: buttons.map(button => button.getAttribute('aria-label')),
+        gaps: buttons.slice(1).map((button, index) => button.getBoundingClientRect().left - buttons[index].getBoundingClientRect().right),
+        heights: buttons.map(button => button.getBoundingClientRect().height),
+        borderLeft: buttons.slice(1).map(button => getComputedStyle(button).borderLeftWidth),
+        innerRadii: buttons.slice(1, -1).map(button => [getComputedStyle(button).borderTopLeftRadius, getComputedStyle(button).borderTopRightRadius]),
+        overflow: group.scrollWidth - group.clientWidth,
+        contained: buttons.every(button => button.getBoundingClientRect().left >= bounds.left - 1 && button.getBoundingClientRect().right <= bounds.right + 1),
+      };
+    });
+    expect(geometry.role).toBe('group'); expect(geometry.label).toBe('Action #42');
+    expect(geometry.courierHasPayment).toBe(false);
+    expect(geometry.labels).toEqual(['Shipment detail', 'Scan to Pay', 'Recheck booking', 'Live tracking', 'Cancel Instant shipment', 'Process Shipment', 'Print Labels']);
+    expect(geometry.contained).toBe(true); expect(geometry.overflow).toBeLessThanOrEqual(1);
+    for (const gap of geometry.gaps) expect(Math.abs(gap)).toBeLessThanOrEqual(1);
+    for (const height of geometry.heights) expect(height).toBeGreaterThanOrEqual(28);
+    expect(geometry.borderLeft).toEqual(Array(6).fill('0px'));
+    expect(geometry.innerRadii).toEqual(Array(5).fill(['0px', '0px']));
+    await browser.evaluate(() => document.querySelector<HTMLAnchorElement>('td.is-actions a[aria-label="Shipment detail"]')!.focus());
+    await browser.keyboard.press('Tab');
+    await expect.poll(() => browser.evaluate(() => document.activeElement?.getAttribute('aria-label'))).toBe('Scan to Pay');
+    await expect.poll(() => browser.evaluate(() => {
+      const id = document.activeElement?.getAttribute('aria-describedby');
+      return id ? document.getElementById(id)?.textContent?.trim() : null;
+    })).toBe('Scan to Pay');
+    await browser.keyboard.press('Tab');
+    await expect.poll(() => browser.evaluate(() => document.activeElement?.getAttribute('aria-label'))).toBe('Recheck booking');
+    expect(state.requests).toHaveLength(1); expect(state.unexpected).toEqual([]);
   });
 }

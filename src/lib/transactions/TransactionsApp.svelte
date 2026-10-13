@@ -28,6 +28,8 @@
   import { Button } from '$lib/components/ui/button';
   import KiriofCheckbox from '$lib/ui/KiriofCheckbox.svelte';
   import * as InputGroup from '$lib/components/ui/input-group';
+  import * as ButtonGroup from '$lib/components/ui/button-group';
+  import TransactionRowAction from './TransactionRowAction.svelte';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
@@ -440,7 +442,6 @@
                     <div class="kiriof-courier-summary__content">
                       <strong class="kiriof-row-title">{row.courier.service}</strong>
                       {#if row.deliveryType === 'instant'}
-                      {#if row.actions.paymentUrl}<ActionTooltip label={bootstrap.i18n.scanToPay}><Button variant="outline" size="icon-sm" href={row.actions.paymentUrl} aria-label={bootstrap.i18n.scanToPay}><IconQrcode /></Button></ActionTooltip>{/if}
                         <span class="kiriof-row-muted">{bootstrap.i18n.vehicle}: {row.vehicle || bootstrap.i18n.vehicleUnavailable}</span>
                       {:else}
                       <span class="kiriof-payment-type {row.courier.paymentLabel === 'COD' ? 'is-cod' : 'is-non-cod'}">
@@ -498,36 +499,35 @@
                   </div>
                 </Table.Cell>
                 <Table.Cell class="is-actions">
-                  <div class="kiriof-row-actions">
+                  <ButtonGroup.Root class="kiriof-row-actions" aria-label={`${bootstrap.i18n.action} #${row.wcOrderId}`}>
                     {#if row.actions.preview}
-                      <ActionTooltip label={bootstrap.i18n.detail}><Button variant="outline" size="icon-sm" href={row.detailUrl} aria-label={bootstrap.i18n.detail}><IconEye /></Button></ActionTooltip>
+                      <TransactionRowAction label={bootstrap.i18n.detail} variant="outline" size="icon-sm" href={row.detailUrl}><IconEye /></TransactionRowAction>
                     {/if}
                     {#if row.deliveryType === 'instant' && isInstant}
+                      {#if row.actions.paymentUrl}<TransactionRowAction label={bootstrap.i18n.scanToPay} variant="outline" size="icon-sm" href={row.actions.paymentUrl}><IconQrcode /></TransactionRowAction>{/if}
                       {@const trackingUrl = safeInstantTrackingUrl(row.actions.liveTrackingUrl)}
-                      {#if row.actions.reconcile}<ActionTooltip label={bootstrap.i18n.instantRecheck}><Button variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })} aria-label={bootstrap.i18n.instantRecheck}><IconRefresh /></Button></ActionTooltip>{/if}
+                      {#if row.actions.reconcile}<TransactionRowAction label={bootstrap.i18n.instantRecheck} variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}><IconRefresh /></TransactionRowAction>{/if}
                       {#if row.actions.track}
-                        <ActionTooltip label={bootstrap.i18n.liveTracking}>
-                          {#if trackingUrl}<Button variant="outline" size="icon-sm" href={trackingUrl} target="_blank" rel="noopener noreferrer" aria-label={bootstrap.i18n.liveTracking}><IconMapPin /></Button>
-                          {:else}<Button variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })} aria-label={bootstrap.i18n.liveTracking}><IconMapPin /></Button>{/if}
-                        </ActionTooltip>
+                        {#if trackingUrl}<TransactionRowAction label={bootstrap.i18n.liveTracking} variant="outline" size="icon-sm" href={trackingUrl} target="_blank" rel="noopener noreferrer"><IconMapPin /></TransactionRowAction>
+                        {:else}<TransactionRowAction label={bootstrap.i18n.liveTracking} variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}><IconMapPin /></TransactionRowAction>{/if}
                       {/if}
-                      {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.instantCancel}><Button variant="destructive" size="icon-sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })} aria-label={bootstrap.i18n.instantCancel}><IconTrash /></Button></ActionTooltip>{/if}
-                      {#if row.actions.process}<ActionTooltip label={bootstrap.i18n.processShipment}><Button variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])} aria-label={bootstrap.i18n.processShipment}><IconTruck /></Button></ActionTooltip>{/if}
-                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
+                      {#if row.actions.cancel}<TransactionRowAction label={bootstrap.i18n.instantCancel} variant="destructive" size="icon-sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })}><IconTrash /></TransactionRowAction>{/if}
+                      {#if row.actions.process}<TransactionRowAction label={bootstrap.i18n.processShipment} variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])}><IconTruck /></TransactionRowAction>{/if}
+                      {#if row.actions.print}<TransactionRowAction label={bootstrap.i18n.print} variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])}><IconPrinter /></TransactionRowAction>{/if}
                     {/if}
                     {#if row.deliveryType !== 'instant'}
                     {#if row.actions.changeOrigin}
-                      <ActionTooltip label={bootstrap.i18n.changeOrigin}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })} aria-label={bootstrap.i18n.changeOrigin}><IconSwitch2 /></Button></ActionTooltip>
+                      <TransactionRowAction label={bootstrap.i18n.changeOrigin} variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'origin', data: row.actionData })}><IconSwitch2 /></TransactionRowAction>
                     {/if}
                     {#if row.actions.adjustDeficit}
-                      <ActionTooltip label={bootstrap.i18n.adjustDeficit}><Button variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'adjust-deficit', data: row.actionData })} aria-label={bootstrap.i18n.adjustDeficit}><IconCashBanknoteEdit class="text-warning" /></Button></ActionTooltip>
-                      <ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel-deficit', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>
+                      <TransactionRowAction label={bootstrap.i18n.adjustDeficit} variant="outline" size="icon-sm" onclick={() => (actionDialog = { kind: 'adjust-deficit', data: row.actionData })}><IconCashBanknoteEdit class="text-warning" /></TransactionRowAction>
+                      <TransactionRowAction label={bootstrap.i18n.cancel} variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel-deficit', data: row.actionData })}><IconTrash /></TransactionRowAction>
                     {:else}
-                      {#if row.actions.print}<ActionTooltip label={bootstrap.i18n.print}><Button variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])} aria-label={bootstrap.i18n.print}><IconPrinter /></Button></ActionTooltip>{/if}
-                      {#if row.actions.cancel}<ActionTooltip label={bootstrap.i18n.cancel}><Button variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel', data: row.actionData })} aria-label={bootstrap.i18n.cancel}><IconTrash /></Button></ActionTooltip>{/if}
+                      {#if row.actions.print}<TransactionRowAction label={bootstrap.i18n.print} variant="outline" size="icon-sm" onclick={() => openPrintPreview([row.kaOrderId])}><IconPrinter /></TransactionRowAction>{/if}
+                      {#if row.actions.cancel}<TransactionRowAction label={bootstrap.i18n.cancel} variant="destructive" size="icon-sm" onclick={() => (actionDialog = { kind: 'cancel', data: row.actionData })}><IconTrash /></TransactionRowAction>{/if}
                     {/if}
                     {/if}
-                  </div>
+                  </ButtonGroup.Root>
                 </Table.Cell>
               </Table.Row>
             {/each}

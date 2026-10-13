@@ -674,6 +674,19 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-row-actions [data-slot='button'] svg {
   @apply block !w-4 !h-4;
 }
+.kiriof-transactions-app .kiriof-row-actions[data-slot='button-group'] {
+  @apply flex-nowrap gap-0!;
+}
+.kiriof-transactions-app
+  .kiriof-row-actions[data-slot='button-group']
+  > [data-slot='button']:not(:first-child) {
+  @apply rounded-l-none! border-l-0!;
+}
+.kiriof-transactions-app
+  .kiriof-row-actions[data-slot='button-group']
+  > [data-slot='button']:not(:last-child) {
+  @apply rounded-r-none!;
+}
 .kiriof-transaction-status,
 .kiriof-print-status {
   @apply inline-flex items-center gap-1 [min-height:20px] [padding:1px_6px] border border-transparent rounded-md bg-muted border-border text-xs font-semibold [line-height:1.45] whitespace-nowrap;

@@ -17,7 +17,7 @@ afterAll(() => { if (buildDirectory) rmSync(buildDirectory, { recursive: true, f
 async function buildBundle(): Promise<Buffer> {
   const directory = buildDirectory = mkdtempSync(join(root, 'node_modules', '.transaction-print-build-'));
   const put = (name: string, source: string) => writeFileSync(join(directory, name), source);
-  put('Empty.svelte', '<script>let {open = $bindable(false), action = $bindable(null)} = $props();</script>');
+  put('Empty.svelte', '<script>let {open = $bindable(false), action = $bindable(null), mode, orderIds} = $props();</script>{#if open || action || mode}<output data-dialog-boundary>{JSON.stringify({open, action, mode, orderIds})}</output>{/if}');
   put('Boundary.svelte', '<script>let {children} = $props();</script>{@render children?.()}');
   put('Icon.svelte', '<script>let props = $props();</script><svg aria-hidden="true" {...props}></svg>');
   const iconNames = new Set<string>();
@@ -50,7 +50,7 @@ function readdirIsDirectory(path: string): boolean {
 }
 
 const baseUrl = 'https://fixture.test/wp-admin/admin.php?page=kiriminaja-transactions&delivery_type=instant&key=parcel+42&status=processed%2Cwaiting_for_shipment&courier=gosend%2Cgrab&month=2026-01&date_from=2026-01-02&date_to=2026-01-27&per_page=50&cpage=4&print_status=0&cod=1&search_by=awb';
-async function fixture(deliveryType = 'instant', initialPrint = '0') {
+async function fixture(deliveryType = 'instant', initialPrint = '0', rows: any[] = []) {
   const directory = mkdtempSync(join(root, 'node_modules', '.transaction-print-runtime-'));
   const initialUrl = new URL(baseUrl);
   initialUrl.searchParams.set('delivery_type', deliveryType);
@@ -74,10 +74,10 @@ async function fixture(deliveryType = 'instant', initialPrint = '0') {
   const bootstrap = {
     filters: { delivery_type: deliveryType, key: 'parcel 42', month: '2026-01', date_from: '2026-01-02', date_to: '2026-01-27', status: 'processed,waiting_for_shipment', courier: 'gosend,grab', cod: '1', print_status: initialPrint },
     pagination: { page: 4, perPage: 50, total: 200, totalPages: 4 },
-    rows: [], couriers: [{ value: 'gosend', label: 'GoSend', count: 2 }, { value: 'grab', label: 'Grab', count: 1 }],
+    rows, couriers: [{ value: 'gosend', label: 'GoSend', count: 2 }, { value: 'grab', label: 'Grab', count: 1 }],
     statusOptions: [{ value: 'all', label: 'All', count: 3 }, { value: 'processed', label: 'Processed', count: 2 }, { value: 'waiting_for_shipment', label: 'Waiting for shipment', count: 1 }],
     deliveryCounts: { regular: 2, instant: 3, issue: 0 }, bulk: { ajaxUrl: '/ajax', nonce: 'test', printPreviewNonce: 'print' }, shipmentLocations: [],
-    i18n: { regularDelivery: 'Regular', instantDelivery: 'Instant', orderIssue: 'Order issue', transactionScope: 'Delivery workspace', print: 'Print', processShipment: 'Process shipment', requestPickup: 'Request pickup', allDates: 'Date range', apply: 'Apply', clearFilters: 'All', clear: 'Clear filters', allPrints: 'All prints', printed: 'Printed', unprinted: 'Unprinted', allPayment: 'All payment', cod: 'COD', nonCod: 'Non COD', status: 'Status', allCouriers: 'All couriers', search: 'Search', autoRefresh: 'Refresh transactions', refreshLabels: {}, notFound: 'No transactions', items: 'items', pageOf: 'of', searchStatuses: 'Search statuses', searchCouriers: 'Search couriers', selectedFilters: 'selected', noFilterOptions: 'No options' },
+    i18n: { scanToPay: 'Scan to Pay', action: 'Actions', detail: 'Detail', instantRecheck: 'Recheck', instantCancel: 'Cancel Instant', liveTracking: 'Live tracking', vehicle: 'Vehicle', changeOrigin: 'Change origin', adjustDeficit: 'Adjust deficit', cancel: 'Cancel', regularDelivery: 'Regular', instantDelivery: 'Instant', orderIssue: 'Order issue', transactionScope: 'Delivery workspace', print: 'Print', processShipment: 'Process shipment', requestPickup: 'Request pickup', allDates: 'Date range', apply: 'Apply', clearFilters: 'All', clear: 'Clear filters', allPrints: 'All prints', printed: 'Printed', unprinted: 'Unprinted', allPayment: 'All payment', cod: 'COD', nonCod: 'Non COD', status: 'Status', allCouriers: 'All couriers', search: 'Search', autoRefresh: 'Refresh transactions', refreshLabels: {}, notFound: 'No transactions', items: 'items', pageOf: 'of', searchStatuses: 'Search statuses', searchCouriers: 'Search couriers', selectedFilters: 'selected', noFilterOptions: 'No options' },
   };
   async function cleanup() {
     completeNavigation?.();
@@ -131,6 +131,75 @@ function expectedFilterUrl(initial: URL, printStatus: string, deliveryType = 'in
 }
 
 describe('TransactionsApp print filters (compiled production Svelte and bits-ui)', () => {
+  const transactionRow = (deliveryType: string, paymentUrl: string) => ({
+    id: 1, kaOrderId: 'KA-1', wcOrderId: 42, wcOrderUrl: '/order/42', detailUrl: '/detail/KA-1', deliveryType,
+    customer: { name: 'Fixture buyer', phone: '' }, courier: { code: 'fixture', service: 'Fixture courier', paymentLabel: 'NON COD' },
+    vehicle: 'motorbike', status: { code: 105, label: 'Waiting for pickup', tone: 'info' }, printStatus: 'printed',
+    route: { origin: 'Warehouse', destination: 'Destination', addressLines: [] },
+    package: { weight: 1000, quantity: 1, actualShipping: 12000, paidShipping: 12000 },
+    selection: { disabled: true, canPickup: false, canPrint: false, title: '' },
+    actions: { preview: true, paymentUrl, print: true, cancel: false, process: false, track: false, reconcile: false },
+    actionData: {}, awb: 'AWB-1', createdAt: '2026-01-02',
+  });
+  test('eligible Instant Scan to Pay is a grouped row action, never courier content', async () => {
+    const paymentUrl = '/wp-admin/admin.php?page=kiriminaja-request-pickup&instant_payment_id=PAY-1&open_payment=1';
+    const h = await fixture('instant', '0', [transactionRow('instant', paymentUrl)]); try {
+      const row = h.target.querySelector('tbody tr')!;
+      const payment = row.querySelector<HTMLAnchorElement>('a[aria-label="Scan to Pay"]')!;
+      expect(payment.getAttribute('href')).toBe(paymentUrl);
+      expect(payment.closest('td')?.classList.contains('is-actions')).toBe(true);
+      expect(row.children[2].querySelector('[aria-label="Scan to Pay"]')).toBeNull();
+      const group = row.querySelector('[data-slot="button-group"]')!;
+      expect(group.getAttribute('role')).toBe('group');
+      expect(group.getAttribute('aria-label')).toBe('Actions #42');
+      expect([...group.querySelectorAll('[data-slot="button"]')].map(button => button.getAttribute('aria-label'))).toEqual(['Detail', 'Scan to Pay', 'Print']);
+      expect(h.navigations).toEqual([]);
+    } finally { await h.cleanup(); }
+  });
+  test('ineligible Instant and Regular rows never render a Scan to Pay action', async () => {
+    for (const [type, url] of [['instant', ''], ['express', '/must-not-render']]) {
+      const h = await fixture(type, '0', [transactionRow(type, url)]); try {
+        expect(h.target.querySelector('[aria-label="Scan to Pay"]')).toBeNull();
+        expect(h.target.querySelector('td.is-actions [data-slot="button-group"]')).not.toBeNull();
+      } finally { await h.cleanup(); }
+    }
+  });
+  test('tooltip-composed Instant actions keep their click handlers and order identity', async () => {
+    for (const [flag, label, mode] of [['reconcile', 'Recheck', 'reconcile'], ['track', 'Live tracking', 'tracking'], ['cancel', 'Cancel Instant', 'cancel'], ['process', 'Process shipment', ''], ['print', 'Print', '']]) {
+      const row = transactionRow('instant', ''); row.actions = { ...row.actions, print: false, [flag]: true };
+      const h = await fixture('instant', '0', [row]); try {
+        h.target.querySelector<HTMLButtonElement>(`td.is-actions button[aria-label="${label}"]`)!.click(); await h.settle();
+        const dialogs = [...h.target.querySelectorAll('[data-dialog-boundary]')].map(node => JSON.parse(node.textContent!));
+        expect(dialogs.some(dialog => dialog.orderIds?.[0] === 'KA-1' && (mode ? dialog.mode === mode : dialog.open))).toBe(true);
+        expect(h.navigations).toEqual([]);
+      } finally { await h.cleanup(); }
+    }
+  });
+  test('tooltip-composed Express actions preserve origin, deficit and cancel handlers', async () => {
+    for (const [flag, label, kind] of [['changeOrigin', 'Change origin', 'origin'], ['adjustDeficit', 'Adjust deficit', 'adjust-deficit'], ['adjustDeficit', 'Cancel', 'cancel-deficit'], ['cancel', 'Cancel', 'cancel']]) {
+      const row = transactionRow('express', ''); row.actions = { ...row.actions, [flag]: true }; row.actionData = { orderId: 'KA-1' };
+      const h = await fixture('express', '0', [row]); try {
+        h.target.querySelector<HTMLButtonElement>(`td.is-actions button[aria-label="${label}"]`)!.click(); await h.settle();
+        const dialog = JSON.parse(h.target.querySelector('[data-dialog-boundary]')!.textContent!);
+        expect(dialog.action).toEqual({ kind, data: { orderId: 'KA-1' } });
+        if (flag === 'adjustDeficit') expect(h.target.querySelector('td.is-actions button[aria-label="Print"]')).toBeNull();
+      } finally { await h.cleanup(); }
+    }
+  });
+  test('safe tracking URLs retain external-link protections and unsafe URLs use the dialog', async () => {
+    for (const url of ['https://tracking.example.test/KA-1', 'javascript:alert(1)']) {
+      const row = transactionRow('instant', ''); row.actions = { ...row.actions, track: true, liveTrackingUrl: url };
+      const h = await fixture('instant', '0', [row]); try {
+        const control = h.target.querySelector<HTMLElement>('td.is-actions [aria-label="Live tracking"]')!;
+        if (url.startsWith('https:')) {
+          expect([control.tagName, control.getAttribute('href'), control.getAttribute('target'), control.getAttribute('rel')]).toEqual(['A', url, '_blank', 'noopener noreferrer']);
+        } else {
+          expect(control.tagName).toBe('BUTTON'); control.click(); await h.settle();
+          expect(JSON.parse(h.target.querySelector('[data-dialog-boundary]')!.textContent!).mode).toBe('tracking');
+        }
+      } finally { await h.cleanup(); }
+    }
+  });
   test('Instant selects Printed, Unprinted and All, preserves other query state and strips COD', async () => {
     const h = await fixture(); try {
       expect(h.target.querySelector('form')?.classList.contains('is-instant')).toBe(true);
