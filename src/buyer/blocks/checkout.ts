@@ -830,6 +830,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
         var controller = new AbortController();
         var timer;
         var deadline;
+        var retryTimer;
         setResults({
           key: addressKey,
           options: [],
@@ -853,6 +854,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
                 return;
               }
               controller.abort();
+              root.clearTimeout(retryTimer);
               setResults({
                 key: addressKey,
                 options: [],
@@ -861,81 +863,111 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
                 timedOut: true,
               });
             }, 10000);
-            root
-              .fetch(config.ajaxUrl, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-                body: body.toString(),
-                signal: controller.signal,
-              })
-              .then(function (response) {
-                if (!response.ok) {
-                  throw new Error('District lookup failed');
-                }
-                return response.json();
-              })
-              .then(function (response) {
-                if (generation !== lookupGeneration.current || controller.signal.aborted) {
-                  return;
-                }
-                if (!response.success || !Array.isArray(response.data)) {
-                  throw new Error('District lookup failed');
-                }
-                if (
-                  response.data.some(function (row) {
-                    return (
-                      !row ||
-                      !/^[1-9][0-9]*$/.test(String(row.id)) ||
-                      typeof row.text !== 'string' ||
-                      !row.text.trim()
-                    );
-                  })
-                )
-                  throw new Error('Invalid subdistrict rows');
-                var options = response.data.map(function (row) {
-                  return { value: String(row.id), label: String(row.text) };
-                });
-                root.clearTimeout(deadline);
-                setResults({ key: addressKey, options: options, loading: false, error: false });
-                var saved = savedSelections[postcode];
-                var stored = config.savedDestination;
-                setSelection(function (previous) {
-                  var candidates = [
-                    previous && previous.key === addressKey ? previous.id : '',
-                    stored && stored.postcode === postcode && stored.country === country
-                      ? stored.district_id
-                      : '',
-                    saved && saved.destination_id,
-                    address[fieldId],
-                    String(config.districtPostcode || '').replace(/\s+/g, '') === postcode &&
-                      config.district &&
-                      config.district.id,
-                  ];
-                  var restored = null;
-                  candidates.some(function (id) {
-                    restored = options.find(function (option) {
-                      return option.value === String(id || '');
-                    });
-                    return Boolean(restored);
+            var attempts = 0;
+            function requestOptions() {
+              if (
+                generation !== lookupGeneration.current ||
+                controller.signal.aborted ||
+                !ownsEffects()
+              ) {
+                return;
+              }
+              attempts++;
+              var retryable = false;
+              root
+                .fetch(config.ajaxUrl, {
+                  method: 'POST',
+                  credentials: 'same-origin',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                  body: body.toString(),
+                  signal: controller.signal,
+                })
+                .catch(function (error) {
+                  retryable = true;
+                  throw error;
+                })
+                .then(function (response) {
+                  if (!response.ok) {
+                    retryable = [502, 503, 504].includes(response.status);
+                    throw new Error('District lookup failed');
+                  }
+                  return response.json();
+                })
+                .then(function (response) {
+                  if (generation !== lookupGeneration.current || controller.signal.aborted) {
+                    return;
+                  }
+                  if (!response.success || !Array.isArray(response.data)) {
+                    throw new Error('District lookup failed');
+                  }
+                  if (
+                    response.data.some(function (row) {
+                      return (
+                        !row ||
+                        !/^[1-9][0-9]*$/.test(String(row.id)) ||
+                        typeof row.text !== 'string' ||
+                        !row.text.trim()
+                      );
+                    })
+                  )
+                    throw new Error('Invalid subdistrict rows');
+                  var options = response.data.map(function (row) {
+                    return { value: String(row.id), label: String(row.text) };
                   });
-                  return restored
-                    ? { id: restored.value, label: restored.label, key: addressKey }
-                    : null;
-                });
-              })
-              .catch(function () {
-                root.clearTimeout(deadline);
-                if (generation === lookupGeneration.current && !controller.signal.aborted) {
+                  root.clearTimeout(deadline);
+                  root.clearTimeout(retryTimer);
+                  setResults({ key: addressKey, options: options, loading: false, error: false });
+                  var saved = savedSelections[postcode];
+                  var stored = config.savedDestination;
+                  setSelection(function (previous) {
+                    var candidates = [
+                      previous && previous.key === addressKey ? previous.id : '',
+                      stored && stored.postcode === postcode && stored.country === country
+                        ? stored.district_id
+                        : '',
+                      saved && saved.destination_id,
+                      address[fieldId],
+                      String(config.districtPostcode || '').replace(/\s+/g, '') === postcode &&
+                        config.district &&
+                        config.district.id,
+                    ];
+                    var restored = null;
+                    candidates.some(function (id) {
+                      restored = options.find(function (option) {
+                        return option.value === String(id || '');
+                      });
+                      return Boolean(restored);
+                    });
+                    return restored
+                      ? { id: restored.value, label: restored.label, key: addressKey }
+                      : null;
+                  });
+                })
+                .catch(function () {
+                  if (
+                    generation !== lookupGeneration.current ||
+                    controller.signal.aborted ||
+                    !ownsEffects()
+                  ) {
+                    return;
+                  }
+                  // Retry only transient transport failures, within the original deadline.
+                  if (retryable && attempts < 2) {
+                    retryTimer = root.setTimeout(requestOptions, 500);
+                    return;
+                  }
+                  root.clearTimeout(deadline);
                   setResults({ key: addressKey, options: [], loading: false, error: true });
-                }
-              });
+                });
+            }
+            requestOptions();
           }, 250);
         }
         var cleanup = function () {
           controller.abort();
           root.clearTimeout(timer);
           root.clearTimeout(deadline);
+          root.clearTimeout(retryTimer);
           effectCleanups.delete(cleanup);
         };
         effectCleanups.add(cleanup);

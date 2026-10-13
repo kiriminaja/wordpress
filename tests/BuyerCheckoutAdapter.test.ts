@@ -693,7 +693,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 	});
 	test('saved pin never bypasses District lookup failure or invents a selected district', async () => {
 		const h = harness({ config: { savedDestination } }); Object.assign(h.model.cart.shippingAddress, savedAddress);
-		h.mount(); await h.flush(250); h.lookups[0].reject(new Error('offline')); await h.settle(); await h.flush(0);
+		h.mount(); await h.flush(250); h.lookups[0].resolve({ ok: true, json: () => Promise.resolve({ success: false }) }); await h.settle(); await h.flush(0);
 		expect(h.sends).toHaveLength(0); expect(h.status()).toBe('Lookup failed');
 		expect(h.root.kiriofBuyerCheckout.getCoordinates(savedAddress)?.latitude).toBe('-6.2000000');
 		h.retry(); await h.flush(250); await h.reply(1, [{ id: 9, text: 'Other district' }]);
@@ -761,7 +761,7 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		expect(new Set(h.publications.map(([, payload]) => JSON.stringify(payload.destination))).size).toBe(1);
 		expect(h.publications.at(-1)).toEqual(['kiriminaja-official', { destination: h.root.kiriofBuyerCheckout.getDestination(), shipping_selection: { version: 1, packages: [] } }]);
 		expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending'].hidden).toBe(true);
-		h.lookups[0].reject(new Error('offline')); await h.settle();
+		h.lookups[0].resolve({ ok: true, json: () => Promise.resolve({ success: false }) }); await h.settle();
 		expect(h.findIn(0, 'p').children[0]).toBe('Lookup failed');
 		expect(h.findIn(1, 'p').children[0]).toBe('Lookup failed');
 		h.findIn(1, 'button').props.onClick(); h.render(); await h.flush(250);
@@ -890,10 +890,64 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		h.model.cart.shippingAddress.country = 'ID'; h.render(); expect(h.find('select').props.disabled).toBe(true);
 		await h.flush(250); expect(h.lookups).toHaveLength(2);
 	});
-	test('lookup failure blocks mutation and offers a real retry', async () => {
+	test('temporary lookup failures recover once without losing saved identity', async () => {
+		for (const status of [0, 502, 503, 504]) {
+			const h = harness({ config: { savedDestination: { postcode: '12345', country: 'ID', district_id: '7', district_label: 'Old label' } } });
+			h.mount(); await h.flush(250);
+			if (status) h.lookups[0].resolve({ ok: false, status });
+			else h.lookups[0].reject(new TypeError('Failed to fetch'));
+			await h.settle(); await h.flush(0);
+			expect(h.status()).toBe('Loading'); expect(h.sends).toHaveLength(0);
+			await h.flush(500); expect(h.lookups).toHaveLength(2);
+			expect(h.lookups[1].init.body).toBe(h.lookups[0].init.body);
+			await h.reply(1); await h.flush(0);
+			expect(h.sends[0].request.data.destination.district_id).toBe('7');
+			expect(h.sends[0].request.data.destination.district_label).toBe('District Seven');
+			expect([...h.timers.values()].some(timer => timer.delay === 10000 || timer.delay === 500)).toBe(false);
+		}
+	});
+	test('security, malformed JSON and invalid lookup data never auto-retry', async () => {
+		for (const response of [
+			{ ok: false, status: 403 },
+			{ ok: true, json: () => Promise.reject(new SyntaxError('Invalid JSON')) },
+			{ ok: true, json: () => Promise.resolve({ success: false, data: { code: 'subdistrict_lookup_failed' } }) },
+			{ ok: true, json: () => Promise.resolve({ success: true, data: [{ id: 0, text: 'Invalid' }] }) },
+		]) {
+			const h = harness(); h.mount(); await h.flush(250);
+			h.lookups[0].resolve(response); await h.settle(); await h.flush(500);
+			expect(h.status()).toBe('Lookup failed'); expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(0);
+		}
+	});
+	test('queued automatic lookup retry is cancelled on address change or unmount', async () => {
+		for (const unmount of [false, true]) {
+			const h = harness(); h.mount(); await h.flush(250);
+			h.lookups[0].reject(new TypeError('Failed to fetch')); await h.settle();
+			expect([...h.timers.values()].filter(timer => timer.delay === 500)).toHaveLength(1);
+			if (unmount) h.unmount();
+			else { h.model.cart.shippingAddress.postcode = '54321'; h.render(); }
+			expect([...h.timers.values()].filter(timer => timer.delay === 500)).toHaveLength(0);
+			await h.flush(500); expect(h.lookups).toHaveLength(1);
+			expect(h.lookups[0].init.signal.aborted).toBe(true);
+			if (!unmount) {
+				await h.flush(250); await h.reply(1, [{ id: 9, text: 'New district' }]);
+				expect(options(h.find('select'))).toEqual([{ value: '9', label: 'New district' }]);
+			}
+		}
+	});
+	test('automatic lookup retry shares the original deadline and ignores late success', async () => {
+		const h = harness(); h.mount(); await h.flush(250);
+		h.lookups[0].reject(new TypeError('Failed to fetch')); await h.settle(); await h.flush(500);
+		expect([...h.timers.values()].filter(timer => timer.delay === 10000)).toHaveLength(1);
+		await h.flush(10000); await h.reply(1);
+		expect(h.status()).toBe('Lookup timed out'); expect(h.sends).toHaveLength(0);
+		expect(h.lookups[1].init.signal.aborted).toBe(true);
+	});
+	test('exhausted lookup recovery blocks mutation and offers a real manual retry', async () => {
 		const h = harness(); h.mount(); await h.flush(250); h.lookups[0].reject(new Error('offline')); await h.settle();
+		await h.flush(500); h.lookups[1].reject(new Error('offline')); await h.settle();
 		expect(h.status()).toBe('Lookup failed'); await h.flush(0); expect(h.sends).toHaveLength(0);
-		h.retry(); await h.flush(250); expect(h.lookups).toHaveLength(2); await h.reply(1); h.choose('7'); await h.flush(0); expect(h.sends).toHaveLength(1);
+		await h.flush(500); h.notify(); expect(h.lookups).toHaveLength(2);
+		h.retry(); await h.flush(250); expect(h.lookups).toHaveLength(3); await h.reply(2); h.choose('7'); await h.flush(0); expect(h.sends).toHaveLength(1);
 	});
 	test('failed checkout update preserves selected district and retries the identical snapshot', async () => {
 		const h = harness(); await ready(h); h.choose('7'); await h.flush(0);

@@ -70,7 +70,7 @@ function html() {
 }
 
 type Failure = 'empty' | 'http503' | 'malformed' | 'invalidrows';
-async function open(app: any, browser: any, failure: Failure) {
+async function open(app: any, browser: any, failure: Failure, autoRecovery = false) {
   const first = postal('empty');
   const recovery = postal('retry');
   // Factory/service/repository integration: empty v3 cache is ignored, an empty
@@ -89,7 +89,7 @@ async function open(app: any, browser: any, failure: Failure) {
     if (url.pathname === '/postal') {
       const body = new URLSearchParams(route.request.postData || '');
       requests.push({ method: route.request.method, term: body.get('term'), retry: body.get('retry'), action: body.get('action'), nonce: body.get('nonce') });
-      if (requests.length > 1) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(recovery.response) });
+      if (body.get('retry') === '1' || (autoRecovery && requests.length > 1)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(recovery.response) });
       if (failure === 'http503') return route.fulfill({ status: 503, contentType: 'application/json', body: '{"success":false}' });
       if (failure === 'malformed') return route.fulfill({ contentType: 'application/json', body: '{not-json' });
       if (failure === 'invalidrows') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [{ id: 0, text: 'Invalid nonempty village' }] }) });
@@ -112,12 +112,28 @@ const destination = (browser: any) => browser.evaluate(() => (window as any).kir
 const review = (browser: any) => browser.evaluate(() => (window as any).__extensions['kiriminaja-official']?.shipping_selection);
 const pin = (browser: any) => browser.evaluate(() => (window as any).kiriofBuyerCheckout.getCoordinates((window as any).__cart.shippingAddress));
 
+for (const width of [390, 1200]) {
+  test(`Blocks saved address automatically recovers a transient 503 at ${width}px`, async ({ app, browser }) => {
+    await browser.setViewport({ width, height: 1000 });
+    const state = await open(app, browser, 'http503', true);
+    await expect.poll(() => destination(browser).then((value: any) => value?.district_id)).toBe('46310');
+    await expect.poll(() => state.writes.length).toBe(1);
+    expect(state.requests).toHaveLength(2);
+    expect(state.requests[1]).toEqual(state.requests[0]);
+    expect(await pin(browser)).toMatchObject({ latitude: '-7.7100000', longitude: '110.3700000' });
+    await expect(browser.locator('.wc-block-components-address-card')).not.toContainText(errorMessage);
+    expect(await browser.evaluate(() => (window as any).__emptyWrites)).toEqual([]);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
 for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const) {
   for (const recoveryAction of ['Edit', 'collapsed Retry'] as const) {
   test(`Blocks saved 55581 pin survives ${failure}; billing is inert; ${recoveryAction} recovers official village`, async ({ app, browser }) => {
     const width = recoveryAction === 'Edit' ? 1200 : 390;
     await browser.setViewport({ width, height: 1000 });
     const state = await open(app, browser, failure);
+    const initialRequests = Array(failure === 'http503' ? 2 : 1).fill({ method: 'POST', term: '55581', retry: null, action: 'kiriminaja_subdistrict_search', nonce: 'valid' });
     const card = browser.locator('.wc-block-components-address-card');
     const message = failure === 'empty' ? emptyMessage : errorMessage;
     await expect(card).toContainText(message);
@@ -178,7 +194,7 @@ for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const)
     expect(await review(browser)).toEqual({ version: 1, packages: [] });
     await browser.locator(`input[name="shipping"][value="${cargo}"]`).click();
     await expect.poll(() => review(browser)).toEqual({ version: 1, packages: [{ package_id: '3', rate_id: cargo }] });
-    expect(state.requests).toEqual([{ method: 'POST', term: '55581', retry: null, action: 'kiriminaja_subdistrict_search', nonce: 'valid' }]);
+    expect(state.requests).toEqual(initialRequests);
     expect(state.writes).toEqual([]);
     expect(await browser.evaluate(() => (window as any).__mutations)).toEqual([]);
     const restoredPin = await pin(browser);
@@ -190,7 +206,7 @@ for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const)
     await expect.poll(() => browser.evaluate(() => (window as any).__customerBusy)).toBe(false);
     await expect(browser.locator('#shipping-error')).toContainText(shippingMessage);
     await expect(card).toContainText(message);
-    expect(state.requests).toHaveLength(1);
+    expect(state.requests).toHaveLength(initialRequests.length);
     expect(state.rateRequests).toEqual(['/billing-rates']);
     expect(state.writes).toEqual([]);
     expect(await review(browser)).toEqual({ version: 1, packages: [{ package_id: '3', rate_id: cargo }] });
@@ -209,7 +225,7 @@ for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const)
     expect(await browser.evaluate(() => document.querySelector<HTMLSelectElement>('.kiriof-buyer-district select')!.selectedOptions[0].textContent)).toBe(label);
     await expect.poll(() => state.writes.length).toBe(1);
     expect(state.requests).toEqual([
-      { method: 'POST', term: '55581', retry: null, action: 'kiriminaja_subdistrict_search', nonce: 'valid' },
+      ...initialRequests,
       { method: 'POST', term: '55581', retry: '1', action: 'kiriminaja_subdistrict_search', nonce: 'valid' },
     ]);
     const recovered = await destination(browser);
@@ -233,7 +249,7 @@ for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const)
     }
     await expect(browser.locator('#shipping-error')).toContainText(shippingMessage);
     expect(await review(browser)).toEqual({ version: 1, packages: [{ package_id: '3', rate_id: cargo }] });
-    expect(state.requests).toHaveLength(2);
+    expect(state.requests).toHaveLength(initialRequests.length + 1);
     expect(state.writes).toHaveLength(1);
     expect(state.unexpected).toEqual([]);
   });
