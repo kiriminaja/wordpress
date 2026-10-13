@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-use KiriminAja\Base\Api\Api;
+use KiriminAjaOfficial\Infrastructure\WordPressApiClient;
 use KiriminAja\Base\Config\Cache\Mode;
 use KiriminAja\Base\Config\KiriminAjaConfig;
 use KiriminAja\Responses\ServiceResponse;
@@ -50,12 +50,16 @@ class KiriminAjaApi {
         return $this->request_with_sdk( 'POST', $endpoint, $body, $log_context );
     }
 
+    protected function create_api_client(): WordPressApiClient {
+        return new WordPressApiClient();
+    }
+
     private function request_with_sdk( string $method, string $endpoint, $body, array $log_context ): array {
         $endpoint     = ltrim( (string) $endpoint, '/' );
         $request_meta = $this->build_request_log_context( $method, $endpoint, $body, $log_context );
 
         try {
-            $client = new Api();
+            $client = $this->create_api_client();
             if ( 'GET' === $method ) {
                 [ $transport_status, $response ] = $client->get( $endpoint, $body );
             } else {

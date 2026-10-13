@@ -75,6 +75,7 @@ final class InstantApiTransportRuntimeTest extends TestCase {
 		$this->assertSame( 'POST', $history[0]->getMethod() );
 		$this->assertSame( 'Bearer private-token', $history[0]->getHeaderLine( 'Authorization' ) );
 		$this->assertSame( 'application/json', $history[0]->getHeaderLine( 'Content-Type' ) );
+		$this->assertSame( 'wordpress', $history[0]->getHeaderLine( 'User-Agent' ) );
 		$this->assertSame( '{"pin":"123456"}', (string) $history[0]->getBody() );
 	}
 
@@ -92,6 +93,7 @@ final class InstantApiTransportRuntimeTest extends TestCase {
 		$this->assertSame( 'id=order%201', $history[2]->getUri()->getQuery() );
 		$this->assertSame( '', (string) $history[2]->getBody() );
 		$this->assertCount( 3, $options );
+		$this->assertSame( array( 'wordpress', 'wordpress', 'wordpress' ), array_map( static fn( $request ) => $request->getHeaderLine( 'User-Agent' ), $history ) );
 	}
 
 	public function test_failures_are_fixed_silent_and_never_retried_or_redirected(): void {

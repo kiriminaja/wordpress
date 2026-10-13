@@ -7,14 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use Http\Client\Curl\Client;
-use KiriminAja\Base\Api\Api;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\StreamInterface;
 
 /** Bounded transport for direct Instant operations, without upstream error disclosure. */
-class InstantApiTransport extends Api {
+class InstantApiTransport extends WordPressApiClient {
 	private const MAX_BODY_BYTES = 2097152;
 	private array $diagnostics = array();
 	private ?array $error_response = null;

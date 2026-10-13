@@ -20,7 +20,7 @@ namespace {
 	// Give the unchanged production transport a distinct name, so the repository's
 	// literal new InstantApiTransport() resolves to its HTTP-client-only subclass.
 	$source = file_get_contents( ROOT . '/inc/Infrastructure/InstantApiTransport.php' );
-	eval( str_replace( array( '<?php', 'class InstantApiTransport extends Api' ), array( '', 'class DirectInstantApiTransport extends Api' ), $source ) );
+	eval( str_replace( array( '<?php', 'class InstantApiTransport extends WordPressApiClient' ), array( '', 'class DirectInstantApiTransport extends WordPressApiClient' ), $source ) );
 }
 namespace KiriminAjaOfficial\Infrastructure {
 	class InstantApiTransport extends DirectInstantApiTransport {
