@@ -136,6 +136,15 @@ final class InstantShipmentState {
 				$changes['live_tracking_url'] = $url;
 			}
 			$changes = array_merge( $changes, $this->paymentChanges( $row, $payment ) );
+			// Processed QRIS packages confirm settlement; booking/AWB metadata alone does not.
+			if ( 'apply' === $mode && 105 === $code && ! $stale
+				&& 'qris' === ( $changes['instant_payment_method'] ?? $row->instant_payment_method ?? null )
+				&& self::identifier( $package['awb'] ?? null )
+				&& self::identifier( $changes['instant_payment_id'] ?? $row->instant_payment_id ?? null )
+				&& in_array( $row->instant_payment_status ?? null, array( 'unpaid', 'pending' ), true )
+				&& 'refunded' !== ( $changes['instant_payment_status'] ?? null ) ) {
+				$changes['instant_payment_status'] = 'paid';
+			}
 			if ( 'apply' === $mode && array_key_exists( 'poly_line', $package ) ) {
 				$route = InstantTrackingPresentation::routePoints( (object) array( 'instant_tracking_payload' => array( 'polyline' => $package['poly_line'] ) ) );
 				$snapshot = json_decode( (string) ( $changes['shipping_info'] ?? $row->shipping_info ?? '{}' ), true );
@@ -240,6 +249,9 @@ final class InstantShipmentState {
 			$changes['instant_payment_id'] = $id;
 		}
 		$status = $this->paymentStatus( $payment['status_code'] ?? $payment['status'] ?? null );
+		if ( 'refunded' === $this->paymentStatus( $payment['status'] ?? null ) ) {
+			$status = 'refunded';
+		}
 		$previous = $row->instant_payment_status ?? '';
 		if ( null !== $status && ( ! empty( $row->instant_payment_id ) || null !== $id ) && 'refunded' !== $previous && ( 'paid' !== $previous || 'refunded' === $status ) ) {
 			$changes['instant_payment_status'] = $status;

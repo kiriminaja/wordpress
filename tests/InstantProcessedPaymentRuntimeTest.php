@@ -1,0 +1,104 @@
+<?php
+
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+final class InstantProcessedPaymentRuntimeTest extends TestCase {
+	private function execute( array $input ): array {
+		$command = escapeshellarg( PHP_BINARY ) . ' -d error_reporting=22527 ' . escapeshellarg( __DIR__ . '/fixtures/instant-processed-payment-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) );
+		exec( $command, $output, $status );
+		$this->assertSame( 0, $status, implode( "\n", $output ) );
+		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+	}
+
+	public static function confirmed_packages(): array {
+		return array(
+			'webhook fills AWB' => array( array() ),
+			'webhook matches AWB' => array( array( 'row' => array( 'awb' => 'AWB-1' ) ) ),
+			'nullable payment' => array( array( 'payment' => null ) ),
+			'pending payment' => array( array( 'row' => array( 'instant_payment_status' => 'pending' ) ) ),
+			'matched payment identity' => array( array( 'payment' => array( 'payment_id' => 'PAY-1' ) ) ),
+			'delayed unpaid payment metadata' => array( array( 'payment' => array( 'payment_id' => 'PAY-1', 'status_code' => 9 ) ) ),
+			'matched new payment identity' => array( array( 'row' => array( 'instant_payment_id' => null ), 'payment' => array( 'payment_id' => 'PAY-1' ) ) ),
+			'authenticated API fills AWB' => array( array( 'mode' => 'tracking' ) ),
+			'authenticated API matches AWB' => array( array( 'mode' => 'tracking', 'row' => array( 'awb' => 'AWB-1' ) ) ),
+		);
+	}
+
+	#[DataProvider( 'confirmed_packages' )]
+	public function test_processed_qris_confirms_payment_and_awb_atomically( array $input ): void {
+		$result = $this->execute( $input + array( 'repeat' => 2, 'poll_unpaid' => true ) );
+		$this->assertSame( array( 'request_pickup', 105, 'paid', 'AWB-1', 'PAY-1' ), array(
+			$result['row']['status'], $result['row']['instant_status_code'], $result['row']['instant_payment_status'], $result['row']['awb'], $result['row']['instant_payment_id'],
+		) );
+		$this->assertCount( 1, $result['writes'], 'Duplicate events and stale payment polls must not write again.' );
+		$this->assertSame( 'paid', $result['writes'][0]['changes']['instant_payment_status'] );
+		$this->assertSame( $input['row']['awb'] ?? null, $result['writes'][0]['condition']['awb'] );
+		$this->assertSame( $input['row']['instant_payment_status'] ?? 'unpaid', $result['writes'][0]['condition']['instant_payment_status'] );
+		if ( 'tracking' !== ( $input['mode'] ?? '' ) ) {
+			$this->assertSame( array( 200, 200 ), $result['responses'] );
+		} else {
+			$this->assertSame( array( 'reconciled', 'reconciled' ), $result['responses'] );
+		}
+	}
+
+	public static function insufficient_evidence(): array {
+		return array(
+			'no supplied AWB' => array( array( 'package' => array( 'awb' => null ) ), 'unpaid' ),
+			'local AWB alone' => array( array( 'package' => array( 'awb' => null ), 'row' => array( 'awb' => 'AWB-1' ) ), 'unpaid' ),
+			'booking acknowledgement' => array( array( 'mode' => 'booking' ), 'unpaid' ),
+			'tracking metadata only' => array( array( 'mode' => 'metadata' ), 'unpaid' ),
+			'new package 100' => array( array( 'mode' => 'tracking', 'package' => array( 'status' => 100 ) ), 'unpaid' ),
+			'pickup request 101' => array( array( 'mode' => 'tracking', 'package' => array( 'status' => 101 ) ), 'unpaid' ),
+			'pending direct pickup 110' => array( array( 'mode' => 'tracking', 'package' => array( 'status' => 110 ) ), 'unpaid' ),
+			'no payment identity' => array( array( 'row' => array( 'instant_payment_id' => null ) ), 'unpaid' ),
+			'credit is not QRIS' => array( array( 'row' => array( 'instant_payment_method' => 'credit' ) ), 'unpaid' ),
+			'refund remains terminal' => array( array( 'row' => array( 'instant_payment_status' => 'refunded' ) ), 'refunded' ),
+			'remote refund wins' => array( array( 'payment' => array( 'payment_id' => 'PAY-1', 'status' => 'refunded' ) ), 'refunded' ),
+			'refund beats unpaid code' => array( array( 'payment' => array( 'payment_id' => 'PAY-1', 'status_code' => 9, 'status' => 'refunded' ) ), 'refunded' ),
+			'refund beats paid code' => array( array( 'payment' => array( 'payment_id' => 'PAY-1', 'status_code' => 0, 'status' => 'refunded' ) ), 'refunded' ),
+			'stale canceled package' => array( array( 'row' => array( 'status' => 'canceled', 'instant_status_code' => 300 ), 'mode' => 'tracking' ), 'unpaid' ),
+		);
+	}
+
+	#[DataProvider( 'insufficient_evidence' )]
+	public function test_other_evidence_never_invents_paid_qris( array $input, string $expected ): void {
+		$result = $this->execute( $input );
+		$this->assertSame( $expected, $result['row']['instant_payment_status'] );
+	}
+
+	public static function invalid_callbacks(): array {
+		return array(
+			'wrong bearer' => array( array( 'token' => 'wrong' ), 401 ),
+			'wrong AWB' => array( array( 'row' => array( 'awb' => 'OTHER' ) ), 400 ),
+			'malformed AWB' => array( array( 'package' => array( 'awb' => array( 'AWB-1' ) ) ), 400 ),
+			'wrong payment' => array( array( 'payment' => array( 'payment_id' => 'OTHER' ) ), 400 ),
+			'wrong order' => array( array( 'package' => array( 'order_id' => 'OTHER' ) ), 400 ),
+			'wrong courier' => array( array( 'package' => array( 'service' => 'grab_express' ) ), 400 ),
+			'contradictory package status' => array( array( 'package' => array( 'status' => 110 ) ), 400 ),
+		);
+	}
+
+	#[DataProvider( 'invalid_callbacks' )]
+	public function test_invalid_callbacks_cannot_change_payment_or_awb( array $input, int $expected ): void {
+		$result = $this->execute( $input );
+		$this->assertSame( array( $expected ), $result['responses'] );
+		$this->assertSame( array(), $result['writes'] );
+		$this->assertSame( 'unpaid', $result['row']['instant_payment_status'] );
+	}
+
+	public function test_persistence_failure_is_retryable_and_does_not_confirm_payment(): void {
+		$result = $this->execute( array( 'write_failure' => true ) );
+		$this->assertSame( array( 503 ), $result['responses'] );
+		$this->assertSame( array( 'unpaid', null ), array( $result['row']['instant_payment_status'], $result['row']['awb'] ) );
+	}
+
+	public function test_concurrent_refund_wins_over_processed_payment_confirmation(): void {
+		$result = $this->execute( array( 'race' => array( 'instant_payment_status' => 'refunded' ) ) );
+		$this->assertSame( array( 200 ), $result['responses'] );
+		$this->assertSame( array( 'refunded', 'AWB-1', 105 ), array( $result['row']['instant_payment_status'], $result['row']['awb'], $result['row']['instant_status_code'] ) );
+		$this->assertCount( 2, $result['writes'] );
+		$this->assertSame( 'refunded', $result['writes'][1]['condition']['instant_payment_status'] );
+		$this->assertArrayNotHasKey( 'instant_payment_status', $result['writes'][1]['changes'] );
+	}
+}
