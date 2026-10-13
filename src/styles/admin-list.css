@@ -1,6 +1,13 @@
 @reference 'tailwindcss';
 @reference './kiriof-var.css';
 
+.kiriof-transaction-dialog-content.kiriof-live-tracking-dialog {
+  @apply !w-[calc(100vw-2rem)] !max-w-5xl !max-h-[calc(100dvh-2rem)] overflow-y-auto;
+}
+.kiriof-live-tracking-frame {
+  @apply w-full h-[55dvh] min-h-48 border-0 rounded-md bg-muted;
+}
+
 .kiriof-print-preview-dialog {
   @apply !box-border !w-[calc(100vw-2rem)] !max-w-none !h-[calc(100dvh-2rem)] !min-h-0 !p-0 !gap-0 !overflow-hidden;
 }

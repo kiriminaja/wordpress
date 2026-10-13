@@ -19,6 +19,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
             $GLOBALS['options'][$key] = serialize($GLOBALS['add_race']);
             $GLOBALS['add_race'] = null;
         }
+
         if (isset($GLOBALS['options'][$key])) { return false; }
         if ($autoload !== false) { throw new LogicException('Cooldown must not autoload'); }
         $GLOBALS['options'][$key] = serialize($value);
@@ -259,6 +260,22 @@ final class InstantOperationsRuntimeTest extends TestCase {
         foreach (['javascript:alert(1)', 'https://user:pass@example.test/', "https://example.test/\nsecret"] as $url) {
             $r = $this->fixture(['tracking'=>$this->tracking(['live_tracking_url'=>$url])]);
             $this->assertSame('', $r['results'][0]['rows'][0]['tracking_url']);
+        }
+    }
+
+    public function test_tracking_requires_usable_url_and_normalizes_cached_reconciliation(): void {
+        foreach (array(null, '', 'javascript:alert(1)', 'https://user:pass@courier.test/map') as $url) {
+            $result = $this->fixture(array('tracking'=>$this->tracking(array('live_tracking_url'=>$url)), 'operations'=>array(array('method'=>'track'))));
+            $this->assertSame(array('tracking_unavailable', ''), array($result['results'][0]['rows'][0]['status'], $result['results'][0]['rows'][0]['tracking_url']));
+            $this->assertSame(array(array('GET','KA-1')), $result['calls']);
+            $this->assertSame('request_pickup', $result['rows']['KA-1']['status']);
+        }
+        foreach (array(null, 'https://courier.test/map') as $url) {
+            $result = $this->fixture(array('tracking'=>$this->tracking(array('live_tracking_url'=>$url)), 'operations'=>array(array('method'=>'reconcile'), array('method'=>'track'))));
+            $this->assertSame('reconciled', $result['results'][0]['rows'][0]['status']);
+            $this->assertSame(null === $url ? 'tracking_unavailable' : 'tracked', $result['results'][1]['rows'][0]['status']);
+            $this->assertSame($url ?? '', $result['results'][1]['rows'][0]['tracking_url']);
+            $this->assertCount(1, $result['calls']);
         }
     }
 

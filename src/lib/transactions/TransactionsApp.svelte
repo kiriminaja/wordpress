@@ -47,7 +47,7 @@
   import RequestPickupDialog from './RequestPickupDialog.svelte';
   import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
   import InstantOperationDialog from './InstantOperationDialog.svelte';
-  import { safeInstantTrackingUrl, type InstantOperationMode, instantStatusIcon } from './types';
+  import { type InstantOperationMode, instantStatusIcon } from './types';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
 
   let {
@@ -505,11 +505,9 @@
                     {/if}
                     {#if row.deliveryType === 'instant' && isInstant}
                       {#if row.actions.paymentUrl}<TransactionRowAction label={bootstrap.i18n.scanToPay} variant="outline" size="icon-sm" href={row.actions.paymentUrl}><IconQrcode /></TransactionRowAction>{/if}
-                      {@const trackingUrl = safeInstantTrackingUrl(row.actions.liveTrackingUrl)}
                       {#if row.actions.reconcile}<TransactionRowAction label={bootstrap.i18n.instantRecheck} variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'reconcile', id: row.kaOrderId })}><IconRefresh /></TransactionRowAction>{/if}
                       {#if row.actions.track}
-                        {#if trackingUrl}<TransactionRowAction label={bootstrap.i18n.liveTracking} variant="outline" size="icon-sm" href={trackingUrl} target="_blank" rel="noopener noreferrer"><IconMapPin /></TransactionRowAction>
-                        {:else}<TransactionRowAction label={bootstrap.i18n.liveTracking} variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}><IconMapPin /></TransactionRowAction>{/if}
+                        <TransactionRowAction label={bootstrap.i18n.liveTracking} variant="outline" size="icon-sm" onclick={() => (instantOperation = { mode: 'tracking', id: row.kaOrderId })}><IconMapPin /></TransactionRowAction>
                       {/if}
                       {#if row.actions.cancel}<TransactionRowAction label={bootstrap.i18n.instantCancel} variant="destructive" size="icon-sm" onclick={() => (instantOperation = { mode: 'cancel', id: row.kaOrderId })}><IconTrash /></TransactionRowAction>{/if}
                       {#if row.actions.process}<TransactionRowAction label={bootstrap.i18n.processShipment} variant="outline" size="icon-sm" onclick={() => openInstantDialog([row.kaOrderId])}><IconTruck /></TransactionRowAction>{/if}

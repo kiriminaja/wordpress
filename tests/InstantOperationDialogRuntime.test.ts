@@ -46,7 +46,7 @@ async function compiledRuntime() {
   return await import(join(directory, 'runtime.js'));
 }
 
-async function fixture(orderIds = ['42']) {
+async function fixture(orderIds = ['42'], mode = 'reconcile') {
   const window = new happy.Window({ url: 'https://fixture.test' });
   const saved = new Map<string, PropertyDescriptor | undefined>();
   const requests: any[] = [];
@@ -74,11 +74,16 @@ async function fixture(orderIds = ['42']) {
     instantClose: 'Close', liveTracking: 'Live Tracking', instantCancel: 'Cancel',
     instantResult_reconciled: 'Shipment status refreshed', instantResult_not_found: 'Booking not found',
     instantResult_unknown: 'Unknown result', instantOperationUnknown: 'Check again later; do not dispatch again.',
+    instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'Live tracking is not available yet. Check again after a driver is assigned.',
+    instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
+    instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
+    instantTrackingLoading: 'Loading live tracking', instantTrackingRefresh: 'Refresh tracking', instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.',
+    openInNewTab: 'Open in new tab',
   };
   const target = window.document.createElement('main');
   window.document.body.append(target);
   const component = runtime.mount(runtime.Production, { target, props: {
-    mode: 'reconcile', orderIds, ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'recheck-nonce', i18n,
+    mode, orderIds, ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'recheck-nonce', i18n,
     onClose: (completed: boolean) => closes.push(completed),
   } });
   async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); runtime.flushSync(); } }
@@ -97,7 +102,7 @@ async function fixture(orderIds = ['42']) {
       }
     }
   }
-  return { target, query, button, click, reply, requests, closes, settle, cleanup, runtime };
+  return { target, query, button, click, reply, requests, closes, settle, cleanup, runtime, window };
 }
 
 function expectNoRetryOrDispatch(h: Awaited<ReturnType<typeof fixture>>) {
@@ -107,6 +112,81 @@ function expectNoRetryOrDispatch(h: Awaited<ReturnType<typeof fixture>>) {
 }
 
 describe('InstantOperationDialog recheck compiled production Svelte (real DOM)', () => {
+  test('tracking loads automatically and embeds the exact validated courier URL with a protected fallback link', async () => {
+    const h = await fixture(['42'], 'tracking'); try {
+      expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_tracking']);
+      expect(h.requests[0].values).toEqual({ order_ids: '["42"]' });
+      expect(h.target.textContent).toContain('Follow the courier tracking page');
+      expect(h.query('iframe')).toBeNull();
+      const url = 'https://courier.test/track/AWB-42?token=fixture%2Btracking';
+      await h.reply([{ id: '42', status: 'tracked', tracking_url: url, message: '' }]);
+      const frame = h.query('iframe');
+      expect(frame.getAttribute('src')).toBe(url);
+      expect(frame.getAttribute('title')).toBe('Live Tracking');
+      expect(frame.getAttribute('referrerpolicy')).toBe('no-referrer');
+      expect(frame.getAttribute('sandbox')).toBe('allow-scripts');
+      const link = h.query('a');
+      expect([link.getAttribute('href'), link.getAttribute('target'), link.getAttribute('rel')]).toEqual([url, '_blank', 'noopener noreferrer']);
+      expect(link.textContent).toBe('Open in new tab');
+      expect(h.target.textContent).toContain('If the courier page does not display here');
+      await h.click(h.button('Close')); expect(h.closes).toEqual([true]);
+      expect(h.requests).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+  test('HTTP and admin-origin tracking URLs remain external-only, never scripted admin frames', async () => {
+    for (const url of ['http://courier.test/map', 'https://fixture.test/map']) {
+      const h = await fixture(['42'], 'tracking'); try {
+        await h.reply([{ id: '42', status: 'tracked', tracking_url: url, message: '' }]);
+        expect(h.query('iframe')).toBeNull();
+        expect(h.query('a').getAttribute('href')).toBe(url);
+        expect(h.query('a').getAttribute('rel')).toBe('noopener noreferrer');
+        expect(h.requests).toHaveLength(1);
+      } finally { await h.cleanup(); }
+    }
+  });
+  test('tracking with missing or unsafe URL never claims availability or embeds a page', async () => {
+    for (const url of ['', null, 'javascript:alert(1)', 'https://user:password@courier.test/map']) {
+      const h = await fixture(['42'], 'tracking'); try {
+        await h.reply([{ id: '42', status: 'tracked', tracking_url: url, message: '' }]);
+        expect(h.query('iframe')).toBeNull(); expect(h.query('a')).toBeNull();
+        expect(h.target.textContent).toContain('Live tracking is not available yet');
+        expect(h.target.textContent).not.toContain('Tracking available');
+        expect(h.requests).toHaveLength(1);
+      } finally { await h.cleanup(); }
+    }
+  });
+  test('missing tracking can be refreshed manually without a loop or a mutation request', async () => {
+    const h = await fixture(['42'], 'tracking'); try {
+      await h.reply([{ id: '42', status: 'tracking_unavailable', tracking_url: '', message: '' }]);
+      expect(h.target.textContent).toContain('Live tracking is not available yet');
+      expect(h.query('iframe')).toBeNull(); await h.settle(); expect(h.requests).toHaveLength(1);
+      await h.click(h.button('Refresh tracking')); expect(h.requests).toHaveLength(2);
+      await h.reply([{ id: '42', status: 'tracked', tracking_url: 'https://courier.test/map', message: '' }]);
+      expect(h.query('iframe').getAttribute('src')).toBe('https://courier.test/map');
+      expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_tracking', 'kiriof_instant_tracking']);
+    } finally { await h.cleanup(); }
+  });
+  test('closing pending tracking aborts it and ignores late results', async () => {
+    const h = await fixture(['42'], 'tracking'); try {
+      expect(h.target.textContent).toContain('Loading live tracking');
+      expect(h.button('Close').disabled).toBe(false); await h.click(h.button('Close'));
+      expect(h.closes).toEqual([false]); expect(h.requests[0].options.signal.aborted).toBe(true);
+      await h.reply([{ id: '42', status: 'tracked', tracking_url: 'https://courier.test/map', message: '' }]);
+      expect(h.query('iframe')).toBeNull(); expect(h.requests).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+  test('unknown tracking never embeds even a supplied URL and cancellation remains explicit without a frame', async () => {
+    for (const mode of ['tracking', 'cancel']) {
+      const h = await fixture(['42'], mode); try {
+        if (mode === 'cancel') {
+          expect(h.requests).toHaveLength(0); await h.click(h.button('Cancel'));
+          expect(h.requests[0].values.confirmed).toBe('yes');
+        }
+        await h.reply([{ id: '42', status: mode === 'cancel' ? 'cancel_requested' : 'unknown', tracking_url: 'https://courier.test/map', message: '' }]);
+        expect(h.query('iframe')).toBeNull(); expect(h.query('a')).toBeNull();
+      } finally { await h.cleanup(); }
+    }
+  });
   test('requires explicit intent, posts only the order ID and nonce, blocks busy dismissal, and refreshes once', async () => {
     const h = await fixture();
     try {

@@ -23,7 +23,7 @@
     import StatusBadge from "$lib/admin-list/StatusBadge.svelte";
     import ActionTooltip from "$lib/ui/ActionTooltip.svelte";
     import InstantOperationDialog from "$lib/transactions/InstantOperationDialog.svelte";
-    import { safeInstantTrackingUrl, type InstantOperationMode, instantStatusIcon } from "$lib/transactions/types";
+    import { type InstantOperationMode, instantStatusIcon } from "$lib/transactions/types";
     import KiriofCard from "$lib/ui/KiriofCard.svelte";
     import CopyableValue from "$lib/ui/CopyableValue.svelte";
     import PrintPreviewDialog from "$lib/ui/PrintPreviewDialog.svelte";
@@ -65,7 +65,6 @@
     let loadingTracking = $state(false);
     let actionDialog = $state<TransactionActionDialog | null>(null);
     let instantOperation = $state<InstantOperationMode | null>(null);
-    const liveTrackingUrl = $derived(safeInstantTrackingUrl(transaction.shipment.liveTrackingUrl));
     let printPreviewOpen = $state(false);
 
     function finishAction(): void {
@@ -160,8 +159,7 @@
         {#if transaction.deliveryType === 'instant'}
             {#if transaction.actions.reconcile}<Button variant="outline" onclick={() => (instantOperation = 'reconcile')}>{i18n.instantRecheck}</Button>{/if}
             {#if transaction.actions.track}
-                {#if liveTrackingUrl}<Button variant="outline" href={liveTrackingUrl} target="_blank" rel="noopener noreferrer">{i18n.liveTracking}</Button>
-                {:else}<Button variant="outline" onclick={() => (instantOperation = 'tracking')}>{i18n.liveTracking}</Button>{/if}
+                <Button variant="outline" onclick={() => (instantOperation = 'tracking')}>{i18n.liveTracking}</Button>
             {/if}
         {/if}
     </Toolbar>

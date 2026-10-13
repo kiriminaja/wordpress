@@ -64,6 +64,9 @@ final class InstantOperationsService {
 			if ( is_array( $cached ) && ( $cached['id'] ?? null ) === $id ) {
 				// Reuse only derived reports, never cache raw responses or replay writes.
 				$cached['tracking_url'] = InstantShipmentState::trackingUrl( $cached['tracking_url'] ?? null );
+				if ( ! $reconcile && in_array( $cached['status'] ?? null, array( 'tracked', 'tracking_unavailable', 'reconciled' ), true ) ) {
+					$cached['status'] = '' !== $cached['tracking_url'] ? 'tracked' : 'tracking_unavailable';
+				}
 				$reports[] = $cached;
 				continue;
 			}
@@ -164,7 +167,7 @@ final class InstantOperationsService {
 			} else {
 				$merged = $this->state->apply( $id, $package, $payment );
 			}
-			return $this->report( $id, $reconcile ? 'reconciled' : 'tracked', $merged['tracking_url'] );
+			return $this->report( $id, $reconcile ? 'reconciled' : ( '' !== $merged['tracking_url'] ? 'tracked' : 'tracking_unavailable' ), $merged['tracking_url'] );
 		} catch ( \Throwable $error ) {
 			return $this->unknown( $id );
 		}

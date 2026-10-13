@@ -198,7 +198,14 @@ export interface InstantDispatchResult {
 export type InstantOperationMode = 'tracking' | 'cancel' | 'reconcile';
 export type InstantOperationRow = {
   id: string;
-  status: 'tracked' | 'not_found' | 'unknown' | 'cancel_requested' | 'canceled' | 'reconciled';
+  status:
+    | 'tracked'
+    | 'tracking_unavailable'
+    | 'not_found'
+    | 'unknown'
+    | 'cancel_requested'
+    | 'canceled'
+    | 'reconciled';
   tracking_url: string;
   message: string;
 };
@@ -220,4 +227,12 @@ export function safeInstantTrackingUrl(value: unknown): string {
   } catch {
     return '';
   }
+}
+
+/** Never embed the admin origin or an insecure page; retain the external fallback. */
+export function safeInstantTrackingEmbedUrl(value: unknown, origin: string): string {
+  const safe = safeInstantTrackingUrl(value);
+  if (!safe) return '';
+  const url = new URL(safe);
+  return url.protocol === 'https:' && url.origin !== origin ? safe : '';
 }

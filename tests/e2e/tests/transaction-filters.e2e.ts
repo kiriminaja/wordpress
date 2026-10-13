@@ -24,6 +24,12 @@ const i18n = {
   refreshLabels: { '60': '1 minute', '180': '3 minutes', '300': '5 minutes' },
   scanToPay: 'Scan to Pay', detail: 'Shipment detail', liveTracking: 'Live tracking', instantRecheck: 'Recheck booking',
   instantCancel: 'Cancel Instant shipment', vehicle: 'Vehicle', vehicleUnavailable: 'Unavailable',
+  instantClose: 'Close', instantResult_tracked: 'Tracking available', instantResult_unknown: 'Unknown outcome',
+  instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
+  instantTrackingUnavailable: 'Live tracking is not available yet. Check again after a driver is assigned.',
+  instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
+  instantTrackingLoading: 'Loading live tracking…', instantTrackingRefresh: 'Refresh tracking',
+  instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.', openInNewTab: 'Open in new tab',
 };
 
 // Only the HTTP/WordPress boundary is synthetic. Mount the deployed entry (not
@@ -66,8 +72,9 @@ function html(url: URL): string {
     </main><script type="module" src="/assets/admin/dist/kiriminaja-admin-workspace.js"></script></body></html>`;
 }
 
-async function fixture(browser: any) {
+async function fixture(browser: any, tracking?: { url: string; blocked?: boolean }) {
   const requests: URL[] = [], unexpected: string[] = [];
+  const trackingCalls: string[] = [];
   await browser.route('**/*', (route: any) => {
     const url = new URL(route.request.url);
     if (url.origin === 'https://fixture.test' && url.pathname === '/wp-admin/admin.php' && url.searchParams.get('page') === 'kiriminaja-transaction' && route.request.method === 'GET') {
@@ -77,10 +84,21 @@ async function fixture(browser: any) {
     if (url.origin === 'https://fixture.test' && /^\/assets\/admin\/dist\/(?:assets\/)?[\w.-]+\.(?:js|css)$/.test(url.pathname)) {
       return route.fulfill({ contentType: url.pathname.endsWith('.css') ? 'text/css' : 'text/javascript', body: readFileSync(root + url.pathname.slice(1), 'utf8') });
     }
+    if (tracking && url.origin === 'https://fixture.test' && url.pathname === '/wp-admin/admin-ajax.php' && route.request.method === 'POST') {
+      const body = new URLSearchParams(route.request.postData || '');
+      if (body.get('action') !== 'kiriof_instant_tracking' || body.get('data[order_ids]') !== '["KA-1"]') {
+        unexpected.push('Unexpected admin mutation'); return route.fulfill({ status: 409, body: 'Blocked' });
+      }
+      trackingCalls.push(body.get('action')!);
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 200, data: { rows: [{ id: 'KA-1', status: tracking.url ? 'tracked' : 'tracking_unavailable', tracking_url: tracking.url, message: '' }] } }) });
+    }
+    if (tracking && url.origin === 'https://courier.fixture.test' && url.pathname === '/live') {
+      return route.fulfill({ contentType: 'text/html', headers: tracking.blocked ? { 'Content-Security-Policy': "frame-ancestors 'none'" } : {}, body: '<!doctype html><title>Fixture courier tracking</title><p>Courier tracking fixture</p><script>let parentAccess=false;try{parentAccess=Boolean(parent.document.body)}catch{}parent.postMessage({type:"tracking-fixture",parentAccess},"*")</script>' });
+    }
     if (url.pathname !== '/favicon.ico') unexpected.push(`${route.request.method} ${url.href}`);
     return route.fulfill({ status: 409, body: 'No live API or admin action requests permitted' });
   });
-  return { requests, unexpected };
+  return { requests, unexpected, trackingCalls };
 }
 
 function path(scope: string, active: boolean) {
@@ -260,3 +278,63 @@ for (const width of [390, 1440]) {
     expect(state.requests).toHaveLength(1); expect(state.unexpected).toEqual([]);
   });
 }
+
+for (const width of [390, 1440]) {
+  for (const available of [false, true]) {
+    test(`Instant tracking dialog ${available ? 'embeds courier page' : 'explains unavailable tracking'} at ${width}px`, async ({ app, browser }) => {
+      const url = available ? 'https://courier.fixture.test/live?token=fixture%2Bmap' : '';
+      const state = await fixture(browser, { url });
+      await browser.setViewport({ width, height: 900 });
+      await app.open('/wp-admin/admin.php?page=kiriminaja-transaction&delivery_type=instant&row_actions=1');
+      await browser.evaluate(() => {
+        (window as any).__trackingFrameMessages = [];
+        window.addEventListener('message', event => {
+          const frame = document.querySelector<HTMLIFrameElement>('iframe.kiriof-live-tracking-frame');
+          if (event.source === frame?.contentWindow && event.data?.type === 'tracking-fixture') {
+            (window as any).__trackingFrameMessages.push({ origin: event.origin, parentAccess: event.data.parentAccess });
+          }
+        });
+      });
+      await browser.locator('td.is-actions button[aria-label="Live tracking"]').click();
+      await expect(browser.locator('[role="dialog"]')).toBeVisible();
+      if (available) {
+        await expect.poll(() => browser.evaluate(() => (window as any).__trackingFrameMessages)).toEqual([{ origin: 'null', parentAccess: false }]);
+        await expect(browser.locator('iframe.kiriof-live-tracking-frame')).toHaveAttribute('src', url);
+        await expect(browser.locator('[role="dialog"] a')).toHaveAttribute('href', url);
+        await expect(browser.locator('[role="dialog"] a')).toHaveAttribute('target', '_blank');
+        await expect(browser.locator('[role="dialog"] a')).toHaveAttribute('rel', 'noopener noreferrer');
+        await expect.poll(() => browser.evaluate(() => {
+          const frame = document.querySelector<HTMLIFrameElement>('iframe.kiriof-live-tracking-frame')!;
+          const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+          const f = frame.getBoundingClientRect(), d = dialog.getBoundingClientRect();
+          return { title: frame.title, height: f.height, frameInside: f.left >= d.left && f.right <= d.right,
+            dialogInside: d.left >= 0 && d.right <= innerWidth && d.height <= innerHeight,
+            overflow: dialog.scrollWidth - dialog.clientWidth };
+        })).toMatchObject({ title: 'Live tracking', frameInside: true, dialogInside: true, overflow: 0 });
+        if (width === 1440) expect(await browser.evaluate(() => document.querySelector('[role="dialog"]')!.getBoundingClientRect().width)).toBeGreaterThan(900);
+      } else {
+        await expect(browser.locator('[role="dialog"]')).toContainText(i18n.instantTrackingUnavailable);
+        await expect(browser.locator('[role="dialog"]')).not.toContainText('Tracking available');
+        expect(await browser.evaluate(() => document.querySelectorAll('[role="dialog"] iframe').length)).toBe(0);
+      }
+      expect(state.trackingCalls).toEqual(['kiriof_instant_tracking']);
+      await browser.locator('[role="dialog"] button').filter({ hasText: 'Refresh tracking' }).click();
+      await expect.poll(() => state.trackingCalls.length).toBe(2);
+      await browser.locator('[data-slot="dialog-footer"] button').filter({ hasText: 'Close' }).click();
+      await expect(browser.locator('[role="dialog"]')).not.toBeVisible();
+      expect(state.unexpected).toEqual([]);
+    });
+  }
+}
+
+test('Instant tracking keeps an external fallback when courier framing is blocked', async ({ app, browser }) => {
+  const url = 'https://courier.fixture.test/live';
+  const state = await fixture(browser, { url, blocked: true });
+  await app.open('/wp-admin/admin.php?page=kiriminaja-transaction&delivery_type=instant&row_actions=1');
+  await browser.locator('td.is-actions button[aria-label="Live tracking"]').click();
+  await expect(browser.locator('iframe.kiriof-live-tracking-frame')).toHaveAttribute('src', url);
+  await expect(browser.locator('[role="dialog"]')).toContainText(i18n.instantTrackingEmbedHint);
+  await expect(browser.locator('[role="dialog"] a')).toHaveAttribute('href', url);
+  expect(state.trackingCalls).toEqual(['kiriof_instant_tracking']);
+  expect(state.unexpected).toEqual([]);
+});

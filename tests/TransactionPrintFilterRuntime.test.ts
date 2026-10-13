@@ -186,17 +186,13 @@ describe('TransactionsApp print filters (compiled production Svelte and bits-ui)
       } finally { await h.cleanup(); }
     }
   });
-  test('safe tracking URLs retain external-link protections and unsafe URLs use the dialog', async () => {
+  test('tracking always opens the iframe dialog rather than navigating to a stored URL', async () => {
     for (const url of ['https://tracking.example.test/KA-1', 'javascript:alert(1)']) {
       const row = transactionRow('instant', ''); row.actions = { ...row.actions, track: true, liveTrackingUrl: url };
       const h = await fixture('instant', '0', [row]); try {
         const control = h.target.querySelector<HTMLElement>('td.is-actions [aria-label="Live tracking"]')!;
-        if (url.startsWith('https:')) {
-          expect([control.tagName, control.getAttribute('href'), control.getAttribute('target'), control.getAttribute('rel')]).toEqual(['A', url, '_blank', 'noopener noreferrer']);
-        } else {
-          expect(control.tagName).toBe('BUTTON'); control.click(); await h.settle();
-          expect(JSON.parse(h.target.querySelector('[data-dialog-boundary]')!.textContent!).mode).toBe('tracking');
-        }
+        expect(control.tagName).toBe('BUTTON'); control.click(); await h.settle();
+        expect(JSON.parse(h.target.querySelector('[data-dialog-boundary]')!.textContent!).mode).toBe('tracking');
       } finally { await h.cleanup(); }
     }
   });
