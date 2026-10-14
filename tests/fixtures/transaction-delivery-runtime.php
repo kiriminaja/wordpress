@@ -58,6 +58,9 @@ namespace {
         public function get_col($sql, $index) { $this->queries[] = $sql; return $this->columns; }
         public function get_row($sql) {
             $this->queries[] = $sql;
+            if (str_starts_with($sql, 'SHOW COLUMNS')) {
+                return (object) ['Type' => "enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled')", 'Null' => 'NO', 'Default' => 'new'];
+            }
             if (str_contains($sql, 'WHERE `order_id`') || str_contains($sql, 'WHERE wp_wc_order_stat_order_id')) {
                 if ($this->fail) { $this->last_error = 'lookup failed'; return null; }
                 return $this->prior;

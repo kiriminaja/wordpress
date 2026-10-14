@@ -20,13 +20,18 @@ final class RetryWpdb {
     public bool $indexed = true;
     public bool $failed_snapshot = false;
     public bool $failed_status = false;
+    public string $status_type = "enum('new','request_pickup','pending','finished','shipped','return','returned','rejected')";
     public function prepare($sql, ...$args): string {
         foreach ($args as $arg) { $sql = preg_replace('/%s/', "'" . (string) $arg . "'", $sql, 1); }
         return $sql;
     }
     public function get_var($sql) { $this->queries[] = $sql; return 'wp_kiriminaja_transactions'; }
     public function get_col($sql, $index) { $this->queries[] = $sql; return $this->columns; }
-    public function get_row($sql) { $this->queries[] = $sql; return $this->indexed ? (object) ['Key_name' => 'delivery_type'] : null; }
+    public function get_row($sql) {
+        $this->queries[] = $sql;
+        if (str_starts_with($sql, 'SHOW COLUMNS')) { return (object) ['Type' => $this->status_type, 'Null' => 'NO', 'Default' => 'new']; }
+        return $this->indexed ? (object) ['Key_name' => 'delivery_type'] : null;
+    }
     public function query($sql) {
         $this->queries[] = $sql;
         $this->last_error = '';
@@ -36,6 +41,7 @@ final class RetryWpdb {
         if (str_contains($sql, 'MODIFY COLUMN status') && ! $this->failed_status) {
             $this->failed_status = true; $this->last_error = 'simulated status failure'; return false;
         }
+        if (preg_match('/MODIFY COLUMN status (enum\(.*\)) NOT NULL/', $sql, $match)) { $this->status_type = $match[1]; }
         if (preg_match('/ADD ([a-z_]+)/', $sql, $match)) { $this->columns[] = $match[1]; }
         return 1;
     }

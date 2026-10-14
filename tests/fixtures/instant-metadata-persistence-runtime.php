@@ -75,6 +75,9 @@ final class InstantMetadataWpdb {
     public function get_row($sql) {
         $this->queries[] = $sql;
         $this->last_error = '';
+        if (str_starts_with($sql, 'SHOW COLUMNS')) {
+            return (object) ['Type' => "enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled')", 'Null' => 'NO', 'Default' => 'new'];
+        }
         return str_starts_with($sql, 'SHOW INDEX') ? (object) ['Key_name' => 'delivery_type'] : (object) $this->row;
     }
     public function query($sql) {

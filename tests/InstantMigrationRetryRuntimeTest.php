@@ -22,6 +22,7 @@ final class InstantMigrationRetryRuntimeTest extends TestCase {
         $this->assertStringContainsString('ADD shipment_location_snapshot', $firstSql);
         $this->assertSame(2, substr_count($allSql, 'ADD shipment_location_snapshot'));
         $this->assertStringContainsString('MODIFY COLUMN status', $firstSql);
+        $this->assertSame(1, substr_count($allSql, 'MODIFY COLUMN status'));
         $this->assertSame('1', $result['option']);
         $this->assertContains('shipment_location_snapshot', $result['columns']);
         $this->assertSame(count($result['all_queries']), $result['third_query_count']);
