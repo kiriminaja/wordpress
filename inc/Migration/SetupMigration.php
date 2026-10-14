@@ -173,9 +173,19 @@ class SetupMigration {
                 $wpdb->query("ALTER TABLE `$table_name` ADD canceled_at timestamp NULL DEFAULT NULL");
             }
             // Ensure 'status' column has the correct enum values
-            if (in_array('status', $columns)) {
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
-                $wpdb->query("ALTER TABLE `$table_name` MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'");
+            if ( in_array( 'status', $columns, true ) ) {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $status_column = $wpdb->get_row( $wpdb->prepare( "SHOW COLUMNS FROM `$table_name` LIKE %s", 'status' ) );
+                $status_type   = "enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled')";
+
+                if ( $status_column && (
+                    $status_type !== $status_column->Type ||
+                    'NO' !== $status_column->Null ||
+                    'new' !== $status_column->Default
+                ) ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Migration: one-time schema modification, no caching needed
+                    $wpdb->query( "ALTER TABLE `$table_name` MODIFY COLUMN status enum('new','request_pickup','pending','finished','shipped','return','returned','rejected','canceled') NOT NULL DEFAULT 'new'" );
+                }
             }
             // Add 'discount_amount' column if it doesn't exist
             if (!in_array('discount_amount', $columns)) {
