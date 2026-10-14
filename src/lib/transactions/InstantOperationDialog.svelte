@@ -16,12 +16,13 @@
   let rows = $state<InstantOperationRow[] | null>(null);
   let controller: AbortController | null = null;
   let disposed = false;
+  let completed = false;
   const embeddedTracking = $derived(mode === 'tracking' && rows?.some(row => row.status === 'tracked' && Boolean(safeInstantTrackingEmbedUrl(row.tracking_url, window.location.origin))));
   const title = $derived(i18n[mode === 'tracking' ? 'liveTracking' : mode === 'reconcile' ? 'instantRecheck' : 'instantCancel']);
   function close(): void {
     if (busy && mode !== 'tracking') return;
     if (mode === 'tracking') { disposed = true; controller?.abort(); }
-    onClose(rows !== null);
+    onClose(completed);
   }
   function refreshTracking(): void {
     if (busy || mode !== 'tracking') return;
@@ -37,12 +38,13 @@
     try {
       const response = await postWordPressAction<{ rows: InstantOperationRow[] }>(`kiriof_instant_${mode}`, values, { ajaxUrl, nonce, signal: controller.signal });
       if (disposed) return;
+      completed = true;
       rows = orderIds.map((id) => {
         const row = response.data?.rows?.find((item) => item.id === id);
-        return row && ['tracked', 'tracking_unavailable', 'not_found', 'unknown', 'cancel_requested', 'canceled', 'reconciled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
+        return row && ['tracked', 'tracking_unavailable', 'tracking_pending', 'not_found', 'unknown', 'cancel_requested', 'canceled', 'reconciled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
       });
     } catch {
-      if (!disposed) rows = orderIds.map((id) => ({ id, status: 'unknown', tracking_url: '', message: '' }));
+      if (!disposed) { completed = true; rows = orderIds.map((id) => ({ id, status: 'unknown', tracking_url: '', message: '' })); }
     } finally { if (!disposed) busy = false; }
   }
   onMount(() => { if (mode === 'tracking') void run(); });
@@ -73,7 +75,7 @@
             <Empty.Content>
               <Alert.Root class="box-border" variant={row.status === 'unknown' ? 'destructive' : 'default'} role={row.status === 'unknown' ? 'alert' : 'status'}>
                 <IconAlertCircle aria-hidden="true" />
-                <Alert.Description>{row.status === 'unknown' ? i18n.instantTrackingError : unavailable ? i18n.instantTrackingUnavailable : row.message || i18n.instantTrackingUnavailable}</Alert.Description>
+                <Alert.Description>{row.status === 'unknown' ? i18n.instantTrackingError : row.status === 'tracking_pending' ? i18n.instantTrackingPending : unavailable ? i18n.instantTrackingUnavailable : row.message || i18n.instantTrackingUnavailable}</Alert.Description>
               </Alert.Root>
             </Empty.Content>
           </Empty.Root>

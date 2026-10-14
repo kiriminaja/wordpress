@@ -29,6 +29,7 @@ const i18n = {
   instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
   instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
   instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
+  instantTrackingPending: 'Tracking was checked recently or is still being checked. Please wait a moment before refreshing.',
   instantTrackingLoading: 'Loading live tracking…', instantTrackingRefresh: 'Refresh tracking',
   instantTrackingUnavailableTitle: 'Live tracking is not available yet', instantTrackingErrorTitle: 'Live tracking could not be loaded',
   instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.', openInNewTab: 'Open in new tab',
@@ -78,7 +79,7 @@ function html(url: URL): string {
     </main><script type="module" src="/assets/admin/dist/kiriminaja-admin-workspace.js"></script></body></html>`;
 }
 
-async function fixture(browser: any, tracking?: { url: string; blocked?: boolean; failed?: boolean }) {
+async function fixture(browser: any, tracking?: { url: string; blocked?: boolean; failed?: boolean; pending?: boolean }) {
   const requests: URL[] = [], unexpected: string[] = [];
   const trackingCalls: string[] = [];
   await browser.route('**/*', (route: any) => {
@@ -96,7 +97,7 @@ async function fixture(browser: any, tracking?: { url: string; blocked?: boolean
         unexpected.push('Unexpected admin mutation'); return route.fulfill({ status: 409, body: 'Blocked' });
       }
       trackingCalls.push(body.get('action')!);
-      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 200, data: { rows: [{ id: 'KA-1', status: tracking.failed ? 'unknown' : tracking.url ? 'tracked' : 'tracking_unavailable', tracking_url: tracking.url, message: '' }] } }) });
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 200, data: { rows: [{ id: 'KA-1', status: tracking.pending ? 'tracking_pending' : tracking.failed ? 'unknown' : tracking.url ? 'tracked' : 'tracking_unavailable', tracking_url: tracking.url, message: '' }] } }) });
     }
     if (tracking && url.origin === 'https://courier.fixture.test' && url.pathname === '/live') {
       return route.fulfill({ contentType: 'text/html', headers: tracking.blocked ? { 'Content-Security-Policy': "frame-ancestors 'none'" } : {}, body: '<!doctype html><title>Fixture courier tracking</title><p>Courier tracking fixture</p><script>let parentAccess=false;try{parentAccess=Boolean(parent.document.body)}catch{}parent.postMessage({type:"tracking-fixture",parentAccess},"*")</script>' });
@@ -367,3 +368,19 @@ for (const width of [390, 1440]) {
     });
   }
 }
+
+
+test('tracking cooldown stays informative and manual refresh can display a newly available link', async ({ app, browser }) => {
+  const tracking = {url:'', pending:true};
+  const state = await fixture(browser, tracking);
+  await app.open('/wp-admin/admin.php?page=kiriminaja-transaction&delivery_type=instant&row_actions=1');
+  await browser.locator('td.is-actions button[aria-label="Live tracking"]').click();
+  await expect(browser.locator('[data-slot="alert"]')).toHaveAttribute('role','status');
+  await expect(browser.locator('[data-slot="alert"]')).toContainText(i18n.instantTrackingPending);
+  await expect(browser.locator('[role="dialog"]')).not.toContainText(i18n.instantTrackingErrorTitle);
+  expect(state.trackingCalls).toHaveLength(1);
+  tracking.pending=false; tracking.url='https://courier.fixture.test/live';
+  await browser.locator('[data-slot="dialog-footer"] button').filter({hasText:'Refresh tracking'}).click();
+  await expect(browser.locator('iframe.kiriof-live-tracking-frame')).toHaveAttribute('src',tracking.url);
+  expect(state.trackingCalls).toHaveLength(2); expect(state.unexpected).toEqual([]);
+});

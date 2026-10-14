@@ -248,6 +248,19 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		h.model.rateBusy = false; h.notify();
 		expect(latestValidation(h, 'kiriof-shipping-selection-pending')).toEqual({ clear: 'kiriof-shipping-selection-pending' });
 	});
+	test('pending native item operations gate reviewed-rate restoration without rescheduling', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+		const rates = (selected: string) => [{ package_id: 0, shipping_rates: [{ rate_id: express, method_id: 'kiriminaja-official', selected: selected === express }, { rate_id: go, method_id: 'kiriminaja-instant', selected: selected === go }] }];
+		try {
+			h.model.cart.shippingRates = rates(go); h.shippingChange(go);
+			h.model.pendingItems = true; h.model.cart.shippingRates = rates(express); h.notify();
+			expect(latestValidation(h, 'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending']?.hidden).toBe(true);
+			await h.settle(); expect(h.restores).toHaveLength(0);
+			const validations = h.validations.length; await h.settle(); expect(h.validations.length).toBe(validations);
+			h.model.pendingItems = false; h.notify(); await h.settle(); expect(h.restores).toHaveLength(1);
+		} finally { h.pagehide(); }
+	});
 	test('restore preserves the native numeric package ID rather than the serialized review ID', async () => {
 		const h = harness({ restore: true }); h.mount();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';

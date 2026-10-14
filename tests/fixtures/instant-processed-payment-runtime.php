@@ -24,7 +24,11 @@ function set_transient( $key, $value, $ttl ) {
 	return true;
 }
 function add_option( $key, $value, $deprecated, $autoload ) {
+	$GLOBALS['processed_payment_options'][$key] = $value;
 	return true;
+}
+function get_option( $key ) {
+	return $GLOBALS['processed_payment_options'][$key] ?? false;
 }
 function wp_generate_uuid4() {
 	return 'fixture-owner';

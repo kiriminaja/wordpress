@@ -201,6 +201,7 @@ export type InstantOperationRow = {
   status:
     | 'tracked'
     | 'tracking_unavailable'
+    | 'tracking_pending'
     | 'not_found'
     | 'unknown'
     | 'cancel_requested'

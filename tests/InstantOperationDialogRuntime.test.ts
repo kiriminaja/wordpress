@@ -85,6 +85,7 @@ async function fixture(orderIds = ['42'], mode = 'reconcile') {
     instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
     instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
     instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
+    instantTrackingPending: 'Please wait a moment before refreshing',
     instantTrackingLoading: 'Loading live tracking', instantTrackingRefresh: 'Refresh tracking', instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.',
     openInNewTab: 'Open in new tab',
   };
@@ -174,6 +175,25 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
       await h.reply([{ id: '42', status: 'tracked', tracking_url: 'https://courier.test/map', message: '' }]);
       expect(h.query('iframe').getAttribute('src')).toBe('https://courier.test/map');
       expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_tracking', 'kiriof_instant_tracking']);
+    } finally { await h.cleanup(); }
+  });
+  test('tracking cooldown stays informational and never renders an iframe or error title', async () => {
+    const h = await fixture(['42'], 'tracking'); try {
+      await h.reply([{ id: '42', status: 'tracking_pending', tracking_url: '', message: '' }]);
+      expect(h.query('[data-slot=alert]').getAttribute('role')).toBe('status');
+      expect(h.target.textContent).toContain('Please wait a moment before refreshing');
+      expect(h.target.textContent).not.toContain('Live tracking could not be loaded');
+      expect(h.query('iframe')).toBeNull(); expect(h.requests).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+  test('completed tracking survives refresh-close and double refresh never overlaps', async () => {
+    const h = await fixture(['42'], 'tracking'); try {
+      await h.reply([{ id: '42', status: 'tracking_unavailable', tracking_url: '', message: '' }]);
+      await h.click(h.button('Refresh tracking')); await h.click(h.button('Refresh tracking'));
+      expect(h.requests).toHaveLength(2); await h.click(h.button('Close'));
+      expect(h.closes).toEqual([true]); expect(h.requests[1].options.signal.aborted).toBe(true);
+      await h.reply([{ id: '42', status: 'tracked', tracking_url: 'https://courier.test/map', message: '' }]);
+      expect(h.query('iframe')).toBeNull(); expect(h.requests).toHaveLength(2);
     } finally { await h.cleanup(); }
   });
   test('closing pending tracking aborts it and ignores late results', async () => {

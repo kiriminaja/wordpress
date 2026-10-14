@@ -522,7 +522,10 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
       return {
         cart: cart.getCartData(),
         payment: payment.getActivePaymentMethod(),
-        busy: cart.isShippingRateBeingSelected() || cart.isCustomerDataUpdating(),
+        busy:
+          cart.isShippingRateBeingSelected() ||
+          cart.isCustomerDataUpdating() ||
+          Boolean(cart.hasPendingItemsOperations && cart.hasPendingItemsOperations()),
         collection: checkout.prefersCollection ? checkout.prefersCollection() : false,
       };
     }, []);

@@ -60,7 +60,15 @@ final class InstantOperationsService {
 				$reports[] = $this->report( $id, 'tracked', $url );
 				continue;
 			}
-			$cached = get_transient( $this->key( 'report', $id ) );
+			$report_key = $this->key( $reconcile ? 'report' : 'tracking_report', $id );
+			$cached = get_transient( $report_key );
+			if ( ! $reconcile && ! is_array( $cached ) ) {
+				$verified = get_transient( $this->key( 'report', $id ) );
+				// Reconciliation may supply presentation, never the other way around.
+				if ( is_array( $verified ) && in_array( $verified['status'] ?? null, array( 'reconciled', 'not_found' ), true ) ) {
+					$cached = $verified;
+				}
+			}
 			if ( is_array( $cached ) && ( $cached['id'] ?? null ) === $id ) {
 				// Reuse only derived reports, never cache raw responses or replay writes.
 				$cached['tracking_url'] = InstantShipmentState::trackingUrl( $cached['tracking_url'] ?? null );
@@ -71,11 +79,27 @@ final class InstantOperationsService {
 				continue;
 			}
 			if ( ! $this->reserve( $id ) ) {
-				$reports[] = $this->unknown( $id );
+				$reports[] = $reconcile ? $this->unknown( $id ) : $this->report( $id, 'tracking_pending' );
 				continue;
 			}
+			$reservation = get_option( $this->key( 'throttle', $id ) );
 			$report = $this->refresh( $id, $row, $reconcile );
-			set_transient( $this->key( 'report', $id ), $report, 10 );
+			if ( ! $reconcile && in_array( $report['status'], array( 'tracked', 'tracking_unavailable' ), true ) ) {
+				$latest = $this->repo->getTransactionByOrderId( $id );
+				$latest_url = is_object( $latest ) && ( $latest->order_id ?? null ) === $id
+					&& 'instant' === TransactionDeliveryType::resolve( $latest ) && 'pending' !== ( $latest->status ?? null ) && null !== ( $latest->instant_status_code ?? null )
+					? InstantShipmentState::trackingUrl( $latest->live_tracking_url ?? null ) : '';
+				if ( '' !== $latest_url ) {
+					$report = $this->report( $id, 'tracked', $latest_url );
+				}
+			}
+			// A replaced reservation owns this report cache, not the older request.
+			if ( $reservation === get_option( $this->key( 'throttle', $id ) ) ) {
+				set_transient( $report_key, $report, 10 );
+			} else {
+				$newer = get_transient( $report_key );
+				$report = is_array( $newer ) && ( $newer['id'] ?? null ) === $id ? $newer : ( $reconcile ? $this->unknown( $id ) : $this->report( $id, 'tracking_pending' ) );
+			}
 			$reports[] = $report;
 		}
 		return array( 'rows' => $reports );
@@ -123,6 +147,10 @@ final class InstantOperationsService {
 				return $this->unknown( $id );
 			}
 			$package = get_object_vars( $body->result );
+			$dates = $package['date'] ?? array();
+			$dates = is_object( $dates ) ? get_object_vars( $dates ) : $dates;
+			$has_terminal_date = null !== $this->properDateTime( $package['finished_at'] ?? ( is_array( $dates ) ? ( $dates['finished_at'] ?? null ) : null ) )
+				|| null !== $this->properDateTime( $package['canceled_at'] ?? ( is_array( $dates ) ? ( $dates['canceled_at'] ?? null ) : null ) );
 			// Missing tracking metadata is not a failed operation or booking evidence.
 			if ( ! $reconcile ) {
 				$missing = true;
@@ -131,7 +159,7 @@ final class InstantOperationsService {
 						$missing = false;
 					}
 				}
-				if ( $missing && ! array_intersect( array_keys( $package ), array( 'status', 'status_code', 'instant_status_code' ) ) ) {
+				if ( $missing && ! $has_terminal_date && ! array_intersect( array_keys( $package ), array( 'status', 'status_code', 'instant_status_code' ) ) ) {
 					$identity = $package;
 					unset( $identity['awb'], $identity['tracking_code'] );
 					$this->identity( $id, $row, $identity, true );
@@ -150,8 +178,11 @@ final class InstantOperationsService {
 				}
 				$package['awb'] = $package['tracking_code'];
 			}
-			$dates = $package['date'] ?? array();
-			$dates = is_object( $dates ) ? get_object_vars( $dates ) : $dates;
+			$url = InstantShipmentState::trackingUrl( $package['live_tracking_url'] ?? $package['live_track_url'] ?? $package['tracking_url'] ?? $package['live_tracking'] ?? null );
+			if ( ! $reconcile && '' !== $url && ! $has_terminal_date
+				&& ! array_intersect( array_keys( $package ), array( 'status', 'status_code', 'instant_status_code' ) ) && ! isset( $package['awb'] ) ) {
+				return $this->report( $id, 'tracked', $url );
+			}
 			if ( is_array( $dates ) ) {
 				foreach ( array( 'finished_at', 'canceled_at' ) as $field ) {
 					if ( isset( $dates[ $field ] ) ) {

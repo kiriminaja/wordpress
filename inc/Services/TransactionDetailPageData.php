@@ -658,6 +658,7 @@ class TransactionDetailPageData
             "instantResult_tracked" => __("Tracking available", "kiriminaja-official"),
             "instantTrackingDescription" => __("Follow the courier tracking page for this shipment.", "kiriminaja-official"),
             "instantTrackingUnavailable" => __("The courier has not provided a live tracking link for this shipment yet. Check again later.", "kiriminaja-official"),
+            "instantTrackingPending" => __("Tracking was checked recently or is still being checked. Please wait a moment before refreshing.", "kiriminaja-official"),
             "instantTrackingEmbedHint" => __("If the courier page does not display here, open it in a new tab.", "kiriminaja-official"),
             "instantTrackingLoading" => __("Loading live tracking…", "kiriminaja-official"),
             "instantTrackingError" => __("Unable to load live tracking. Refresh tracking to try again.", "kiriminaja-official"),

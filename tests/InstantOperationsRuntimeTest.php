@@ -142,6 +142,19 @@ if (in_array('--fixture', $argv ?? [], true)) {
             $nestedResults[] = $service->{$input['concurrent']['method']}(['KA-1']);
         };
     }
+    if (isset($input['webhook_during_tracking'])) {
+        $api->onTracking = static function () use ($repo, $input) { foreach ($input['webhook_during_tracking'] as $key=>$value) { $repo->rows['KA-1']->{$key}=$value; } };
+    }
+    if (isset($input['replacement_response'])) {
+        $api->onTracking = static function () use ($api, $service, $input, &$nestedResults) {
+            $original = $api->tracking;
+            $GLOBALS['now'] += 41;
+            $api->tracking = json_decode(json_encode($input['replacement_response']), true);
+            $api->tracking['data'] = json_decode(json_encode($api->tracking['data']));
+            $nestedResults[] = $service->track(array('KA-1'));
+            $api->tracking = $original;
+        };
+    }
     foreach ($input['operations'] ?? [['method'=>'reconcile']] as $operation) {
         $GLOBALS['now'] += $operation['advance'] ?? 0;
         if ($operation['expire_throttle'] ?? false) { $GLOBALS['now'] += 41; }
@@ -263,6 +276,52 @@ final class InstantOperationsRuntimeTest extends TestCase {
         }
     }
 
+    public function test_tracking_url_only_is_presentation_not_booking_or_payment_confirmation(): void {
+        foreach (array('live_tracking_url','live_track_url','tracking_url','live_tracking') as $alias) {
+            $package = array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'instant', $alias=>'https://courier.test/live?signature=fixture%2B1');
+            $response = array('status'=>true,'data'=>array('status'=>true,'code'=>0,'result'=>$package));
+            $result = $this->fixture(array('tracking'=>$response,'operations'=>array(array('method'=>'track'))));
+            $this->assertSame(array('tracked','https://courier.test/live?signature=fixture%2B1'), array($result['results'][0]['rows'][0]['status'],$result['results'][0]['rows'][0]['tracking_url']));
+            $this->assertSame(array(),$result['writes']);
+            $result = $this->fixture(array('tracking'=>$response,'operations'=>array(array('method'=>'reconcile'))));
+            $this->assertSame('unknown',$result['results'][0]['rows'][0]['status']);
+        }
+    }
+
+    public function test_manual_tracking_cooldown_is_not_a_provider_error_or_reconciliation_proof(): void {
+        $response = array('status'=>true,'data'=>array('status'=>true,'code'=>0,'result'=>array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'instant')));
+        $result = $this->fixture(array('tracking'=>$response,'operations'=>array(array('method'=>'track'),array('method'=>'reconcile'),array('method'=>'track','advance'=>11),array('method'=>'track','advance'=>30))));
+        $this->assertSame(array('tracking_unavailable','unknown','tracking_pending','tracking_unavailable'), array_map(static fn($result)=>$result['rows'][0]['status'],$result['results']));
+        $this->assertSame(array(array('GET','KA-1'),array('GET','KA-1')),$result['calls']);
+        $this->assertSame(array(),$result['writes']);
+    }
+
+    public function test_webhook_url_wins_over_inflight_missing_link_without_a_new_state_write(): void {
+        $package = array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'instant','live_tracking_url'=>null);
+        $result = $this->fixture(array('tracking'=>array('status'=>true,'data'=>array('status'=>true,'code'=>0,'result'=>$package)), 'webhook_during_tracking'=>array('live_tracking_url'=>'https://courier.test/new'), 'operations'=>array(array('method'=>'track'))));
+        $this->assertSame(array('tracked','https://courier.test/new'),array($result['results'][0]['rows'][0]['status'],$result['results'][0]['rows'][0]['tracking_url']));
+        $this->assertSame(array(),$result['writes']);
+    }
+
+    public function test_expired_tracking_request_cannot_overwrite_replacement_report(): void {
+        $package = array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'instant');
+        $response = static fn($package)=>array('status'=>true,'data'=>array('status'=>true,'code'=>0,'result'=>$package));
+        $result = $this->fixture(array('tracking'=>$response($package), 'replacement_response'=>$response($package+array('live_tracking_url'=>'https://courier.test/new')), 'operations'=>array(array('method'=>'track'))));
+        $this->assertSame(array(array('GET','KA-1'),array('GET','KA-1')),$result['calls']);
+        $this->assertSame('https://courier.test/new',$result['results'][0]['rows'][0]['tracking_url']);
+        $this->assertSame('https://courier.test/new',array_values($result['cache'])[0]['value']['tracking_url']);
+        $this->assertSame(array(),$result['writes']);
+    }
+
+    public function test_terminal_dates_without_url_or_awb_still_apply_authoritative_lifecycle(): void {
+        foreach (array('finished_at'=>array(200,'finished'),'canceled_at'=>array(300,'canceled')) as $field=>$expected) {
+            $response = array('status'=>true,'data'=>array('status'=>true,'code'=>0,'result'=>array('order_id'=>'KA-1','service'=>'gosend','service_type'=>'instant','date'=>array($field=>'2025-01-01T10:00:00Z'))));
+            $result = $this->fixture(array('tracking'=>$response,'operations'=>array(array('method'=>'track'))));
+            $this->assertSame($expected,array($result['rows']['KA-1']['instant_status_code'],$result['rows']['KA-1']['status']));
+            $this->assertSame('tracking_unavailable',$result['results'][0]['rows'][0]['status']);
+        }
+    }
+
     public function test_valid_identity_without_tracking_link_or_awb_is_unavailable_not_unknown(): void {
         foreach (array(array(), array('live_tracking_url'=>null, 'tracking_code'=>null), array('live_tracking_url'=>'', 'tracking_code'=>''), array('live_tracking_url'=>null, 'awb'=>null), array('live_tracking_url'=>'', 'awb'=>'')) as $metadata) {
             $package = array_merge(array('order_id'=>'KA-1', 'service'=>'gosend', 'service_type'=>'instant'), $metadata);
@@ -338,7 +397,7 @@ final class InstantOperationsRuntimeTest extends TestCase {
             $this->assertSame(
             	array(
             		'calls' => [['GET','KA-1']],
-            		'status' => 'unknown',
+				'status' => 'track' === $method ? 'tracking_pending' : 'unknown',
             		'claims' => [],
             		'queries' => [],
             	),
