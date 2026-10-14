@@ -11,6 +11,9 @@ function wc_get_order( $id ) {
 }
 function kiriof_log( $level, $message, $context ) {
 }
+function wp_json_encode( $value ) {
+	return json_encode( $value );
+}
 function __( $text, $domain ) {
 	return $text;
 }
@@ -103,7 +106,7 @@ try {
 		if ( 'webhook' === $mode ) {
 			$body = (object) array(
 				'method' => 'processed_packages',
-				'data' => array( (object) array( 'order_id' => 'KA-1' ) ),
+				'data' => array( (object) array_merge( array( 'order_id' => 'KA-1' ), $input['event'] ?? array() ) ),
 				'packages' => array( (object) $package ),
 			);
 			if ( array_key_exists( 'payment', $input ) ) {

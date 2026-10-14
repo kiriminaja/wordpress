@@ -62,7 +62,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
                 $row = $this->rows[$id] ?? null;
                 if (!$row || $row->delivery_type !== "instant" || !in_array($row->service, ["gosend","grab_express"], true)
                     || !in_array($row->status, ["pending","request_pickup"], true)
-                    || !in_array($previous_code, [100,101,105,110], true)
+                    || !in_array($previous_code, [100,105,110], true)
                     || (int) $row->instant_status_code !== $previous_code || empty($row->instant_payment_id)
                     || $row->instant_payment_status === "refunded") { return false; }
                 $row->instant_status_code = 350;
@@ -263,7 +263,29 @@ final class InstantOperationsRuntimeTest extends TestCase {
         }
     }
 
+    public function test_valid_identity_without_tracking_link_or_awb_is_unavailable_not_unknown(): void {
+        foreach (array(array(), array('live_tracking_url'=>null, 'tracking_code'=>null), array('live_tracking_url'=>'', 'tracking_code'=>''), array('live_tracking_url'=>null, 'awb'=>null), array('live_tracking_url'=>'', 'awb'=>'')) as $metadata) {
+            $package = array_merge(array('order_id'=>'KA-1', 'service'=>'gosend', 'service_type'=>'instant'), $metadata);
+            $response = array('status'=>true, 'data'=>array('status'=>true, 'code'=>0, 'result'=>$package));
+            $result = $this->fixture(array('tracking'=>$response, 'operations'=>array(array('method'=>'track'))));
+            $this->assertSame(array('tracking_unavailable',''), array($result['results'][0]['rows'][0]['status'], $result['results'][0]['rows'][0]['tracking_url']));
+            $this->assertSame(array(), $result['writes']);
+            $this->assertSame(array('request_pickup',100,'AWB-1'), array($result['rows']['KA-1']['status'], $result['rows']['KA-1']['instant_status_code'], $result['rows']['KA-1']['awb']));
+            $result = $this->fixture(array('tracking'=>$response, 'operations'=>array(array('method'=>'reconcile'))));
+            $this->assertSame('unknown', $result['results'][0]['rows'][0]['status']);
+        }
+        foreach (array(array('order_id'=>'OTHER'), array('service'=>'grab_express'), array('service_type'=>'sameday'), array('tracking_code'=>array()), array('live_tracking_url'=>array())) as $invalid) {
+            $package = array_replace(array('order_id'=>'KA-1', 'service'=>'gosend', 'service_type'=>'instant'), $invalid);
+            $result = $this->fixture(array('tracking'=>array('status'=>true, 'data'=>array('status'=>true, 'code'=>0, 'result'=>$package)), 'operations'=>array(array('method'=>'track'))));
+            $this->assertSame('unknown', $result['results'][0]['rows'][0]['status']);
+            $this->assertSame(array(), $result['writes']);
+        }
+    }
+
     public function test_tracking_requires_usable_url_and_normalizes_cached_reconciliation(): void {
+        $result = $this->fixture(array('tracking'=>$this->tracking(array('status'=>105, 'live_tracking_url'=>null, 'tracking_code'=>null)), 'operations'=>array(array('method'=>'track'))));
+        $this->assertSame('tracking_unavailable', $result['results'][0]['rows'][0]['status']);
+        $this->assertSame('AWB-1', $result['rows']['KA-1']['awb']);
         foreach (array(null, '', 'javascript:alert(1)', 'https://user:pass@courier.test/map') as $url) {
             $result = $this->fixture(array('tracking'=>$this->tracking(array('live_tracking_url'=>$url)), 'operations'=>array(array('method'=>'track'))));
             $this->assertSame(array('tracking_unavailable', ''), array($result['results'][0]['rows'][0]['status'], $result['results'][0]['rows'][0]['tracking_url']));
@@ -464,6 +486,30 @@ final class InstantOperationsRuntimeTest extends TestCase {
         		'instant_status_code' => $r['rows']['KA-1']['instant_status_code'],
         	)
         );
+    }
+
+    public function test_driver_not_found_cannot_cancel_locally_or_after_provider_refresh(): void {
+        foreach (array('gosend', 'grab_express') as $service) {
+            foreach (array(101, '101') as $code) {
+                $result = $this->fixture(array('row'=>array('service'=>$service, 'instant_status_code'=>$code), 'operations'=>array(array('method'=>'cancel'))));
+                $this->assertSame(array(), $result['calls']);
+                $this->assertSame(array(), $result['claims']);
+                $this->assertSame($code, $result['rows']['KA-1']['instant_status_code']);
+                $result = $this->fixture(array('row'=>array('service'=>$service), 'tracking'=>$this->tracking(array('service'=>$service, 'status'=>$code)), 'operations'=>array(array('method'=>'cancel'))));
+                $this->assertSame(array(array('GET','KA-1')), $result['calls']);
+                $this->assertSame(array(), $result['claims']);
+                $this->assertSame(101, $result['rows']['KA-1']['instant_status_code']);
+                $this->assertSame('request_pickup', $result['rows']['KA-1']['status']);
+            }
+        }
+    }
+
+    public function test_driver_not_found_race_before_claim_never_sends_delete(): void {
+        $result = $this->fixture(array('claim_race'=>array('instant_status_code'=>101), 'operations'=>array(array('method'=>'cancel'))));
+        $this->assertSame(array(array('GET','KA-1')), $result['calls']);
+        $this->assertSame(101, $result['rows']['KA-1']['instant_status_code']);
+        $this->assertSame('request_pickup', $result['rows']['KA-1']['status']);
+        $this->assertSame(array(), array_values(array_filter($result['writes'], static fn($write) => 350 === ($write['changes']['instant_status_code'] ?? null))));
     }
 
     public function test_cancel_refresh_blocks_pickup_and_uncertain_local_bookings(): void {

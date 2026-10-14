@@ -1,6 +1,7 @@
 import { test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -26,9 +27,10 @@ const i18n = {
   instantCancel: 'Cancel Instant shipment', vehicle: 'Vehicle', vehicleUnavailable: 'Unavailable',
   instantClose: 'Close', instantResult_tracked: 'Tracking available', instantResult_unknown: 'Unknown outcome',
   instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
-  instantTrackingUnavailable: 'Live tracking is not available yet. Check again after a driver is assigned.',
+  instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
   instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
   instantTrackingLoading: 'Loading live tracking…', instantTrackingRefresh: 'Refresh tracking',
+  instantTrackingUnavailableTitle: 'Live tracking is not available yet', instantTrackingErrorTitle: 'Live tracking could not be loaded',
   instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.', openInNewTab: 'Open in new tab',
 };
 
@@ -64,6 +66,10 @@ function html(url: URL): string {
     bulk: { showPrint: true, printAction: 'kiriof_print', printNonce: 'isolated', printPreviewNonce: 'isolated', ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'isolated', pickupUrl: '/wp-admin/admin.php?page=kiriminaja-request-pickup' },
     i18n,
   };
+  if (params.get('driver_not_found') === '1' && bootstrap.rows.length) {
+    const row = JSON.parse(execFileSync('php', [root + 'tests/fixtures/transaction-instant-ui-runtime.php', JSON.stringify({delivery_type:'instant', service:'gosend', status:'request_pickup', order_id:'KA-1', awb:'AWB-1', instant_status_code:101, instant_payment_id:'PAY-1', instant_payment_status:'paid'})], {encoding:'utf8'}));
+    Object.assign(bootstrap.rows[0].actions, {cancel:row.actions.cancel});
+  }
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Transactions fixture</title>
     <style>body{margin:0;font-family:Arial,sans-serif;background:#f0f0f1}input,button{font:inherit}</style>
     ${['kiriminaja-kiriof-var.css', 'kiriminaja-kiriof-component.css', 'kiriminaja-admin-workspace.css'].map(name => `<link id="kiriof-${name}" rel="stylesheet" href="/assets/admin/dist/${name}">`).join('')}
@@ -72,7 +78,7 @@ function html(url: URL): string {
     </main><script type="module" src="/assets/admin/dist/kiriminaja-admin-workspace.js"></script></body></html>`;
 }
 
-async function fixture(browser: any, tracking?: { url: string; blocked?: boolean }) {
+async function fixture(browser: any, tracking?: { url: string; blocked?: boolean; failed?: boolean }) {
   const requests: URL[] = [], unexpected: string[] = [];
   const trackingCalls: string[] = [];
   await browser.route('**/*', (route: any) => {
@@ -90,7 +96,7 @@ async function fixture(browser: any, tracking?: { url: string; blocked?: boolean
         unexpected.push('Unexpected admin mutation'); return route.fulfill({ status: 409, body: 'Blocked' });
       }
       trackingCalls.push(body.get('action')!);
-      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 200, data: { rows: [{ id: 'KA-1', status: tracking.url ? 'tracked' : 'tracking_unavailable', tracking_url: tracking.url, message: '' }] } }) });
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 200, data: { rows: [{ id: 'KA-1', status: tracking.failed ? 'unknown' : tracking.url ? 'tracked' : 'tracking_unavailable', tracking_url: tracking.url, message: '' }] } }) });
     }
     if (tracking && url.origin === 'https://courier.fixture.test' && url.pathname === '/live') {
       return route.fulfill({ contentType: 'text/html', headers: tracking.blocked ? { 'Content-Security-Policy': "frame-ancestors 'none'" } : {}, body: '<!doctype html><title>Fixture courier tracking</title><p>Courier tracking fixture</p><script>let parentAccess=false;try{parentAccess=Boolean(parent.document.body)}catch{}parent.postMessage({type:"tracking-fixture",parentAccess},"*")</script>' });
@@ -311,7 +317,7 @@ for (const width of [390, 1440]) {
             dialogInside: d.left >= 0 && d.right <= innerWidth && d.height <= innerHeight,
             overflow: dialog.scrollWidth - dialog.clientWidth };
         })).toMatchObject({ title: 'Live tracking', frameInside: true, dialogInside: true, overflow: 0 });
-        if (width === 1440) expect(await browser.evaluate(() => document.querySelector('[role="dialog"]')!.getBoundingClientRect().width)).toBeGreaterThan(900);
+        if (width === 1440) await expect.poll(() => browser.evaluate(() => document.querySelector('[role="dialog"]')!.getBoundingClientRect().width)).toBeGreaterThan(900);
       } else {
         await expect(browser.locator('[role="dialog"]')).toContainText(i18n.instantTrackingUnavailable);
         await expect(browser.locator('[role="dialog"]')).not.toContainText('Tracking available');
@@ -338,3 +344,26 @@ test('Instant tracking keeps an external fallback when courier framing is blocke
   expect(state.trackingCalls).toEqual(['kiriof_instant_tracking']);
   expect(state.unexpected).toEqual([]);
 });
+
+for (const width of [390, 1440]) {
+  for (const failed of [false, true]) {
+    test(`Driver Not Found has no Cancel and tracking uses ${failed ? 'error' : 'unavailable'} Empty with Alert at ${width}px`, async ({ app, browser }) => {
+      const state = await fixture(browser, {url:'', failed});
+      await browser.setViewport({width, height:900});
+      await app.open('/wp-admin/admin.php?page=kiriminaja-transaction&delivery_type=instant&row_actions=1&driver_not_found=1');
+      expect(await browser.evaluate(() => document.querySelectorAll('td.is-actions button[aria-label="Cancel Instant shipment"]').length)).toBe(0);
+      await browser.locator('td.is-actions button[aria-label="Live tracking"]').click();
+      await expect(browser.locator('[role="dialog"] [data-slot="empty"]')).toBeVisible();
+      await expect(browser.locator('[data-slot="empty-title"]')).toContainText(failed ? i18n.instantTrackingErrorTitle : i18n.instantTrackingUnavailableTitle);
+      await expect(browser.locator('[role="dialog"] [data-slot="alert"]')).toHaveAttribute('role',failed?'alert':'status');
+      await expect(browser.locator('[role="dialog"]')).not.toContainText('Unknown outcome');
+      await expect.poll(() => browser.evaluate(() => {
+        const dialog=document.querySelector<HTMLElement>('[role="dialog"]')!, empty=dialog.querySelector<HTMLElement>('[data-slot="empty"]')!, alert=dialog.querySelector<HTMLElement>('[data-slot="alert"]')!;
+        const d=dialog.getBoundingClientRect(), e=empty.getBoundingClientRect(), a=alert.getBoundingClientRect();
+        return {compact:d.width<=600,visible:d.left>=0&&d.right<=innerWidth,contained:e.left>=d.left&&e.right<=d.right&&a.left>=d.left&&a.right<=d.right,overflow:dialog.scrollWidth-dialog.clientWidth,frames:dialog.querySelectorAll('iframe').length};
+      })).toEqual({compact:true, visible:true, contained:true, overflow:0, frames:0});
+      expect(state.trackingCalls).toEqual(['kiriof_instant_tracking']); expect(state.unexpected).toEqual([]);
+      await browser.locator('[data-slot="dialog-footer"] button').filter({hasText:'Close'}).click();
+    });
+  }
+}

@@ -123,6 +123,26 @@ final class InstantOperationsService {
 				return $this->unknown( $id );
 			}
 			$package = get_object_vars( $body->result );
+			// Missing tracking metadata is not a failed operation or booking evidence.
+			if ( ! $reconcile ) {
+				$missing = true;
+				foreach ( array( 'live_tracking_url', 'live_track_url', 'tracking_url', 'live_tracking', 'awb', 'tracking_code' ) as $field ) {
+					if ( array_key_exists( $field, $package ) && ! in_array( $package[ $field ], array( null, '' ), true ) ) {
+						$missing = false;
+					}
+				}
+				if ( $missing && ! array_intersect( array_keys( $package ), array( 'status', 'status_code', 'instant_status_code' ) ) ) {
+					$identity = $package;
+					unset( $identity['awb'], $identity['tracking_code'] );
+					$this->identity( $id, $row, $identity, true );
+					return $this->report( $id, 'tracking_unavailable' );
+				}
+				foreach ( array( 'awb', 'tracking_code' ) as $field ) {
+					if ( array_key_exists( $field, $package ) && in_array( $package[ $field ], array( null, '' ), true ) ) {
+						unset( $package[ $field ] );
+					}
+				}
+			}
 			$this->identity( $id, $row, $package, true );
 			if ( array_key_exists( 'tracking_code', $package ) ) {
 				if ( array_key_exists( 'awb', $package ) && $package['awb'] !== $package['tracking_code'] ) {

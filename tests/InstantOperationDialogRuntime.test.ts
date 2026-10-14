@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
 import { happy } from './helpers/ui-runtime';
@@ -35,6 +35,13 @@ async function compiledRuntime() {
     entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js',
     target: 'browser', conditions: ['browser'],
     plugins: [{ name: 'production-svelte', setup(builder) {
+      builder.onResolve({ filter: /^@tabler\/icons-svelte$/ }, () => ({ path: join(root, 'node_modules/@tabler/icons-svelte/dist/tabler-icons-svelte.js') }));
+      builder.onResolve({ filter: /^\$lib\// }, ({ path }) => {
+        const base = join(root, 'src/lib', path.slice(5));
+        const resolved = [`${base}.ts`, join(base, 'index.ts'), ...(base.endsWith('.js') ? [base.replace(/\.js$/, '.ts')] : [])].find(candidate => existsSync(candidate));
+        if (!resolved) throw new Error(`Unresolved alias ${path}`);
+        return { path: resolved };
+      });
       builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
       builder.onLoad({ filter: /\.svelte$/ }, async ({ path }) => ({
         contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code,
@@ -74,7 +81,8 @@ async function fixture(orderIds = ['42'], mode = 'reconcile') {
     instantClose: 'Close', liveTracking: 'Live Tracking', instantCancel: 'Cancel',
     instantResult_reconciled: 'Shipment status refreshed', instantResult_not_found: 'Booking not found',
     instantResult_unknown: 'Unknown result', instantOperationUnknown: 'Check again later; do not dispatch again.',
-    instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'Live tracking is not available yet. Check again after a driver is assigned.',
+    instantTrackingUnavailableTitle: 'Live tracking is not available yet', instantTrackingErrorTitle: 'Live tracking could not be loaded',
+    instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
     instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
     instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
     instantTrackingLoading: 'Loading live tracking', instantTrackingRefresh: 'Refresh tracking', instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.',
@@ -149,7 +157,7 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
       const h = await fixture(['42'], 'tracking'); try {
         await h.reply([{ id: '42', status: 'tracked', tracking_url: url, message: '' }]);
         expect(h.query('iframe')).toBeNull(); expect(h.query('a')).toBeNull();
-        expect(h.target.textContent).toContain('Live tracking is not available yet');
+        expect(h.target.textContent).toContain('The courier has not provided a live tracking link');
         expect(h.target.textContent).not.toContain('Tracking available');
         expect(h.requests).toHaveLength(1);
       } finally { await h.cleanup(); }
@@ -158,7 +166,9 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
   test('missing tracking can be refreshed manually without a loop or a mutation request', async () => {
     const h = await fixture(['42'], 'tracking'); try {
       await h.reply([{ id: '42', status: 'tracking_unavailable', tracking_url: '', message: '' }]);
-      expect(h.target.textContent).toContain('Live tracking is not available yet');
+      expect(h.target.textContent).toContain('The courier has not provided a live tracking link');
+      expect(h.query('[data-slot=empty]')).not.toBeNull();
+      expect(h.query('[data-slot=alert]').getAttribute('role')).toBe('status');
       expect(h.query('iframe')).toBeNull(); await h.settle(); expect(h.requests).toHaveLength(1);
       await h.click(h.button('Refresh tracking')); expect(h.requests).toHaveLength(2);
       await h.reply([{ id: '42', status: 'tracked', tracking_url: 'https://courier.test/map', message: '' }]);
@@ -184,6 +194,12 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
         }
         await h.reply([{ id: '42', status: mode === 'cancel' ? 'cancel_requested' : 'unknown', tracking_url: 'https://courier.test/map', message: '' }]);
         expect(h.query('iframe')).toBeNull(); expect(h.query('a')).toBeNull();
+        if (mode === 'tracking') {
+          expect(h.query('[data-slot=empty]')).not.toBeNull();
+          expect(h.query('[data-slot=alert]').getAttribute('role')).toBe('alert');
+          expect(h.target.textContent).toContain('Live tracking could not be loaded');
+          expect(h.target.textContent).not.toContain('Unknown result');
+        }
       } finally { await h.cleanup(); }
     }
   });

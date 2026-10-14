@@ -207,7 +207,7 @@ final class InstantShipmentState {
 			&& in_array( strtolower( trim( (string) ( $row['service'] ?? '' ) ) ), array( 'gosend', 'grab_express' ), true )
 			&& in_array( $row['status'] ?? null, array( 'pending', 'request_pickup' ), true )
 			&& 'refunded' !== ( $row['instant_payment_status'] ?? null )
-			&& in_array( $row['instant_status_code'] ?? null, array( 100, 101, 105, 110, '100', '101', '105', '110' ), true )
+			&& in_array( $row['instant_status_code'] ?? null, array( 100, 105, 110, '100', '105', '110' ), true )
 			&& self::identifier( $row['order_id'] ?? null ) && self::identifier( $row['instant_payment_id'] ?? null )
 			&& ( null === ( $row['awb'] ?? null ) || '' === $row['awb'] || self::identifier( $row['awb'] ) );
 	}

@@ -243,6 +243,9 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
      * @return bool Whether exactly one Instant transaction was claimed.
      */
     public function claimInstantCancellation( string $id, int $expected_code ): bool {
+        if ( ! in_array( $expected_code, array( 100, 105, 110 ), true ) ) {
+            return false;
+        }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic claim; invalidate only after success.
         $updated = $this->wpdb->query(
             $this->wpdb->prepare(
@@ -253,7 +256,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     AND delivery_type = 'instant'
                     AND service IN ('gosend', 'grab_express')
                     AND status IN ('pending', 'request_pickup')
-                    AND instant_status_code IN (100, 101, 105, 110)
+                    AND instant_status_code IN (100, 105, 110)
                     AND instant_status_code = %d
                     AND instant_payment_id IS NOT NULL
                     AND instant_payment_id <> ''

@@ -39,11 +39,18 @@ final class InstantOperationUiTest extends TestCase {
         ];
     }
 
+    public function test_driver_not_found_hides_cancel_in_list_and_detail(): void {
+        foreach (array('list', 'detail') as $mode) {
+            $row = $this->row(array_replace($this->confirmedBooking(), array('mode'=>$mode, 'awb'=>'AWB-1', 'instant_status_code'=>101)));
+            $this->assertFalse($row['actions']['cancel']);
+        }
+    }
+
     public function test_confirmed_bookings_can_cancel_without_an_awb_but_unknown_and_terminal_states_cannot(): void {
         $valid = array(
             'service'             => array( 'gosend', 'grab_express' ),
             'status'              => array( 'pending', 'request_pickup' ),
-            'instant_status_code' => array( 100, 101, 105, 110, '100', '101', '105', '110' ),
+            'instant_status_code' => array( 100, 105, 110, '100', '105', '110' ),
             'awb'                 => array( '', null, 'BOOKED-AWB' ),
         );
         $expectedStates = $actualStates = [];
@@ -60,7 +67,7 @@ final class InstantOperationUiTest extends TestCase {
             ['status' => 'pending', 'instant_status_code' => 999],
             ['instant_payment_id' => null], ['instant_payment_id' => ''],
             ['instant_payment_status' => 'refunded'], ['order_id' => ''], ['awb' => 'invalid awb'],
-            ['instant_status_code' => 106], ['instant_status_code' => 200],
+            ['instant_status_code' => 101], ['instant_status_code' => '101'], ['instant_status_code' => 106], ['instant_status_code' => 200],
             ['instant_status_code' => 300], ['instant_status_code' => 350],
             ['status' => 'shipped'], ['status' => 'finished'], ['status' => 'canceled'],
             ['service' => 'borzo'], ['status' => 'new'],

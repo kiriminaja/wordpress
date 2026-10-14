@@ -4,6 +4,40 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class InstantProcessedPaymentRuntimeTest extends TestCase {
+	public function test_processed_webhook_tracks_url_availability_independently_of_payment_awb_and_route(): void {
+		// Synthetic identities and the public encoded-polyline example, never a real webhook log.
+		$package = array(
+			'service' => 'gosend',
+			'service_type' => 'Instant',
+			'live_tracking_url' => null,
+			'poly_line' => '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
+			'driver' => array( 'name' => null, 'phone' => null, 'image' => null ),
+		);
+		$payment = array( 'payment_id' => 'PAY-1', 'status_code' => 0, 'qr_content' => null, 'pay_time' => null );
+		foreach ( array(
+			array( '', null, '' ),
+			array( '', 'https://courier.example.test/live/AWB-1', 'https://courier.example.test/live/AWB-1' ),
+			array( 'https://courier.example.test/live/AWB-1', null, 'https://courier.example.test/live/AWB-1' ),
+		) as [ $saved_url, $incoming_url, $expected_url ] ) {
+			$result = $this->execute( array(
+				'row' => array( 'live_tracking_url' => $saved_url, 'shipping_info' => '{}' ),
+				'event' => array( 'awb' => 'AWB-1', 'date' => '2025-01-01T10:00:00Z', 'shipped_at' => null, 'finished_at' => null ),
+				'package' => array_replace( $package, array( 'live_tracking_url' => $incoming_url ) ),
+				'payment' => $payment,
+				'repeat' => 2,
+			) );
+			$this->assertSame( array( 200, 200 ), $result['responses'] );
+			$this->assertSame( array( 'request_pickup', 105, 'AWB-1', 'paid', $expected_url ), array(
+				$result['row']['status'], $result['row']['instant_status_code'], $result['row']['awb'], $result['row']['instant_payment_status'], $result['row']['live_tracking_url'],
+			) );
+			$this->assertCount( 1, $result['writes'] );
+			$this->assertSame( array( array( 38.5, -120.2 ), array( 40.7, -120.95 ), array( 43.252, -126.453 ) ), json_decode( $result['row']['shipping_info'], true )['instant_route_points'] );
+			if ( null === $incoming_url ) {
+				$this->assertArrayNotHasKey( 'live_tracking_url', $result['writes'][0]['changes'] );
+			}
+		}
+	}
+
 	private function execute( array $input ): array {
 		$command = escapeshellarg( PHP_BINARY ) . ' -d error_reporting=22527 ' . escapeshellarg( __DIR__ . '/fixtures/instant-processed-payment-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) );
 		exec( $command, $output, $status );
