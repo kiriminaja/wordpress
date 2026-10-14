@@ -36,7 +36,7 @@ final class CheckoutCountryCart {
     public function __construct( private bool $needsShipping, private array $items ) {}
     public function needs_shipping(): bool {
         ++$this->shippingReads;
-        return ( new \KiriminAjaOfficial\Controllers\CheckoutController() )->kiriof_filter_cart_needs_shipping( $this->needsShipping );
+        return ( ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor() )->kiriof_filter_cart_needs_shipping( $this->needsShipping );
     }
     public function get_cart(): array { return $this->items; }
 }
@@ -99,14 +99,16 @@ if ( ! empty( $input['cart_unavailable'] ) ) {
 }
 $GLOBALS['country_notices'] = array();
 $GLOBALS['country_nonce_checks'] = array();
-$controller = new \KiriminAjaOfficial\Controllers\CheckoutController();
+// These country-field paths do not use repositories or the service factory.
+// Keep this isolated fixture independent of their WordPress/API dependencies.
+$controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
 $result = array();
 
 switch ( $input['action'] ) {
     case 'fields':
         $fields = array();
         foreach ( array( 'billing', 'shipping' ) as $group ) {
-            foreach ( array( 'state', 'city', 'company', 'postcode', 'country' ) as $field ) {
+            foreach ( array( 'state', 'city', 'company', 'postcode', 'country', 'phone', 'email' ) as $field ) {
                 $fields[ $group ][ $group . '_' . $field ] = array(
                     'label' => ucfirst( $field ),
                     'required' => 'company' !== $field,

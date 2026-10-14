@@ -18,7 +18,23 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Use the checkout value (including posted/session values), never a forced ID
+// default. Some Classic themes omit country inputs entirely.
+$kiriof_wc = function_exists( 'WC' ) ? WC() : null;
+$kiriof_checkout = $kiriof_wc && method_exists( $kiriof_wc, 'checkout' ) ? $kiriof_wc->checkout() : null;
+$kiriof_customer = $kiriof_wc->customer ?? null;
+$kiriof_countries = array();
+foreach ( array( 'billing', 'shipping' ) as $kiriof_scope ) {
+    $kiriof_getter = 'get_' . $kiriof_scope . '_country';
+    $kiriof_countries[ $kiriof_scope ] = $kiriof_checkout && method_exists( $kiriof_checkout, 'get_value' )
+        ? (string) $kiriof_checkout->get_value( $kiriof_scope . '_country' )
+        : ( $kiriof_customer && method_exists( $kiriof_customer, $kiriof_getter ) ? (string) $kiriof_customer->$kiriof_getter() : '' );
+}
+
 return array(
+    'courierLogos'            => \KiriminAjaOfficial\Services\CourierLogoAssets::urls(),
+    'billingCountry'          => $kiriof_countries['billing'],
+    'shippingCountry'         => $kiriof_countries['shipping'],
     'savedDistrictByPostcode' => is_array( $kiriof_saved_destination_map ) ? $kiriof_saved_destination_map : array(),
     'savedCheckoutPostcode'   => (string) $kiriof_saved_checkout_postcode,
     'billingDistrict'         => array(
@@ -41,9 +57,15 @@ return array(
     'updateCheckoutNonce'     => wp_create_nonce( 'kiriof-update-checkout' ),
     'fieldKey'                => (string) $field_key,
     'i18n'                    => array(
-        'district'        => __( 'District', 'kiriminaja-official' ),
-        'selectDistrict'  => __( 'Select District', 'kiriminaja-official' ),
-        'districtWarning' => __( 'Please select your District to view shipping options.', 'kiriminaja-official' ),
+        'shippingOptions' => __( 'Shipping options', 'kiriminaja-official' ),
+        'shippingSelectionChanged' => __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' ),
+        'district'        => __( 'Subdistrict', 'kiriminaja-official' ),
+        'selectDistrict'  => __( 'Select Subdistrict', 'kiriminaja-official' ),
+        'districtWarning' => __( 'Please select your Subdistrict to view shipping options.', 'kiriminaja-official' ),
         'selectOption'    => __( 'Select Option', 'kiriminaja-official' ),
+        'searchMinChars'  => __( 'Enter at least 3 characters', 'kiriminaja-official' ),
+        'searching'       => __( 'Searching…', 'kiriminaja-official' ),
+        'noResults'       => __( 'No results found', 'kiriminaja-official' ),
+        'searchError'     => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
     ),
 );

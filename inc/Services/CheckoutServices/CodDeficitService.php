@@ -7,6 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\CodFeeApiRepository;
+use KiriminAjaOfficial\Repositories\SettingRepository;
 
 /**
  * Detects whether a COD order is in deficit.
@@ -20,6 +22,16 @@ use KiriminAjaOfficial\Base\BaseService;
  *  3. Fall back to local calculation when API is unavailable.
  */
 class CodDeficitService extends BaseService {
+    private CodFeeApiRepository $cod_fee_repository;
+    private SettingRepository $setting_repository;
+
+    public function __construct(
+        CodFeeApiRepository $cod_fee_repository,
+        SettingRepository $setting_repository
+    ) {
+        $this->cod_fee_repository = $cod_fee_repository;
+        $this->setting_repository = $setting_repository;
+    }
 
     /**
      * Detect whether a COD order is in deficit.
@@ -129,7 +141,7 @@ class CodDeficitService extends BaseService {
         string $courierCode,
         string $serviceCode
     ): ?array {
-        $repo = new \KiriminAjaOfficial\Repositories\CodFeeApiRepository();
+        $repo = $this->cod_fee_repository;
 
         $courierData = [
             [
@@ -207,7 +219,7 @@ class CodDeficitService extends BaseService {
         float $adminFee,
         float $maxCodAmount
     ): array {
-        $minThreshold  = (float) ( ( new \KiriminAjaOfficial\Repositories\SettingRepository() )->getSettingByKey( 'min_cod_threshold' )->value ?? 0 );
+        $minThreshold  = (float) ( $this->setting_repository->getSettingByKey( 'min_cod_threshold' )->value ?? 0 );
         $localMinimum  = $shippingCost + $insuranceFee + $codFee + $adminFee;
         $codMinimum    = max( $localMinimum, $minThreshold );
 

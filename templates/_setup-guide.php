@@ -15,6 +15,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 $kiriof_total_steps   = count( $steps );
 $kiriof_current_index = isset( $current_step_index ) ? max( 0, min( (int) $current_step_index, max( 0, $kiriof_total_steps - 1 ) ) ) : 0;
 $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
+
+if ( ! wp_script_is( 'kiriof-setup-guide', 'registered' ) ) {
+    wp_register_script(
+        'kiriof-setup-guide',
+        KIRIOF_URL . 'assets/admin/js/kj-setup-guide.js',
+        array(),
+        KIRIOF_VERSION,
+        true
+    );
+}
+wp_localize_script(
+    'kiriof-setup-guide',
+    'kiriofSetupGuide',
+    array(
+        'noticeId'     => $kiriof_notice_id,
+        'currentIndex' => $kiriof_current_index,
+    )
+);
+wp_enqueue_script( 'kiriof-setup-guide' );
 ?>
 <div
     id="<?php echo esc_attr( $kiriof_notice_id ); ?>"
@@ -104,58 +123,3 @@ $kiriof_notice_id     = 'kiriof-setup-guide-' . wp_rand( 1000, 9999 );
         <?php endforeach; ?>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var root = document.getElementById('<?php echo esc_js( $kiriof_notice_id ); ?>');
-    if (!root) {
-        return;
-    }
-
-    var slides = Array.prototype.slice.call(root.querySelectorAll('[data-kiriof-setup-slide]'));
-    if (!slides.length) {
-        return;
-    }
-
-    var currentIndex = <?php echo (int) $kiriof_current_index; ?>;
-    var prevButton = root.querySelector('[data-kiriof-setup-prev]');
-    var nextButton = root.querySelector('[data-kiriof-setup-next]');
-
-    function renderSlide(index) {
-        currentIndex = index;
-
-        slides.forEach(function (slide, slideIndex) {
-            slide.style.display = slideIndex === currentIndex ? 'block' : 'none';
-        });
-
-        if (prevButton) {
-            prevButton.disabled = currentIndex === 0;
-            prevButton.style.opacity = currentIndex === 0 ? '0.35' : '1';
-            prevButton.style.cursor = currentIndex === 0 ? 'default' : 'pointer';
-        }
-
-        if (nextButton) {
-            nextButton.disabled = currentIndex === slides.length - 1;
-            nextButton.style.opacity = currentIndex === slides.length - 1 ? '0.35' : '1';
-            nextButton.style.cursor = currentIndex === slides.length - 1 ? 'default' : 'pointer';
-        }
-    }
-
-    if (prevButton) {
-        prevButton.addEventListener('click', function () {
-            if (currentIndex > 0) {
-                renderSlide(currentIndex - 1);
-            }
-        });
-    }
-
-    if (nextButton) {
-        nextButton.addEventListener('click', function () {
-            if (currentIndex < slides.length - 1) {
-                renderSlide(currentIndex + 1);
-            }
-        });
-    }
-
-    renderSlide(currentIndex);
-});
-</script>

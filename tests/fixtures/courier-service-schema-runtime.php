@@ -13,6 +13,8 @@ register_shutdown_function( static function () use ( $upgrade_root ) {
 } );
 define( 'ABSPATH', $upgrade_root . '/' );
 define( 'KIRIOF_NONCE', 'schema-runtime' );
+require_once $root . '/vendor/autoload.php';
+require_once __DIR__ . '/courier-setting-controller.php';
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function sanitize_key( $value ) { return strtolower( $value ); }
 function esc_sql( $value ) { return addslashes( $value ); }
@@ -132,7 +134,7 @@ function reset_repository_cache() {
 }
 function save_all( $json ) {
 	$_POST = array( 'data' => array( 'nonce' => KIRIOF_NONCE, 'service_selection' => $json ) );
-	( new SettingController() )->storeCourierWhitelist();
+	( courier_setting_controller( new SettingRepository() ) )->storeCourierWhitelist();
 	return $GLOBALS['ajax_result'];
 }
 function transaction_queries( $queries ) {

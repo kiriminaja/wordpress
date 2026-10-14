@@ -8,7 +8,12 @@ if ( ! defined( 'ABSPATH' ) ) {
     define( 'ABSPATH', PLUGIN_DIR . '/' );
 }
 
+require_once PLUGIN_DIR . '/inc/Contracts/TransactionPrintRepositoryInterface.php';
 require_once PLUGIN_DIR . '/inc/Repositories/TransactionRepository.php';
+
+if ( ! function_exists( 'delete_transient' ) ) {
+    function delete_transient( $key ) { return true; }
+}
 
 final class ChangeOriginRepositoryRuntimeTest extends TestCase {
     private $previousWpdb;
@@ -54,6 +59,8 @@ final class ChangeOriginRepositoryRuntimeTest extends TestCase {
                 'service_name'               => 'REG',
                 'shipping_cost'              => 24000,
                 'discount_amount'            => 4000,
+                'delivery_type'              => 'express',
+                'vehicle'                    => null,
             ),
             $wpdb->lastChanges
         );
@@ -88,6 +95,8 @@ final class ChangeOriginRepositoryRuntimeTest extends TestCase {
                 'service_name'               => 'REG',
                 'shipping_cost'              => '17000',
                 'discount_amount'            => '2000',
+                'delivery_type'              => 'express',
+                'vehicle'                    => null,
             )
         );
 

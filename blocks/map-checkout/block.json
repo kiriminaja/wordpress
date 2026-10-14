@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "kiriminaja-official/map-checkout",
+  "title": "KiriminAja Delivery Map",
+  "description": "Optional delivery pin for the shipping address.",
+  "category": "woocommerce",
+  "parent": [
+    "woocommerce/checkout-shipping-address-block"
+  ],
+  "textdomain": "kiriminaja-official",
+  "supports": {
+    "html": false,
+    "multiple": false,
+    "reusable": false,
+    "inserter": false,
+    "lock": false
+  },
+  "attributes": {
+    "lock": {
+      "type": "object",
+      "default": {
+        "remove": true,
+        "move": true
+      }
+    }
+  },
+  "editorScript": "kiriof-map-checkout-editor",
+  "script": "kiriof-map-checkout",
+  "style": "kiriof-buyer-checkout"
+}

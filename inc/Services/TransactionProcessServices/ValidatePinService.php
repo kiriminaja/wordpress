@@ -26,10 +26,10 @@ class ValidatePinService extends BaseService {
         try {
             $result = ( new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository() )->pinValidate( $this->pin );
 
-            if ( empty( $result['status'] ) || empty( $result['data'] ) ) {
+            if ( true !== ( $result['status'] ?? null ) || ! is_object( $result['data'] ?? null ) ) {
                 return self::error(
                     [ 'error' => 'PIN_VALIDATE_FAILED' ],
-                    $result['data'] ?? 'PIN validation failed'
+                    'PIN validation failed'
                 );
             }
 
@@ -41,11 +41,12 @@ class ValidatePinService extends BaseService {
                         'error'      => 'PIN_MAX_ATTEMPT_REACHED',
                         'lock_until' => $data->data->lock_until ?? null,
                     ],
-                    $data->text ?? 'PIN max attempts reached'
+                    'PIN max attempts reached'
                 );
             }
 
-            $valid    = (bool) ( $data->data->valid ?? false );
+            // Current API uses envelope status; older payloads explicitly include valid.
+            $valid    = true === ( $data->status ?? null ) && true === ( $data->data->valid ?? true );
             $attempt  = (int) ( $data->data->attempt ?? 0 );
             $max      = (int) ( $data->data->max_attempt ?? 3 );
 
@@ -56,7 +57,7 @@ class ValidatePinService extends BaseService {
                         'attempt'     => $attempt,
                         'max_attempt' => $max,
                     ],
-                    $data->text ?? 'Invalid PIN'
+                    'Invalid PIN'
                 );
             }
 
@@ -71,7 +72,7 @@ class ValidatePinService extends BaseService {
         } catch ( \Throwable $th ) {
             return self::error(
                 [ 'error' => 'PIN_VALIDATE_FAILED' ],
-                $th->getMessage()
+                'PIN validation failed'
             );
         }
     }

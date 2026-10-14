@@ -1,0 +1,27 @@
+{
+  "translation-revision-date": "2026-06-02T08:13:02+00:00",
+  "generator": "KiriminAja editor catalog generator (Python stdlib)",
+  "source": "blocks/map-checkout/edit.js",
+  "domain": "kiriminaja-official",
+  "locale_data": {
+    "messages": {
+      "": {
+        "domain": "messages",
+        "lang": "id_ID",
+        "plural-forms": "nplurals=2; plural=(n > 1);"
+      },
+      "KiriminAja Delivery Map": [
+        "Peta Pengiriman KiriminAja"
+      ],
+      "Optional delivery pin for the shipping address.": [
+        "Pin pengiriman opsional untuk alamat pengiriman."
+      ],
+      "Delivery pin": [
+        "Pin pengiriman"
+      ],
+      "Optional. Customers can choose a delivery pin at checkout.": [
+        "Opsional. Pelanggan dapat memilih pin pengiriman saat checkout."
+      ]
+    }
+  }
+}

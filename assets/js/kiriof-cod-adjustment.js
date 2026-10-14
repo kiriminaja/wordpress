@@ -161,6 +161,16 @@
     });
   };
 
+  $(document).on("click", ".kiriof-open-cod-adjustment", function (event) {
+    event.preventDefault();
+    window.kjShowCodAdjustModal(this);
+  });
+
+  $(document).on("click", ".kiriof-open-cancel-deficit", function (event) {
+    event.preventDefault();
+    window.kjShowCancelDeficitModal(this);
+  });
+
   // -------------------------------------------------------------------------
   // Open Cancel Deficit modal
   // -------------------------------------------------------------------------

@@ -4,84 +4,63 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Validates PHP syntax across all plugin source files.
  */
 final class SyntaxValidationTest extends TestCase
 {
-    private static array $phpFiles = [];
-
-    public static function setUpBeforeClass(): void
-    {
-        self::$phpFiles = self::findPhpFiles();
-    }
-
     private static function findPhpFiles(): array
     {
         $files = [];
+        // Prune before descent, including dependencies nested in owned directories.
+        // Scan the root so development scripts and new source directories stay covered.
+        $excludedDirectories = ['vendor', 'node_modules', 'build', 'tests', '.git', 'docs', '.paratest.cache'];
+        $source = new RecursiveCallbackFilterIterator(
+            new RecursiveDirectoryIterator(PLUGIN_DIR, RecursiveDirectoryIterator::SKIP_DOTS),
+            static function (SplFileInfo $file) use ($excludedDirectories): bool {
+                if (str_contains($file->getPathname(), '.zip')) {
+                    return false;
+                }
+
+                if ($file->isDir()) {
+                    return !$file->isLink() && !in_array($file->getFilename(), $excludedDirectories, true);
+                }
+
+                return $file->isFile() && $file->getExtension() === 'php';
+            }
+        );
         $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator(PLUGIN_DIR, RecursiveDirectoryIterator::SKIP_DOTS)
+            $source
         );
         foreach ($iterator as $file) {
-            $path = $file->getPathname();
-            if (
-                $file->getExtension() === 'php'
-                && !str_contains($path, '/build/')
-                && !str_contains($path, '/vendor/')
-                && !str_contains($path, '/tests/')
-                && !str_contains($path, '.zip')
-            ) {
-                $files[] = $path;
-            }
+            $files[] = $file->getPathname();
         }
         sort($files);
         return $files;
     }
 
-    public static function phpFileProvider(): array
+    #[Test]
+    public function every_php_file_has_valid_syntax(): void
     {
-        // Provider runs before setUpBeforeClass; discover inline.
-        $files = [];
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator(PLUGIN_DIR, RecursiveDirectoryIterator::SKIP_DOTS)
-        );
-        foreach ($iterator as $file) {
-            $path = $file->getPathname();
-            if (
-                $file->getExtension() === 'php'
-                && !str_contains($path, '/build/')
-                && !str_contains($path, '/vendor/')
-                && !str_contains($path, '/tests/')
-                && !str_contains($path, '.zip')
-            ) {
-                $rel = str_replace(PLUGIN_DIR . '/', '', $path);
-                $files[$rel] = [$path];
+        $files = self::findPhpFiles();
+        $this->assertNotEmpty($files, 'No PHP source files found in plugin directory');
+
+        $failures = [];
+        foreach ($files as $filePath) {
+            $output = [];
+            $exitCode = 0;
+            // Use the runner's PHP version and retain compiler checks beyond TOKEN_PARSE.
+            exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($filePath) . ' 2>&1', $output, $exitCode);
+            if ($exitCode !== 0) {
+                $failures[] = "{$filePath}:\n" . implode("\n", $output);
             }
         }
-        ksort($files);
-        return $files;
-    }
 
-    #[Test]
-    #[DataProvider('phpFileProvider')]
-    public function every_php_file_has_valid_syntax(string $filePath): void
-    {
-        $output = [];
-        $exitCode = 0;
-        exec('php -l ' . escapeshellarg($filePath) . ' 2>&1', $output, $exitCode);
         $this->assertSame(
             0,
-            $exitCode,
-            "Syntax error in {$filePath}:\n" . implode("\n", $output)
+            count($failures),
+            "PHP lint failures:\n" . implode("\n\n", $failures)
         );
-    }
-
-    #[Test]
-    public function at_least_one_php_file_found(): void
-    {
-        $files = self::phpFileProvider();
-        $this->assertNotEmpty($files, 'No PHP source files found in plugin directory');
     }
 }

@@ -1,0 +1,256 @@
+@reference 'tailwindcss';
+@reference './kiriof-var.css';
+.kiriof-workspace-shell {
+  @apply box-border w-full max-w-none m-0 [padding:0_20px_48px];
+}
+
+.kiriof-tooltip-trigger {
+  @apply inline-flex items-center justify-center leading-none;
+}
+
+[data-slot='tooltip-content'].kiriof-tooltip-content {
+  @apply box-border pointer-events-none !w-max !max-w-72 !min-h-0 !m-0 !px-2.5 !py-1.5 !border-0 !rounded-md !bg-foreground !text-background ![font:inherit] !text-xs !font-medium !leading-[18px] text-center !whitespace-nowrap !shadow-lg;
+}
+
+.kiriof-tooltip-content .kiriof-tooltip-arrow {
+  @apply !block !w-3 !h-1.5 !m-0 !p-0 !text-foreground !fill-current !bg-transparent;
+}
+
+.kiriof-tooltip-content .kiriof-tooltip-arrow [data-arrow] {
+  @apply !block !w-3 !h-1.5 !m-0 !fill-current;
+}
+
+.kiriof-tooltip-content[data-side='bottom'] .kiriof-tooltip-arrow {
+  @apply ![margin-top:-1px];
+}
+
+.kiriof-tooltip-content[data-side='top'] .kiriof-tooltip-arrow {
+  @apply ![margin-bottom:-1px];
+}
+
+.kiriof-loading-indicator {
+  --kiriof-loading-progress: 0%;
+  @apply fixed top-0 right-0 left-0 z-100001 h-1 overflow-hidden opacity-0 pointer-events-none transition-opacity ease-in-out;
+}
+
+.kiriof-loading-indicator.is-active {
+  @apply opacity-100;
+}
+
+.kiriof-loading-indicator.is-finishing {
+  @apply opacity-0 delay-[90ms];
+}
+
+.kiriof-loading-indicator__bar {
+  @apply block w-(--kiriof-loading-progress) h-full rounded-r-full bg-primary shadow-sm transition-[width] duration-200 ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kiriof-loading-indicator,
+  .kiriof-loading-indicator__bar {
+    @apply ![transition-duration:1ms];
+  }
+}
+
+/* Every Svelte workspace owns its page chrome; WordPress/plugin notices must not
+ * create a second header or leave vertical whitespace above the shared toolbar. */
+body:has(.kiriof-workspace-shell) #screen-meta-links,
+body:has(.kiriof-workspace-shell) #screen-meta,
+body:has(.kiriof-workspace-shell) .update-nag,
+body:has(.kiriof-workspace-shell) .notice,
+body:has(.kiriof-workspace-shell) .updated,
+body:has(.kiriof-workspace-shell) .error {
+  @apply hidden!;
+}
+
+body:has(.kiriof-workspace-shell) #wpcontent {
+  @apply pl-0!;
+}
+
+body:has(.kiriof-workspace-shell) #wpbody-content {
+  @apply pb-0!;
+}
+
+.kiriof-app-toolbar {
+  @apply sticky top-8 z-20 box-border flex items-center justify-between gap-4 w-full min-h-14 m-[0_0_24px] py-2 border-b bg-background/94 backdrop-blur-md;
+}
+
+.kiriof-workspace-shell .kiriof-app-toolbar {
+  @apply w-[calc(100%+40px)] -mx-5 px-5;
+}
+
+.kiriof-app-toolbar__breadcrumbs,
+.kiriof-app-toolbar__actions {
+  @apply flex items-center gap-1.5;
+}
+
+.kiriof-app-toolbar__breadcrumbs {
+  @apply min-w-0 text-muted-foreground text-xs leading-none;
+}
+
+.kiriof-app-toolbar__breadcrumbs a {
+  @apply text-muted-foreground no-underline;
+}
+
+.kiriof-app-toolbar__breadcrumbs a:hover,
+.kiriof-app-toolbar__breadcrumbs a:focus-visible {
+  @apply text-foreground;
+}
+
+.kiriof-app-toolbar__breadcrumbs strong {
+  @apply text-foreground text-sm font-bold text-ellipsis whitespace-nowrap;
+}
+
+.kiriof-app-toolbar__home {
+  @apply inline-flex w-6 h-6 overflow-hidden rounded-[7px] shadow-sm;
+}
+
+.kiriof-app-toolbar__home img {
+  @apply block w-full h-full object-cover;
+}
+
+.kiriof-app-toolbar__actions {
+  @apply shrink-0 justify-end ml-auto;
+}
+
+.kiriof-toolbar-menu {
+  @apply relative inline-flex;
+}
+
+.kiriof-toolbar-menu__trigger {
+  @apply inline-flex! box-border flex-none items-center justify-center w-8 [min-width:32px] h-8 min-h-8 m-0 !p-0 border border-transparent rounded-md bg-transparent text-muted-foreground leading-none cursor-pointer;
+}
+
+.kiriof-toolbar-menu__trigger svg {
+  @apply block shrink-0;
+}
+
+.kiriof-toolbar-menu__trigger:hover,
+.kiriof-toolbar-menu__trigger:focus-visible,
+.kiriof-toolbar-menu__trigger[aria-expanded='true'] {
+  @apply border bg-secondary text-secondary-foreground;
+}
+
+.kiriof-toolbar-menu__trigger:focus-visible {
+  @apply outline-2 outline-primary outline-offset-1;
+}
+
+.kiriof-toolbar-menu__dropdown {
+  @apply absolute [top:calc(100%_+_6px)] [right:0] [z-index:50] grid [min-width:200px] p-1 border rounded-lg bg-white [box-shadow:0_8px_24px_rgb(36_27_61_/_14%)];
+}
+
+.kiriof-toolbar-menu__dropdown a {
+  @apply flex items-center justify-between gap-3 [padding:8px_10px] rounded-md text-sm font-medium no-underline whitespace-nowrap;
+}
+
+.kiriof-toolbar-menu__dropdown a:hover,
+.kiriof-toolbar-menu__dropdown a:focus-visible {
+  @apply bg-secondary text-secondary-foreground;
+}
+
+.kiriof-toolbar-menu__dropdown a svg {
+  @apply shrink-0 opacity-60;
+}
+
+.kiriof-plugin-update-trigger {
+  @apply inline-flex min-h-8 items-center gap-1.5 px-3 border border-warning-border rounded-full bg-warning-background text-warning-foreground [font:inherit] text-xs font-semibold leading-none cursor-pointer transition-colors duration-150;
+}
+
+.kiriof-plugin-update-trigger:hover {
+  @apply border-warning bg-warning-background text-warning-foreground;
+}
+
+.kiriof-plugin-update-trigger:focus-visible {
+  @apply outline-2 outline-ring outline-offset-2;
+}
+
+.kiriof-plugin-update-dialog {
+  @apply [width:min(520px,calc(100vw_-_32px))] [max-height:calc(100vh_-_48px)] overflow-y-auto text-foreground;
+}
+
+.kiriof-plugin-update-dialog__heading {
+  @apply flex items-start gap-3 [padding-right:28px];
+}
+
+.kiriof-plugin-update-dialog__icon {
+  @apply inline-flex flex-none items-center justify-center w-9 h-9 rounded-lg bg-warning-background text-warning-foreground;
+}
+
+.kiriof-plugin-update-dialog__eyebrow {
+  @apply block mb-1 text-warning-foreground text-xs font-bold tracking-wide leading-tight;
+}
+
+.kiriof-plugin-update-dialog [data-slot='dialog-title'] {
+  @apply [line-height:1.25];
+}
+
+.kiriof-plugin-update-dialog__details {
+  @apply grid gap-2 px-3.5 py-3 border border-warning-border rounded-lg bg-warning-background text-warning-foreground text-[13px] leading-normal;
+}
+
+.kiriof-plugin-update-dialog__details p {
+  @apply m-0;
+}
+
+.kiriof-plugin-update-dialog [data-slot='dialog-footer'] {
+  @apply items-center flex-wrap;
+}
+
+.kiriof-plugin-update-dialog__primary,
+.kiriof-plugin-update-dialog__secondary,
+.kiriof-plugin-update-dialog__dismiss {
+  @apply inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg [padding:0_10px] [font-size:13px] font-semibold no-underline;
+}
+
+.kiriof-plugin-update-dialog__primary {
+  @apply bg-primary text-primary-foreground;
+}
+
+.kiriof-plugin-update-dialog__primary:hover {
+  @apply bg-primary/90 text-primary-foreground;
+}
+
+.kiriof-plugin-update-dialog__secondary {
+  @apply text-primary;
+}
+
+.kiriof-plugin-update-dialog__secondary:hover,
+.kiriof-plugin-update-dialog__dismiss:hover {
+  @apply bg-primary/10;
+}
+
+.kiriof-plugin-update-dialog__dismiss {
+  @apply text-muted-foreground;
+}
+
+.kiriof-plugin-update-dialog__primary:focus-visible,
+.kiriof-plugin-update-dialog__secondary:focus-visible,
+.kiriof-plugin-update-dialog__dismiss:focus-visible {
+  @apply outline-2 outline-ring outline-offset-2;
+}
+
+@media (max-width: 782px) {
+  .kiriof-app-toolbar {
+    @apply [top:46px];
+  }
+
+  .kiriof-workspace-shell {
+    @apply [padding-right:10px] [padding-left:10px];
+  }
+
+  .kiriof-workspace-shell .kiriof-app-toolbar {
+    @apply [width:calc(100%_+_20px)] [margin-right:-10px] [margin-left:-10px] [padding-right:10px] [padding-left:10px];
+  }
+
+  .kiriof-app-toolbar__actions {
+    @apply gap-1.5;
+  }
+
+  .kiriof-plugin-update-trigger {
+    @apply [padding:0_9px];
+  }
+
+  .kiriof-plugin-update-trigger span {
+    @apply hidden;
+  }
+}

@@ -73,6 +73,7 @@ class GetShippingProcessDetailService extends BaseService{
     private function transactionsMapping($transactions){
         return array_map(function ($transaction){
             $raw_status = $transaction->status;
+            $transaction->raw_status        = $raw_status;
             $transaction->status            = kiriof_helper()->transactionStatusLabel($raw_status);
             $transaction->status_classes    = kiriof_helper()->transactionStatusClass($raw_status);
             return $transaction;

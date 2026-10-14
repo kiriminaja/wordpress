@@ -144,7 +144,7 @@ final class CheckoutLogisticsSessionRuntimeTest extends TestCase {
 				),
 				'session' => array( 'chosen_shipping_methods' => array( 'local_pickup:7' ) ),
 			) );
-			$this->assertContains( '<strong>District</strong> is a required field', array_column( $result['notices'], 'message' ) );
+			$this->assertContains( '<strong>Subdistrict</strong> is a required field', array_column( $result['notices'], 'message' ) );
 			$this->assertContains( '<strong>Checkout Calculation</strong> is not finished yet', array_column( $result['notices'], 'message' ) );
 		}
 	}

@@ -109,6 +109,10 @@ class ShippingDiscountRegionRepository {
         return empty( $this->wpdb->last_error );
     }
 
+    public function getLastError(): string {
+        return (string) $this->wpdb->last_error;
+    }
+
     public function isCacheStale( int $ttl = DAY_IN_SECONDS ): bool {
         $provinceCount = $this->getProvinceCount();
         $cityCount = $this->getCityCount();

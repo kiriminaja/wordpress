@@ -8,6 +8,10 @@
   },
   "authors": [
     {
+      "name": "Yanuar",
+      "email": "me@yan.ad"
+    },
+    {
       "name": "FaizRA",
       "email": "faizniflehim@gmail.com"
     }
@@ -16,9 +20,24 @@
     "platform-check": false,
     "platform": {
       "php": "8.1.34"
+    },
+    "allow-plugins": {
+      "php-http/discovery": true
     }
   },
   "require-dev": {
-    "brianium/paratest": "~7.3.0"
+    "brianium/paratest": "~7.3.0",
+    "php-stubs/wordpress-stubs": "^7.1",
+    "phpstan/phpstan": "^2.2",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "php-stubs/woocommerce-stubs": "^10.0",
+    "mockery/mockery": "^1.6"
+  },
+  "require": {
+    "kiriminaja/kiriminaja-php": "^2.1.4"
+  },
+  "scripts": {
+    "test": "paratest --configuration paratest.xml --testdox",
+    "phpstan": "phpstan analyse --memory-limit=1G"
   }
 }
