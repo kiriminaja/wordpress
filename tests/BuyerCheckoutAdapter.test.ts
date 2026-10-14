@@ -278,6 +278,34 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 		// Old restore must not dispatch and abort Woo's newer native selection.
 		expect(h.restores).toHaveLength(0);
 	});
+	test('rapid choices across packages preserve both explicit intents while native state is stale', async () => {
+		const h = harness(); h.mount();
+		const rates = (id: number, selected: string) => ({ package_id: id, shipping_rates: [
+			{ rate_id: 'kiriminaja:jne', method_id: 'kiriminaja-official', selected: selected === 'kiriminaja:jne' },
+			{ rate_id: 'kiriminaja-instant:7:gosend:instant', method_id: 'kiriminaja-instant', selected: selected !== 'kiriminaja:jne' },
+		] });
+		h.model.cart.shippingRates = [rates(0, 'kiriminaja:jne'), rates(1, 'kiriminaja:jne')]; h.notify();
+		const first: any = {}, second: any = {}; first.parentElement = second.parentElement = { querySelectorAll: () => [first, second] };
+		h.shippingClick('kiriminaja-instant:7:gosend:instant', () => { h.model.rateBusy = true; }, first);
+		h.shippingClick('kiriminaja-instant:7:gosend:instant', () => {}, second);
+		expect(h.publications.at(-1)[1].shipping_selection.packages).toEqual([0, 1].map(id => ({ package_id: String(id), rate_id: 'kiriminaja-instant:7:gosend:instant' })));
+		h.model.cart.shippingRates = [rates(0, 'go'), rates(1, 'go')]; h.model.rateBusy = false; h.notify();
+		expect(latestValidation(h, 'kiriof-shipping-selection')).toEqual({ clear: 'kiriof-shipping-selection' });
+	});
+	test('pending courier intent survives empty native selected flags but expires on destination change', async () => {
+		for (const changed of [false, true]) {
+			const h = harness(); h.mount();
+			const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
+			const pkg = (id: number, selected: string) => ({ package_id:id, shipping_rates:[{rate_id:express,method_id:'kiriminaja-official',selected:selected===express},{rate_id:go,method_id:'kiriminaja-instant',selected:selected===go}] });
+			h.model.cart.shippingRates = [pkg(0, express),pkg(1, express)]; h.notify();
+			const first:any={}, second:any={}; first.parentElement=second.parentElement={querySelectorAll:()=>[first,second]};
+			h.shippingClick(go,()=>{h.model.rateBusy=true;},first);
+			if(changed) h.model.cart.shippingAddress.address_1='New destination';
+			h.model.cart.shippingRates=[pkg(0,changed?express:''),pkg(1,express)]; h.notify();
+			h.shippingClick(go,()=>{},second);
+			expect(h.publications.at(-1)[1].shipping_selection.packages).toEqual([{package_id:'0',rate_id:changed?express:go},{package_id:'1',rate_id:go}]);
+		}
+	});
 	test('duplicate responsive native package controls review the clicked package, not global DOM ordinal', async () => {
 		const h = harness();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';
@@ -905,6 +933,18 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 			expect(h.sends[0].request.data.destination.district_label).toBe('District Seven');
 			expect([...h.timers.values()].some(timer => timer.delay === 10000 || timer.delay === 500)).toBe(false);
 		}
+	});
+	test('classified PHP transient lookup error retries even with an HTTP 200 AJAX envelope', async () => {
+		const h = harness(); h.mount(); await h.flush(250);
+		h.lookups[0].resolve({ ok: true, json: () => Promise.resolve({ success: false, data: { code: 'subdistrict_lookup_failed', retryable: true } }) });
+		await h.settle(); expect(h.status()).toBe('Loading'); await h.flush(500);
+		expect(h.lookups).toHaveLength(2); await h.reply(1);
+		expect(options(h.find('select'))).toEqual([{ value: '7', label: 'District Seven' }]);
+	});
+	test('nonce rejection shows reload guidance without automatic lookup retry', async () => {
+		const h = harness({ config: { i18n: { lookupSecurityFailed: 'Reload checkout security session' } } }); h.mount(); await h.flush(250);
+		h.lookups[0].resolve({ ok: false, status: 403 }); await h.settle(); await h.flush(500);
+		expect(h.status()).toBe('Reload checkout security session'); expect(h.lookups).toHaveLength(1); expect(h.sends).toHaveLength(0);
 	});
 	test('security, malformed JSON and invalid lookup data never auto-retry', async () => {
 		for (const response of [

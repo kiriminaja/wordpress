@@ -103,6 +103,7 @@ namespace {
 		$review['packages'][] = array( 'package_id' => 9, 'rate_id' => $other->id );
 		$lines = array( 91 => clone $other, 42 => $line );
 	}
+	if ( array_key_exists( 'review', $config ) ) { $review = $config['review']; }
 	$GLOBALS['wc'] = new GuardWC( $packages, new GuardSession( $chosen ) );
 	$order = new GuardOrder( $lines );
 	$hook = $config['classic'] ? 'woocommerce_checkout_create_order' : 'woocommerce_store_api_checkout_update_order_from_request';

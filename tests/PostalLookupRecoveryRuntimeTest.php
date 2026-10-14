@@ -9,6 +9,16 @@ final class PostalLookupRecoveryRuntimeTest extends TestCase {
         return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
     }
 
+    public function test_only_verified_transient_transport_failures_are_retryable_in_ajax(): void {
+        foreach (array('http_502'=>true, 'http_503'=>true, 'http_504'=>true, 'http_network'=>true, 'http_tls'=>false, 'http_exception'=>false, 'http_401'=>false, 'http_403'=>false, 'http_422'=>false, 'http_json'=>false, 'http_200'=>false) as $scenario=>$retryable) {
+            $result = $this->scenario($scenario);
+            $this->assertSame(array(false, 'subdistrict_lookup_failed', $retryable), array($result['response']['success'], $result['response']['data']['code'], $result['response']['data']['retryable']), $scenario);
+            $this->assertCount(1, $result['calls']);
+            $this->assertSame(array(), $result['writes']);
+            $this->assertStringNotContainsString('PRIVATE', json_encode(array($result['response'], $result['logs'])));
+        }
+    }
+
     public function test_empty_and_wrong_postcode_results_recover_without_negative_cache_or_logs(): void {
         foreach ( array( 'empty', 'wrong_postcode' ) as $scenario ) {
             $result = $this->scenario( $scenario );

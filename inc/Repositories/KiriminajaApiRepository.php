@@ -120,15 +120,22 @@ class KiriminajaApiRepository extends KiriminAjaApi {
 
     /** SDK request construction/authentication, with address-specific limits. */
     protected function address_request( string $method, string $endpoint, array $payload ): array {
-        $client = new AddressApiTransport();
+        $client = $this->address_client();
         $response = 'GET' === $method ? $client->get( $endpoint, $payload ) : $client->post( $endpoint, $payload );
         // Never retain explanatory error bodies or messages from the transport.
         $metadata = $client->diagnostics();
         $this->address_transport_metadata = array(
+            'transport_code' => in_array( $metadata['code'] ?? null, array( 'transport_success', 'http_failure', 'transport_exception', 'invalid_json', 'invalid_json_shape', 'invalid_content_length', 'oversized_response', 'stalled_response', 'insecure_url', 'method_unsupported' ), true ) ? $metadata['code'] : 'unknown',
+            'submitted'   => true === ( $metadata['submitted'] ?? false ),
+            'network_failure' => true === ( $metadata['network_failure'] ?? false ),
             'http_status' => is_int( $metadata['http_status'] ?? null ) ? $metadata['http_status'] : null,
             'elapsed_ms'  => min( 25000, max( 0, (int) ( $metadata['elapsed_ms'] ?? 0 ) ) ),
         );
         return $response;
+    }
+
+    protected function address_client(): AddressApiTransport {
+        return new AddressApiTransport();
     }
 
     /** One attempt, no legacy-parent lookup or child fan-out. */
@@ -164,7 +171,11 @@ class KiriminajaApiRepository extends KiriminAjaApi {
                 $this->address_transport_metadata
             ) );
         }
-        return array( 'status' => false, 'data' => 'Could not load subdistricts.' );
+        $transient = 'transport_failure' === $reason && (
+            ( 'http_failure' === ( $this->address_transport_metadata['transport_code'] ?? null ) && in_array( $this->address_transport_metadata['http_status'] ?? null, array( 502, 503, 504 ), true ) )
+            || ( 'transport_exception' === ( $this->address_transport_metadata['transport_code'] ?? null ) && true === ( $this->address_transport_metadata['network_failure'] ?? false ) && true === ( $this->address_transport_metadata['submitted'] ?? false ) && null === ( $this->address_transport_metadata['http_status'] ?? null ) )
+        );
+        return array( 'status' => false, 'data' => 'Could not load subdistricts.', 'retryable' => $transient );
     }
 
     private function subdistrict_positive_id( $value ): ?int {

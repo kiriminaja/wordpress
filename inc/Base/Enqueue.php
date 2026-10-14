@@ -217,6 +217,7 @@ class Enqueue extends BaseInit{
                 'empty' => __( 'No subdistricts found. Check your shipping postcode.', 'kiriminaja-official' ),
                 'emptyRetry' => __( 'No subdistricts were returned for this postcode. Retry the lookup or check your shipping postcode.', 'kiriminaja-official' ),
                 'lookupFailed' => __( 'Subdistricts could not be loaded. Please retry.', 'kiriminaja-official' ),
+                'lookupSecurityFailed' => __( 'Checkout security session expired. Reload checkout and try again.', 'kiriminaja-official' ),
                 'lookupTimeout' => __( 'Subdistrict lookup timed out. Please retry.', 'kiriminaja-official' ),
                 'saveStalled' => __( 'Shipping update is taking too long. Reload checkout if it does not finish; your order has not been placed.', 'kiriminaja-official' ),
                 'reloadCheckout' => __( 'Reload checkout', 'kiriminaja-official' ),

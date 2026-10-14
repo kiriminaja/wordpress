@@ -13,10 +13,13 @@ function update_option( ...$args ) { throw new RuntimeException( 'Lookup must no
 function update_post_meta( ...$args ) { throw new RuntimeException( 'Lookup must not write orders.' ); }
 function wp_unslash( $value ) { return $value; }
 function sanitize_text_field( $value ) { return is_scalar( $value ) ? trim( strip_tags( (string) $value ) ) : ''; }
+function wp_strip_all_tags( $value, $remove_breaks = false ) { return strip_tags( $value ); }
+function wp_json_encode( $value ) { return json_encode( $value ); }
 function map_deep( $value, $callback ) { return is_array( $value ) ? array_map( static fn( $item ) => map_deep( $item, $callback ), $value ) : $callback( $value ); }
 function wp_verify_nonce( $nonce, $action ) { return 'valid' === $nonce && KIRIOF_NONCE === $action; }
 function __( $text, $domain ) { return $text; }
 function postal_result( $response ) {
+    if ( str_starts_with( $GLOBALS['scenario'] ?? '', 'http_' ) ) { Mockery::close(); }
     echo json_encode( array( 'response' => $response, 'calls' => $GLOBALS['postal_repository']->calls, 'reads' => $GLOBALS['postal_reads'], 'writes' => $GLOBALS['postal_writes'], 'cache' => $GLOBALS['postal_cache'], 'logs' => $GLOBALS['postal_logs'] ), JSON_THROW_ON_ERROR );
     exit;
 }
@@ -25,9 +28,12 @@ function wp_send_json_error( $data, $status = null ) { postal_result( array( 'su
 $repository = new class() extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
     public array $calls = array();
     public array $queue = array();
+    public ?\KiriminAjaOfficial\Infrastructure\AddressApiTransport $transport = null;
     public function __construct() {}
+    protected function address_client(): \KiriminAjaOfficial\Infrastructure\AddressApiTransport { return $this->transport ?? parent::address_client(); }
     protected function address_request( string $method, string $endpoint, array $payload ): array {
         $this->calls[] = array( $method, $endpoint, $payload );
+        if ( null !== $this->transport ) { return parent::address_request( $method, $endpoint, $payload ); }
         if ( empty( $this->queue ) ) { throw new RuntimeException( 'Unexpected network call.' ); }
         return array_shift( $this->queue );
     }
@@ -45,6 +51,34 @@ $row = array( 'province_id' => 11, 'city_id' => 164, 'district_id' => 2275, 'sub
 $tuple = static fn( $rows ) => array( true, array( 'status' => true, 'data' => $rows ) );
 $key = 'kiriof_district_search_v4_' . md5( '55581' );
 $scenario = $argv[1] ?? 'empty';
+if ( str_starts_with( $scenario, 'http_' ) ) {
+    \KiriminAja\Base\Config\Cache\Cache::setStore( new class() implements \KiriminAja\Contracts\CacheStoreContract {
+        private array $values = array();
+        public function get( string $key ): mixed { return $this->values[$key] ?? null; }
+        public function put( string $key, mixed $value, int $expiry ): bool { $this->values[$key] = $value; return true; }
+        public function remove( string $key ): bool { unset( $this->values[$key] ); return true; }
+    } );
+    \KiriminAja\Base\Config\KiriminAjaConfig::setApiTokenKey( 'fixture-address-token' );
+    $client = Mockery::mock( \Psr\Http\Client\ClientInterface::class );
+    $expectation = $client->shouldReceive( 'sendRequest' )->once()->with( Mockery::on( static function ( $request ) {
+        return 'GET' === $request->getMethod() && '/api/mitra/v6.1/addresses' === $request->getUri()->getPath()
+            && 'search=55581' === $request->getUri()->getQuery() && 'wordpress' === $request->getHeaderLine( 'User-Agent' );
+    } ) );
+    $code = (int) substr( $scenario, 5 );
+    if ( 'http_network' === $scenario ) { $expectation->andThrow( new \Http\Client\Exception\NetworkException( 'PRIVATE network failure', new \Nyholm\Psr7\Request( 'GET', 'https://address.fixture.invalid' ) ) ); }
+    elseif ( 'http_tls' === $scenario ) { $expectation->andThrow( new \Http\Client\Exception\RequestException( 'PRIVATE certificate failure', new \Nyholm\Psr7\Request( 'GET', 'https://address.fixture.invalid' ) ) ); }
+    elseif ( 'http_exception' === $scenario ) { $expectation->andThrow( new RuntimeException( 'PRIVATE failure' ) ); }
+    else { $expectation->andReturn( new \Nyholm\Psr7\Response( $code ?: 200, array(), 'http_json' === $scenario ? '{invalid' : json_encode( array( 'status'=>false, 'text'=>'PRIVATE provider error' ) ) ) ); }
+    $transport = new class() extends \KiriminAjaOfficial\Infrastructure\AddressApiTransport {
+        public static \Psr\Http\Client\ClientInterface $client;
+        protected static function createAddressClient( array $options ): \Psr\Http\Client\ClientInterface { return self::$client; }
+        protected function url( $endpoint ): string { return 'https://address.fixture.invalid/' . $endpoint; }
+    };
+    $transport::$client = $client;
+    $repository->transport = $transport;
+    $_POST = array( 'nonce'=>'valid', 'term'=>'55581' );
+    ( new \KiriminAjaOfficial\Controllers\GeneralAjaxController( $factory ) )->kiriminajaSubdistrictSearch();
+}
 if ( 'empty' === $scenario || 'wrong_postcode' === $scenario ) {
     $GLOBALS['postal_cache']['kiriof_district_search_v3_' . md5( '55581' )] = array();
     $first_rows = 'empty' === $scenario ? array() : array( array_replace( $row, array( 'full_address' => 'Sariharjo, Ngaglik, Sleman, DI Yogyakarta, 55582' ) ) );

@@ -77,6 +77,7 @@ class GeneralAjaxController
                 wp_send_json_error(
                     array(
                         'code'    => 'subdistrict_lookup_failed',
+                        'retryable' => 'subdistrict_lookup_transient' === $subdistrict_search->customCode,
                         'message' => __( 'Could not search subdistricts. Check the KiriminAja connection and try again.', 'kiriminaja-official' ),
                     )
                 );

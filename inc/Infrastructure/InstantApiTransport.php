@@ -75,6 +75,7 @@ class InstantApiTransport extends WordPressApiClient {
 			'http_status' => null,
 			'elapsed_ms'  => 0,
 			'submitted'   => false,
+			'network_failure' => false,
 		);
 
 		try {
@@ -151,6 +152,7 @@ class InstantApiTransport extends WordPressApiClient {
 			}
 			return is_array( $decoded ) ? array( true, $decoded ) : $failure;
 		} catch ( \Throwable $throwable ) {
+			$this->diagnostics['network_failure'] = $throwable instanceof \Psr\Http\Client\NetworkExceptionInterface;
 			// Never log or return exception text, credentials, PINs, or response bodies.
 			if ( 'http_failure' === $this->diagnostics['code'] && $throwable instanceof \JsonException ) {
 				$this->diagnostics['error_body'] = array( 'format' => 'invalid_json' );

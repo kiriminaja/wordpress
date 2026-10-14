@@ -93,7 +93,7 @@ final class InstantApiTransportDiagnosticsTest extends TestCase {
 		$diagnostics = $transport->diagnostics();
 		$this->assertSame(
 			array(
-				'diagnostics' => array( 'code', 'http_status', 'elapsed_ms', 'submitted' ),
+				'diagnostics' => array( 'code', 'http_status', 'elapsed_ms', 'submitted', 'network_failure' ),
 				'code' => $code,
 				'http_status' => $http_status,
 				'submitted' => $submitted,

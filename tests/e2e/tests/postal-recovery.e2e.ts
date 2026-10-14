@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const read = (path: string) => readFileSync(root + path, 'utf8');
 const postal = (scenario: string) => JSON.parse(execFileSync('php', ['-d', 'error_reporting=22527', root + 'tests/fixtures/postal-lookup-recovery-runtime.php', scenario], { encoding: 'utf8' }));
+const guard = (input: unknown) => JSON.parse(execFileSync('php', [root + 'tests/fixtures/checkout-shipping-selection-guard-runtime.php', JSON.stringify(input)], { encoding: 'utf8' }));
 const cargo = 'kiriminaja-official_jne_REG';
 const instant = 'kiriminaja-instant:7:gosend:instant';
 const label = 'Sariharjo, Ngaglik, Sleman, DI Yogyakarta, 55581';
@@ -43,12 +44,12 @@ function html() {
   </style></head><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><div id="fallback"></div><p id="shipping-error" role="alert" hidden></p></div>${scripts([
     reactSource(),
     `const R=window.__React;const listeners=new Set();let version=0;
-    window.__extensions={};window.__errors={};window.__mutations=[];window.__emptyWrites=[];window.__trusted=[];window.__nativeActions=[];window.__customerBusy=false;
+    window.__extensions={};window.__errors={};window.__mutations=[];window.__emptyWrites=[];window.__trusted=[];window.__nativeActions=[];window.__customerBusy=false;window.__rateBusy=false;window.__orders=0;window.__checkoutErrors=[];
     const rates=[{rate_id:${JSON.stringify(cargo)},method_id:'kiriminaja-official',selected:true,label:'JNE Cargo'},{rate_id:${JSON.stringify(instant)},method_id:'kiriminaja-instant',selected:false,label:'GoSend Instant'}];
     window.__cart={needsShipping:true,shippingAddress:${JSON.stringify(address)},billingAddress:{address_1:'Separate billing street'},extensions:{},shippingRates:[{package_id:3,shipping_rates:rates}]};
     const emit=()=>{version++;listeners.forEach(fn=>fn());};
     const subscribe=fn=>{listeners.add(fn);return()=>listeners.delete(fn);};
-    const stores={'wc/store/cart':{getCartData:()=>window.__cart,isShippingRateBeingSelected:()=>false,isCustomerDataUpdating:()=>window.__customerBusy,hasPendingItemsOperations:()=>false},'wc/store/checkout':{prefersCollection:()=>false},'wc/store/payment':{getActivePaymentMethod:()=> 'bacs'}};
+    const stores={'wc/store/cart':{getCartData:()=>window.__cart,isShippingRateBeingSelected:()=>window.__rateBusy,isCustomerDataUpdating:()=>window.__customerBusy,hasPendingItemsOperations:()=>false},'wc/store/checkout':{prefersCollection:()=>false},'wc/store/payment':{getActivePaymentMethod:()=> 'bacs'}};
     const select=name=>stores[name];
     function showErrors(){const p=document.querySelector('#shipping-error');const error=window.__errors['kiriof-shipping-selection'];p.hidden=!error;p.textContent=error?error.message:'';}
     // No selectShippingRate adapter: an automatic billing refresh cannot silently
@@ -56,10 +57,12 @@ function html() {
     window.wp={element:R,data:{select,subscribe,useSelect:fn=>{R.useSyncExternalStore(subscribe,()=>version);return fn(select);},dispatch:name=>name==='wc/store/checkout'?{setExtensionData:(namespace,data)=>{window.__extensions[namespace]=data;}}:name==='wc/store/cart'?{}:{setValidationErrors:errors=>{Object.assign(window.__errors,errors);showErrors();},clearValidationError:id=>{delete window.__errors[id];showErrors();}}},plugins:{registerPlugin:(name,registration)=>{window.__Fallback=registration.render;}}};
     window.wc={blocksCheckout:{OrderMeta:props=>props.children,registerCheckoutBlock:registration=>{window.__District=registration.component;},extensionCartUpdate:async payload=>{window.__mutations.push(payload);if(!payload.data.destination.district_id){window.__emptyWrites.push(payload);throw new Error('Empty district mutation rejected');}const response=await fetch('/cart-sync',{method:'POST',body:JSON.stringify(payload)});if(!response.ok)throw new Error('Cart mutation rejected');}}};
     window.kiriofBuyerCheckoutConfig={enabled:true,nonce:'valid',ajaxUrl:'/postal',map:{enabled:true},savedDestination:${JSON.stringify(saved)},i18n:{district:'Village',selectDistrict:'Choose village',loading:'Loading villages',checkingDistrict:'Checking village',districtNotSet:'Village not verified',districtRequired:'Choose village',postcodeRequired:'Enter postcode',emptyRetry:${JSON.stringify(emptyMessage)},lookupFailed:${JSON.stringify(errorMessage)},lookupTimeout:'Lookup timed out',pinLocation:'Pin location saved',needPinLocation:'Choose pin location',pinRequirement:'Saved destination pin',retry:'Retry',saving:'Saving destination',updateFailed:'Destination save failed',shippingSelectionChanged:${JSON.stringify(shippingMessage)}}};
+    window.__selectRate=async rate=>{window.__rateBusy=true;emit();const response=await fetch('/shipping-select',{method:'POST',body:JSON.stringify({rate})});const result=await response.json();window.__cart={...window.__cart,shippingRates:window.__cart.shippingRates.map(pkg=>({...pkg,shipping_rates:pkg.shipping_rates.map(option=>({...option,selected:option.rate_id===result.rate}))}))};window.__rateBusy=false;emit();};
+    window.__placeOrder=async()=>{const response=await fetch('/place-order',{method:'POST',body:JSON.stringify({review:window.__extensions['kiriminaja-official']?.shipping_selection,selected:window.__cart.shippingRates[0].shipping_rates.find(rate=>rate.selected)?.rate_id})});const result=await response.json();if(response.ok)window.__orders++;else window.__checkoutErrors.push(result.message);};
     function NativeCheckout(){const [editing,setEditing]=R.useState(false);R.useSyncExternalStore(subscribe,()=>version);return R.createElement('div',null,
       R.createElement('div',{id:'shipping-fields',className:'wc-block-checkout__shipping-fields'},R.createElement('div',{className:'wc-block-components-address-address-wrapper'+(editing?' is-editing':'')},R.createElement('div',{className:'wc-block-components-address-card'},R.createElement('p',null,'Test Buyer, Jalan Palagan 12, Sleman, 55581'),R.createElement('button',{type:'button',className:'wc-block-components-address-card__edit','aria-controls':'shipping','aria-expanded':String(editing),onClick:()=>setEditing(!editing)},editing?'Done':'Edit')))),
       R.createElement('div',{id:'billing-fields',className:'wc-block-checkout__billing-fields'},R.createElement('label',null,R.createElement('input',{id:'same-billing',type:'checkbox',defaultChecked:false,onChange:async event=>{window.__trusted.push(event.nativeEvent.isTrusted);window.__customerBusy=true;emit();const response=await fetch('/billing-rates');const result=await response.json();window.__cart={...window.__cart,billingAddress:{...window.__cart.shippingAddress},shippingRates:[{package_id:3,shipping_rates:rates.map(rate=>({...rate,selected:rate.rate_id===result.rate}))}]};window.__customerBusy=false;emit();}}),'Use same address for billing')),
-      R.createElement('fieldset',null,window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:()=>{}}),rate.label))));}
+      R.createElement('fieldset',{className:'wc-block-components-shipping-rates-control__package'},window.__cart.shippingRates[0].shipping_rates.map(rate=>R.createElement('label',{key:rate.rate_id},R.createElement('input',{type:'radio',name:'shipping',value:rate.rate_id,checked:rate.selected,onChange:event=>{window.__trusted.push(event.nativeEvent.isTrusted);window.__selectRate(rate.rate_id);}}),rate.label))));}
     window.__createRoot(document.querySelector('#native')).render(R.createElement(NativeCheckout));`,
     script('assets/buyer/js/kiriof-checkout-session.js'),
 
@@ -69,7 +72,7 @@ function html() {
   ])}</body></html>`;
 }
 
-type Failure = 'empty' | 'http503' | 'malformed' | 'invalidrows';
+type Failure = 'empty' | 'http503' | 'malformed' | 'invalidrows' | 'phptransient';
 async function open(app: any, browser: any, failure: Failure, autoRecovery = false) {
   const first = postal('empty');
   const recovery = postal('retry');
@@ -90,10 +93,22 @@ async function open(app: any, browser: any, failure: Failure, autoRecovery = fal
       const body = new URLSearchParams(route.request.postData || '');
       requests.push({ method: route.request.method, term: body.get('term'), retry: body.get('retry'), action: body.get('action'), nonce: body.get('nonce') });
       if (body.get('retry') === '1' || (autoRecovery && requests.length > 1)) return route.fulfill({ contentType: 'application/json', body: JSON.stringify(recovery.response) });
+      if (failure === 'phptransient') return route.fulfill({ contentType: 'application/json', body: JSON.stringify(postal('http_503').response) });
       if (failure === 'http503') return route.fulfill({ status: 503, contentType: 'application/json', body: '{"success":false}' });
       if (failure === 'malformed') return route.fulfill({ contentType: 'application/json', body: '{not-json' });
       if (failure === 'invalidrows') return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [{ id: 0, text: 'Invalid nonempty village' }] }) });
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: first.response[0].data }) });
+    }
+    if (url.pathname === '/shipping-select') {
+      const payload = JSON.parse(route.request.postData || '{}');
+      if (![cargo, instant].includes(payload.rate)) { unexpected.push('Invalid rate'); return route.fulfill({ status:409 }); }
+      rateRequests.push(payload.rate); return route.fulfill({ contentType:'application/json', body:JSON.stringify(payload) });
+    }
+    if (url.pathname === '/place-order') {
+      const payload = JSON.parse(route.request.postData || '{}');
+      const result = guard({ case: payload.selected === cargo ? 'express' : 'valid', classic:false, review:payload.review });
+      const attempt = result.attempts[0];
+      return route.fulfill({ status:attempt.status === 0 ? 200 : 409, contentType:'application/json', body:JSON.stringify(attempt) });
     }
     if (url.pathname === '/billing-rates') { rateRequests.push(url.pathname); return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ rate: instant }) }); }
     if (url.pathname === '/cart-sync') {
@@ -255,4 +270,35 @@ for (const failure of ['empty', 'http503', 'malformed', 'invalidrows'] as const)
   });
 }
 
+}
+
+for (const activation of ['pointer', 'keyboard', 'already selected']) {
+  test(`PHP transient lookup recovery permits guarded checkout after explicit ${activation} courier reselect`, async ({ app, browser }) => {
+    const state = await open(app, browser, 'phptransient', true);
+    await expect.poll(() => destination(browser).then((value: any) => value?.district_id)).toBe('46310');
+    await expect.poll(() => state.writes.length).toBe(1);
+    expect(state.requests).toHaveLength(2);
+    await browser.locator('#same-billing').click();
+    await expect(browser.locator('#shipping-error')).toContainText(shippingMessage);
+    expect(await review(browser)).toEqual({ version:1, packages:[{package_id:'3',rate_id:cargo}] });
+    await browser.evaluate(() => (window as any).__placeOrder());
+    expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
+    if (activation === 'already selected') {
+      await browser.locator(`input[type="radio"][value="${instant}"]`).click();
+    } else if (activation === 'keyboard') {
+      await browser.evaluate((rate: string) => document.querySelector<HTMLInputElement>(`input[type="radio"][value="${rate}"]`)!.focus(), instant);
+      await browser.keyboard.press('ArrowUp');
+    } else {
+      await browser.locator(`input[type="radio"][value="${cargo}"]`).click();
+    }
+    const expected = activation === 'already selected' ? instant : cargo;
+    await expect.poll(() => review(browser)).toEqual({ version:1, packages:[{package_id:'3',rate_id:expected}] });
+    await expect(browser.locator('#shipping-error')).not.toBeVisible();
+    await expect.poll(() => browser.evaluate(() => (window as any).__rateBusy)).toBe(false);
+    await browser.evaluate(() => (window as any).__placeOrder());
+    expect(await browser.evaluate(() => (window as any).__orders)).toBe(1);
+    expect(await pin(browser)).toMatchObject({latitude:'-7.7100000',longitude:'110.3700000'});
+    expect(state.writes).toHaveLength(1); expect(state.unexpected).toEqual([]);
+    expect(await browser.evaluate(() => (window as any).__emptyWrites)).toEqual([]);
+  });
 }

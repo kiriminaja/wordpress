@@ -49,9 +49,11 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     return;
   }
   function restoreReviewedShipping(packages, chosen, busy) {
+    prunePendingShipping(packages);
     if (!shippingReview || busy || restoringShipping || nativeReviewTimer !== null) return;
     if (shippingReview.matches(chosen)) {
       restorationKey = '';
+      pendingShippingChoices.clear();
       return;
     }
     var review = shippingReview.snapshot().packages;
@@ -209,6 +211,38 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
   var shippingIntentGeneration = 0;
   var capturingNativeShipping = false;
   var nativeReviewTimer = null;
+  var pendingShippingChoices = new Map();
+  var pendingShippingContext = '';
+  function prunePendingShipping(packages) {
+    var shippingAddress =
+      (wp.data.select('wc/store/cart').getCartData() || {}).shippingAddress || {};
+    var context = JSON.stringify([
+      ['country', 'state', 'city', 'postcode', 'address_1', 'address_2'].map(function (key) {
+        return shippingAddress[key] || '';
+      }),
+      packages
+        .map(function (entry) {
+          return String(entry.package_id);
+        })
+        .sort(),
+    ]);
+    if (context !== pendingShippingContext) {
+      pendingShippingChoices.clear();
+      pendingShippingContext = context;
+    }
+    pendingShippingChoices.forEach(function (rate, id) {
+      var pkg = packages.find(function (entry) {
+        return String(entry.package_id) === id;
+      });
+      if (
+        !pkg ||
+        !(pkg.shipping_rates || []).some(function (entry) {
+          return entry.rate_id === rate;
+        })
+      )
+        pendingShippingChoices.delete(id);
+    });
+  }
   function finishNativeShippingReview() {
     nativeReviewTimer = null;
     if (api.disabled) return;
@@ -268,7 +302,18 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
     if (!pkg) return;
     restorationKey = '';
     shippingIntentGeneration++;
-    var chosen = selectedPackages(packages);
+    prunePendingShipping(packages);
+    // Native selection is asynchronous; another package click must not erase it.
+    var chosen = packages.flatMap(function (currentPackage) {
+      var id = String(currentPackage.package_id);
+      var pending = pendingShippingChoices.get(id);
+      var selected = (currentPackage.shipping_rates || []).find(function (rate) {
+        return rate.selected;
+      });
+      var rate = pending || (selected && selected.rate_id);
+      return rate ? [{ package_id: id, rate_id: rate }] : [];
+    });
+    pendingShippingChoices.set(String(pkg.package_id), input.value);
     var found = false;
     chosen = chosen.map(function (entry) {
       if (entry.package_id === String(pkg.package_id)) {
@@ -874,6 +919,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
               }
               attempts++;
               var retryable = false;
+              var securityError = false;
               root
                 .fetch(config.ajaxUrl, {
                   method: 'POST',
@@ -889,6 +935,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
                 .then(function (response) {
                   if (!response.ok) {
                     retryable = [502, 503, 504].includes(response.status);
+                    securityError = response.status === 403;
                     throw new Error('District lookup failed');
                   }
                   return response.json();
@@ -898,6 +945,10 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
                     return;
                   }
                   if (!response.success || !Array.isArray(response.data)) {
+                    retryable =
+                      response.success === false &&
+                      response.data?.code === 'subdistrict_lookup_failed' &&
+                      response.data.retryable === true;
                     throw new Error('District lookup failed');
                   }
                   if (
@@ -957,7 +1008,13 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
                     return;
                   }
                   root.clearTimeout(deadline);
-                  setResults({ key: addressKey, options: [], loading: false, error: true });
+                  setResults({
+                    key: addressKey,
+                    options: [],
+                    loading: false,
+                    error: true,
+                    securityError: securityError,
+                  });
                 });
             }
             requestOptions();
@@ -1014,7 +1071,9 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
           : results.error
             ? results.timedOut
               ? strings.lookupTimeout
-              : strings.lookupFailed
+              : results.securityError
+                ? strings.lookupSecurityFailed || strings.lookupFailed
+                : strings.lookupFailed
             : lookupEmpty
               ? strings.emptyRetry || strings.empty
               : strings.districtRequired;

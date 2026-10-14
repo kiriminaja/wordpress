@@ -25,7 +25,7 @@ class KiriminajaApiService extends BaseService{
         if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || false === ( $repo['data']->status ?? true ) || ! is_array( $repo['data']->result ?? null ) ) {
             // Upstream errors can contain request details; keep this public and
             // subsequently logged message fixed, and do not return partial data.
-            return self::error( array(), 'Could not load subdistricts.' );
+            return self::error( array(), 'Could not load subdistricts.', 400, true === ( $repo['retryable'] ?? false ) ? 'subdistrict_lookup_transient' : null );
         }
         return self::success($repo['data']->result);
     }
