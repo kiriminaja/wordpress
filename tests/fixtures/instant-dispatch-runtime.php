@@ -238,6 +238,11 @@ try {
             }
             unset($value);
         }
+        foreach (($in['persisted_refresh_rows'] ?? []) as $id=>$changes) {
+            foreach ($changes as $field=>$value) { $repo->rows[$id]->$field = $value; }
+        }
+        $result['before_refresh_rows'] = array_map(static fn($row)=>get_object_vars($row), array_values($repo->rows));
+        $result['before_refresh_writes'] = $repo->writes;
         if (!empty($in['refresh'])) { $result['refresh'] = $service->refreshPayment($in['refresh_ids'] ?? $dispatch_ids,$in['refresh_pid'] ?? 'PAY-1'); }
         foreach (($in['refresh_sequence'] ?? []) as $refresh_data) {
             $GLOBALS['input']['refresh_data'] = $refresh_data;

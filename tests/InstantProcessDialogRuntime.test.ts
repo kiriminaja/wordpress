@@ -81,6 +81,7 @@ async function fixture() {
   let now = 1_700_000_000_000, timerId = 0;
   const timers = new Map<number, { callback: () => void; at: number }>();
   const requests: any[] = [];
+  let completions = 0;
   const globals = { window, document: window.document, navigator: window.navigator, Node: window.Node, Element: window.Element, HTMLElement: window.HTMLElement, HTMLButtonElement: window.HTMLButtonElement, SVGElement: window.SVGElement, DocumentFragment: window.DocumentFragment, HTMLInputElement: window.HTMLInputElement, HTMLSelectElement: window.HTMLSelectElement, Text: window.Text, Comment: window.Comment, Event: window.Event, CustomEvent: window.CustomEvent, MutationObserver: window.MutationObserver, ResizeObserver: window.ResizeObserver, getComputedStyle: window.getComputedStyle.bind(window),
     requestAnimationFrame: window.requestAnimationFrame.bind(window), cancelAnimationFrame: window.cancelAnimationFrame.bind(window),
     setTimeout: (callback: () => void, delay = 0) => { timers.set(++timerId, { callback, at: now + delay }); return timerId; },
@@ -94,7 +95,7 @@ async function fixture() {
   const i18n = Object.fromEntries(keys.map(key => [key, key]));
   Object.assign(i18n, { creditDescription: 'Remaining Credit', instantResult_booked: 'BOOKED', instantResult_failed: 'FAILED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
   const target = window.document.createElement('main'); window.document.body.append(target);
-  const host = r.mount(r.Host, { target, props: { props: { orderIds: ['1', '2', '3', '4', '5', '6'], ajaxUrl: '/ajax', nonce: 'nonce', i18n } } });
+  const host = r.mount(r.Host, { target, props: { props: { orderIds: ['1', '2', '3', '4', '5', '6'], ajaxUrl: '/ajax', nonce: 'nonce', i18n, onComplete: () => { completions++; } } } });
   async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); r.flushSync(); } }
   await settle();
   const query = (selector: string): any => target.querySelector(selector);
@@ -107,7 +108,7 @@ async function fixture() {
   let destroyed = false;
   async function destroy() { if (!destroyed) { destroyed = true; await r.unmount(host); await settle(); } }
   async function cleanup() { try { await destroy(); await advance(0); expect(timers.size).toBe(0); } finally { Date.now = oldNow; window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } } }
-  return { target, query, button, click, change, reply, advance, quote, requests, timers, settle, destroy, cleanup, close: async () => { host.setOpen(false); await settle(); }, setOrderIds: async (value: string[]) => { host.setOrderIds(value); await settle(); } };
+  return { target, query, button, click, change, reply, advance, quote, requests, timers, settle, destroy, cleanup, get completions() { return completions; }, close: async () => { host.setOpen(false); await settle(); }, setOrderIds: async (value: string[]) => { host.setOrderIds(value); await settle(); } };
 }
 
 describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
@@ -134,8 +135,90 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       await h.reply({ id: 'PAY-1', status: 'paid', amount: 12000, qr_content: '' });
       expect(h.query('.kiriof-instant-payment-qr')).toBeNull();
       expect(h.button('instantRefreshPayment')).toBeUndefined();
-      expect(footer.querySelectorAll('button')).toHaveLength(1);
+      expect(h.target.textContent).toBe('');
+      expect(h.completions).toBe(1);
+      expect(h.timers.size).toBe(0);
+      await h.advance(600000);
+      expect(h.completions).toBe(1);
       expect(h.requests.filter((r: any) => r.action === 'kiriof_instant_dispatch')).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+  runtimeTest('manual paid refresh after a failed poll closes the stale unpaid modal once', async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('recover-paid', ['qris']));
+      await h.click(h.button('instantContinuePayment'));
+      await h.reply({ rows: [{ id: '1', status: 'booked', awb: '', message: '' }], payments: [{ id: 'PAY-1', status: 'unpaid', amount: 12000, qr_content: 'qr', order_ids: ['1'] }] });
+      await h.advance(6500);
+      h.requests.at(-1).reject(new Error('Unable to complete the Instant request. Please try again.'));
+      await h.settle();
+      expect(h.completions).toBe(0);
+      expect(h.target.textContent).toContain('PAY-1');
+      await h.click(h.button('instantRefreshPayments'));
+      await h.advance(6500);
+      expect(h.requests.at(-1).action).toBe('kiriof_instant_payment');
+      await h.reply({ id: 'PAY-1', status: 'paid', amount: null, qr_content: '' });
+      expect(h.target.textContent).toBe('');
+      expect(h.completions).toBe(1);
+      await h.advance(600000);
+      expect(h.timers.size).toBe(0);
+      expect(h.requests.filter((r: any) => r.action === 'kiriof_instant_dispatch')).toHaveLength(1);
+      expect(h.completions).toBe(1);
+    } finally { await h.cleanup(); }
+  });
+  for (const partial of [false, true]) runtimeTest(`last paid payment ${partial ? 'preserves partial booking errors' : 'closes the completed batch'}`, async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('last-paid', ['qris']));
+      await h.click(h.button('instantContinuePayment'));
+      await h.reply({ rows: [
+        { id: '1', status: 'booked', awb: '', message: '' },
+        { id: '2', status: 'booked', awb: '', message: '' },
+        ...(partial ? [{ id: '3', status: 'failed', awb: '', message: 'Booking rejected' }] : []),
+      ], payments: [
+        { id: 'PAY-1', status: 'paid', amount: 12000, qr_content: '', order_ids: ['1'] },
+        { id: 'PAY-2', status: 'unpaid', amount: 12000, qr_content: 'qr-2', order_ids: ['2'] },
+      ] });
+      expect(h.completions).toBe(0);
+      await h.advance(6500);
+      await h.reply({ id: 'PAY-2', status: 'paid', amount: null, qr_content: '' });
+      expect(h.completions).toBe(partial ? 0 : 1);
+      if (partial) expect(h.target.textContent).toContain('Booking rejected');
+      else expect(h.target.textContent).toBe('');
+      await h.advance(600000);
+      expect(h.timers.size).toBe(0);
+      expect(h.requests.filter((r: any) => r.action === 'kiriof_instant_dispatch')).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+  runtimeTest('automatic paid confirmation closes once and refreshes the list without booking again', async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('auto-paid', ['qris']));
+      await h.click(h.button('instantContinuePayment'));
+      await h.reply({ rows: [{ id: '1', status: 'booked', awb: '', message: '' }], payments: [{ id: 'PAY-1', status: 'unpaid', amount: 12000, qr_content: 'qr', order_ids: ['1'] }] });
+      await h.advance(6500);
+      await h.reply({ id: 'PAY-1', status: 'paid', amount: null, qr_content: '' });
+      expect(h.target.textContent).toBe('');
+      expect(h.completions).toBe(1);
+      expect(h.timers.size).toBe(0);
+      await h.advance(600000);
+      expect(h.requests.filter((r: any) => r.action === 'kiriof_instant_dispatch')).toHaveLength(1);
+      expect(h.completions).toBe(1);
+    } finally { await h.cleanup(); }
+  });
+  for (const remaining of ['unpaid', 'refunded', 'failed', 'expired', 'request-error']) runtimeTest(`paid batch stays open while another payment is ${remaining}`, async () => {
+    const h = await fixture(); try {
+      await h.reply(h.quote('batch-paid', ['qris']));
+      await h.click(h.button('instantContinuePayment'));
+      await h.reply({ rows: [{ id: '1', status: 'booked', awb: '', message: '' }, { id: '2', status: 'booked', awb: '', message: '' }], payments: [
+        { id: 'PAY-1', status: 'unpaid', amount: 12000, qr_content: 'qr-1', order_ids: ['1'] },
+        { id: 'PAY-2', status: 'unpaid', amount: 12000, qr_content: 'qr-2', order_ids: ['2'] },
+      ] });
+      await h.advance(6500);
+      await h.reply({ id: 'PAY-1', status: 'paid', amount: null, qr_content: '' });
+      expect(h.completions).toBe(0);
+      await h.advance(6500);
+      if (remaining === 'request-error') { h.requests.at(-1).reject(new Error('503')); await h.settle(); }
+      else await h.reply({ id: 'PAY-2', status: remaining, amount: null, qr_content: '' });
+      expect(h.target.textContent).toContain('PAY-2');
+      expect(h.completions).toBe(0);
     } finally { await h.cleanup(); }
   });
   runtimeTest('loading and refresh show the actual collapsed-summary and payment-card layout before data arrives', async () => {

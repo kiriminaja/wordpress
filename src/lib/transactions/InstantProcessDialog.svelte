@@ -207,6 +207,14 @@
     return cleanup;
   });
   $effect(() => { if (expired) { pin = ''; step = 'summary'; } });
+  $effect(() => {
+    const completed = result;
+    if (open && !dispatching && completed && completed.rows.length && completed.payments.length &&
+      completed.payments.every((payment) => payment.status === 'paid') &&
+      completed.rows.every((row) => row.status === 'booked' && completed.payments.some((payment) => payment.order_ids?.includes(row.id)))) {
+      untrack(close);
+    }
+  });
   onDestroy(() => { cleanup(); quoteClock.dispose(); });
 </script>
 

@@ -477,10 +477,21 @@ class InstantDispatchService {
 		if ( ! $this->safeId( $payment_id ) ) {
 			throw new InvalidArgumentException( esc_html__( 'Invalid Instant payment ID.', 'kiriminaja-official' ) );
 		}
+		$persisted_statuses = array();
+		$all_terminal       = true;
 		foreach ( $rows as $row ) {
 			if ( $payment_id !== ( $row->instant_payment_id ?? '' ) ) {
 				throw new InvalidArgumentException( esc_html__( 'The payment does not belong to every selected Instant shipment.', 'kiriminaja-official' ) );
 			}
+			$status              = $row->instant_payment_status ?? null;
+			$persisted_statuses[] = $status;
+			$all_terminal        = $all_terminal && in_array( $status, array( 'paid', 'refunded' ), true );
+		}
+		// Only exact membership with terminal state on every selected row is conclusive.
+		// Mixed/unsettled rows still require the identity-checked remote reconciliation below.
+		if ( $all_terminal ) {
+			$this->clearPaymentQr( $payment_id );
+			return $this->paymentData( array( 'id' => $payment_id, 'status' => $this->effectivePaymentStatus( $persisted_statuses ) ) );
 		}
 		$response = $this->api->payment( $payment_id );
 		if ( true !== ( $response['status'] ?? false ) ) {

@@ -1704,7 +1704,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
                         'rows.0.instant_payment_status' => $previous,
                         'refresh.status' => $previous,
                         'count(r.writes)' => 2,
-                        'payments_called' => 1,
+                        'payments_called' => 0,
                     ],
                     [
                         'error' => $r['error'],

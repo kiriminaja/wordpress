@@ -6,6 +6,74 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantPaymentResumeBackendTest extends TestCase {
+	#[Test]
+	public function durable_terminal_payment_refresh_needs_no_remote_response(): void {
+		$key = 'kiriof_instant_payment_qr_' . hash( 'sha256', 'PAY-1' );
+		foreach ( array( array( 'paid' ), array( 'refunded' ), array( 'paid', 'paid' ), array( 'paid', 'refunded' ), array( 'refunded', 'paid' ) ) as $statuses ) {
+			$rows = array();
+			foreach ( $statuses as $index => $status ) {
+				$rows[ 'KA-' . ( $index + 1 ) ] = array( 'instant_payment_status' => $status );
+			}
+			foreach ( array( array( 'refresh_response_status' => false ), array( 'refresh_data' => array() ), array( 'refresh_data' => array( 'id' => 'OTHER', 'status' => 'unpaid', 'qr_content' => 'DO-NOT-SHOW' ) ) ) as $remote ) {
+				$result = $this->dispatch( $remote + array( 'count' => count( $statuses ), 'refresh' => true, 'persisted_refresh_rows' => $rows ) );
+				$this->assertSame( '', $result['error'] );
+				$this->assertSame( array( 'id' => 'PAY-1', 'status' => in_array( 'refunded', $statuses, true ) ? 'refunded' : 'paid', 'amount' => null, 'qr_content' => '' ), $result['refresh'] );
+				$this->assertSame( 0, $result['payments_called'] );
+				$this->assertSame( $result['before_refresh_rows'], $result['rows'] );
+				$this->assertSame( $result['before_refresh_writes'], $result['writes'] );
+				$this->assertArrayHasKey( $key, $result['booking_transients'] );
+				$this->assertArrayNotHasKey( $key, $result['transients'] );
+				$this->assertCount( 1, $result['books'] );
+			}
+		}
+	}
+
+	#[Test]
+	public function durable_terminal_refresh_still_validates_every_selected_membership(): void {
+		$terminal = array( 'KA-1' => array( 'instant_payment_status' => 'paid' ), 'KA-2' => array( 'instant_payment_status' => 'refunded' ) );
+		foreach ( array(
+			array( 'refresh_pid' => 'OTHER' ),
+			array( 'refresh_pid' => 'bad/id' ),
+			array( 'refresh_ids' => array() ),
+			array( 'refresh_ids' => array( 'KA-1', 'KA-1' ) ),
+			array( 'refresh_ids' => array( 'KA-1', 'MISSING' ) ),
+			array( 'persisted_refresh_rows' => array( 'KA-1' => $terminal['KA-1'], 'KA-2' => $terminal['KA-2'] + array( 'instant_payment_id' => 'OTHER' ) ) ),
+			array( 'persisted_refresh_rows' => array( 'KA-1' => $terminal['KA-1'], 'KA-2' => $terminal['KA-2'] + array( 'instant_payment_id' => '' ) ) ),
+			array( 'persisted_refresh_rows' => array( 'KA-1' => $terminal['KA-1'], 'KA-2' => $terminal['KA-2'] + array( 'service' => 'unsupported' ) ) ),
+			array( 'persisted_refresh_rows' => array( 'KA-1' => $terminal['KA-1'], 'KA-2' => $terminal['KA-2'] + array( 'delivery_type' => 'express', 'service' => 'jne' ) ) ),
+		) as $input ) {
+			$result = $this->dispatch( $input + array( 'count' => 2, 'refresh' => true, 'persisted_refresh_rows' => $terminal ) );
+			$this->assertNotSame( '', $result['error'] );
+			$this->assertArrayNotHasKey( 'refresh', $result );
+			$this->assertSame( 0, $result['payments_called'] );
+			$this->assertSame( $result['before_refresh_rows'], $result['rows'] );
+			$this->assertSame( $result['before_refresh_writes'], $result['writes'] );
+		}
+	}
+
+	#[Test]
+	public function mixed_or_unsettled_rows_still_require_a_matched_remote_payment(): void {
+		foreach ( array( 'unpaid', 'pending', 'unknown', null ) as $status ) {
+			foreach ( array( 'paid', 'refunded', 'unpaid' ) as $first ) {
+				$rows = array( 'KA-1' => array( 'instant_payment_status' => $first ), 'KA-2' => array( 'instant_payment_status' => $status ) );
+				foreach ( array( array( 'refresh_response_status' => false ), array( 'refresh_data' => array( 'status' => 'paid' ) ), array( 'refresh_data' => array( 'id' => 'OTHER', 'status' => 'paid' ) ) ) as $remote ) {
+					$result = $this->dispatch( $remote + array( 'count' => 2, 'refresh' => true, 'persisted_refresh_rows' => $rows ) );
+					$this->assertNotSame( '', $result['error'] );
+					$this->assertArrayNotHasKey( 'refresh', $result );
+					$this->assertSame( 1, $result['payments_called'] );
+					$this->assertSame( $result['before_refresh_rows'], $result['rows'] );
+					$this->assertSame( $result['before_refresh_writes'], $result['writes'] );
+				}
+			}
+		}
+		$result = $this->dispatch( array( 'count' => 2, 'refresh' => true, 'persisted_refresh_rows' => array( 'KA-1' => array( 'instant_payment_status' => 'refunded' ) ), 'refresh_data' => array( 'id' => 'PAY-1', 'status' => 'paid', 'qr_content' => 'DO-NOT-SHOW' ) ) );
+		$this->assertSame( '', $result['error'] );
+		$this->assertSame( 1, $result['payments_called'] );
+		$this->assertSame( 'refunded', $result['refresh']['status'] );
+		$this->assertSame( array( 'refunded', 'paid' ), array_column( $result['rows'], 'instant_payment_status' ) );
+		$this->assertSame( '', $result['refresh']['qr_content'] );
+	}
+
     #[Test]
     public function transaction_payment_link_is_server_gated(): void {
         foreach (['unpaid', 'pending', 'paid', 'refunded', 'unknown'] as $status) {
