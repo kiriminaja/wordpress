@@ -301,7 +301,10 @@ class SendRequestPickupTransactionService extends BaseService
         if (!$isTopPaymentMethod && !empty($this->paymentMethod)) {
             $payload['payment_method'] = $this->paymentMethod;
         }
-        if ($isKaCreditEnabled && $this->paymentMethod === 'credit' && !empty($this->pin)) {
+        if (!$isTopPaymentMethod && $this->paymentMethod === 'credit' && 1 !== preg_match('/\A[0-9]{6}\z/', $this->pin)) {
+            return self::error([], __('A six-digit KA Credit PIN is required.', 'kiriminaja-official'));
+        }
+        if (!$isTopPaymentMethod && $isKaCreditEnabled && $this->paymentMethod === 'credit' && !empty($this->pin)) {
             $payload['pin'] = $this->pin;
         }
 

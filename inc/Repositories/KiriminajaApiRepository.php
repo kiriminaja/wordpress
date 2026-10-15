@@ -279,14 +279,35 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function sendPickupRequest( $payload ) {
-        return $this->post(
-            '/api/mitra/v6.1/request_pickup',
-            $payload,
-            array(
-                'source'    => 'kiriminaja_shipping',
-                'operation' => 'send_pickup_request',
-            )
-        );
+        $method = is_array( $payload ) && array_key_exists( 'payment_method', $payload ) ? $payload['payment_method'] : '';
+        if ( ! is_array( $payload ) || ! is_string( $method ) || ! in_array( $method, array( '', 'credit', 'qris', 'cash' ), true ) ) {
+            return array( 'status' => false, 'data' => 'Invalid Express payment method.' );
+        }
+        if ( 'qris' === $method ) {
+            $payload['payment_method'] = 'cash';
+        }
+        if ( 'credit' !== $method ) {
+            unset( $payload['pin'] );
+        }
+        // Booking errors can echo PINs. Never pass them to the generic API logger.
+        try {
+            [ $transport, $body ] = $this->create_api_client()->post( 'api/mitra/v6.2/request_pickup', $payload );
+            if ( true === $transport && is_array( $body ) && true === ( $body['status'] ?? null ) ) {
+                return array( 'status' => true, 'data' => json_decode( wp_json_encode( $body ) ) );
+            }
+            $code = is_array( $body ) ? ( $body['results']['error'] ?? null ) : null;
+            $messages = array(
+                'PIN_INVALID' => 'KA Credit PIN is invalid.',
+                'PIN_MAX_ATTEMPT_REACHED' => 'KA Credit PIN attempt limit reached.',
+                'BALANCE_NOT_ENOUGH' => 'KA Credit balance is insufficient.',
+            );
+            if ( true === $transport && false === ( $body['status'] ?? null ) && is_string( $code ) && isset( $messages[ $code ] ) ) {
+                return array( 'status' => false, 'data' => (object) array( 'status' => false, 'text' => $messages[ $code ], 'results' => (object) array( 'error' => $code ) ) );
+            }
+        } catch ( \Throwable $error ) {
+            // An uncertain submission must not retry or fall back to the legacy API.
+        }
+        return array( 'status' => false, 'data' => 'Unable to request Express pickup.' );
     }
 
     public function get_couriers() {
@@ -428,13 +449,6 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function sendPickupRequestV2( $payload ) {
-        return $this->post(
-            '/api/mitra/v6.2/request_pickup',
-            $payload,
-            array(
-                'source'    => 'kiriminaja_shipping',
-                'operation' => 'send_pickup_request_v2',
-            )
-        );
+        return $this->sendPickupRequest( $payload );
     }
 }
