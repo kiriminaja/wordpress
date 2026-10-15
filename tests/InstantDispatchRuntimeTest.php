@@ -1536,16 +1536,16 @@ final class InstantDispatchRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function v62_status_codes_take_precedence_and_sdk_nested_results_are_unwrapped(): void {
+    public function explicit_refund_wins_and_sdk_nested_results_are_unwrapped(): void {
         foreach ([0=>'paid',9=>'unpaid'] as $code=>$expected) {
             foreach ([$code,(string)$code] as $value) {
                 $r = $this->runFixture(['payment_status'=>$value,'payment_legacy_status'=>'refunded','nested_booking'=>true,'refresh'=>true,'nested_payment'=>true,'refresh_status'=>$value,'refresh_legacy_status'=>'refunded']);
                 $this->assertSame(
                     [
                         'dispatch.rows.0.status' => 'booked',
-                        'dispatch.payments.0.status' => $expected,
-                        'refresh.status' => $expected,
-                        'rows.0.instant_payment_status' => $expected,
+                        'dispatch.payments.0.status' => 'refunded',
+                        'refresh.status' => 'refunded',
+                        'rows.0.instant_payment_status' => 'refunded',
                     ],
                     [
                         'dispatch.rows.0.status' => $r['dispatch']['rows'][0]['status'],

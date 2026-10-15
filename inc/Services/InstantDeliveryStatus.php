@@ -16,7 +16,8 @@ final class InstantDeliveryStatus {
 	/**
 	 * Describe an Instant transaction without database access or input mutation.
 	 *
-	 * A missing/null remote code uses the legacy local status. A present but
+	 * A missing/null remote code uses the legacy local shipment status, with
+	 * confirmed payment resolving a pending payment label only. A present but
 	 * malformed/unsupported code never falls back to a potentially successful
 	 * local status. An unpaid remote payment overrides the code tone, as in
 	 * Shopify. Its caution tone is normalized to warning. Unknown combinations
@@ -41,12 +42,12 @@ final class InstantDeliveryStatus {
 		$payment   = is_string( $payment ) && in_array( $payment, array( 'pending', 'unpaid', 'paid', 'refunded' ), true ) ? $payment : '';
 		$awb       = $row['awb'] ?? null;
 		$has_awb   = is_string( $awb ) && '' !== trim( $awb );
-		$key       = null === $raw_code ? self::local_key( $row['status'] ?? null, $has_awb ) : self::remote_key( $code, $payment, $has_awb );
+		$key       = null === $raw_code ? self::local_key( $row['status'] ?? null, $has_awb, $payment ) : self::remote_key( $code, $payment, $has_awb );
 		$result    = self::presentation( $key );
 
 		$snapshot = json_decode( (string) ( $row['shipping_info'] ?? '' ), true );
 		// An unconfirmed durable claim is private duplicate protection, not a shipment issue.
-		if ( null === $raw_code && 'pending' === ( $row['status'] ?? null ) && empty( $row['instant_payment_id'] ) && ! $has_awb
+		if ( null === $raw_code && 'pending' === ( $row['status'] ?? null ) && ! in_array( $payment, array( 'paid', 'unpaid', 'refunded' ), true ) && empty( $row['instant_payment_id'] ) && ! $has_awb
 			&& ( ( is_array( $snapshot ) && ( isset( $snapshot['instant_items'] ) || isset( $snapshot['_kiriof_instant_prepared'] ) ) ) || 'Check remote state before retrying' === ( $row['rejected_reason'] ?? null ) ) ) {
 			$result = self::presentation( 'waiting_for_shipment' );
 		}
@@ -121,9 +122,18 @@ final class InstantDeliveryStatus {
 	}
 
 	/** Local status is a shipment enum, never a remote payment status. */
-	private static function local_key( $status, bool $has_awb ): string {
+	private static function local_key( $status, bool $has_awb, string $payment ): string {
 		if ( ! is_string( $status ) ) {
 			return 'unknown';
+		}
+		if ( 'pending' === $status ) {
+			if ( 'refunded' === $payment ) {
+				return 'cancel';
+			}
+			if ( 'paid' === $payment ) {
+				// Payment alone does not confirm pickup readiness or a shipment lifecycle code.
+				return $has_awb ? 'waiting_for_shipment' : 'waiting_for_awb_generation';
+			}
 		}
 		$map = array(
 			'new'            => 'waiting_for_shipment',

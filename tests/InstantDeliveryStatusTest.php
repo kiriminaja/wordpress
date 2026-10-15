@@ -170,7 +170,7 @@ final class InstantDeliveryStatusTest extends TestCase {
 				$row = array_merge( array( 'status' => $status ), $remote );
 				$contractCase = 'case ' . count( $expectedCases );
 				$expectedCases[$contractCase . " / " . count( $expectedCases )] = [
-				    '1: InstantDeliveryStatus::describe( row )[key]' => $key,
+				    '1: InstantDeliveryStatus::describe( row )[key]' => 'pending' === $status && 'paid' === ( $remote['instant_payment_status'] ?? null ) ? 'waiting_for_awb_generation' : $key,
 				    '2: InstantDeliveryStatus::describe( (object) row )' => InstantDeliveryStatus::describe( $row ),
 				    ];
 				$actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
@@ -320,6 +320,22 @@ final class InstantDeliveryStatusTest extends TestCase {
 		    ]
 		);
     }
+
+	#[Test]
+	public function paid_payment_without_lifecycle_never_asks_the_merchant_to_pay_again(): void {
+		foreach ( array( '', 'AWB-1' ) as $awb ) {
+			$row = array( 'status' => 'pending', 'instant_status_code' => null, 'instant_payment_status' => 'paid', 'instant_payment_id' => 'PAY-1', 'awb' => $awb );
+			$before = $row;
+			$result = InstantDeliveryStatus::describe( $row );
+			$this->assertSame( '' === $awb ? 'waiting_for_awb_generation' : 'waiting_for_shipment', $result['key'] );
+			$this->assertNotSame( 'Waiting for Payment', $result['label'] );
+			$this->assertSame( $before, $row );
+			$row['instant_payment_status'] = 'unpaid';
+			$this->assertSame( 'waiting_for_payment', InstantDeliveryStatus::describe( $row )['key'] );
+			$row['instant_payment_status'] = 'refunded';
+			$this->assertSame( 'cancel', InstantDeliveryStatus::describe( $row )['key'] );
+		}
+	}
 
 	#[Test]
 	public function output_is_fixed_string_contract_xss_safe_and_inputs_are_not_mutated(): void {

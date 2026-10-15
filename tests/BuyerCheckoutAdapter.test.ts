@@ -319,6 +319,34 @@ describe('buyer checkout Blocks adapter (compiled production TypeScript VM)', ()
 			expect(h.publications.at(-1)[1].shipping_selection.packages).toEqual([{package_id:'0',rate_id:changed?express:go},{package_id:'1',rate_id:go}]);
 		}
 	});
+	test('checkout stays pending while a plugin restore can still overwrite an explicit matching native choice', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go='kiriminaja-instant:7:gosend:instant', express='kiriminaja:jne';
+		const rates=(selected:string)=>[{package_id:0,shipping_rates:[{rate_id:express,method_id:'kiriminaja-official',selected:selected===express},{rate_id:go,method_id:'kiriminaja-instant',selected:selected===go}]}];
+		h.model.cart.shippingRates=rates(go);h.shippingChange(go);
+		h.model.cart.shippingRates=rates(express);h.notify();await h.settle();expect(h.restores).toHaveLength(1);
+		h.shippingClick(express); // Already selected: native onChange does not dispatch another request.
+		expect(latestValidation(h,'kiriof-shipping-selection')).toEqual({clear:'kiriof-shipping-selection'});
+		expect(latestValidation(h,'kiriof-shipping-selection-pending')['kiriof-shipping-selection-pending']?.hidden).toBe(true);
+		h.restores[0].resolve();await h.settle();h.notify();
+		expect(latestValidation(h,'kiriof-shipping-selection-pending')).toEqual({clear:'kiriof-shipping-selection-pending'});
+	});
+	test('newer native choice wins after an already-dispatched restoration finishes late', async () => {
+		const h = harness({ restore: true }); h.mount();
+		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne', other = 'flat_rate:8';
+		const rates = (selected: string) => [{package_id:0,shipping_rates:[{rate_id:express,method_id:'kiriminaja-official',selected:selected===express},{rate_id:go,method_id:'kiriminaja-instant',selected:selected===go},{rate_id:other,method_id:'flat_rate',selected:selected===other}]}];
+		h.model.cart.shippingRates=rates(go); h.shippingChange(go);
+		h.model.cart.shippingRates=rates(express); h.notify(); await h.settle(); expect(h.restores).toHaveLength(1);
+		h.shippingClick(other,()=>{h.model.rateBusy=true;h.model.cart.shippingRates=rates(other);});
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(other));
+		// Woo's old restoration response arrives after the explicit buyer choice.
+		h.model.cart.shippingRates=rates(go); h.model.rateBusy=false; h.notify(); h.restores[0].resolve(); await h.settle();
+		expect(h.restores.map(item=>item.rate)).toEqual([go,other]);
+		expect(h.publications.at(-1)[1].shipping_selection).toEqual(reviewed(other));
+		h.model.cart.shippingRates=rates(other); h.restores[1].resolve(); await h.settle(); h.notify();
+		expect(latestValidation(h,'kiriof-shipping-selection')).toEqual({clear:'kiriof-shipping-selection'});
+		expect(latestValidation(h,'kiriof-shipping-selection-pending')).toEqual({clear:'kiriof-shipping-selection-pending'});
+	});
 	test('duplicate responsive native package controls review the clicked package, not global DOM ordinal', async () => {
 		const h = harness();
 		const go = 'kiriminaja-instant:7:gosend:instant', express = 'kiriminaja:jne';

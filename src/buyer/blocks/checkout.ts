@@ -717,7 +717,7 @@ export function bootBuyerCheckout(root: BlocksRoot, wp = root.wp, wc = root.wc):
           (!initialShippingReady ||
             data.busy ||
             chosenPackages.length !== (cart.shippingRates || []).length);
-        if ((guarded && data.busy) || initializingShipping) {
+        if ((guarded && (data.busy || restoringShipping)) || initializingShipping) {
           var pending = {};
           pending[shippingSelectionPendingId] = {
             message: strings.shippingSelectionUpdating || 'Updating shipping options…',

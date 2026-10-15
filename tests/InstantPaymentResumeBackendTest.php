@@ -48,6 +48,38 @@ final class InstantPaymentResumeBackendTest extends TestCase {
     }
 
     #[Test]
+    public function matched_payment_settlement_timestamp_and_alias_recover_qris_without_booking_again(): void {
+        foreach (array(
+            array('id'=>'PAY-1','status_code'=>9,'paid_at'=>'2025-01-01T10:00:00Z'),
+            array('payment_id'=>'PAY-1','payment_status'=>'paid'),
+            array('payment_id'=>'PAY-1','payment_status'=>'settlement'),
+            array('id'=>'PAY-1','status_code'=>9,'pay_time'=>'2025-01-01T10:00:00.123456Z'),
+            array('id'=>'PAY-1','status_code'=>9,'paid_at'=>'2025-01-01T17:00:00.123+07:00'),
+            array('id'=>'PAY-1','status_code'=>null,'payment_status'=>'settled'),
+            array('id'=>'PAY-1','status_code'=>999,'payment_status'=>'paid'),
+            array('id'=>'PAY-1','payment_status'=>'success'),
+        ) as $data) {
+            $result=$this->dispatch(array('refresh'=>true,'refresh_data'=>$data));
+            $this->assertSame('', $result['error']);
+            $this->assertSame('paid',$result['refresh']['status']);
+            $this->assertSame('paid',$result['rows'][0]['instant_payment_status']);
+            $this->assertSame('', $result['refresh']['qr_content']);
+            $this->assertCount(1,$result['books']);
+        }
+        $result=$this->dispatch(array('refresh'=>true,'refresh_data'=>array('id'=>'PAY-1','status'=>'success')));
+        $this->assertSame('unpaid',$result['rows'][0]['instant_payment_status']);
+        foreach (array('invalid','2025-02-30T10:00:00Z',true,array(), '2099-01-01T10:00:00Z') as $date) {
+            $result=$this->dispatch(array('refresh'=>true,'refresh_data'=>array('id'=>'PAY-1','status_code'=>9,'paid_at'=>$date)));
+            $this->assertSame('unpaid',$result['rows'][0]['instant_payment_status']);
+        }
+        $result=$this->dispatch(array('refresh'=>true,'refresh_data'=>array('id'=>'PAY-1','status_code'=>0,'payment_status'=>'refunded','paid_at'=>'2025-01-01T10:00:00Z')));
+        $this->assertSame('refunded',$result['rows'][0]['instant_payment_status']);
+        $result=$this->dispatch(array('refresh'=>true,'refresh_data'=>array('id'=>'OTHER','payment_status'=>'paid','paid_at'=>'2025-01-01T10:00:00Z')));
+        $this->assertSame('unpaid',$result['rows'][0]['instant_payment_status']);
+        $this->assertNotSame('', $result['error']);
+    }
+
+    #[Test]
     public function cache_is_private_bounded_and_only_for_confirmed_qris(): void {
         $key = 'kiriof_instant_payment_qr_' . hash('sha256', 'PAY-1');
         $result = $this->dispatch([]);

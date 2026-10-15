@@ -349,6 +349,17 @@ final class InstantStatusPresentationTest extends TestCase {
         $this->assertSame( $expectedCases, $actualCases );
     }
 
+    public function test_confirmed_paid_qris_pending_lifecycle_is_not_presented_as_unpaid(): void {
+        foreach (array('list','detail') as $mode) {
+            foreach (array('', 'AWB-1') as $awb) {
+                $row=$this->row(array('mode'=>$mode, 'delivery_type'=>'instant', 'status'=>'pending', 'instant_status_code'=>null, 'instant_payment_status'=>'paid', 'instant_payment_id'=>'PAY-1', 'instant_payment_method'=>'qris', 'awb'=>$awb, 'wc_order'=>array('status'=>'processing','paid'=>true)));
+                $this->assertNotSame('Waiting for Payment',$row['status']['label']);
+                $this->assertSame('' === $awb ? 'Waiting for Airwaybill' : 'Waiting for Shipment', $row['status']['label']);
+                if('list'===$mode) $this->assertSame('', $row['actions']['paymentUrl']);
+            }
+        }
+    }
+
     public function test_find_new_driver_is_informational_and_no_express_timeline_is_rendered(): void {
         $row = $this->row(['delivery_type' => 'instant', 'instant_status_code' => 101]);
         $this->assertSame(

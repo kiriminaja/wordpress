@@ -222,14 +222,14 @@ function blocksHTML(initialBootstrap = false) {
   return `<!doctype html><html><head><meta charset="utf-8"></head><body><div class="wc-block-checkout"><div id="native"></div><div id="district"></div><label><input type="checkbox" id="terms">Accept terms</label><button id="place">Place order</button><p id="terms-error" role="alert" hidden></p><p id="shipping-error" role="alert" hidden></p><p id="server-error" role="alert" hidden></p></div>${scripts([
     reactSource(),
     `const R=window.__React;const listeners=new Set();let version=0;
-    window.__initialBootstrap=${JSON.stringify(initialBootstrap)};window.__bootstrapStarted=false;window.__bootstrapFinished=false;window.__restoreBusy=[];window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__selectionSequence=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;
+    window.__initialBootstrap=${JSON.stringify(initialBootstrap)};window.__bootstrapStarted=false;window.__bootstrapFinished=false;window.__restoreBusy=[];window.__extensions={};window.__errors={};window.__orders=0;window.__attempts=0;window.__trusted=[];window.__selectionSequence=[];window.__nativeActions=[];window.__pluginUpdates=0;window.__customerBusy=false;window.__rateBusy=false;window.__missingQuote=false;window.__holdRestore=false;window.__failRestore=false;window.__hideRestoreBusy=false;
     const rates=[{rate_id:${JSON.stringify(cargo)},method_id:'kiriminaja-official',selected:true,label:'JNE Cargo'},{rate_id:${JSON.stringify(instant)},method_id:'kiriminaja-instant',selected:false,label:'GoSend Instant'}];
     window.__cart={needsShipping:true,shippingAddress:${JSON.stringify(initialBootstrap ? { ...bootstrapAddress, first_name: 'Test', last_name: 'Buyer', phone: '123' } : {country:'US',postcode:'90210',first_name:'Test',phone:'123'})},extensions:{},shippingRates:[{package_id:3,shipping_rates:rates}]};
     function emit(){version++;listeners.forEach(fn=>fn());}window.__notify=emit;
     function apply(rate){window.__cart={...window.__cart,shippingRates:[{package_id:3,shipping_rates:rates.filter(r=>!window.__missingQuote||r.rate_id!==${JSON.stringify(instant)}).map(r=>({...r,selected:r.rate_id===rate}))}]};emit();}
     window.__refresh=async function(){window.__customerBusy=true;emit();const response=await fetch('/rates?automatic=1');apply((await response.json()).rate);window.__customerBusy=false;emit();};
     const cartDispatch={selectShippingRate:async(rate,packageId)=>{window.__nativeActions.push([rate,packageId]);window.__restoreBusy.push(window.__customerBusy||window.__rateBusy);window.__rateBusy=true;emit();try{if(window.__holdRestore)await new Promise(resolve=>window.__releaseRestore=resolve);const response=await fetch('/rates?restore='+encodeURIComponent(rate));if(window.__failRestore)throw new Error('Native restore failed');apply((await response.json()).rate);}finally{window.__rateBusy=false;emit();}}};
-    const stores={'wc/store/cart':{getCartData:()=>window.__cart,isShippingRateBeingSelected:()=>window.__rateBusy,isCustomerDataUpdating:()=>window.__customerBusy,hasPendingItemsOperations:()=>false},'wc/store/checkout':{prefersCollection:()=>false},'wc/store/payment':{getActivePaymentMethod:()=> 'bacs'}};
+    const stores={'wc/store/cart':{getCartData:()=>window.__cart,isShippingRateBeingSelected:()=>window.__hideRestoreBusy?false:window.__rateBusy,isCustomerDataUpdating:()=>window.__customerBusy,hasPendingItemsOperations:()=>false},'wc/store/checkout':{prefersCollection:()=>false},'wc/store/payment':{getActivePaymentMethod:()=> 'bacs'}};
     const select=name=>stores[name];const subscribe=fn=>{listeners.add(fn);return()=>listeners.delete(fn);};
     function showErrors(){const p=document.querySelector('#shipping-error');const error=window.__errors['kiriof-shipping-selection'];p.hidden=!error;p.textContent=error?error.message:'';}
     window.wp={element:R,data:{select,subscribe,useSelect:fn=>{R.useSyncExternalStore(subscribe,()=>version);return fn(select);},dispatch:name=>name==='wc/store/checkout'?{setExtensionData:(namespace,data)=>{window.__extensions[namespace]=data;}}:name==='wc/store/cart'?cartDispatch:{setValidationErrors:errors=>{Object.assign(window.__errors,errors);showErrors();},clearValidationError:id=>{delete window.__errors[id];showErrors();}}}};
@@ -470,4 +470,31 @@ test('Blocks failed native restoration remains blocked without busy-marker retry
   expect(await browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant, 3]]);
   expect(requests.filter((query: string) => query.includes('restore'))).toHaveLength(1);
   expect(unexpected).toEqual([]);
+});
+
+
+test('Blocks cannot submit while an old plugin restore can overwrite a newly reselected courier', async ({ app, browser }) => {
+  const { unexpected } = await open(app, browser, true);
+  await expect.poll(() => blocksReview(browser)).toEqual(snapshot(cargo));
+  await browser.locator(`input[value="${instant}"]`).click();
+  await expect.poll(() => blocksReview(browser)).toEqual(snapshot(instant));
+  await expect.poll(() => browser.evaluate(() => (window as any).__rateBusy)).toBe(false);
+  await browser.locator('#terms').click();
+  await browser.evaluate(async () => { (window as any).__holdRestore=true; await (window as any).__refresh(); });
+  await expect.poll(() => browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant,3]]);
+  await browser.evaluate(() => { (window as any).__hideRestoreBusy=true; (window as any).__notify(); });
+  // This radio is already checked, so React sends no new native selection request.
+  await browser.locator(`input[value="${cargo}"]`).click();
+  await expect.poll(() => blocksReview(browser)).toEqual(snapshot(cargo));
+  await expect(browser.locator('#shipping-error')).not.toBeVisible();
+  await expect.poll(() => browser.evaluate(() => Boolean((window as any).__errors['kiriof-shipping-selection-pending']))).toBe(true);
+  await browser.locator('#place').click();
+  expect(await browser.evaluate(() => (window as any).__orders)).toBe(0);
+  await browser.evaluate(() => { (window as any).__holdRestore=false; (window as any).__releaseRestore(); });
+  await expect.poll(() => browser.evaluate(() => (window as any).__nativeActions)).toEqual([[instant,3],[cargo,3]]);
+  await expect.poll(() => browser.evaluate(() => document.querySelector<HTMLInputElement>('input[name="shipping"]:checked')!.value)).toBe(cargo);
+  await expect.poll(() => browser.evaluate(() => Boolean((window as any).__errors['kiriof-shipping-selection-pending']))).toBe(false);
+  await browser.locator('#place').click();
+  await expect.poll(() => browser.evaluate(() => (window as any).__orders)).toBe(1);
+  expect(await blocksReview(browser)).toEqual(snapshot(cargo)); expect(unexpected).toEqual([]);
 });
