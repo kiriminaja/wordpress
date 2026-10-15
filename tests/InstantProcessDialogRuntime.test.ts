@@ -153,7 +153,7 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       await h.settle();
       expect(h.completions).toBe(0);
       expect(h.target.textContent).toContain('PAY-1');
-      await h.click(h.button('instantRefreshPayments'));
+      await h.click(h.button('instantRefreshPayment'));
       await h.advance(6500);
       expect(h.requests.at(-1).action).toBe('kiriof_instant_payment');
       await h.reply({ id: 'PAY-1', status: 'paid', amount: null, qr_content: '' });
