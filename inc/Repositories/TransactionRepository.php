@@ -236,7 +236,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     }
 
     /**
-     * Reserve cancellation before DELETE; only reconciliation may resolve code 350.
+     * Fence cancellation before DELETE without inventing a remote lifecycle status.
      *
      * @param string $id KiriminAja order ID.
      * @param int    $expected_code Last confirmed, cancellable remote status code.
@@ -250,14 +250,14 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         $updated = $this->wpdb->query(
             $this->wpdb->prepare(
                 "UPDATE {$this->table}
-                SET instant_status_code = 350,
-                    rejected_reason = 'Instant cancellation requires reconciliation.'
+                SET rejected_reason = 'Instant cancellation requires reconciliation.'
                 WHERE order_id = %s
                     AND delivery_type = 'instant'
                     AND service IN ('gosend', 'grab_express')
                     AND status IN ('pending', 'request_pickup')
                     AND instant_status_code IN (100, 105, 110)
                     AND instant_status_code = %d
+                    AND (rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation.')
                     AND instant_payment_id IS NOT NULL
                     AND instant_payment_id <> ''
                     AND (instant_payment_status IS NULL OR instant_payment_status <> 'refunded')",

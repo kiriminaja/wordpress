@@ -58,6 +58,9 @@ $row = (object) array_replace(
 	$input['row'] ?? array()
 );
 $package = array_replace( array( 'order_id' => 'KA-1', 'status' => 105, 'awb' => 'AWB-1' ), $input['package'] ?? array() );
+if ( ! empty( $input['omit_package_awb'] ) ) {
+	unset( $package['awb'] );
+}
 $payment = $input['payment'] ?? array();
 $writes = array();
 $race = $input['race'] ?? null;

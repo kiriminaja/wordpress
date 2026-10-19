@@ -209,14 +209,10 @@ final class InstantOperationsService {
 			if ( ! is_array( $payment ) ) {
 				return $this->unknown( $id );
 			}
-			// AWB/URL evidence is metadata, never a fabricated remote lifecycle code.
-			if ( ! array_key_exists( 'status_code', $package ) && ! $has_code ) {
-				$merged = $this->state->mergeTrackingMetadata( $id, $package );
-				if ( ! empty( $payment ) ) {
-					$this->state->mergePayment( $id, $payment );
-				}
-			} else {
-				$merged = $this->state->apply( $id, $package, $payment );
+			// Guard the GET snapshot against lifecycle changes received in flight.
+			$merged = $this->state->applyTracking( $id, $package, $payment, $row );
+			if ( ! $merged['snapshot_current'] ) {
+				return $this->unknown( $id );
 			}
 			return $this->report( $id, $reconcile ? 'reconciled' : ( '' !== $merged['tracking_url'] ? 'tracked' : 'tracking_unavailable' ), $merged['tracking_url'] );
 		} catch ( \Throwable $error ) {
@@ -283,7 +279,7 @@ final class InstantOperationsService {
 					}
 					$code = $value;
 				}
-				if ( null === $code ) {
+				if ( ! in_array( $code, array( 105, 300, 302, 350 ), true ) ) {
 					$this->invalid();
 				}
 				$terminal = in_array( $code, array( 300, 302, '300', '302' ), true );
@@ -292,7 +288,13 @@ final class InstantOperationsService {
 					unset( $package[ $field ] );
 				}
 				$package['status_code'] = $terminal ? (int) $code : 350;
-				$merged = $terminal ? $this->state->apply( $id, $package ) : $this->state->mergeTrackingMetadata( $id, $package );
+				// The successful response must not overwrite a callback received during DELETE.
+				$expected_row = clone $row;
+				$expected_row->rejected_reason = 'Instant cancellation requires reconciliation.';
+				$merged = $this->state->applyTracking( $id, $package, array(), $expected_row );
+				if ( ! $merged['snapshot_current'] ) {
+					return array( 'rows' => array( $report ) );
+				}
 				$confirmed = 'canceled' === $merged['status'];
 				$report = $this->report( $id, $confirmed ? 'canceled' : 'cancel_requested', $merged['tracking_url'], $confirmed ? '' : __( 'Instant cancellation was requested. Reconcile to confirm the shipment state.', 'kiriminaja-official' ) );
 			}

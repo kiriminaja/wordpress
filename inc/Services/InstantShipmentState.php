@@ -47,6 +47,12 @@ final class InstantShipmentState {
 		return $this->merge( $id, $package, $payment, $event );
 	}
 
+	/** A tracking response cannot overwrite lifecycle changes received during its GET. */
+	public function applyTracking( string $id, array $package, array $payment, object $expected_row ): array {
+		$mode = array_intersect( array_keys( $package ), array( 'status', 'status_code', 'instant_status_code' ) ) ? 'apply' : 'metadata';
+		return $this->merge( $id, $package, $payment, null, $mode, array(), $expected_row );
+	}
+
 	/** Merge only authenticated tracking metadata, never invent a lifecycle code. */
 	public function mergeTrackingMetadata( string $id, array $package ): array {
 		return $this->merge( $id, $package, array(), null, 'metadata' );
@@ -62,7 +68,7 @@ final class InstantShipmentState {
 		return $this->merge( $id, array( 'order_id' => $id ), $payment, null, 'payment' );
 	}
 
-	private function merge( string $id, array $package, array $payment, ?string $event, string $mode = 'apply', array $metadata = array() ): array {
+	private function merge( string $id, array $package, array $payment, ?string $event, string $mode = 'apply', array $metadata = array(), ?object $expected_row = null ): array {
 		if ( ! self::identifier( $id ) || ! isset( $package['order_id'] ) || ! is_string( $package['order_id'] ) || $id !== $package['order_id'] ) {
 			$this->invalid( 1 );
 		}
@@ -95,6 +101,15 @@ final class InstantShipmentState {
 				$stale = true;
 			}
 			$stale = $stale || null === $code || ( 350 === (int) ( $row->instant_status_code ?? -1 ) && in_array( $code, array( 100, 101, 105, 110 ), true ) );
+			$snapshot_current = true;
+			if ( null !== $expected_row ) {
+				foreach ( array( 'status', 'instant_status_code', 'rejected_reason' ) as $field ) {
+					if ( (string) ( $row->{$field} ?? '' ) !== (string) ( $expected_row->{$field} ?? '' ) ) {
+						$stale = true;
+						$snapshot_current = false;
+					}
+				}
+			}
 			// A delayed booking acknowledgement cannot resolve an issue already reported by a callback.
 			// Authenticated tracking/webhook state remains authoritative for subsequent recovery.
 			if ( 'booking' === $mode && in_array( (int) ( $row->instant_status_code ?? -1 ), array( 405, 500, 555, 701, 702, 703, 704, 303, 301, 333 ), true ) && in_array( $code, array( 100, 101, 105, 110 ), true ) ) {
@@ -118,7 +133,10 @@ final class InstantShipmentState {
 				$changes['status'] = $target;
 				$changes['instant_status_code'] = $code;
 				$issue = in_array( $code, array( 405, 500, 555, 701, 702, 703, 704, 303, 301, 333 ), true );
-				$changes['rejected_reason'] = $issue ? 'There is a problem with this Instant shipment.' : null;
+				// The cancellation fence is independent of later provider issue/recovery codes.
+				if ( 'Instant cancellation requires reconciliation.' !== ( $row->rejected_reason ?? null ) ) {
+					$changes['rejected_reason'] = $issue ? 'There is a problem with this Instant shipment.' : null;
+				}
 				if ( $target !== $old || null !== $event ) {
 					$fields = array( 'request_pickup' => 'request_pickup_at', 'shipped' => 'shipped_at', 'finished' => 'finished_at', 'canceled' => 'canceled_at', 'returned' => 'return_finished_at', 'return' => 'returned_at' );
 					$field = $fields[ $target ] ?? null;
@@ -183,7 +201,11 @@ final class InstantShipmentState {
 			if ( 'metadata' !== $mode || 'finished' === $row->status ) {
 				$this->wooLifecycle( $row, $order );
 			}
-			return array( 'changed' => $changed, 'status' => (string) $row->status, 'tracking_url' => self::trackingUrl( $row->live_tracking_url ?? null ), 'order_id' => $id );
+			$result = array( 'changed' => $changed, 'status' => (string) $row->status, 'tracking_url' => self::trackingUrl( $row->live_tracking_url ?? null ), 'order_id' => $id );
+			if ( null !== $expected_row ) {
+				$result['snapshot_current'] = $snapshot_current;
+			}
+			return $result;
 		}
 		$this->failed();
 	}
@@ -207,6 +229,7 @@ final class InstantShipmentState {
 			&& in_array( strtolower( trim( (string) ( $row['service'] ?? '' ) ) ), array( 'gosend', 'grab_express' ), true )
 			&& in_array( $row['status'] ?? null, array( 'pending', 'request_pickup' ), true )
 			&& 'refunded' !== ( $row['instant_payment_status'] ?? null )
+			&& 'Instant cancellation requires reconciliation.' !== ( $row['rejected_reason'] ?? null )
 			&& in_array( $row['instant_status_code'] ?? null, array( 100, 105, 110, '100', '105', '110' ), true )
 			&& self::identifier( $row['order_id'] ?? null ) && self::identifier( $row['instant_payment_id'] ?? null )
 			&& ( null === ( $row['awb'] ?? null ) || '' === $row['awb'] || self::identifier( $row['awb'] ) );
@@ -248,10 +271,7 @@ final class InstantShipmentState {
 		if ( null !== $id && empty( $row->instant_payment_id ) ) {
 			$changes['instant_payment_id'] = $id;
 		}
-		$status = $this->paymentStatus( $payment['status_code'] ?? $payment['status'] ?? null );
-		if ( 'refunded' === $this->paymentStatus( $payment['status'] ?? null ) ) {
-			$status = 'refunded';
-		}
+		$status = self::observedPaymentStatus( $payment );
 		$previous = $row->instant_payment_status ?? '';
 		if ( null !== $status && ( ! empty( $row->instant_payment_id ) || null !== $id ) && 'refunded' !== $previous && ( 'paid' !== $previous || 'refunded' === $status ) ) {
 			$changes['instant_payment_status'] = $status;
@@ -359,14 +379,53 @@ final class InstantShipmentState {
 		return $map[ $code ] ?? $old;
 	}
 
-	private function paymentStatus( $value ): ?string {
+	/** Settlement evidence belongs to the matched payment, never QR creation time. */
+	public static function observedPaymentStatus( array $payment ): ?string {
+		$observed = array();
+		foreach ( array( 'status_code', 'payment_status', 'status' ) as $key ) {
+			$value = $payment[ $key ] ?? null;
+			$status = self::paymentStatus( $value );
+			if ( 'payment_status' === $key && is_string( $value ) && in_array( strtolower( trim( $value ) ), array( 'settlement', 'settled', 'success' ), true ) ) {
+				$status = 'paid';
+			}
+			if ( null !== $status ) {
+				$observed[] = $status;
+			}
+		}
+		if ( in_array( 'refunded', $observed, true ) ) {
+			return 'refunded';
+		}
+		$value = $payment['paid_at'] ?? null;
+		if ( is_string( $value ) && strlen( $value ) <= 35 ) {
+			$value = preg_replace_callback( '/\.(\d{1,6})(Z|[+-]\d{2}:\d{2})$/D', static fn( $match ) => '.' . str_pad( $match[1], 6, '0' ) . $match[2], $value );
+			foreach ( array( 'Y-m-d H:i:s', 'Y-m-d\TH:i:s\Z', 'Y-m-d\TH:i:s.u\Z', 'Y-m-d\TH:i:sP', 'Y-m-d\TH:i:s.uP' ) as $format ) {
+				$date = \DateTimeImmutable::createFromFormat( '!' . $format, $value, new \DateTimeZone( 'UTC' ) );
+				$errors = \DateTimeImmutable::getLastErrors();
+				if ( false !== $date && ( false === $errors || ( 0 === $errors['warning_count'] && 0 === $errors['error_count'] ) )
+					&& $date->format( $format ) === $value && $date->getTimestamp() >= 946684800 && $date->getTimestamp() <= time() + 86400 ) {
+					return 'paid';
+				}
+			}
+		}
+		if ( isset( $payment['status_code'] ) ) {
+			$code_status = self::paymentStatus( $payment['status_code'] );
+			if ( null !== $code_status ) {
+				return $code_status;
+			}
+			$alias = $payment['payment_status'] ?? null;
+			return is_string( $alias ) && in_array( strtolower( trim( $alias ) ), array( 'settlement', 'settled', 'success' ), true ) ? 'paid' : self::paymentStatus( $alias );
+		}
+		return in_array( 'paid', $observed, true ) ? 'paid' : ( $observed[0] ?? null );
+	}
+
+	private static function paymentStatus( $value ): ?string {
 		if ( 0 === $value || '0' === $value ) {
 			return 'paid';
 		}
 		if ( 9 === $value || '9' === $value ) {
 			return 'unpaid';
 		}
-		return is_string( $value ) && in_array( $value, array( 'paid', 'unpaid', 'pending', 'refunded' ), true ) ? $value : null;
+		return is_string( $value ) && in_array( strtolower( trim( $value ) ), array( 'paid', 'unpaid', 'pending', 'refunded' ), true ) ? strtolower( trim( $value ) ) : null;
 	}
 
 	/** Strict dates only: reject coercions, impossible dates and unbounded timestamps. */

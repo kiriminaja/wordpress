@@ -167,7 +167,7 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                         [
                             'repo.claimInstantCancellation( \'KA-1\', code )' => true,
                             'competitor.claimInstantCancellation( \'KA-1\', code )' => false,
-                            '.row.instant_status_code' => 350,
+                            '.row.instant_status_code' => $code,
                             '.row.rejected_reason' => 'Instant cancellation requires reconciliation.',
                             '.reads' => 0,
                             'repo.invalidations' => 1,
@@ -192,7 +192,7 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
     #[Test]
     public function cancellation_requires_confirmed_booked_nonrefunded_eligible_state(): void {
         $blocked = array(
-            array( 'status' => 'new' ), array( 'status' => 'shipped' ), array( 'status' => 'canceled' ),
+            array( 'rejected_reason' => 'Instant cancellation requires reconciliation.' ), array( 'status' => 'new' ), array( 'status' => 'shipped' ), array( 'status' => 'canceled' ),
             array( 'instant_status_code' => 101 ), array( 'instant_status_code' => '101' ), array( 'instant_status_code' => null ), array( 'instant_status_code' => 0 ), array( 'instant_status_code' => 350 ),
             array( 'instant_status_code' => 999 ), array( 'instant_payment_id' => null ), array( 'instant_payment_id' => '' ),
             array( 'instant_payment_status' => 'refunded' ), array( 'delivery_type' => 'express' ), array( 'service' => 'jne' ),
@@ -359,7 +359,7 @@ final class InstantLifecycleWpdbFake {
     }
 
     public function query( string $sql ) {
-        $pattern = "/^UPDATE wp_kiriminaja_transactions\s+SET instant_status_code = 350,\s+rejected_reason = 'Instant cancellation requires reconciliation\.'\s+WHERE order_id = '((?:''|[^'])*)'\s+AND delivery_type = 'instant'\s+AND service IN \('gosend', 'grab_express'\)\s+AND status IN \('pending', 'request_pickup'\)\s+AND instant_status_code IN \(100, 105, 110\)\s+AND instant_status_code = (-?[0-9]+)\s+AND instant_payment_id IS NOT NULL\s+AND instant_payment_id <> ''\s+AND \(instant_payment_status IS NULL OR instant_payment_status <> 'refunded'\)$/";
+        $pattern = "/^UPDATE wp_kiriminaja_transactions\s+SET rejected_reason = 'Instant cancellation requires reconciliation\.'\s+WHERE order_id = '((?:''|[^'])*)'\s+AND delivery_type = 'instant'\s+AND service IN \('gosend', 'grab_express'\)\s+AND status IN \('pending', 'request_pickup'\)\s+AND instant_status_code IN \(100, 105, 110\)\s+AND instant_status_code = (-?[0-9]+)\s+AND \(rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation\.'\)\s+AND instant_payment_id IS NOT NULL\s+AND instant_payment_id <> ''\s+AND \(instant_payment_status IS NULL OR instant_payment_status <> 'refunded'\)$/";
         if ( ! preg_match( $pattern, $sql, $match ) ) {
             throw new RuntimeException( 'Unexpected cancellation SQL or missing guard.' );
         }
@@ -374,10 +374,10 @@ final class InstantLifecycleWpdbFake {
             || ! in_array( (int) $this->row['instant_status_code'], array( 100, 105, 110 ), true )
             || (int) $this->row['instant_status_code'] !== (int) $match[2]
             || in_array( $this->row['instant_payment_id'], array( null, '' ), true )
+            || 'Instant cancellation requires reconciliation.' === $this->row['rejected_reason']
             || 'refunded' === $this->row['instant_payment_status'] ) {
             return 0;
         }
-        $this->row['instant_status_code'] = 350;
         $this->row['rejected_reason'] = 'Instant cancellation requires reconciliation.';
         return 1;
     }

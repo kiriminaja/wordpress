@@ -766,56 +766,7 @@ class InstantDispatchService {
 
 	/** Settlement evidence belongs to the already matched payment, not the shipment. */
 	private function observedPaymentStatus( array $payment ): ?string {
-		$observed = array();
-		foreach ( array( 'status_code', 'payment_status', 'status' ) as $key ) {
-			$value = $payment[ $key ] ?? null;
-			$status = $this->paymentStatus( $value );
-			if ( 'payment_status' === $key && is_string( $value ) && in_array( strtolower( $value ), array( 'settlement', 'settled', 'success' ), true ) ) {
-				$status = 'paid';
-			}
-			if ( null !== $status ) {
-				$observed[] = $status;
-			}
-		}
-		if ( in_array( 'refunded', $observed, true ) ) {
-			return 'refunded';
-		}
-		foreach ( array( 'paid_at', 'pay_time' ) as $key ) {
-			$value = $payment[ $key ] ?? null;
-			if ( ! is_string( $value ) || strlen( $value ) > 35 ) {
-				continue;
-			}
-			// Normalize only fractional precision; dates and timezone offsets stay strict.
-			$value = preg_replace_callback( '/\.(\d{1,6})(Z|[+-]\d{2}:\d{2})$/D', static fn( $match ) => '.' . str_pad( $match[1], 6, '0' ) . $match[2], $value );
-			foreach ( array( 'Y-m-d H:i:s', 'Y-m-d\TH:i:s\Z', 'Y-m-d\TH:i:s.u\Z', 'Y-m-d\TH:i:sP', 'Y-m-d\TH:i:s.uP' ) as $format ) {
-				$date = \DateTimeImmutable::createFromFormat( '!' . $format, $value, new \DateTimeZone( 'UTC' ) );
-				$errors = \DateTimeImmutable::getLastErrors();
-				if ( false !== $date && ( false === $errors || ( 0 === $errors['warning_count'] && 0 === $errors['error_count'] ) )
-					&& $date->format( $format ) === $value && $date->getTimestamp() >= 946684800 && $date->getTimestamp() <= time() + 86400 ) {
-					return 'paid';
-				}
-			}
-		}
-		if ( isset( $payment['status_code'] ) ) {
-			$code_status = $this->paymentStatus( $payment['status_code'] );
-			if ( null !== $code_status ) {
-				return $code_status;
-			}
-			// Only the payment-specific alias can resolve an unknown official code.
-			$alias = $payment['payment_status'] ?? null;
-			return is_string( $alias ) && in_array( strtolower( $alias ), array( 'settlement', 'settled', 'success' ), true ) ? 'paid' : $this->paymentStatus( $alias );
-		}
-		return in_array( 'paid', $observed, true ) ? 'paid' : ( $observed[0] ?? null );
-	}
-
-	private function paymentStatus( $value ): ?string {
-		if ( 0 === $value || '0' === $value ) {
-			return 'paid';
-		}
-		if ( 9 === $value || '9' === $value ) {
-			return 'unpaid';
-		}
-		return is_string( $value ) && in_array( strtolower( $value ), array( 'paid', 'unpaid', 'pending', 'refunded' ), true ) ? strtolower( $value ) : null;
+		return InstantShipmentState::observedPaymentStatus( $payment );
 	}
 
 	private function integer( $value ): int {

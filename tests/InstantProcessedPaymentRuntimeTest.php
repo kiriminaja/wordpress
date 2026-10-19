@@ -4,6 +4,47 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class InstantProcessedPaymentRuntimeTest extends TestCase {
+	public function test_matched_payment_evidence_settles_without_a_new_awb(): void {
+		foreach ( array(
+			array( 'status_code' => 0 ),
+			array( 'status_code' => '0' ),
+			array( 'payment_status' => 'success' ),
+			array( 'payment_status' => 'settlement' ),
+			array( 'status' => ' PAID ' ),
+			array( 'status_code' => 9, 'paid_at' => '2025-01-01T17:00:00.123+07:00' ),
+			array( 'status_code' => 999, 'payment_status' => 'paid' ),
+		) as $evidence ) {
+			foreach ( array( 'webhook', 'tracking' ) as $mode ) {
+				$result = $this->execute( array(
+					'mode' => $mode,
+					'package' => array( 'awb' => null ),
+					'omit_package_awb' => true,
+					'payment' => array_merge( array( 'payment_id' => 'PAY-1' ), $evidence ),
+					'repeat' => 2,
+					'poll_unpaid' => true,
+				) );
+				$this->assertSame( 'paid', $result['row']['instant_payment_status'], json_encode( $evidence ) );
+				$this->assertNull( $result['row']['awb'] );
+				$this->assertCount( 1, $result['writes'] );
+				$this->assertSame( array_fill( 0, 2, 'webhook' === $mode ? 200 : 'reconciled' ), $result['responses'] );
+			}
+		}
+	}
+
+	public function test_qr_creation_time_and_invalid_settlement_dates_do_not_settle_payment(): void {
+		foreach ( array(
+			array( 'status_code' => 9, 'pay_time' => '2025-01-01T10:00:00Z' ),
+			array( 'status_code' => 9, 'paid_at' => '2025-02-30T10:00:00Z' ),
+			array( 'status_code' => 9, 'paid_at' => true ),
+			array( 'status_code' => 9, 'paid_at' => array() ),
+		) as $evidence ) {
+			$result = $this->execute( array( 'package' => array( 'awb' => null ), 'payment' => array_merge( array( 'payment_id' => 'PAY-1' ), $evidence ) ) );
+			$this->assertSame( 'unpaid', $result['row']['instant_payment_status'] );
+		}
+		$result = $this->execute( array( 'package' => array( 'awb' => null ), 'payment' => array( 'payment_id' => 'PAY-1', 'status_code' => 0, 'payment_status' => 'refunded', 'paid_at' => '2025-01-01T10:00:00Z' ) ) );
+		$this->assertSame( 'refunded', $result['row']['instant_payment_status'] );
+	}
+
 	public function test_processed_webhook_tracks_url_availability_independently_of_payment_awb_and_route(): void {
 		// Synthetic identities and the public encoded-polyline example, never a real webhook log.
 		$package = array(

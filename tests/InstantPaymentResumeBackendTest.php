@@ -121,7 +121,6 @@ final class InstantPaymentResumeBackendTest extends TestCase {
             array('id'=>'PAY-1','status_code'=>9,'paid_at'=>'2025-01-01T10:00:00Z'),
             array('payment_id'=>'PAY-1','payment_status'=>'paid'),
             array('payment_id'=>'PAY-1','payment_status'=>'settlement'),
-            array('id'=>'PAY-1','status_code'=>9,'pay_time'=>'2025-01-01T10:00:00.123456Z'),
             array('id'=>'PAY-1','status_code'=>9,'paid_at'=>'2025-01-01T17:00:00.123+07:00'),
             array('id'=>'PAY-1','status_code'=>null,'payment_status'=>'settled'),
             array('id'=>'PAY-1','status_code'=>999,'payment_status'=>'paid'),
@@ -146,6 +145,15 @@ final class InstantPaymentResumeBackendTest extends TestCase {
         $this->assertSame('unpaid',$result['rows'][0]['instant_payment_status']);
         $this->assertNotSame('', $result['error']);
     }
+
+	#[Test]
+	public function qr_creation_timestamp_never_confirms_instant_settlement(): void {
+		$result = $this->dispatch( array( 'refresh' => true, 'refresh_data' => array( 'id' => 'PAY-1', 'status_code' => 9, 'pay_time' => '2025-01-01T10:00:00.123456Z' ) ) );
+		$this->assertSame( '', $result['error'] );
+		$this->assertSame( 'unpaid', $result['refresh']['status'] );
+		$this->assertSame( 'unpaid', $result['rows'][0]['instant_payment_status'] );
+		$this->assertCount( 1, $result['books'] );
+	}
 
     #[Test]
     public function cache_is_private_bounded_and_only_for_confirmed_qris(): void {
