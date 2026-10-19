@@ -94,6 +94,63 @@ final class CallbackHandlerRuntimeTest extends TestCase {
     }
 
     #[Test]
+    #[DataProvider( 'qrisPaymentProvider' )]
+    public function processed_packages_uses_matching_qris_payment_confirmation( array $payment, string $expected_status ): void {
+        $transactionRepository = new CallbackTransactionRepositoryFake(
+            array(
+                $this->transaction( 'ORDER-1', 'PICKUP-1' ),
+                $this->transaction( 'ORDER-2', 'PICKUP-2' ),
+            )
+        );
+        $paymentRepository = new CallbackPaymentRepositoryFake(
+            array(
+                'PICKUP-1' => $this->payment( 'PICKUP-1', 'qris', 'unpaid' ),
+                'PICKUP-2' => $this->payment( 'PICKUP-2', 'qris', 'unpaid' ),
+            )
+        );
+        $service = $this->service( $transactionRepository, $paymentRepository );
+        $service->body->payment = (object) $payment;
+        $service->body->packages = array( (object) array( 'order_id' => 'ORDER-1', 'status' => 105 ) );
+
+        $response = $service->call();
+
+        $this->assertSame( 200, $response->status );
+        $this->assertSame( 'AWB-1', $transactionRepository->transactions['ORDER-1']->awb );
+        $this->assertSame( $expected_status, $paymentRepository->payments['PICKUP-1']->status );
+        $this->assertSame( 'unpaid', $paymentRepository->payments['PICKUP-2']->status );
+        $this->assertSame( 'paid' === $expected_status ? array( 'PICKUP-1' ) : array(), $paymentRepository->updatedPickupNumbers );
+    }
+
+    public static function qrisPaymentProvider(): array {
+        return array(
+            'numeric paid code with QR still present' => array( array( 'payment_id' => 'PICKUP-1', 'status_code' => 0, 'qr_content' => 'test-qr', 'pay_time' => '2026-10-14T07:07:04Z' ), 'paid' ),
+            'string paid code' => array( array( 'payment_id' => 'PICKUP-1', 'status_code' => '0' ), 'paid' ),
+            'paid timestamp' => array( array( 'payment_id' => 'PICKUP-1', 'paid_at' => '2026-10-14T07:07:04Z' ), 'paid' ),
+            'paid label' => array( array( 'payment_id' => 'PICKUP-1', 'payment_status' => 'paid' ), 'paid' ),
+            'unpaid code with QR generation time' => array( array( 'payment_id' => 'PICKUP-1', 'status_code' => 9, 'pay_time' => '2026-10-14T07:07:04Z' ), 'unpaid' ),
+            'missing status' => array( array( 'payment_id' => 'PICKUP-1' ), 'unpaid' ),
+            'mismatched payment ID' => array( array( 'payment_id' => 'OTHER-PICKUP', 'status_code' => 0 ), 'unpaid' ),
+            'missing payment ID' => array( array( 'status_code' => 0 ), 'unpaid' ),
+        );
+    }
+
+    #[Test]
+    public function confirmed_qris_payment_write_failure_is_retryable_and_replay_is_idempotent(): void {
+        $transactions = new CallbackTransactionRepositoryFake( array( $this->transaction( 'ORDER-1', 'PICKUP-1' ) ) );
+        $payments = new CallbackPaymentRepositoryFake( array( 'PICKUP-1' => $this->payment( 'PICKUP-1', 'qris', 'unpaid' ) ) );
+        $payments->failedPickupNumbers = array( 'PICKUP-1' );
+        $service = $this->eventService( $transactions, $payments, 'processed_packages', array( (object) array( 'order_id' => 'ORDER-1', 'awb' => 'AWB-1' ) ) );
+        $service->body->payment = (object) array( 'payment_id' => 'PICKUP-1', 'status_code' => 0 );
+
+        $this->assertSame( 503, $service->call()->status );
+        $this->assertSame( 'unpaid', $payments->payments['PICKUP-1']->status );
+        $payments->failedPickupNumbers = array();
+        $this->assertSame( 200, $service->call()->status );
+        $this->assertSame( 200, $service->call()->status );
+        $this->assertSame( 'paid', $payments->payments['PICKUP-1']->status );
+    }
+
+    #[Test]
     public function processed_packages_returns_retryable_failure_when_write_is_not_verified(): void {
         $transactionRepository = new CallbackTransactionRepositoryFake(
             array(

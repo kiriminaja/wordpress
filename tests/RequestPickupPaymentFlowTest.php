@@ -128,9 +128,9 @@ final class RequestPickupPaymentFlowTest extends TestCase
         $requestPickupTemplate = file_get_contents(PLUGIN_DIR . '/templates/request-pickup/view/index.php');
 
         $this->assertStringContainsString(
-            "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' )",
+            "if ( \$paymentMethod !== 'qris' || \$paymentStatus === 'paid' || \$this->callbackPaymentIsPaid( \$pickupNumber ) )",
             $callbackContent,
-            'processed_packages webhook must not mark unpaid QRIS payment paid just because AWB exists'
+            'processed_packages must require matching payment confirmation before promoting unpaid QRIS'
         );
 
         $this->assertStringContainsString(
@@ -164,9 +164,9 @@ final class RequestPickupPaymentFlowTest extends TestCase
         );
 
         $this->assertStringContainsString(
-            "? (\$remoteHasPaidTimestamp || \$remoteHasPaidStatus)",
+            "? ( '0' === \$remoteStatusCode || \$remoteHasPaidTimestamp || \$remoteHasPaidStatus )",
             $paymentRefreshContent,
-            'QRIS should only be marked paid when KiriminAja returns a paid timestamp or paid status label'
+            'QRIS should accept the documented paid code, a paid timestamp, or a paid status label'
         );
 
         $this->assertStringContainsString(
@@ -175,10 +175,10 @@ final class RequestPickupPaymentFlowTest extends TestCase
             'Non-QRIS auto-paid flows can still use status_code 0 or AWB'
         );
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             '$localMethod === \'qris\' && !$remoteIsPaid',
             $paymentRefreshContent,
-            'Payment refresh should keep unpaid QRIS rows waiting when remote payment is not paid'
+            'A stale payment refresh must not downgrade previously confirmed QRIS payments'
         );
 
         $this->assertStringContainsString(
