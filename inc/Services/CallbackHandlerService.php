@@ -195,7 +195,7 @@ class CallbackHandlerService extends BaseService {
 
             $paymentMethod = strtolower( (string) ( $paymentRecord->method ?? '' ) );
             $paymentStatus = strtolower( (string) ( $paymentRecord->status ?? '' ) );
-            if ( $paymentMethod !== 'qris' || $paymentStatus === 'paid' ) {
+            if ( $paymentMethod !== 'qris' || $paymentStatus === 'paid' || $this->callbackPaymentIsPaid( $pickupNumber ) ) {
                 $paymentUpdated = $this->paymentRepository->updatePaymentByCallbackVerified(
                     array(
                         'changes'   => array( 'status' => 'paid' ),
@@ -221,6 +221,21 @@ class CallbackHandlerService extends BaseService {
         );
 
         return array( 'status' => true, 'message' => '' );
+    }
+
+    private function callbackPaymentIsPaid( $pickup_number ): bool {
+        $payment = $this->body->payment ?? null;
+        $payment_id = trim( (string) $this->packageValue( $payment, 'payment_id' ) );
+        if ( '' === $payment_id || (string) $pickup_number !== $payment_id ) {
+            return false;
+        }
+
+        $status_code = trim( (string) $this->packageValue( $payment, 'status_code' ) );
+        $paid_at = trim( (string) $this->packageValue( $payment, 'paid_at' ) );
+        $status = $this->packageValue( $payment, 'payment_status' ) ?: $this->packageValue( $payment, 'status' );
+        $status = strtolower( trim( (string) $status ) );
+
+        return '0' === $status_code || '' !== $paid_at || in_array( $status, array( 'paid', 'settlement', 'settled', 'success' ), true );
     }
 
     public function shippedPackages() {
