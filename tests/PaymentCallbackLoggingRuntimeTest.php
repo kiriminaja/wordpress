@@ -8,12 +8,12 @@ final class PaymentCallbackLoggingRuntimeTest extends TestCase {
         return json_decode(implode("\n", $output), true, 512, JSON_THROW_ON_ERROR);
     }
 
-    public function test_poll_reads_and_paid_transitions_are_silent_without_changing_persistence(): void {
+    public function test_poll_reads_and_paid_transitions_are_silent_and_preserve_confirmed_payment(): void {
         $result = $this->runFixture('poll');
         $this->assertSame([], $result['logs']);
         $this->assertSame([], $result['debug']);
-        $this->assertSame([[200, 'unpaid'], [200, 'paid'], [200, 'paid'], [200, 'unpaid']], $result['responses']);
-        $this->assertSame(['paid', 'unpaid'], array_column(array_column($result['writes'], 'changes'), 'status'));
+        $this->assertSame([[200, 'unpaid'], [200, 'paid'], [200, 'paid'], [200, 'paid']], $result['responses']);
+        $this->assertSame(['paid'], array_column(array_column($result['writes'], 'changes'), 'status'));
     }
 
     public function test_pickup_keeps_only_safe_payment_creation_audit(): void {

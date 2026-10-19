@@ -55,25 +55,13 @@ class GetShippingProcessPayment extends BaseService{
         $remoteHasPaidTimestamp = $remotePaidAt !== '';
         $remoteHasPaidStatus = in_array($remotePaymentStatus, ['paid', 'settlement', 'settled', 'success'], true);
         $remoteIsPaid = $localMethod === 'qris'
-            ? ($remoteHasPaidTimestamp || $remoteHasPaidStatus)
+            ? ( '0' === $remoteStatusCode || $remoteHasPaidTimestamp || $remoteHasPaidStatus )
             : ($remoteStatusCode === '0' || $remotePayTime !== '' || $remoteHasPaidTimestamp || $remoteHasPaidStatus || $hasAwbForPickup);
 
         if ($getPayment && $remoteIsPaid && ($getPayment->status ?? '') !== 'paid') {
             $paymentRepo->updatePaymentByCallback([
                 'changes' => [
                     'status' => 'paid',
-                ],
-                'condition' => [
-                    'pickup_number' => $this->payment_id,
-                ],
-            ]);
-            $getPayment = $paymentRepo->getPaymentByPaymentId($this->payment_id);
-        }
-
-        if ($getPayment && $localMethod === 'qris' && !$remoteIsPaid && ($getPayment->status ?? '') === 'paid') {
-            $paymentRepo->updatePaymentByCallback([
-                'changes' => [
-                    'status' => 'unpaid',
                 ],
                 'condition' => [
                     'pickup_number' => $this->payment_id,
