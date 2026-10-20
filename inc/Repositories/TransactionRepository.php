@@ -240,31 +240,41 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
      *
      * @param string $id KiriminAja order ID.
      * @param int    $expected_code Last confirmed, cancellable remote status code.
+     * @param string $attempt_id Optional unique cancellation attempt token.
      * @return bool Whether exactly one Instant transaction was claimed.
      */
-    public function claimInstantCancellation( string $id, int $expected_code ): bool {
+    public function claimInstantCancellation( string $id, int $expected_code, string $attempt_id = '' ): bool {
         if ( ! in_array( $expected_code, array( 100, 105, 110 ), true ) ) {
             return false;
+        }
+        if ( '' !== $attempt_id && 1 !== preg_match( '/^[A-Za-z0-9_-]{1,100}$/D', $attempt_id ) ) {
+            return false;
+        }
+        $marker = 'Instant cancellation requires reconciliation.';
+        if ( '' !== $attempt_id ) {
+            $marker .= ':' . $attempt_id;
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Atomic claim; invalidate only after success.
         $updated = $this->wpdb->query(
             $this->wpdb->prepare(
                 "UPDATE {$this->table}
-                SET rejected_reason = 'Instant cancellation requires reconciliation.'
+                SET rejected_reason = %s
                 WHERE order_id = %s
                     AND delivery_type = 'instant'
                     AND service IN ('gosend', 'grab_express')
                     AND status IN ('pending', 'request_pickup')
                     AND instant_status_code IN (100, 105, 110)
                     AND instant_status_code = %d
-                    AND (rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation.')
+                    AND (rejected_reason IS NULL OR (rejected_reason <> 'Instant cancellation requires reconciliation.' AND rejected_reason NOT LIKE %s))
                     AND instant_payment_id IS NOT NULL
                     AND instant_payment_id <> ''
                     AND instant_payment_status = 'paid'
                     AND awb IS NOT NULL
                     AND awb <> ''",
+                $marker,
                 $id,
-                $expected_code
+                $expected_code,
+                'Instant cancellation requires reconciliation.:%'
             )
         );
 

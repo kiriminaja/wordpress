@@ -123,6 +123,16 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                 __FUNCTION__
             );
         }
+        foreach ( array( ' ', 'bad.token', 'bad:token', 'bad%token', "bad'token", '雪', "token\n", str_repeat( 'x', 101 ) ) as $attempt_id ) {
+            [ $repo, $db ] = $this->repository( array( 'awb' => 'AWB-1' ) );
+            $before = $db->row;
+            $this->assertFalse( $repo->claimInstantCancellation( 'KA-1', 100, $attempt_id ) );
+            $this->assertSame( array(), $db->prepared );
+            $this->assertSame( array(), $db->updates );
+            $this->assertSame( 0, $db->reads );
+            $this->assertSame( 0, $repo->invalidations );
+            $this->assertSame( $before, $db->row );
+        }
         [ $repo, $db ] = $this->repository();
         $this->assertSame(
             [
@@ -158,6 +168,7 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
 
     #[Test]
     public function cancellation_is_one_atomic_claim_and_second_caller_cannot_send_delete(): void {
+        foreach ( array( '', 'attempt_A-1', str_repeat( 'x', 100 ) ) as $attempt_id ) {
         foreach ( array( 'gosend', 'grab_express' ) as $service ) {
             foreach ( array( 100, 105, 110 ) as $code ) {
                 foreach ( array( 'pending', 'request_pickup' ) as $status ) {
@@ -168,14 +179,14 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                             'repo.claimInstantCancellation( \'KA-1\', code )' => true,
                             'competitor.claimInstantCancellation( \'KA-1\', code )' => false,
                             '.row.instant_status_code' => $code,
-                            '.row.rejected_reason' => 'Instant cancellation requires reconciliation.',
+                            '.row.rejected_reason' => 'Instant cancellation requires reconciliation.' . ( '' === $attempt_id ? '' : ':' . $attempt_id ),
                             '.reads' => 0,
                             'repo.invalidations' => 1,
                             'competitor.invalidations' => 0,
                         ],
                         [
-                            'repo.claimInstantCancellation( \'KA-1\', code )' => $repo->claimInstantCancellation( 'KA-1', $code ),
-                            'competitor.claimInstantCancellation( \'KA-1\', code )' => $competitor->claimInstantCancellation( 'KA-1', $code ),
+                            'repo.claimInstantCancellation( \'KA-1\', code )' => $repo->claimInstantCancellation( 'KA-1', $code, $attempt_id ),
+                            'competitor.claimInstantCancellation( \'KA-1\', code )' => $competitor->claimInstantCancellation( 'KA-1', $code, 'competitor' ),
                             '.row.instant_status_code' => $db->row['instant_status_code'],
                             '.row.rejected_reason' => $db->row['rejected_reason'],
                             '.reads' => $db->reads,
@@ -187,12 +198,27 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                 }
             }
         }
+        }
+
+        [ $repo, $db ] = $this->repository( array( 'awb' => 'AWB-1' ) );
+        $this->assertTrue( $repo->claimInstantCancellation( 'KA-1', 100, 'generation-1' ) );
+        $old_expected = array_replace( $this->expected(), array(
+            'awb' => 'AWB-1',
+            'rejected_reason' => 'Instant cancellation requires reconciliation.:generation-1',
+        ) );
+        $this->assertTrue( $repo->compareAndSwapInstant( 'KA-1', $old_expected, array( 'rejected_reason' => null ) ) );
+        $this->assertTrue( $repo->claimInstantCancellation( 'KA-1', 100, 'generation-2' ) );
+        $this->assertFalse( $repo->compareAndSwapInstant( 'KA-1', $old_expected, array( 'rejected_reason' => null ) ) );
+        $this->assertSame( 'Instant cancellation requires reconciliation.:generation-2', $db->row['rejected_reason'] );
+        $this->assertSame( $old_expected['rejected_reason'], $db->updates[1][1]['rejected_reason'] );
     }
 
     #[Test]
     public function cancellation_requires_confirmed_paid_booked_state_with_awb(): void {
         $blocked = array(
-            array( 'rejected_reason' => 'Instant cancellation requires reconciliation.' ), array( 'status' => 'new' ), array( 'status' => 'shipped' ), array( 'status' => 'canceled' ),
+            array( 'rejected_reason' => 'Instant cancellation requires reconciliation.' ),
+            array( 'rejected_reason' => 'Instant cancellation requires reconciliation.:another-attempt' ),
+            array( 'rejected_reason' => 'Instant cancellation requires reconciliation.:' ), array( 'status' => 'new' ), array( 'status' => 'shipped' ), array( 'status' => 'canceled' ),
             array( 'instant_status_code' => 101 ), array( 'instant_status_code' => '101' ), array( 'instant_status_code' => null ), array( 'instant_status_code' => 0 ), array( 'instant_status_code' => 350 ),
             array( 'instant_status_code' => 999 ), array( 'instant_payment_id' => null ), array( 'instant_payment_id' => '' ),
             array( 'instant_payment_status' => 'refunded' ), array( 'instant_payment_status' => 'unpaid' ),
@@ -263,11 +289,11 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                 [
                     'repo.claimInstantCancellation( \'different-id\', 100 )' => false,
                     'repo.claimInstantCancellation( id, 100 )' => true,
-                    '.prepared.1.1' => array( $id, 100 ),
+                    '.prepared.1.1' => array( 'Instant cancellation requires reconciliation.:attempt_1', $id, 100, 'Instant cancellation requires reconciliation.:%' ),
                 ],
                 [
                     'repo.claimInstantCancellation( \'different-id\', 100 )' => $repo->claimInstantCancellation( 'different-id', 100 ),
-                    'repo.claimInstantCancellation( id, 100 )' => $repo->claimInstantCancellation( $id, 100 ),
+                    'repo.claimInstantCancellation( id, 100 )' => $repo->claimInstantCancellation( $id, 100, 'attempt_1' ),
                     '.prepared.1.1' => $db->prepared[1][1],
                 ],
                 __FUNCTION__
@@ -362,27 +388,28 @@ final class InstantLifecycleWpdbFake {
     }
 
     public function query( string $sql ) {
-        $pattern = "/^UPDATE wp_kiriminaja_transactions\s+SET rejected_reason = 'Instant cancellation requires reconciliation\.'\s+WHERE order_id = '((?:''|[^'])*)'\s+AND delivery_type = 'instant'\s+AND service IN \('gosend', 'grab_express'\)\s+AND status IN \('pending', 'request_pickup'\)\s+AND instant_status_code IN \(100, 105, 110\)\s+AND instant_status_code = (-?[0-9]+)\s+AND \(rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation\.'\)\s+AND instant_payment_id IS NOT NULL\s+AND instant_payment_id <> ''\s+AND instant_payment_status = 'paid'\s+AND awb IS NOT NULL\s+AND awb <> ''$/";
+        $pattern = "/^UPDATE wp_kiriminaja_transactions\s+SET rejected_reason = '(Instant cancellation requires reconciliation\.(?::[A-Za-z0-9_-]{1,100})?)'\s+WHERE order_id = '((?:''|[^'])*)'\s+AND delivery_type = 'instant'\s+AND service IN \('gosend', 'grab_express'\)\s+AND status IN \('pending', 'request_pickup'\)\s+AND instant_status_code IN \(100, 105, 110\)\s+AND instant_status_code = (-?[0-9]+)\s+AND \(rejected_reason IS NULL OR \(rejected_reason <> 'Instant cancellation requires reconciliation\.' AND rejected_reason NOT LIKE 'Instant cancellation requires reconciliation\.:%'\)\)\s+AND instant_payment_id IS NOT NULL\s+AND instant_payment_id <> ''\s+AND instant_payment_status = 'paid'\s+AND awb IS NOT NULL\s+AND awb <> ''$/";
         if ( ! preg_match( $pattern, $sql, $match ) ) {
             throw new RuntimeException( 'Unexpected cancellation SQL or missing guard.' );
         }
         if ( null !== $this->forcedResult ) {
             return $this->forcedResult;
         }
-        if ( $this->row['order_id'] !== str_replace( "''", "'", $match[1] )
+        if ( $this->row['order_id'] !== str_replace( "''", "'", $match[2] )
             || 'instant' !== $this->row['delivery_type']
             || ! in_array( $this->row['service'], array( 'gosend', 'grab_express' ), true )
             || ! in_array( $this->row['status'], array( 'pending', 'request_pickup' ), true )
             || null === $this->row['instant_status_code']
             || ! in_array( (int) $this->row['instant_status_code'], array( 100, 105, 110 ), true )
-            || (int) $this->row['instant_status_code'] !== (int) $match[2]
+            || (int) $this->row['instant_status_code'] !== (int) $match[3]
             || in_array( $this->row['instant_payment_id'], array( null, '' ), true )
             || 'Instant cancellation requires reconciliation.' === $this->row['rejected_reason']
+            || str_starts_with( (string) $this->row['rejected_reason'], 'Instant cancellation requires reconciliation.:' )
             || 'paid' !== $this->row['instant_payment_status']
             || in_array( $this->row['awb'], array( null, '' ), true ) ) {
             return 0;
         }
-        $this->row['rejected_reason'] = 'Instant cancellation requires reconciliation.';
+        $this->row['rejected_reason'] = $match[1];
         return 1;
     }
 }

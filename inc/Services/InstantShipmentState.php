@@ -134,7 +134,7 @@ final class InstantShipmentState {
 				$changes['instant_status_code'] = $code;
 				$issue = in_array( $code, array( 405, 500, 555, 701, 702, 703, 704, 303, 301, 333 ), true );
 				// The cancellation fence is independent of later provider issue/recovery codes.
-				if ( 'Instant cancellation requires reconciliation.' !== ( $row->rejected_reason ?? null ) ) {
+				if ( ! self::hasCancellationFence( $row ) ) {
 					$changes['rejected_reason'] = $issue ? 'There is a problem with this Instant shipment.' : null;
 				}
 				if ( $target !== $old || null !== $event ) {
@@ -220,6 +220,14 @@ final class InstantShipmentState {
 			return '';
 		}
 		return esc_url_raw( $value, array( 'http', 'https' ) );
+	}
+
+	/** Recognize the historical fence and generation-scoped cancellation attempts only. */
+	public static function hasCancellationFence( $row ): bool {
+		$row = is_object( $row ) ? get_object_vars( $row ) : $row;
+		$marker = is_array( $row ) ? ( $row['rejected_reason'] ?? null ) : null;
+		return is_string( $marker ) && ( 'Instant cancellation requires reconciliation.' === $marker
+			|| 1 === preg_match( '/\AInstant cancellation requires reconciliation\.:[A-Za-z0-9_-]{1,100}\z/', $marker ) );
 	}
 
 	/** No network requests; unknown/unconfirmed bookings are never cancelable. */

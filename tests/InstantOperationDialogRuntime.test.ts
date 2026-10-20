@@ -138,7 +138,12 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
       } else {
         await h.reply([{ id: '42', status: outcome, tracking_url: '', message: privateMessage }]);
       }
-      const result = h.query('[role="status"]').textContent;
+      const alert = h.query('[data-slot="alert"][role="alert"]');
+      expect(alert).not.toBeNull();
+      expect(alert.classList.contains('text-destructive')).toBe(true);
+      expect(alert.querySelector('[data-slot="alert-title"]')).not.toBeNull();
+      expect(alert.querySelector('[data-slot="alert-description"]')).not.toBeNull();
+      const result = alert.textContent;
       if (outcome === 'cancel_rejected') {
         expect(result).toContain('Cancellation rejected');
         expect(result).toContain('Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.');
@@ -158,6 +163,23 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
       await h.click(h.button('Close'));
       expect(h.closes).toEqual([true]);
       expect(h.requests).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+
+  test('rejection Alert shows the sanitized provider reason as escaped text', async () => {
+    const h = await fixture(['42'], 'cancel');
+    try {
+      await h.click(h.button('Cancel'));
+      await h.reply([{ id: '42', status: 'cancel_rejected', tracking_url: '', message: 'DO-NOT-RENDER-RAW', rejection_reason: 'cannot cancel gosend order <img src=x onerror=alert(1)>' }]);
+      const alert = h.query('[data-slot="alert"][role="alert"]');
+      expect(alert.querySelector('[data-slot="alert-title"]').textContent).toBe('Cancellation rejected');
+      expect(alert.querySelector('[data-slot="alert-description"]').textContent).toContain('cannot cancel gosend order <img src=x onerror=alert(1)>');
+      expect(alert.querySelector('img')).toBeNull();
+      expect(alert.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+      expect(h.target.textContent).not.toContain('DO-NOT-RENDER-RAW');
+      expect(h.requests).toHaveLength(1);
+      await h.click(h.button('Close'));
+      expect(h.closes).toEqual([true]);
     } finally { await h.cleanup(); }
   });
 
@@ -329,7 +351,7 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
     try {
       await h.click(h.button('Recheck'));
       await h.reply([{ id: '42', status, tracking_url: 'https://courier.test/track/42', message: 'No existing booking matched.' }]);
-      const result = h.query('[role="status"]').textContent;
+      const result = h.query('[data-slot="alert"]').textContent;
       expect(result).toContain(status === 'not_found' ? 'Booking not found' : 'Unknown result');
       expect(result).toContain(status === 'not_found' ? 'No existing booking matched.' : 'Check again later; do not dispatch again.');
       expect(h.target.querySelectorAll('a')).toHaveLength(0);
@@ -348,7 +370,7 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
       await h.click(h.button('Recheck'));
       h.requests[0].reject(new Error('Connection lost'));
       await h.settle();
-      expect(h.query('[role="status"]').textContent).toContain('Unknown result');
+      expect(h.query('[data-slot="alert"][role="alert"]').textContent).toContain('Unknown result');
       expect(h.target.textContent).toContain('Check again later; do not dispatch again.');
       expect(h.button('Close').disabled).toBe(false);
       expectNoRetryOrDispatch(h);

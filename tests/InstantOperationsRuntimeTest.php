@@ -7,6 +7,8 @@ if (in_array('--fixture', $argv ?? [], true)) {
     define('ABSPATH', __DIR__);
     function __($text, $domain) { return $text; }
     function esc_html__($text, $domain) { return $text; }
+    function wp_json_encode($value) { return json_encode($value); }
+    function wp_strip_all_tags($text) { return strip_tags($text); }
     function wp_parse_url($url) { return parse_url($url); }
     function esc_url_raw($url, $protocols = []) { return $url; }
     function get_transient($key) { return ($GLOBALS['cache'][$key]['expires'] ?? 0) > $GLOBALS['now'] ? $GLOBALS['cache'][$key]['value'] : false; }
@@ -53,12 +55,16 @@ if (in_array('--fixture', $argv ?? [], true)) {
 
 
     eval('namespace KiriminAjaOfficial\\Services; function time() { return $GLOBALS["now"]; }');
+    function kiriof_log($level, $message, $context = [], $channel = '') {
+        $GLOBALS['logs'][] = compact('level', 'message', 'context', 'channel');
+        if ($GLOBALS['log_throw']) { throw new RuntimeException('logging unavailable'); }
+    }
     function wc_get_order($id) { return $GLOBALS['woo']; }
     eval('namespace KiriminAjaOfficial\\Repositories;
         class TransactionRepository {
-            public $rows = []; public $writes = []; public $race; public $claimRace; public $claims = [];
+            public $rows = []; public $writes = []; public $race; public $releaseRace; public $claimRace; public $claims = [];
             public function getTransactionByOrderId($id) { return isset($this->rows[$id]) ? clone $this->rows[$id] : false; }
-            public function claimInstantCancellation(string $id, int $previous_code): bool {
+            public function claimInstantCancellation(string $id, int $previous_code, string $attempt_id = ""): bool {
                 $this->claims[] = [$id, $previous_code];
                 if ($this->claimRace !== null) { foreach ($this->claimRace as $key => $value) { $this->rows[$id]->{$key} = $value; } $this->claimRace = null; }
                 $row = $this->rows[$id] ?? null;
@@ -66,13 +72,14 @@ if (in_array('--fixture', $argv ?? [], true)) {
                     || !in_array($row->status, ["pending","request_pickup"], true)
                     || !in_array($previous_code, [100,105,110], true)
                     || (int) $row->instant_status_code !== $previous_code || empty($row->instant_payment_id)
-                    || ($row->rejected_reason ?? null) === "Instant cancellation requires reconciliation."
-                    || $row->instant_payment_status === "refunded") { return false; }
-                $row->rejected_reason = "Instant cancellation requires reconciliation.";
-                $this->writes[] = ["condition"=>["order_id"=>$id,"instant_status_code"=>$previous_code], "changes"=>["rejected_reason"=>"Instant cancellation requires reconciliation."]];
+                    || \KiriminAjaOfficial\Services\InstantShipmentState::hasCancellationFence($row)
+                    || $row->instant_payment_status !== "paid" || empty($row->awb)) { return false; }
+                $row->rejected_reason = "Instant cancellation requires reconciliation." . ($attempt_id !== "" ? ":" . $attempt_id : "");
+                $this->writes[] = ["condition"=>["order_id"=>$id,"instant_status_code"=>$previous_code], "changes"=>["rejected_reason"=>$row->rejected_reason]];
                 return true;
             }
             public function compareAndSwapInstant(string $id, array $condition, array $changes): bool {
+                if ($changes === ["rejected_reason"=>null] && $this->releaseRace !== null) { foreach ($this->releaseRace as $key => $value) { $this->rows[$id]->{$key} = $value; } $this->releaseRace = null; }
                 if (empty($changes) || !array_key_exists("status", $condition) || !array_key_exists("instant_status_code", $condition)) { return false; }
                 if (isset($condition["order_id"]) && $condition["order_id"] !== $id) { return false; }
                 $condition = array_merge(["order_id"=>$id,"delivery_type"=>"instant"], $condition);
@@ -88,19 +95,23 @@ if (in_array('--fixture', $argv ?? [], true)) {
             }
         }
         class InstantDeliveryApiRepository {
-            public $calls = []; public $deleteCodes = []; public $deleteMarkers = []; public $tracking; public $cancellation; public $throw = false; public $onTracking;
+            public $calls = []; public $deleteCodes = []; public $deleteMarkers = []; public $tracking; public $cancellation; public $throw = false; public $onTracking; public $onDelete; public $diagnostics = [];
             public function tracking($id) { $this->calls[] = ["GET",$id]; if ($this->onTracking !== null) { $hook = $this->onTracking; $this->onTracking = null; $hook(); } return $this->tracking; }
-            public function cancel($id) { $this->calls[] = ["DELETE",$id]; $this->deleteCodes[] = $GLOBALS["repo"]->rows[$id]->instant_status_code; $this->deleteMarkers[] = $GLOBALS["repo"]->rows[$id]->rejected_reason ?? null; foreach ($GLOBALS["webhook_during_delete"] as $key => $value) { $GLOBALS["repo"]->rows[$id]->{$key} = $value; } if ($this->throw) { throw new \\RuntimeException("private driver address 08123456789"); } return $this->cancellation; }
+            public function cancel($id) { $this->calls[] = ["DELETE",$id]; $this->deleteCodes[] = $GLOBALS["repo"]->rows[$id]->instant_status_code; $this->deleteMarkers[] = $GLOBALS["repo"]->rows[$id]->rejected_reason ?? null; if ($this->onDelete !== null) { $hook = $this->onDelete; $this->onDelete = null; $hook(); } foreach ($GLOBALS["webhook_during_delete"] as $key => $value) { $GLOBALS["repo"]->rows[$id]->{$key} = $value; } if ($this->throw) { throw new \\RuntimeException("private driver address 08123456789"); } return $this->cancellation; }
+            public function cancellationDiagnostics(): array { return $this->diagnostics; }
             public function book($payload) { throw new \\LogicException("Booking forbidden"); }
         }');
     require __DIR__ . '/../inc/Services/TransactionDeliveryType.php';
     require __DIR__ . '/../inc/Services/InstantDeliveryStatus.php';
     require __DIR__ . '/../inc/Services/InstantShipmentState.php';
+    require __DIR__ . '/../inc/Infrastructure/InstantDiagnosticRedactor.php';
     require __DIR__ . '/../inc/Services/InstantOperationsService.php';
     $input = json_decode($argv[2], true, 512, JSON_THROW_ON_ERROR);
     $GLOBALS['now'] = time();
     $GLOBALS['initial_now'] = $GLOBALS['now'];
     $GLOBALS['owner_sequence'] = 0;
+    $GLOBALS['logs'] = [];
+    $GLOBALS['log_throw'] = $input['log_throw'] ?? false;
     $GLOBALS['cache'] = [];
     $GLOBALS['options'] = [];
     $GLOBALS['cache_deletes'] = [];
@@ -129,6 +140,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
     if (isset($input['second'])) { $repo->rows['KA-2'] = (object) array_replace($defaults, ['order_id'=>'KA-2'], $input['second']); }
     $repo->race = $input['race'] ?? null;
     $repo->claimRace = $input['claim_race'] ?? null;
+    $repo->releaseRace = $input['release_race'] ?? null;
     $api = new KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository();
     $tracking = ['status'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['order_id'=>'KA-1','service'=>'gosend','service_type'=>'instant','tracking_code'=>'AWB-1','live_tracking_url'=>'https://tracking.example.test/KA-1','date'=>['allocated_at'=>'2025-01-01 10:00:00'],'driver'=>['name'=>'private driver','phone'=>'08123456789'],'destination'=>['address'=>'private address']]]];
     $cancel = ['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['payment_id'=>'PAY-1','packages'=>[['order_id'=>'KA-1','service'=>'gosend','status'=>105]]]]];
@@ -136,9 +148,11 @@ if (in_array('--fixture', $argv ?? [], true)) {
     $api->cancellation = $input['cancel'] ?? $cancel;
     foreach (['tracking','cancellation'] as $field) { if (isset($api->{$field}['data']) && is_array($api->{$field}['data'])) { $api->{$field}['data'] = json_decode(json_encode($api->{$field}['data'])); } }
     $api->throw = $input['throw'] ?? false;
+    $api->diagnostics = array_replace(['reason'=>'transport_failure','http_status'=>504,'submitted'=>true,'elapsed_ms'=>25000,'driver'=>'private driver','phone'=>'08123456789','address'=>'private address','raw_response'=>['token'=>'secret-token'],'order_id'=>'KA-1'], $input['diagnostics'] ?? []);
     $GLOBALS['webhook_during_delete'] = $input['webhook_during_delete'] ?? [];
     $service = new KiriminAjaOfficial\Services\InstantOperationsService($repo, $api, new KiriminAjaOfficial\Services\InstantShipmentState($repo));
     $results = [];
+    $snapshots = [];
     $nestedResults = [];
     if (isset($input['concurrent'])) {
         $api->onTracking = static function () use ($service, $input, &$nestedResults) {
@@ -159,17 +173,36 @@ if (in_array('--fixture', $argv ?? [], true)) {
             $api->tracking = $original;
         };
     }
+    if (isset($input['replacement_during_delete'])) {
+        $api->onDelete = static function () use ($api, $service, $input, &$nestedResults) {
+            $original = $api->cancellation;
+            $GLOBALS['now'] += 91;
+            $api->cancellation = ['status'=>false];
+            $nestedResults[] = $service->cancel(['KA-1']);
+            $api->cancellation = $original;
+        };
+    }
+    if (isset($input['expire_during_tracking'])) {
+        $api->onTracking = static function () { $GLOBALS['now'] += 91; };
+    }
+    if (isset($input['expire_during_delete'])) {
+        $api->onDelete = static function () { $GLOBALS['now'] += 91; };
+    }
     foreach ($input['operations'] ?? [['method'=>'reconcile']] as $operation) {
         $GLOBALS['now'] += $operation['advance'] ?? 0;
         if ($operation['expire_throttle'] ?? false) { $GLOBALS['now'] += 41; }
         if ($operation['expire_report'] ?? false) { foreach (array_keys($GLOBALS['cache']) as $key) { if (str_contains($key, '_report_')) { unset($GLOBALS['cache'][$key]); } } }
         if (isset($operation['tracking'])) { $api->tracking = $operation['tracking']; $api->tracking['data'] = json_decode(json_encode($api->tracking['data'])); }
+        if (array_key_exists('cancel', $operation)) { $api->cancellation = $operation['cancel']; if (is_array($api->cancellation['data'] ?? null)) { $api->cancellation['data'] = json_decode(json_encode($api->cancellation['data'])); } }
+        if (array_key_exists('throw', $operation)) { $api->throw = $operation['throw']; }
+        if (isset($operation['diagnostics'])) { $api->diagnostics = array_replace($api->diagnostics, $operation['diagnostics']); }
         try { $results[] = $service->{$operation['method']}($operation['ids'] ?? ['KA-1']); }
         catch (Throwable $error) { $results[] = ['error'=>get_class($error)]; }
+        $snapshots[] = clone $repo->rows['KA-1'];
     }
     $results_presentation = KiriminAjaOfficial\Services\InstantDeliveryStatus::describe($repo->rows['KA-1']);
     $repo->rows['KA-1']->fixture_presentation = $results_presentation;
-    echo json_encode(['results'=>$results,'rows'=>$repo->rows,'writes'=>$repo->writes,'calls'=>$api->calls,'claims'=>$repo->claims,'delete_codes'=>$api->deleteCodes,'delete_markers'=>$api->deleteMarkers,'cache'=>$GLOBALS['cache'],'options'=>array_map('unserialize', $GLOBALS['options']),'queries'=>$GLOBALS['wpdb']->queries,'cache_deletes'=>$GLOBALS['cache_deletes'],'now'=>$GLOBALS['now'],'initial_now'=>$GLOBALS['initial_now'],'nested_results'=>$nestedResults,'woo'=>$GLOBALS['woo']], JSON_THROW_ON_ERROR);
+    echo json_encode(['snapshots'=>$snapshots,'logs'=>$GLOBALS['logs'],'results'=>$results,'rows'=>$repo->rows,'writes'=>$repo->writes,'calls'=>$api->calls,'claims'=>$repo->claims,'delete_codes'=>$api->deleteCodes,'delete_markers'=>$api->deleteMarkers,'cache'=>$GLOBALS['cache'],'options'=>array_map('unserialize', $GLOBALS['options']),'queries'=>$GLOBALS['wpdb']->queries,'cache_deletes'=>$GLOBALS['cache_deletes'],'now'=>$GLOBALS['now'],'initial_now'=>$GLOBALS['initial_now'],'nested_results'=>$nestedResults,'woo'=>$GLOBALS['woo']], JSON_THROW_ON_ERROR);
     exit;
 }
 
@@ -582,19 +615,21 @@ final class InstantOperationsRuntimeTest extends TestCase {
         }
     }
 
-    public function test_failed_delete_fence_survives_issue_recovery_and_all_cooldowns(): void {
+    public function test_failed_delete_fence_survives_reconciliation_until_explicit_fresh_retry(): void {
         foreach ([['throw'=>true], ['cancel'=>['status'=>false]], ['cancel'=>['status'=>true,'operation_accepted'=>false,'data'=>['status'=>true,'code'=>0,'result'=>['packages'=>[]]]]]] as $failure) {
             $r = $this->fixture($failure + ['operations'=>[
                 ['method'=>'cancel'],
-                ['method'=>'reconcile','expire_report'=>true,'expire_throttle'=>true,'tracking'=>$this->tracking(['status'=>500])],
+                ['method'=>'reconcile','expire_report'=>true,'advance'=>91,'tracking'=>$this->tracking(['status'=>500])],
                 ['method'=>'reconcile','expire_report'=>true,'expire_throttle'=>true,'tracking'=>$this->tracking(['status'=>105])],
-                ['method'=>'cancel','expire_report'=>true,'expire_throttle'=>true],
+                ['method'=>'cancel','expire_report'=>true,'advance'=>91],
             ]]);
-            $this->assertSame([100], $r['delete_codes']);
-            $this->assertSame(['Instant cancellation requires reconciliation.'], $r['delete_markers']);
+            $this->assertSame([100,105], $r['delete_codes']);
+            $this->assertCount(2, $r['delete_markers']);
+            foreach ($r['delete_markers'] as $marker) { $this->assertStringStartsWith('Instant cancellation requires reconciliation.:', $marker); }
+            $this->assertNotSame($r['delete_markers'][0], $r['delete_markers'][1]);
             $this->assertSame(105, $r['rows']['KA-1']['instant_status_code']);
-            $this->assertSame('Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
-            $this->assertSame([['GET','KA-1'],['DELETE','KA-1'],['GET','KA-1'],['GET','KA-1']], $r['calls']);
+            $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+            $this->assertSame([['GET','KA-1'],['DELETE','KA-1'],['GET','KA-1'],['GET','KA-1'],['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
             $this->assertSame([], array_values(array_filter($r['writes'], static fn($write) => 350 === ($write['changes']['instant_status_code'] ?? null))));
             $this->assertSame('processing', $r['woo']['status']);
             $this->assertSame([], $r['woo']['notes']);
@@ -669,13 +704,14 @@ final class InstantOperationsRuntimeTest extends TestCase {
     public function test_failed_delete_preserves_each_last_confirmed_code(): void {
         foreach ([100, 105, 110] as $code) {
             foreach ([['throw'=>true], ['cancel'=>['status'=>false]], ['cancel'=>['status'=>true,'operation_accepted'=>true,'data'=>['status'=>false]]]] as $failure) {
-                $r = $this->fixture($failure + ['row'=>['instant_status_code'=>$code], 'operations'=>[['method'=>'cancel'], ['method'=>'cancel','expire_report'=>true,'expire_throttle'=>true]]]);
+                $r = $this->fixture($failure + ['row'=>['instant_status_code'=>$code], 'operations'=>[['method'=>'cancel'], ['method'=>'cancel','expire_report'=>true,'advance'=>91]]]);
                 $this->assertSame($code, $r['rows']['KA-1']['instant_status_code']);
                 $this->assertSame('Ready for Shipment', $r['rows']['KA-1']['fixture_presentation']['label']);
                 $this->assertSame([$code], $r['delete_codes']);
-                $this->assertSame(['Instant cancellation requires reconciliation.'], $r['delete_markers']);
-                $this->assertSame('Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
-                $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+                $this->assertCount(1, $r['delete_markers']);
+        $this->assertStringStartsWith('Instant cancellation requires reconciliation.:', $r['delete_markers'][0]);
+                $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+                $this->assertSame([['GET','KA-1'],['DELETE','KA-1'],['GET','KA-1']], $r['calls']);
                 $this->assertSame('processing', $r['woo']['status']);
                 $this->assertSame([], $r['woo']['notes']);
             }
@@ -717,7 +753,7 @@ final class InstantOperationsRuntimeTest extends TestCase {
     }
 
     public function test_cancellation_claim_is_durable_before_delete_and_competitors_win(): void {
-        $r = $this->fixture(['operations'=>[['method'=>'cancel'],['method'=>'cancel','expire_report'=>true,'expire_throttle'=>true]]]);
+        $r = $this->fixture(['operations'=>[['method'=>'cancel'],['method'=>'cancel','expire_report'=>true,'advance'=>91]]]);
         $this->assertSame(
         	array(
                 'delete_codes' => [100],
@@ -730,7 +766,8 @@ final class InstantOperationsRuntimeTest extends TestCase {
         		'calls' => $r['calls'],
         	)
         );
-        $this->assertSame(['Instant cancellation requires reconciliation.'], $r['delete_markers']);
+        $this->assertCount(1, $r['delete_markers']);
+        $this->assertStringStartsWith('Instant cancellation requires reconciliation.:', $r['delete_markers'][0]);
         foreach ([['instant_status_code'=>350], ['instant_status_code'=>100,'rejected_reason'=>'Instant cancellation requires reconciliation.'], ['status'=>'shipped','instant_status_code'=>106]] as $race) {
             $r = $this->fixture(['claim_race'=>$race,'operations'=>[['method'=>'cancel']]]);
             $this->assertSame(
@@ -813,7 +850,7 @@ final class InstantOperationsRuntimeTest extends TestCase {
         $base = ['order_id'=>'KA-1','service'=>'gosend','status'=>300];
         foreach ([['order_id'=>'OTHER'], ['service'=>'grab_express'], ['service_type'=>'same_day'], ['awb'=>'OTHER'], ['status'=>true], ['status'=>999]] as $extra) {
             $cancel = ['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['packages'=>[array_replace($base,$extra)]]]];
-            $r = $this->fixture(['cancel'=>$cancel,'operations'=>[['method'=>'cancel'],['method'=>'cancel','expire_report'=>true,'expire_throttle'=>true]]]);
+            $r = $this->fixture(['cancel'=>$cancel,'operations'=>[['method'=>'cancel'],['method'=>'cancel','expire_report'=>true,'advance'=>91]]]);
             $this->assertSame(
             	array(
                     'instant_status_code' => 100,
@@ -860,6 +897,238 @@ final class InstantOperationsRuntimeTest extends TestCase {
         $this->assertSame('shipped', $r['rows']['KA-1']['status']);
         $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
         $this->assertSame([], array_values(array_filter($r['writes'], static fn($write) => 350 === ($write['changes']['instant_status_code'] ?? null))));
+    }
+
+    public function test_marker_ready_rows_allow_manual_retry_only_with_fresh_ready_lifecycle(): void {
+        foreach ([100, 105, 110] as $code) {
+            $r = $this->fixture(['row'=>['instant_status_code'=>$code, 'rejected_reason'=>'Instant cancellation requires reconciliation.'],
+                'existing_claim'=>['owner'=>'earlier-cancel','expires_in'=>90], 'operations'=>[
+                    ['method'=>'cancel'],
+                    ['method'=>'cancel','advance'=>90,'tracking'=>$this->tracking(['status'=>$code])],
+                    ['method'=>'cancel','advance'=>91],
+                ]]);
+            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame('cancel_requested', $r['results'][1]['rows'][0]['status']);
+            $this->assertSame(InvalidArgumentException::class, $r['results'][2]['error']);
+            $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+            $this->assertSame([$code], $r['delete_codes']);
+            $this->assertSame([['KA-1',$code]], $r['claims']);
+            $release = array_values(array_filter($r['writes'], static fn($write) => $write['changes'] === ['rejected_reason'=>null]));
+            $this->assertCount(1, $release);
+            $this->assertSame(['order_id'=>'KA-1','delivery_type'=>'instant','status'=>'request_pickup','instant_status_code'=>$code,'instant_payment_id'=>'PAY-1','instant_payment_status'=>'paid','awb'=>'AWB-1','rejected_reason'=>'Instant cancellation requires reconciliation.'], $release[0]['condition']);
+            $this->assertSame(350, $r['rows']['KA-1']['instant_status_code']);
+        }
+    }
+
+    public function test_timeout_keeps_original_eligible_data_and_retries_after_91_seconds(): void {
+        foreach ([100,105,110] as $code) {
+            $r = $this->fixture(['row'=>['instant_status_code'=>$code], 'tracking'=>$this->tracking([]), 'operations'=>[
+                ['method'=>'cancel','throw'=>true],
+                ['method'=>'cancel'],
+                ['method'=>'cancel','advance'=>91,'throw'=>false,'tracking'=>$this->tracking(['status'=>105])],
+            ]]);
+            $original = ['order_id'=>'KA-1','delivery_type'=>'instant','service'=>'gosend','service_name'=>'instant','status'=>'request_pickup','instant_status_code'=>$code,'instant_payment_id'=>'PAY-1','instant_payment_status'=>'paid','awb'=>'AWB-1','live_tracking_url'=>'','wp_wc_order_stat_order_id'=>1,'rejected_reason'=>'Instant cancellation requires reconciliation.'];
+            $original['rejected_reason'] = $r['delete_markers'][0];
+            $this->assertSame($original, $r['snapshots'][0]);
+            $this->assertSame($r['snapshots'][0], $r['snapshots'][1]);
+            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame('unknown', $r['results'][1]['rows'][0]['status']);
+            $this->assertStringContainsString('90 seconds', $r['results'][1]['rows'][0]['message']);
+            $this->assertSame('cancel_requested', $r['results'][2]['rows'][0]['status']);
+            $this->assertSame([['GET','KA-1'],['DELETE','KA-1'],['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+            $this->assertSame([$code,105], $r['delete_codes']);
+            $this->assertCount(2, $r['delete_markers']);
+            foreach ($r['delete_markers'] as $marker) { $this->assertStringStartsWith('Instant cancellation requires reconciliation.:', $marker); }
+            $this->assertNotSame($r['delete_markers'][0], $r['delete_markers'][1]);
+            $this->assertSame($r['initial_now'] + 181, array_values($r['options'])[0]['expires']);
+        }
+    }
+
+    public function test_fenced_retry_rejects_metadata_identity_mismatch_and_nonready_lifecycle(): void {
+        foreach ([[], ['order_id'=>'OTHER','status'=>105], ['tracking_code'=>'OTHER','status'=>105], ['status'=>101], ['status'=>106], ['status'=>350]] as $remote) {
+            $r = $this->fixture(['row'=>['rejected_reason'=>'Instant cancellation requires reconciliation.'], 'operations'=>[
+                ['method'=>'cancel','tracking'=>$this->tracking($remote)],
+            ]]);
+            $this->assertSame([['GET','KA-1']], $r['calls']);
+            $this->assertSame([], $r['claims']);
+            $this->assertSame([], $r['delete_codes']);
+            $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+        }
+    }
+
+    public function test_definitive_rejection_releases_snapshot_fence_and_next_explicit_retry_succeeds(): void {
+        foreach ([100,105,110] as $code) {
+            $r = $this->fixture(['row'=>['instant_status_code'=>$code], 'operations'=>[
+                ['method'=>'cancel','cancel'=>['status'=>false,'operation_rejected'=>true,'data'=>'private address'], 'diagnostics'=>['reason'=>'api_rejection','http_status'=>422]],
+                ['method'=>'cancel','advance'=>91,'cancel'=>['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['payment_id'=>'PAY-1','packages'=>[['order_id'=>'KA-1','service'=>'gosend','status'=>105]]]]]],
+            ]]);
+            $this->assertSame('cancel_rejected', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame($code, $r['snapshots'][0]['instant_status_code']);
+            $this->assertNull($r['snapshots'][0]['rejected_reason']);
+            $this->assertSame('request_pickup', $r['snapshots'][0]['status']);
+            $this->assertSame('cancel_requested', $r['results'][1]['rows'][0]['status']);
+            $this->assertSame([$code,$code], $r['delete_codes']);
+            $this->assertSame('warning', $r['logs'][0]['level']);
+            $this->assertSame('cancel_rejected', $r['logs'][0]['context']['outcome']);
+            $this->assertSame('api_rejection', $r['logs'][0]['context']['reason']);
+            $this->assertSame(422, $r['logs'][0]['context']['http_status']);
+            $this->assertSame('info', $r['logs'][1]['level']);
+            $this->assertSame([], $r['woo']['notes']);
+        }
+    }
+
+    public function test_paid_and_awb_eligibility_is_enforced_before_network_and_again_at_claim(): void {
+        foreach ([['awb'=>null], ['awb'=>''], ['instant_payment_status'=>'pending'], ['instant_payment_status'=>'refunded']] as $row) {
+            $r = $this->fixture(['row'=>$row,'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame([], $r['calls']);
+            $this->assertSame(InvalidArgumentException::class, $r['results'][0]['error']);
+            $this->assertSame('ineligible', $r['logs'][0]['context']['outcome']);
+            $this->assertFalse($r['logs'][0]['context']['submitted']);
+            $r = $this->fixture(['claim_race'=>$row,'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame([['GET','KA-1']], $r['calls']);
+            $this->assertSame('claim_conflict', $r['logs'][0]['context']['outcome']);
+        }
+    }
+
+    public function test_concurrent_cancel_cannot_bypass_90_second_get_delete_lease(): void {
+        foreach ([0,41,89] as $advance) {
+            $r = $this->fixture(['concurrent'=>['method'=>'cancel','advance'=>$advance], 'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+            $this->assertSame('unknown', $r['nested_results'][0]['rows'][0]['status']);
+            $this->assertSame($r['initial_now'] + 90, array_values($r['options'])[0]['expires']);
+            $this->assertSame('cooldown', $r['logs'][0]['context']['outcome']);
+            $this->assertSame('cancel_requested', $r['results'][0]['rows'][0]['status']);
+        }
+    }
+
+    public function test_unknown_failure_logs_only_safe_diagnostic_whitelist(): void {
+        foreach ([['cancel'=>['status'=>false,'data'=>'private address']], ['throw'=>true]] as $failure) {
+            $r = $this->fixture($failure + ['operations'=>[['method'=>'cancel']]]);
+            $this->assertCount(1, $r['logs']);
+            $log = $r['logs'][0];
+            $this->assertSame('warning', $log['level']);
+            $this->assertSame('kiriminaja_instant', $log['channel']);
+            $this->assertSame('Instant cancellation diagnostics.', $log['message']);
+            $expected = ['operation'=>'instant_cancel','outcome'=>'unknown','order_reference'=>substr(hash('sha256','KA-1'),0,16),'submitted'=>true,'backtrace'=>false];
+            if (!isset($failure['throw'])) { $expected += ['reason'=>'transport_failure','http_status'=>504,'elapsed_ms'=>25000]; }
+            $this->assertSame($expected, $log['context']);
+            foreach (['private','08123456789','secret-token','KA-1','PAY-1','AWB-1'] as $secret) {
+                $this->assertStringNotContainsString($secret, json_encode($r['logs']));
+            }
+            $this->assertSame(100, $r['rows']['KA-1']['instant_status_code']);
+            $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+        }
+    }
+
+    public function test_logging_failure_does_not_change_success_or_repeat_delete(): void {
+        $r = $this->fixture(['log_throw'=>true, 'operations'=>[['method'=>'cancel'],['method'=>'cancel','advance'=>91]]]);
+        $this->assertSame('cancel_requested', $r['results'][0]['rows'][0]['status']);
+        $this->assertSame(350, $r['rows']['KA-1']['instant_status_code']);
+        $this->assertSame([['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+        $this->assertSame('info', $r['logs'][0]['level']);
+    }
+
+    public function test_callback_racing_fence_release_blocks_retry_or_rejection_release(): void {
+        foreach ([['status'=>'shipped','instant_status_code'=>106], ['instant_payment_status'=>'refunded'], ['awb'=>'REPLACEMENT']] as $race) {
+            $r = $this->fixture(['row'=>['rejected_reason'=>'Instant cancellation requires reconciliation.'], 'release_race'=>$race,
+                'tracking'=>$this->tracking(['status'=>105]), 'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame([['GET','KA-1']], $r['calls']);
+            $this->assertSame([], $r['claims']);
+            $this->assertSame('retry_unconfirmed', $r['logs'][0]['context']['outcome']);
+            $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+            foreach ($race as $key=>$value) { $this->assertSame($value, $r['rows']['KA-1'][$key]); }
+            $r = $this->fixture(['release_race'=>$race,'cancel'=>['status'=>false,'operation_rejected'=>true], 'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+        }
+    }
+
+    public function test_diagnostics_reject_invalid_fact_types_and_respect_not_submitted(): void {
+        $r = $this->fixture(['cancel'=>['status'=>false], 'diagnostics'=>[
+            'reason'=>'private provider failure', 'http_status'=>'504', 'elapsed_ms'=>-1, 'submitted'=>false,
+        ], 'operations'=>[['method'=>'cancel']]]);
+        $this->assertSame([
+            'operation'=>'instant_cancel', 'outcome'=>'unknown', 'order_reference'=>substr(hash('sha256','KA-1'),0,16),
+            'submitted'=>false, 'backtrace'=>false,
+        ], $r['logs'][0]['context']);
+        $this->assertSame($r['delete_markers'] ? end($r['delete_markers']) : 'Instant cancellation requires reconciliation.', $r['rows']['KA-1']['rejected_reason']);
+        $this->assertSame(100, $r['rows']['KA-1']['instant_status_code']);
+    }
+
+    public function test_expired_delete_cannot_clear_or_overwrite_new_attempt_with_identical_business_snapshot(): void {
+        foreach ([['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['payment_id'=>'PAY-1','packages'=>[['order_id'=>'KA-1','service'=>'gosend','status'=>300]]]]], ['status'=>false,'operation_rejected'=>true]] as $response) {
+            $r = $this->fixture(['tracking'=>$this->tracking(['status'=>105]), 'replacement_during_delete'=>true,
+                'cancel'=>$response, 'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame([['GET','KA-1'],['DELETE','KA-1'],['GET','KA-1'],['DELETE','KA-1']], $r['calls']);
+            $this->assertSame(['Instant cancellation requires reconciliation.:fixture-owner-1', 'Instant cancellation requires reconciliation.:fixture-owner-2'], $r['delete_markers']);
+            $this->assertSame('Instant cancellation requires reconciliation.:fixture-owner-2', $r['rows']['KA-1']['rejected_reason']);
+            $this->assertSame(105, $r['rows']['KA-1']['instant_status_code']);
+            $this->assertSame('request_pickup', $r['rows']['KA-1']['status']);
+            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame('unknown', $r['nested_results'][0]['rows'][0]['status']);
+            $this->assertSame('response_superseded', end($r['logs'])['context']['outcome']);
+            $this->assertSame([], $r['woo']['notes']);
+            $releases = array_values(array_filter($r['writes'], static fn($write)=>$write['changes'] === ['rejected_reason'=>null]));
+            $this->assertCount(1, $releases);
+            $this->assertSame($r['delete_markers'][0], $releases[0]['condition']['rejected_reason']);
+            $this->assertCount(1, $r['cache']);
+            $this->assertSame('unknown', array_values($r['cache'])[0]['value']['status']);
+        }
+    }
+
+    public function test_expiry_without_replacement_also_revokes_write_authority(): void {
+        $r = $this->fixture(['expire_during_tracking'=>true, 'tracking'=>$this->tracking(['status'=>105]), 'operations'=>[['method'=>'cancel']]]);
+        $this->assertSame([['GET','KA-1']], $r['calls']);
+        $this->assertSame([], $r['claims']);
+        foreach ([['status'=>false,'operation_rejected'=>true], ['status'=>true,'operation_accepted'=>true,'data'=>['status'=>true,'code'=>0,'result'=>['packages'=>[['order_id'=>'KA-1','service'=>'gosend','status'=>300]]]]]] as $response) {
+            $r = $this->fixture(['expire_during_delete'=>true, 'cancel'=>$response, 'operations'=>[['method'=>'cancel']]]);
+            $this->assertSame(100, $r['rows']['KA-1']['instant_status_code']);
+            $this->assertSame($r['delete_markers'][0], $r['rows']['KA-1']['rejected_reason']);
+            $this->assertSame('unknown', $r['results'][0]['rows'][0]['status']);
+            $this->assertSame([], $r['cache']);
+        }
+    }
+
+    public function test_synthetic_400_gosend_rejection_forwards_safe_provider_diagnostics(): void {
+        $r = $this->fixture(['cancel'=>['status'=>false,'operation_rejected'=>true,'data'=>['message'=>'RAW PRIVATE BODY']],
+            'diagnostics'=>['reason'=>'api_rejection','http_status'=>400,'provider_code'=>2,'provider_message'=>'cannot cancel gosend'],
+            'operations'=>[['method'=>'cancel']]]);
+        $report = $r['results'][0]['rows'][0];
+        $context = $r['logs'][0]['context'];
+        $this->assertSame('cancel_rejected', $report['status']);
+        $this->assertSame('cannot cancel gosend', $report['rejection_reason']);
+        $this->assertSame(2, $context['provider_code']);
+        $this->assertSame('cannot cancel gosend', $context['provider_message']);
+        $this->assertSame(400, $context['http_status']);
+        $this->assertStringNotContainsString('RAW PRIVATE BODY', json_encode([$r['logs'], $r['results'], $r['cache']]));
+        $this->assertNull($r['rows']['KA-1']['rejected_reason']);
+    }
+
+    public function test_provider_text_is_redacted_again_for_local_identities_and_never_forwarded_for_other_reasons(): void {
+        $text = '<b>Cannot cancel</b> KA-1 PAY-1 AWB-1 token=secret-token driver@example.test https://private.test/?key=abc 08123456789';
+        $r = $this->fixture(['cancel'=>['status'=>false,'operation_rejected'=>true],
+            'diagnostics'=>['reason'=>'api_rejection','provider_code'=>'2','provider_message'=>$text], 'operations'=>[['method'=>'cancel']]]);
+        $safe = $r['results'][0]['rows'][0]['rejection_reason'];
+        $this->assertStringContainsString('Cannot cancel', $safe);
+        $this->assertSame($safe, $r['logs'][0]['context']['provider_message']);
+        foreach (['KA-1','PAY-1','AWB-1','secret-token','driver@example.test','private.test','08123456789','<b>'] as $secret) {
+            $this->assertStringNotContainsString($secret, json_encode([$r['logs'], $safe]));
+        }
+        foreach (['transport_failure','invalid_response','request_not_submitted','accepted','untrusted'] as $reason) {
+            $r = $this->fixture(['cancel'=>['status'=>false,'operation_rejected'=>true],
+                'diagnostics'=>['reason'=>$reason,'provider_code'=>2,'provider_message'=>$text], 'operations'=>[['method'=>'cancel']]]);
+            $this->assertArrayNotHasKey('provider_code', $r['logs'][0]['context']);
+            $this->assertArrayNotHasKey('provider_message', $r['logs'][0]['context']);
+            $this->assertArrayNotHasKey('rejection_reason', $r['results'][0]['rows'][0]);
+        }
+        foreach ([null, [], true, 2.5, '02', '+2', '2.0', str_repeat('2',65)] as $code) {
+            $r = $this->fixture(['cancel'=>['status'=>false,'operation_rejected'=>true],
+                'diagnostics'=>['reason'=>'api_rejection','provider_code'=>$code,'provider_message'=>['private']], 'operations'=>[['method'=>'cancel']]]);
+            $this->assertArrayNotHasKey('provider_code', $r['logs'][0]['context']);
+            $this->assertArrayNotHasKey('provider_message', $r['logs'][0]['context']);
+            $this->assertArrayNotHasKey('rejection_reason', $r['results'][0]['rows'][0]);
+        }
     }
 
 }

@@ -26,8 +26,16 @@ namespace KiriminAjaOfficial\Infrastructure {
 namespace {
 	define( 'ABSPATH', __DIR__ );
 	function wp_json_encode( $value ) { return json_encode( $value ); }
+	function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 	function kiriof_log( ...$args ) { $GLOBALS['logs'][] = $args; }
 	require ROOT . '/vendor/autoload.php';
+	\KiriminAja\Base\Config\Cache\Cache::setStore( new class implements \KiriminAja\Contracts\CacheStoreContract {
+		private array $values = array();
+		public function get( string $key ): mixed { return $this->values[ $key ] ?? null; }
+		public function put( string $key, mixed $value, int $expiry ): bool { $this->values[ $key ] = $value; return true; }
+		public function remove( string $key ): bool { unset( $this->values[ $key ] ); return true; }
+	} );
+	\KiriminAja\Base\Config\KiriminAjaConfig::setApiTokenKey( 'configured-secret-token' );
 	require ROOT . '/inc/Base/KiriminAjaApi.php';
 	require ROOT . '/inc/Repositories/InstantDeliveryApiRepository.php';
 	class LifecycleFixtureRepository extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository {
@@ -187,7 +195,7 @@ PHP;
 			foreach ( array( 'null', '(object) array()' ) as $result ) {
 				$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, array( "status" => false, "code" => ' . var_export( $code, true ) . ', "result" => ' . $result . ', "text" => "private PIN 123456 token recipient" ) ); $result = $repository->cancel( "order-1" );' );
 				$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.', 'operation_rejected' => true ), $fixture['result'] );
-				$this->assertSame( array( 'reason' => 'api_rejection', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 ), $fixture['diagnostics'] );
+				$this->assertSame( array( 'reason' => 'api_rejection', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7, 'provider_code' => $code, 'provider_message' => 'private PIN [redacted] token [redacted]' ), $fixture['diagnostics'] );
 				$this->assertSame( array(), $fixture['logs'] );
 			}
 		}
@@ -210,6 +218,71 @@ PHP;
 			$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.' ), $fixture['result'], $mutation );
 			$this->assertSame( 'invalid_response', $fixture['diagnostics']['reason'], $mutation );
 		}
+	}
+
+	public function test_cancel_supplied_http_400_preserves_actual_provider_reason_privately(): void {
+		$fixture = $this->run_fixture( '
+			$GLOBALS["diagnostics"]["http_status"] = 400;
+			$GLOBALS["transport"] = array( false, "Instant network request failed." );
+			$GLOBALS["error_response"] = array( "status" => false, "text" => "cannot cancel gosend order", "code" => 2, "method" => null, "result" => null );
+			$result = $repository->cancel( "order-1" );' );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.', 'operation_rejected' => true ), $fixture['result'] );
+		$this->assertSame( array( 'reason' => 'api_rejection', 'http_status' => 400, 'submitted' => true, 'elapsed_ms' => 7, 'provider_code' => 2, 'provider_message' => 'cannot cancel gosend order' ), $fixture['diagnostics'] );
+		$this->assertSame( 1, $fixture['error_reads'] );
+		$this->assertCount( 1, $fixture['calls'] );
+		$this->assertSame( array(), $fixture['logs'] );
+	}
+
+	public function test_cancel_rejection_message_sources_are_redacted_and_bounded(): void {
+		foreach ( array( 'text', 'message', 'statusMessage' ) as $field ) {
+			foreach ( array( false, true ) as $summary ) {
+				$message = "<b>cannot cancel</b> order-1 configured-secret-token Bearer another-secret person@example.test +628123456789 address 12345678\x00\r\n" . str_repeat( 'long ', 600 );
+				$fixture = $this->run_fixture( '
+					$GLOBALS["diagnostics"]["http_status"] = 400;
+					$GLOBALS["transport"] = array( false, "private transport summary" );
+					$GLOBALS["error_response"] = array( "status" => false, "code" => "2", "result" => null, ' . var_export( $field, true ) . ' => ' . var_export( $message, true ) . ', "unknown_private" => null );
+					' . ( $summary ? '$GLOBALS["diagnostics"]["error_body"] = array( "messages" => array( ' . var_export( $field, true ) . ' => ' . var_export( $message, true ) . ', "unknown_private" => "never copy" ), "customer" => "never copy" );' : '' ) . '
+					$result = $repository->cancel( "order-1" );' );
+				$this->assertTrue( $fixture['result']['operation_rejected'] );
+				$this->assertSame( '2', $fixture['diagnostics']['provider_code'] );
+				$safe = $fixture['diagnostics']['provider_message'];
+				$this->assertStringStartsWith( 'cannot cancel [redacted]', $safe );
+				$this->assertLessThanOrEqual( 2048, strlen( $safe ) );
+				foreach ( array( 'order-1', 'configured-secret-token', 'another-secret', 'person@example.test', '628123456789', '12345678', 'never copy', '<b>', "\x00", "\r", "\n" ) as $private ) {
+					$this->assertStringNotContainsString( $private, $safe );
+				}
+				$this->assertCount( 6, $fixture['diagnostics'] );
+				$this->assertSame( array(), $fixture['logs'] );
+			}
+		}
+	}
+
+	public function test_cancel_rejection_diagnostics_reset_and_do_not_fabricate_messages(): void {
+		$fixture = $this->run_fixture( '
+			$GLOBALS["transport"] = array( true, array( "status" => false, "code" => 2, "result" => null, "text" => "cannot cancel gosend order" ) );
+			$repository->cancel( "order-1" );
+			$first = $repository->cancellationDiagnostics();
+			$GLOBALS["transport"] = array( true, array( "status" => false, "code" => str_repeat( "9", 65 ), "result" => null ) );
+			$repository->cancel( "order-1" );
+			$missing = $repository->cancellationDiagnostics();
+			$GLOBALS["transport"] = array( true, $cancel );
+			$repository->cancel( "order-1" );
+			$accepted = $repository->cancellationDiagnostics();
+			$result = array( $first, $missing, $accepted );' );
+		$this->assertSame( 'cannot cancel gosend order', $fixture['result'][0]['provider_message'] );
+		$this->assertSame( array( 'reason' => 'api_rejection', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 ), $fixture['result'][1] );
+		$this->assertSame( array( 'reason' => 'accepted', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 ), $fixture['result'][2] );
+	}
+
+	public function test_cancel_prefers_transport_recognized_message_and_ignores_private_summary_fields(): void {
+		$fixture = $this->run_fixture( '
+			$GLOBALS["transport"] = array( true, array( "status" => false, "code" => str_repeat( "9", 64 ), "result" => null, "text" => "raw private explanation" ) );
+			$GLOBALS["diagnostics"]["error_body"] = array( "messages" => array( "text" => "cannot cancel gosend order order-1", "unknown_private" => "never copy" ), "customer" => "never copy" );
+			$result = $repository->cancel( "order-1" );' );
+		$this->assertSame( str_repeat( '9', 64 ), $fixture['diagnostics']['provider_code'] );
+		$this->assertSame( 'cannot cancel gosend order [redacted]', $fixture['diagnostics']['provider_message'] );
+		$this->assertCount( 6, $fixture['diagnostics'] );
+		$this->assertSame( array(), $fixture['logs'] );
 	}
 
 	public function test_cancel_http_errors_require_safe_status_and_structured_null_result(): void {

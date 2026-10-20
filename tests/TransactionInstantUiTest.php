@@ -373,7 +373,7 @@ PHP;
             '1: row[deliveryType]' => 'express',
             '2: row[selection][canPickup]' => true,
             '3: row[actions][changeOrigin]' => true,
-            '4: row[actions][cancel]' => true,
+            '4: row[actions][cancel]' => false,
             '5: row[actions][track]' => false,
             '6: row[actions][reconcile]' => false,
             '7: row[actions][liveTrackingUrl]' => '',

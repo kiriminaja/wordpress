@@ -192,7 +192,7 @@ final class InstantStatusPresentationTest extends TestCase {
             $contractCase = 'case ' . count( $expectedCases );
             $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
                 '1: list[instantPayment]' => ['method' => 'qris', 'status' => 'paid', 'id' => 'PAY-BOOKED'],
-                '2: list[actions][cancel]' => in_array($code, [100, 105], true),
+                '2: list[actions][cancel]' => false,
                 ];
             $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
                 '1: list[instantPayment]' => $list['instantPayment'],
@@ -217,7 +217,7 @@ final class InstantStatusPresentationTest extends TestCase {
                     '8: detail[shipment][paymentStatus]' => 'paid',
                     '9: detail[shipment][costs][actualShipping]' => 12000,
                     '10: detail[shipment][liveTrackingUrl]' => '',
-                    '11: detail[actions][cancel]' => $mode === 'detail' && in_array($code, [100, 105], true),
+                    '11: detail[actions][cancel]' => false,
                     '12: detail[actions][track]' => false,
                     '13: detail[actions][reconcile]' => false,
                     ];

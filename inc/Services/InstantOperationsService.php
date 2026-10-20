@@ -3,6 +3,7 @@
 namespace KiriminAjaOfficial\Services;
 
 use InvalidArgumentException;
+use KiriminAjaOfficial\Infrastructure\InstantDiagnosticRedactor;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository;
 
@@ -37,6 +38,13 @@ final class InstantOperationsService {
 		if ( is_int( $facts['elapsed_ms'] ?? null ) && $facts['elapsed_ms'] >= 0 ) {
 			$context['elapsed_ms'] = $facts['elapsed_ms'];
 		}
+		if ( 'api_rejection' === ( $context['reason'] ?? null ) ) {
+			foreach ( array( 'provider_code', 'provider_message' ) as $field ) {
+				if ( array_key_exists( $field, $facts ) ) {
+					$context[ $field ] = $facts[ $field ];
+				}
+			}
+		}
 		try {
 			kiriof_log( in_array( $outcome, array( 'cancel_requested', 'canceled' ), true ) ? 'info' : 'warning', 'Instant cancellation diagnostics.', $context, 'kiriminaja_instant' );
 		} catch ( \Throwable $error ) {
@@ -44,8 +52,36 @@ final class InstantOperationsService {
 		}
 	}
 
+	/** Adapter text is already credential-redacted; additionally remove local identities. */
+	private function cancellationFacts( array $facts, string $id, object $row ): array {
+		$code = $facts['provider_code'] ?? null;
+		$message = $facts['provider_message'] ?? null;
+		unset( $facts['provider_message'], $facts['provider_code'] );
+		if ( 'api_rejection' !== ( $facts['reason'] ?? null ) ) {
+			return $facts;
+		}
+		if ( is_int( $code ) || ( is_string( $code ) && strlen( $code ) <= 64 && 1 === preg_match( '/\A(?:0|-?[1-9][0-9]*)\z/', $code ) ) ) {
+			$facts['provider_code'] = $code;
+		}
+		if ( is_string( $message ) ) {
+			$message = InstantDiagnosticRedactor::redact( $message, array( 'order_id' => $id, 'payment_id' => $row->instant_payment_id ?? '', 'awb' => $row->awb ?? '' ), '' );
+			if ( '' !== $message ) {
+				$facts['provider_message'] = $message;
+			}
+		}
+		return $facts;
+	}
+
+	/** A lease that expired or changed owners can never authorize another write/DELETE. */
+	private function ownsReservation( string $id, $reservation ): bool {
+		return is_array( $reservation ) && is_string( $reservation['owner'] ?? null )
+			&& 1 === preg_match( '/\A[A-Za-z0-9_-]{1,100}\z/', $reservation['owner'] )
+			&& is_int( $reservation['expires'] ?? null ) && $reservation['expires'] > time()
+			&& get_option( $this->key( 'throttle', $id ) ) === $reservation;
+	}
+
 	private function releaseCancellationFence( string $id, object $row ): bool {
-		if ( 'Instant cancellation requires reconciliation.' !== ( $row->rejected_reason ?? null ) ) {
+		if ( ! InstantShipmentState::hasCancellationFence( $row ) ) {
 			return false;
 		}
 		$expected = array();
@@ -279,8 +315,15 @@ final class InstantOperationsService {
 			$this->logCancellation( $id, 'cooldown' );
 			return array( 'rows' => array( $this->report( $id, 'unknown', '', __( 'Please wait up to 90 seconds before retrying cancellation. No new cancellation request was sent.', 'kiriminaja-official' ) ) ) );
 		}
+		$reservation = get_option( $this->key( 'throttle', $id ) );
+		$attempt_id = $reservation['owner'] ?? '';
+		$marker = 'Instant cancellation requires reconciliation.:' . $attempt_id;
 		// Never use a cached tracking result as permission to send DELETE.
 		$refreshed = $this->refresh( $id, $row, true );
+		if ( ! $this->ownsReservation( $id, $reservation ) ) {
+			$this->logCancellation( $id, 'response_superseded' );
+			return array( 'rows' => array( $report ) );
+		}
 		if ( 'reconciled' !== $refreshed['status'] ) {
 			$this->logCancellation( $id, 'tracking_unconfirmed' );
 			return array( 'rows' => array( $refreshed ) );
@@ -293,28 +336,38 @@ final class InstantOperationsService {
 		$submitted = false;
 		$facts = array();
 		try {
-			if ( 'Instant cancellation requires reconciliation.' === ( $row->rejected_reason ?? null ) ) {
+			if ( InstantShipmentState::hasCancellationFence( $row ) ) {
 				// Retry is explicit and requires a fresh, matched provider lifecycle, not metadata/cache.
-				if ( ! $this->tracking_confirms_cancel || ! $this->releaseCancellationFence( $id, $row ) ) {
+				if ( ! $this->ownsReservation( $id, $reservation ) || ! $this->tracking_confirms_cancel || ! $this->releaseCancellationFence( $id, $row ) ) {
 					$this->logCancellation( $id, 'retry_unconfirmed' );
 					return array( 'rows' => array( $report ) );
 				}
 				$row = $this->repo->getTransactionByOrderId( $id );
 			}
 			// Persist the fence before DELETE. A competing claim or pickup wins.
-			if ( ! $this->repo->claimInstantCancellation( $id, (int) $row->instant_status_code ) ) {
+			if ( ! $this->ownsReservation( $id, $reservation ) || ! $this->repo->claimInstantCancellation( $id, (int) $row->instant_status_code, $attempt_id ) ) {
 				$this->logCancellation( $id, 'claim_conflict' );
+				return array( 'rows' => array( $report ) );
+			}
+			if ( ! $this->ownsReservation( $id, $reservation ) ) {
 				return array( 'rows' => array( $report ) );
 			}
 			$submitted = true;
 			$response = $this->api->cancel( $id );
-			$facts = $this->api->cancellationDiagnostics();
+			if ( ! $this->ownsReservation( $id, $reservation ) ) {
+				$this->logCancellation( $id, 'response_superseded', true );
+				return array( 'rows' => array( $report ) );
+			}
+			$facts = $this->cancellationFacts( $this->api->cancellationDiagnostics(), $id, $row );
 			$submitted = is_bool( $facts['submitted'] ?? null ) ? $facts['submitted'] : true;
 			if ( true !== ( $response['status'] ?? false ) ) {
 				$claimed = clone $row;
-				$claimed->rejected_reason = 'Instant cancellation requires reconciliation.';
-				if ( true === ( $response['operation_rejected'] ?? false ) && $this->releaseCancellationFence( $id, $claimed ) ) {
+				$claimed->rejected_reason = $marker;
+				if ( true === ( $response['operation_rejected'] ?? false ) && $this->ownsReservation( $id, $reservation ) && $this->releaseCancellationFence( $id, $claimed ) ) {
 					$report = $this->report( $id, 'cancel_rejected', '', __( 'Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.', 'kiriminaja-official' ) );
+					if ( 'api_rejection' === ( $facts['reason'] ?? null ) && isset( $facts['provider_message'] ) ) {
+						$report['rejection_reason'] = $facts['provider_message'];
+					}
 				}
 			} else {
 				$body = $this->body( $response );
@@ -354,7 +407,10 @@ final class InstantOperationsService {
 				$package['status_code'] = $terminal ? (int) $code : 350;
 				// The successful response must not overwrite a callback received during DELETE.
 				$expected_row = clone $row;
-				$expected_row->rejected_reason = 'Instant cancellation requires reconciliation.';
+				$expected_row->rejected_reason = $marker;
+				if ( ! $this->ownsReservation( $id, $reservation ) ) {
+					return array( 'rows' => array( $report ) );
+				}
 				$merged = $this->state->applyTracking( $id, $package, array(), $expected_row );
 				if ( ! $merged['snapshot_current'] ) {
 					$this->logCancellation( $id, 'response_superseded', $submitted, $facts );
@@ -369,6 +425,9 @@ final class InstantOperationsService {
 			$report = $this->unknown( $id );
 		}
 		$this->logCancellation( $id, $report['status'], $submitted, $facts );
+		if ( ! $this->ownsReservation( $id, $reservation ) ) {
+			return array( 'rows' => array( $this->unknown( $id ) ) );
+		}
 		set_transient( $this->key( 'report', $id ), $report, 10 );
 		return array( 'rows' => array( $report ) );
 	}

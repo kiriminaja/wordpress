@@ -80,10 +80,21 @@
             </Empty.Content>
           </Empty.Root>
         {:else if mode !== 'tracking'}
-          <div role="status">
-            <strong>{i18n[`instantResult_${row.status}`] ?? i18n.instantResult_unknown}</strong>
-            {#if row.status === 'unknown'}<p>{i18n.instantOperationUnknown}</p>{:else if row.status === 'cancel_rejected'}<p>{i18n.instantCancelRejected}</p>{:else if row.message}<p>{row.message}</p>{/if}
-          </div>
+          {@const failed = row.status === 'unknown' || row.status === 'cancel_rejected'}
+          <Alert.Root variant={failed ? 'destructive' : 'default'} role={failed ? 'alert' : 'status'}>
+            <IconAlertCircle aria-hidden="true" />
+            <Alert.Title>{i18n[`instantResult_${row.status}`] ?? i18n.instantResult_unknown}</Alert.Title>
+            <Alert.Description>
+              {#if row.status === 'unknown'}
+                <p>{i18n.instantOperationUnknown}</p>
+              {:else if row.status === 'cancel_rejected'}
+                {#if typeof row.rejection_reason === 'string' && row.rejection_reason.trim()}<p>{row.rejection_reason}</p>{/if}
+                <p>{i18n.instantCancelRejected}</p>
+              {:else if row.message}
+                <p>{row.message}</p>
+              {/if}
+            </Alert.Description>
+          </Alert.Root>
         {/if}
         {#if hasTracking}
           {#if embedUrl}<iframe class="kiriof-live-tracking-frame" src={embedUrl} title={i18n.liveTracking} sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>{/if}

@@ -36,7 +36,7 @@ final class InstantExpressGuardsRuntimeTest extends TestCase {
 
     #[Test]
     public function express_cancel_keeps_existing_api_and_local_update_behavior(): void {
-        $result = $this->runGuard( 'cancel', array( array( 'service' => 'jne' ) ) );
+        $result = $this->runGuard( 'cancel', array( array( 'service' => 'jne', 'status' => 'request_pickup' ) ) );
         $this->assertSame( 200, $result['status'] );
         $this->assertSame( 1, $result['calls'] );
         $this->assertSame( 1, $result['writes'] );

@@ -57,6 +57,8 @@ final class InstantOperationUiTest extends TestCase {
             'status'              => array( 'pending', 'request_pickup' ),
             'instant_status_code' => array( 100, 105, 110, '100', '105', '110' ),
             'awb'                 => array( 'AWB-1', 'BOOKED-AWB' ),
+            // A retry marker is not lifecycle evidence and must not hide cancellation.
+            'rejected_reason'     => array( 'Instant cancellation requires reconciliation.' ),
         );
         $expectedStates = $actualStates = [];
         foreach ( $valid as $field => $values ) {
@@ -76,7 +78,6 @@ final class InstantOperationUiTest extends TestCase {
             ['instant_payment_status' => 'PAID'], ['instant_payment_status' => true],
             ['order_id' => ''], ['order_id' => 'bad id'], ['instant_payment_id' => 'bad id'],
             ['awb' => 'invalid awb'], ['awb' => ''], ['awb' => null],
-            ['rejected_reason' => 'Instant cancellation requires reconciliation.'],
             ['instant_status_code' => 101], ['instant_status_code' => '101'], ['instant_status_code' => 106], ['instant_status_code' => 200],
             ['instant_status_code' => 300], ['instant_status_code' => 350],
             ['status' => 'shipped'], ['status' => 'finished'], ['status' => 'canceled'],
@@ -135,6 +136,29 @@ final class InstantOperationUiTest extends TestCase {
                 if ($expected) {
                     $this->assertSame('ready_delivered', InstantDeliveryStatus::describe($payload)['key'], "$mode / $name");
                     $this->assertSame('Ready for Shipment', $row['status']['label'], "$mode / $name");
+                }
+            }
+        }
+    }
+
+    public function test_cancellation_retry_marker_does_not_hide_eligible_actions_or_bypass_payment_and_awb_guards(): void {
+        $cases = [
+            'paid with AWB' => [[], true],
+            'unpaid with AWB' => [['instant_payment_status' => 'unpaid'], false],
+            'paid with null AWB' => [['awb' => null], false],
+            'paid with empty AWB' => [['awb' => ''], false],
+        ];
+        foreach (['list', 'detail'] as $mode) {
+            foreach (['gosend', 'grab_express'] as $service) {
+                foreach ([100, 105, 110] as $code) {
+                    foreach ($cases as $name => [$changes, $expected]) {
+                        $payload = array_replace($this->confirmedBooking(), [
+                            'mode' => $mode, 'service' => $service, 'instant_status_code' => $code,
+                            'rejected_reason' => 'Instant cancellation requires reconciliation.',
+                        ], $changes);
+                        $row = $this->row($payload);
+                        $this->assertSame($expected, $row['actions']['cancel'], "$mode / $service / $code / $name");
+                    }
                 }
             }
         }

@@ -7,6 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Infrastructure\InstantApiTransport;
+use KiriminAjaOfficial\Infrastructure\InstantDiagnosticRedactor;
+use KiriminAja\Base\Config\KiriminAjaConfig;
 use KiriminAja\Models\ShippingPriceInstantData;
 use KiriminAja\Responses\ServiceResponse;
 use KiriminAja\Services\KiriminAja;
@@ -18,7 +20,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 	private array $booking_diagnostics = array();
 	private array $cancellation_diagnostics = array();
 
-	/** Facts only: never transport error summaries or upstream response text. */
+	/** Typed facts and bounded, redacted rejection explanations; never raw bodies. */
 	public function cancellationDiagnostics(): array {
 		return $this->cancellation_diagnostics;
 	}
@@ -115,6 +117,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			}
 			if ( $rejected ) {
 				$this->cancellation_diagnostics['reason'] = 'api_rejection';
+				$this->recordCancellationRejection( $body, $client->diagnostics(), $order_id );
 				$failure['operation_rejected'] = true;
 				return $failure;
 			}
@@ -147,6 +150,33 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			if ( 0 === $this->cancellation_diagnostics['elapsed_ms'] ) {
 				$this->cancellation_diagnostics['elapsed_ms'] = (int) ( ( hrtime( true ) - $started ) / 1000000 );
 			}
+		}
+	}
+
+	/** Copy only canonical codes and recognized messages, never error_response itself. */
+	private function recordCancellationRejection( object $body, array $facts, string $order_id ): void {
+		$code = $body->code ?? null;
+		if ( is_int( $code ) || ( is_string( $code ) && strlen( $code ) <= 64 && 1 === preg_match( '/\A-?[1-9][0-9]*\z/', $code ) ) ) {
+			$this->cancellation_diagnostics['provider_code'] = $code;
+		}
+		try {
+			$token = KiriminAjaConfig::apiKey()->getKey();
+			if ( ! is_string( $token ) ) {
+				return;
+			}
+			foreach ( array( 'text', 'message', 'statusMessage' ) as $field ) {
+				$message = $facts['error_body']['messages'][ $field ] ?? $body->$field ?? null;
+				if ( ! is_string( $message ) || '' === trim( $message ) ) {
+					continue;
+				}
+				$message = InstantDiagnosticRedactor::redact( $message, array( 'order_id' => $order_id ), $token );
+				if ( '' !== $message ) {
+					$this->cancellation_diagnostics['provider_message'] = $message;
+					break;
+				}
+			}
+		} catch ( \Throwable $throwable ) {
+			// Missing redaction context must not disclose text or change rejection proof.
 		}
 	}
 

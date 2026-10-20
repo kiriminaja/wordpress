@@ -210,6 +210,7 @@ export type InstantOperationRow = {
     | 'reconciled';
   tracking_url: string;
   message: string;
+  rejection_reason?: string;
 };
 
 /** External courier URLs are allowed, but never credentials or executable schemes. */

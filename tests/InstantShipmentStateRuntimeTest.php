@@ -61,7 +61,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
         catch (Throwable $error) { $results[] = ['error'=>get_class($error), 'code'=>$error->getCode()]; }
     }
     $webhook = isset($input['webhook']) ? (new KiriminAjaOfficial\Services\InstantWebhookService($state))->handle(json_decode(json_encode($input['webhook'])), [$repo->row]) : null;
-    echo json_encode(['webhook'=>$webhook, 'results'=>$results, 'row'=>$repo->row, 'writes'=>$repo->writes, 'reads'=>$repo->reads, 'woo'=>$GLOBALS['order'], 'cancelable'=>KiriminAjaOfficial\Services\InstantShipmentState::canCancel($repo->row)], JSON_THROW_ON_ERROR);
+    echo json_encode(['webhook'=>$webhook, 'results'=>$results, 'row'=>$repo->row, 'writes'=>$repo->writes, 'reads'=>$repo->reads, 'woo'=>$GLOBALS['order'], 'fenced'=>KiriminAjaOfficial\Services\InstantShipmentState::hasCancellationFence($repo->row), 'cancelable'=>KiriminAjaOfficial\Services\InstantShipmentState::canCancel($repo->row)], JSON_THROW_ON_ERROR);
     exit;
 }
 
@@ -551,11 +551,13 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
             $r = $this->runFixture(['row'=>['awb'=>$awb], 'events'=>[$this->event(105, ['awb'=>null])]]);
             $this->assertSame(
                 [
+                    'row.awb' => $awb,
                     'cancelable' => false,
                     'row.instant_status_code' => 105,
                     'row.status' => 'request_pickup',
                 ],
                 [
+                    'row.awb' => $r['row']['awb'],
                     'cancelable' => $r['cancelable'],
                     'row.instant_status_code' => $r['row']['instant_status_code'],
                     'row.status' => $r['row']['status'],
@@ -575,6 +577,23 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $cases = [];
         foreach ([100, 105, 110, '100', '105', '110'] as $code) {
             $cases['ready code ' . json_encode($code)] = [['instant_status_code' => $code], true];
+            foreach (['gosend', 'grab_express'] as $service) {
+                $marked = [
+                    'service' => $service, 'instant_status_code' => $code,
+                    'rejected_reason' => 'Instant cancellation requires reconciliation.',
+                ];
+                // Retry visibility follows paid/ready/AWB evidence, not the local marker.
+                foreach ([
+                    'paid with AWB' => [[], true],
+                    'unpaid with AWB' => [['instant_payment_status' => 'unpaid'], false],
+                    'paid with null AWB' => [['awb' => null], false],
+                    'paid with empty AWB' => [['awb' => ''], false],
+                ] as $name => [$changes, $expected]) {
+                    $cases[$service . ' / code ' . json_encode($code) . ' / marker / ' . $name] = [
+                        array_replace($marked, $changes), $expected,
+                    ];
+                }
+            }
             foreach (['unpaid', 'pending', 'refunded', null] as $payment) {
                 $cases['code ' . json_encode($code) . ' / payment ' . json_encode($payment)] = [
                     ['instant_status_code' => $code, 'instant_payment_status' => $payment], false,
@@ -593,7 +612,6 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
             ['instant_payment_status' => 'PAID'], ['instant_payment_status' => true],
             ['awb' => 'bad awb'], ['awb' => 123], ['awb' => str_repeat('A', 101)],
             ['order_id' => 'bad id'], ['instant_payment_id' => ''], ['instant_payment_id' => null],
-            ['rejected_reason' => 'Instant cancellation requires reconciliation.'],
         ] as $changes) {
             $cases[json_encode($changes)] = [$changes, false];
         }
@@ -1010,6 +1028,21 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         $event['metadata'] = ['shipment_location_snapshot'=>'{"name":"Other"}'];
         $r = $this->runFixture(['row'=>['shipment_location_snapshot'=>'{"name":"Origin"}'], 'events'=>[$event]]);
         $this->assertSame([], $r['writes']);
+    }
+
+    public function test_cancellation_fence_recognition_is_exact_and_survives_lifecycle_merges(): void {
+        foreach (['Instant cancellation requires reconciliation.', 'Instant cancellation requires reconciliation.:attempt_A-123'] as $marker) {
+            foreach ([105,500,350,300] as $code) {
+                $r = $this->runFixture(['row'=>['rejected_reason'=>$marker], 'events'=>[['package'=>['order_id'=>'KA-1','status'=>$code]]]]);
+                $this->assertTrue($r['fenced']);
+                $this->assertSame($marker, $r['row']['rejected_reason']);
+                $this->assertSame($code, $r['row']['instant_status_code']);
+            }
+        }
+        foreach (['Instant cancellation requires reconciliation.:', 'Instant cancellation requires reconciliation.:bad token', 'Instant cancellation requires reconciliation.:'.str_repeat('x',101), "Instant cancellation requires reconciliation.:token\n", 'Instant cancellation requires reconciliation.X'] as $marker) {
+            $r = $this->runFixture(['row'=>['rejected_reason'=>$marker], 'events'=>[]]);
+            $this->assertFalse($r['fenced']);
+        }
     }
 
 }
