@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once __DIR__ . '/ShipmentDetailAmounts.php';
 require_once __DIR__ . '/ShipmentDetailPayment.php';
+require_once __DIR__ . '/ExpressCancellationEligibility.php';
 
 /**
  * Converts one regular-delivery transaction into the Svelte detail workspace contract.
@@ -96,10 +97,9 @@ class TransactionDetailPageData
         $status = (string) ($transaction->status ?? "new");
         $awb = (string) ($transaction->awb ?? "");
         $is_deficit = !empty($transaction->is_deficit);
-        $terminal_statuses = array("shipped", "finished", "returned", "return", "canceled");
         $delivery_type = TransactionDeliveryType::resolve( $transaction );
         $is_express = 'express' === $delivery_type;
-        $can_cancel = $is_express ? (!$is_deficit && "" !== $awb && !in_array($status, $terminal_statuses, true)) : InstantShipmentState::canCancel($transaction);
+        $can_cancel = $is_express ? (!$is_deficit && ExpressCancellationEligibility::canCancel($transaction)) : InstantShipmentState::canCancel($transaction);
         $can_remote_instant = !$is_express && "new" !== $status && in_array(strtolower(trim((string) ($transaction->service ?? ""))), array("gosend", "grab_express"), true);
         $order_url = $wc_order && method_exists($wc_order, "get_edit_order_url") ? (string) $wc_order->get_edit_order_url() : "";
         $payment = ShipmentDetailPayment::forTransaction( $transaction );
@@ -668,6 +668,8 @@ class TransactionDetailPageData
             "openInNewTab" => __("Open in new tab", "kiriminaja-official"),
             "instantResult_not_found" => __("Shipment not found", "kiriminaja-official"),
             "instantResult_cancel_requested" => __("Cancellation requested", "kiriminaja-official"),
+            "instantResult_cancel_rejected" => __("Cancellation rejected", "kiriminaja-official"),
+            "instantCancelRejected" => __("Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.", "kiriminaja-official"),
             "instantResult_canceled" => __("Shipment canceled", "kiriminaja-official"),
             "instantClose" => __("Close", "kiriminaja-official"),
             "instantResult_unknown" => __("Unknown outcome", "kiriminaja-official"),

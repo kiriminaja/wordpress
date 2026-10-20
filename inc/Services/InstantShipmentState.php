@@ -228,11 +228,11 @@ final class InstantShipmentState {
 		return is_array( $row ) && 'instant' === TransactionDeliveryType::resolve( $row )
 			&& in_array( strtolower( trim( (string) ( $row['service'] ?? '' ) ) ), array( 'gosend', 'grab_express' ), true )
 			&& in_array( $row['status'] ?? null, array( 'pending', 'request_pickup' ), true )
-			&& 'refunded' !== ( $row['instant_payment_status'] ?? null )
-			&& 'Instant cancellation requires reconciliation.' !== ( $row['rejected_reason'] ?? null )
+			&& 'paid' === ( $row['instant_payment_status'] ?? null )
 			&& in_array( $row['instant_status_code'] ?? null, array( 100, 105, 110, '100', '105', '110' ), true )
 			&& self::identifier( $row['order_id'] ?? null ) && self::identifier( $row['instant_payment_id'] ?? null )
-			&& ( null === ( $row['awb'] ?? null ) || '' === $row['awb'] || self::identifier( $row['awb'] ) );
+			&& self::identifier( $row['awb'] ?? null )
+			&& 'ready_delivered' === InstantDeliveryStatus::describe( $row )['key'];
 	}
 
 	private static function identifier( $value ): bool {

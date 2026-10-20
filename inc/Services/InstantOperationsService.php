@@ -14,6 +14,46 @@ final class InstantOperationsService {
 	private TransactionRepository $repo;
 	private InstantDeliveryApiRepository $api;
 	private InstantShipmentState $state;
+	private bool $tracking_confirms_cancel = false;
+
+	/** Diagnostics never affect the operation or disclose provider/customer payloads. */
+	private function logCancellation( string $id, string $outcome, bool $submitted = false, array $facts = array() ): void {
+		if ( ! function_exists( 'kiriof_log' ) ) {
+			return;
+		}
+		$context = array(
+			'operation' => 'instant_cancel',
+			'outcome' => $outcome,
+			'order_reference' => substr( hash( 'sha256', $id ), 0, 16 ),
+			'submitted' => $submitted,
+			'backtrace' => false,
+		);
+		if ( in_array( $facts['reason'] ?? null, array( 'api_rejection', 'invalid_response', 'transport_failure', 'invalid_identity', 'request_not_submitted', 'accepted' ), true ) ) {
+			$context['reason'] = $facts['reason'];
+		}
+		if ( is_int( $facts['http_status'] ?? null ) && $facts['http_status'] >= 100 && $facts['http_status'] <= 599 ) {
+			$context['http_status'] = $facts['http_status'];
+		}
+		if ( is_int( $facts['elapsed_ms'] ?? null ) && $facts['elapsed_ms'] >= 0 ) {
+			$context['elapsed_ms'] = $facts['elapsed_ms'];
+		}
+		try {
+			kiriof_log( in_array( $outcome, array( 'cancel_requested', 'canceled' ), true ) ? 'info' : 'warning', 'Instant cancellation diagnostics.', $context, 'kiriminaja_instant' );
+		} catch ( \Throwable $error ) {
+			// Logging failure must not retry or change an irreversible operation.
+		}
+	}
+
+	private function releaseCancellationFence( string $id, object $row ): bool {
+		if ( 'Instant cancellation requires reconciliation.' !== ( $row->rejected_reason ?? null ) ) {
+			return false;
+		}
+		$expected = array();
+		foreach ( array( 'status', 'instant_status_code', 'instant_payment_id', 'instant_payment_status', 'awb', 'rejected_reason' ) as $field ) {
+			$expected[ $field ] = $row->{$field} ?? null;
+		}
+		return $this->repo->compareAndSwapInstant( $id, $expected, array( 'rejected_reason' => null ) );
+	}
 
 	public function __construct( TransactionRepository $repo, InstantDeliveryApiRepository $api, InstantShipmentState $state ) {
 		$this->repo = $repo;
@@ -110,13 +150,13 @@ final class InstantOperationsService {
 		return 'kiriof_instant_ops_' . $kind . '_' . hash( 'sha256', $id );
 	}
 
-	private function reserve( string $id ): bool {
+	private function reserve( string $id, int $duration = 40 ): bool {
 		global $wpdb;
 
 		$key = $this->key( 'throttle', $id );
 		// Keep the cooldown beyond the 25-second GET timeout and below two
 		// requests per minute per ID. Never release it on success or failure.
-		$claim = array( 'owner' => wp_generate_uuid4(), 'expires' => time() + 40 );
+		$claim = array( 'owner' => wp_generate_uuid4(), 'expires' => time() + $duration );
 		if ( add_option( $key, $claim, '', false ) ) {
 			return true;
 		}
@@ -137,6 +177,7 @@ final class InstantOperationsService {
 	}
 
 	private function refresh( string $id, object $row, bool $reconcile ): array {
+		$this->tracking_confirms_cancel = false;
 		try {
 			$response = $this->api->tracking( $id );
 			if ( true === ( $response['not_found'] ?? false ) ) {
@@ -214,6 +255,8 @@ final class InstantOperationsService {
 			if ( ! $merged['snapshot_current'] ) {
 				return $this->unknown( $id );
 			}
+			$this->tracking_confirms_cancel = array_intersect( array_keys( $package ), array( 'status', 'status_code', 'instant_status_code' ) )
+				&& InstantShipmentState::canCancel( $this->repo->getTransactionByOrderId( $id ) );
 			return $this->report( $id, $reconcile ? 'reconciled' : ( '' !== $merged['tracking_url'] ? 'tracked' : 'tracking_unavailable' ), $merged['tracking_url'] );
 		} catch ( \Throwable $error ) {
 			return $this->unknown( $id );
@@ -224,34 +267,55 @@ final class InstantOperationsService {
 		$rows = $this->selection( $ids, 1 );
 		foreach ( $rows as $row ) {
 			if ( ! $this->canCancel( $row ) ) {
-				throw new InvalidArgumentException( esc_html__( 'This Instant shipment cannot be canceled.', 'kiriminaja-official' ) );
+				$this->logCancellation( (string) $row->order_id, 'ineligible' );
+				throw new InvalidArgumentException( esc_html__( 'Only paid Instant shipments with an AWB and Ready for Shipment status can be canceled.', 'kiriminaja-official' ) );
 			}
 		}
 		$id = $ids[0];
 		$row = $rows[ $id ];
 		$report = $this->unknown( $id );
-		if ( ! $this->reserve( $id ) ) {
-			return array( 'rows' => array( $report ) );
+		// GET plus DELETE can each take 25 seconds. The lease must outlive both.
+		if ( ! $this->reserve( $id, 90 ) ) {
+			$this->logCancellation( $id, 'cooldown' );
+			return array( 'rows' => array( $this->report( $id, 'unknown', '', __( 'Please wait up to 90 seconds before retrying cancellation. No new cancellation request was sent.', 'kiriminaja-official' ) ) ) );
 		}
 		// Never use a cached tracking result as permission to send DELETE.
 		$refreshed = $this->refresh( $id, $row, true );
 		if ( 'reconciled' !== $refreshed['status'] ) {
+			$this->logCancellation( $id, 'tracking_unconfirmed' );
 			return array( 'rows' => array( $refreshed ) );
 		}
 		$row = $this->repo->getTransactionByOrderId( $id );
 		if ( ! $this->canCancel( $row ) ) {
+			$this->logCancellation( $id, 'ineligible_after_tracking' );
 			return array( 'rows' => array( $this->report( $id, 'unknown', $refreshed['tracking_url'], __( 'This Instant shipment cannot be canceled.', 'kiriminaja-official' ) ) ) );
 		}
+		$submitted = false;
+		$facts = array();
 		try {
+			if ( 'Instant cancellation requires reconciliation.' === ( $row->rejected_reason ?? null ) ) {
+				// Retry is explicit and requires a fresh, matched provider lifecycle, not metadata/cache.
+				if ( ! $this->tracking_confirms_cancel || ! $this->releaseCancellationFence( $id, $row ) ) {
+					$this->logCancellation( $id, 'retry_unconfirmed' );
+					return array( 'rows' => array( $report ) );
+				}
+				$row = $this->repo->getTransactionByOrderId( $id );
+			}
 			// Persist the fence before DELETE. A competing claim or pickup wins.
 			if ( ! $this->repo->claimInstantCancellation( $id, (int) $row->instant_status_code ) ) {
+				$this->logCancellation( $id, 'claim_conflict' );
 				return array( 'rows' => array( $report ) );
 			}
+			$submitted = true;
 			$response = $this->api->cancel( $id );
+			$facts = $this->api->cancellationDiagnostics();
+			$submitted = is_bool( $facts['submitted'] ?? null ) ? $facts['submitted'] : true;
 			if ( true !== ( $response['status'] ?? false ) ) {
-				// A timeout may have accepted DELETE. Block repeated cancellation,
-				// but do not claim terminal cancellation or touch the WC order.
-				// The durable pre-request claim already blocks another DELETE.
+				$claimed = clone $row;
+				$claimed->rejected_reason = 'Instant cancellation requires reconciliation.';
+				if ( true === ( $response['operation_rejected'] ?? false ) && $this->releaseCancellationFence( $id, $claimed ) ) {
+					$report = $this->report( $id, 'cancel_rejected', '', __( 'Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.', 'kiriminaja-official' ) );
+				}
 			} else {
 				$body = $this->body( $response );
 				$packages = $body->result->packages ?? null;
@@ -293,6 +357,7 @@ final class InstantOperationsService {
 				$expected_row->rejected_reason = 'Instant cancellation requires reconciliation.';
 				$merged = $this->state->applyTracking( $id, $package, array(), $expected_row );
 				if ( ! $merged['snapshot_current'] ) {
+					$this->logCancellation( $id, 'response_superseded', $submitted, $facts );
 					return array( 'rows' => array( $report ) );
 				}
 				$confirmed = 'canceled' === $merged['status'];
@@ -303,6 +368,7 @@ final class InstantOperationsService {
 			// Never clear the durable claim or infer terminal cancellation here.
 			$report = $this->unknown( $id );
 		}
+		$this->logCancellation( $id, $report['status'], $submitted, $facts );
 		set_transient( $this->key( 'report', $id ), $report, 10 );
 		return array( 'rows' => array( $report ) );
 	}

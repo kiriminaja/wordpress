@@ -16,6 +16,12 @@ use KiriminAjaOfficial\Utils\CreditBalance;
 /** Official SDK adapter for Instant delivery; never retries remote operations. */
 class InstantDeliveryApiRepository extends KiriminAjaApi {
 	private array $booking_diagnostics = array();
+	private array $cancellation_diagnostics = array();
+
+	/** Facts only: never transport error summaries or upstream response text. */
+	public function cancellationDiagnostics(): array {
+		return $this->cancellation_diagnostics;
+	}
 
 	/** Facts only, never request/response text, credentials, or customer data. */
 	public function bookingDiagnostics(): array {
@@ -47,25 +53,100 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 	}
 
 	public function cancel( string $order_id ): array {
+		$started = hrtime( true );
+		$this->cancellation_diagnostics = array(
+			'reason'      => 'request_not_submitted',
+			'http_status' => null,
+			'submitted'   => false,
+			'elapsed_ms'  => 0,
+		);
 		if ( ! $this->valid_order_id( $order_id ) ) {
+			$this->cancellation_diagnostics['reason'] = 'invalid_identity';
 			return $this->failure( 'Invalid Instant order ID.' );
 		}
+		$client = null;
+		// Copy only typed facts. Transport summaries may contain private error text.
+		$read_diagnostics = function () use ( &$client ): void {
+			if ( null === $client ) {
+				return;
+			}
+			$facts = $client->diagnostics();
+			$this->cancellation_diagnostics['http_status'] = is_int( $facts['http_status'] ?? null ) ? $facts['http_status'] : null;
+			if ( is_bool( $facts['submitted'] ?? null ) ) {
+				$this->cancellation_diagnostics['submitted'] = $facts['submitted'];
+			}
+			if ( is_int( $facts['elapsed_ms'] ?? null ) && $facts['elapsed_ms'] >= 0 ) {
+				$this->cancellation_diagnostics['elapsed_ms'] = $facts['elapsed_ms'];
+			}
+		};
 		try {
-			[ $transport, $body ] = ( new InstantApiTransport() )->delete( 'api/mitra/v4/instant/pickup/void/' . rawurlencode( $order_id ) );
+			$client = new InstantApiTransport();
+			// An exception after entering delete cannot by itself prove non-submission.
+			$this->cancellation_diagnostics['submitted'] = true;
+			[ $transport, $body ] = $client->delete( 'api/mitra/v4/instant/pickup/void/' . rawurlencode( $order_id ) );
+			$read_diagnostics();
+			$failure = $this->failure( 'Instant cancellation failed.' );
+			if ( false === $transport && false === $this->cancellation_diagnostics['submitted'] ) {
+				$failure['operation_rejected'] = true;
+				return $failure;
+			}
+			$http = $this->cancellation_diagnostics['http_status'];
+			$http_rejection = false === $transport && is_int( $http ) && $http >= 400 && $http < 500 && ! in_array( $http, array( 408, 409, 425, 429 ), true );
+			if ( $http_rejection ) {
+				$body = $client->errorResponse();
+			}
 			$body = $this->lifecycle_body( $body );
-			if ( true !== $transport || null === $body || true !== ( $body->status ?? null ) || ! in_array( $body->code ?? null, array( 0, '0' ), true ) || ! is_object( $body->result ?? null ) ) {
-				return $this->failure( 'Instant cancellation failed.' );
+			$success_transport = true === $transport && ( null === $http || ( $http >= 200 && $http < 300 ) );
+			$code = $body->code ?? null;
+			$nonzero_code = ( is_int( $code ) && 0 !== $code ) || ( is_string( $code ) && 1 === preg_match( '/\A-?[1-9][0-9]*\z/', $code ) );
+			$empty_result = null !== $body && property_exists( $body, 'result' ) && ( null === $body->result || ( ! $http_rejection && is_object( $body->result ) && array() === (array) $body->result ) );
+			$rejected = true === $this->cancellation_diagnostics['submitted'] && ( $success_transport || $http_rejection ) && false === ( $body->status ?? null ) && $nonzero_code && $empty_result;
+			if ( $rejected ) {
+				// Unknown nested data or identities contradict a definitive rejection.
+				foreach ( $body as $field => $value ) {
+					if ( in_array( $field, array( 'status', 'code', 'result' ), true ) ) {
+						continue;
+					}
+					if ( is_array( $value ) || is_object( $value ) || ( ! in_array( $field, array( 'text', 'message', 'statusMessage' ), true ) && null !== $value && '' !== $value ) ) {
+						$rejected = false;
+						break;
+					}
+				}
+			}
+			if ( $rejected ) {
+				$this->cancellation_diagnostics['reason'] = 'api_rejection';
+				$failure['operation_rejected'] = true;
+				return $failure;
+			}
+			$this->cancellation_diagnostics['reason'] = $success_transport ? 'invalid_response' : 'transport_failure';
+			if ( ! $success_transport || null === $body || true !== ( $body->status ?? null ) || ! in_array( $code, array( 0, '0' ), true ) || ! is_object( $body->result ?? null ) ) {
+				return $failure;
 			}
 			$packages = $body->result->packages ?? null;
 			if ( ! is_array( $packages ) || ! array_is_list( $packages ) || 1 !== count( $packages ) || ! is_object( $packages[0] ) || $order_id !== ( $packages[0]->order_id ?? null ) || ! in_array( $packages[0]->service ?? null, array( 'gosend', 'grab_express' ), true ) ) {
-				return $this->failure( 'Instant cancellation failed.' );
+				$this->cancellation_diagnostics['reason'] = 'invalid_identity';
+				return $failure;
 			}
-			// A successful void operation can still report status 105. Do not
-			// rewrite its remote status or assert that tracking says "cancelled".
-			// The caller must also verify this package's service against its row.
+			// Acceptance is not proof that tracking has reached a cancelled status.
+			$this->cancellation_diagnostics['reason'] = 'accepted';
 			return array( 'status' => true, 'data' => $body, 'operation_accepted' => true );
 		} catch ( \Throwable $throwable ) {
-			return $this->failure( 'Instant cancellation failed.' );
+			$this->cancellation_diagnostics['reason'] = 'transport_failure';
+			try {
+				$read_diagnostics();
+			} catch ( \Throwable $diagnostic_exception ) {
+				// No exception text is safe to disclose.
+			}
+			$failure = $this->failure( 'Instant cancellation failed.' );
+			if ( false === $this->cancellation_diagnostics['submitted'] ) {
+				$this->cancellation_diagnostics['reason'] = 'request_not_submitted';
+				$failure['operation_rejected'] = true;
+			}
+			return $failure;
+		} finally {
+			if ( 0 === $this->cancellation_diagnostics['elapsed_ms'] ) {
+				$this->cancellation_diagnostics['elapsed_ms'] = (int) ( ( hrtime( true ) - $started ) / 1000000 );
+			}
 		}
 	}
 

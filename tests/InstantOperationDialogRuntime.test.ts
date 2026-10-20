@@ -80,7 +80,9 @@ async function fixture(orderIds = ['42'], mode = 'reconcile') {
     instantRecheck: 'Recheck', instantRecheckDescription: 'Check the existing booking without booking again.',
     instantClose: 'Close', liveTracking: 'Live Tracking', instantCancel: 'Cancel',
     instantResult_reconciled: 'Shipment status refreshed', instantResult_not_found: 'Booking not found',
-    instantResult_unknown: 'Unknown result', instantOperationUnknown: 'Check again later; do not dispatch again.',
+    instantResult_unknown: 'Unknown result', instantOperationUnknown: mode === 'cancel' ? 'Unable to confirm the operation. Contact support before trying again.' : 'Check again later; do not dispatch again.',
+    instantResult_cancel_rejected: 'Cancellation rejected',
+    instantCancelRejected: 'Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.',
     instantTrackingUnavailableTitle: 'Live tracking is not available yet', instantTrackingErrorTitle: 'Live tracking could not be loaded',
     instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
     instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
@@ -121,6 +123,44 @@ function expectNoRetryOrDispatch(h: Awaited<ReturnType<typeof fixture>>) {
 }
 
 describe('InstantOperationDialog recheck compiled production Svelte (real DOM)', () => {
+  for (const outcome of ['cancel_rejected', 'unknown', 'invalid_status', 'timeout']) test(`cancellation ${outcome} distinguishes rejection from uncertainty without retry or private backend text`, async () => {
+    const h = await fixture(['42'], 'cancel');
+    try {
+      expect(h.requests).toHaveLength(0);
+      await h.click(h.button('Cancel'));
+      await h.click(h.button('Cancel'));
+      expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_cancel']);
+      expect(h.requests[0].values).toEqual({ order_ids: '["42"]', confirmed: 'yes' });
+      const privateMessage = 'recipient@example.test private-token +620000000';
+      if (outcome === 'timeout') {
+        h.requests[0].reject(new Error(privateMessage));
+        await h.settle();
+      } else {
+        await h.reply([{ id: '42', status: outcome, tracking_url: '', message: privateMessage }]);
+      }
+      const result = h.query('[role="status"]').textContent;
+      if (outcome === 'cancel_rejected') {
+        expect(result).toContain('Cancellation rejected');
+        expect(result).toContain('Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.');
+        expect(result).not.toContain('Contact support');
+        expect(result).not.toContain('Unknown result');
+      } else {
+        expect(result).toContain('Unknown result');
+        expect(result).toContain('Unable to confirm the operation. Contact support before trying again.');
+        expect(result).not.toContain('Cancellation rejected');
+      }
+      expect(h.target.textContent).not.toContain(privateMessage);
+      expect(h.button('Cancel')).toBeUndefined();
+      expect([...h.target.querySelectorAll('button')].some(node => /retry|dispatch|confirm|process/i.test(node.textContent ?? ''))).toBe(false);
+      await h.settle();
+      expect(h.requests).toHaveLength(1);
+      expect(h.closes).toEqual([]);
+      await h.click(h.button('Close'));
+      expect(h.closes).toEqual([true]);
+      expect(h.requests).toHaveLength(1);
+    } finally { await h.cleanup(); }
+  });
+
   test('tracking loads automatically and embeds the exact validated courier URL with a protected fallback link', async () => {
     const h = await fixture(['42'], 'tracking'); try {
       expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_tracking']);

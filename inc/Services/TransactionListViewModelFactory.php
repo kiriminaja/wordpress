@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/ExpressCancellationEligibility.php';
+
 /**
  * Converts transaction query rows into a serializable UI contract.
  */
@@ -84,8 +86,7 @@ class TransactionListViewModelFactory {
 		$can_request_pickup    = $is_processable && ( ! $is_deficit || $effective_payout >= 0 );
 		$print_capable_filter  = in_array( $status_filter, array( 'all', 'processed' ), true );
 		$can_print             = $is_express && $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
-		$terminal_statuses     = array( 'shipped', 'finished', 'returned', 'return', 'canceled' );
-		$can_cancel            = $is_express ? ( '' !== $awb && ! in_array( (string) $row->status, $terminal_statuses, true ) ) : InstantShipmentState::canCancel( $row );
+		$can_cancel            = $is_express ? ExpressCancellationEligibility::canCancel( $row ) : InstantShipmentState::canCancel( $row );
 		$can_remote_instant    = ! $is_express && 'new' !== (string) $row->status && in_array( strtolower( trim( (string) ( $row->service ?? '' ) ) ), array( 'gosend', 'grab_express' ), true );
 		$can_request_pickup    = $is_express && $can_request_pickup;
 		$can_process_instant   = ! $is_express && InstantShipmentContext::canProcess( $row ) && $wc_order

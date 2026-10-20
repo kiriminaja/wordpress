@@ -160,8 +160,8 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
     public function cancellation_is_one_atomic_claim_and_second_caller_cannot_send_delete(): void {
         foreach ( array( 'gosend', 'grab_express' ) as $service ) {
             foreach ( array( 100, 105, 110 ) as $code ) {
-                foreach ( array( null, '', 'AWB-1' ) as $awb ) {
-                    [ $repo, $db ] = $this->repository( array( 'service' => $service, 'instant_status_code' => $code, 'awb' => $awb ) );
+                foreach ( array( 'pending', 'request_pickup' ) as $status ) {
+                    [ $repo, $db ] = $this->repository( array( 'service' => $service, 'instant_status_code' => $code, 'status' => $status, 'awb' => 'AWB-1' ) );
                     $competitor = new InstantLifecycleRepositoryCacheSpy();
                     $this->assertSame(
                         [
@@ -190,15 +190,18 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function cancellation_requires_confirmed_booked_nonrefunded_eligible_state(): void {
+    public function cancellation_requires_confirmed_paid_booked_state_with_awb(): void {
         $blocked = array(
             array( 'rejected_reason' => 'Instant cancellation requires reconciliation.' ), array( 'status' => 'new' ), array( 'status' => 'shipped' ), array( 'status' => 'canceled' ),
             array( 'instant_status_code' => 101 ), array( 'instant_status_code' => '101' ), array( 'instant_status_code' => null ), array( 'instant_status_code' => 0 ), array( 'instant_status_code' => 350 ),
             array( 'instant_status_code' => 999 ), array( 'instant_payment_id' => null ), array( 'instant_payment_id' => '' ),
-            array( 'instant_payment_status' => 'refunded' ), array( 'delivery_type' => 'express' ), array( 'service' => 'jne' ),
+            array( 'instant_payment_status' => 'refunded' ), array( 'instant_payment_status' => 'unpaid' ),
+            array( 'instant_payment_status' => 'pending' ), array( 'instant_payment_status' => null ),
+            array( 'awb' => null ), array( 'awb' => '' ),
+            array( 'delivery_type' => 'express' ), array( 'service' => 'jne' ),
         );
         foreach ( $blocked as $changes ) {
-            [ $repo, $db ] = $this->repository( $changes );
+            [ $repo, $db ] = $this->repository( array_replace( array( 'awb' => 'AWB-1' ), $changes ) );
             $before = $db->row;
             $this->assertSame(
                 [
@@ -214,16 +217,16 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
                 __FUNCTION__
             );
         }
-        [ $repo ] = $this->repository();
+        [ $repo ] = $this->repository( array( 'awb' => 'AWB-1' ) );
         $this->assertFalse( $repo->claimInstantCancellation( 'KA-1', 101 ) );
-        [ $repo ] = $this->repository( array( 'status' => 'request_pickup' ) );
+        [ $repo ] = $this->repository( array( 'status' => 'request_pickup', 'awb' => 'AWB-1' ) );
         $this->assertTrue( $repo->claimInstantCancellation( 'KA-1', 100 ) );
     }
 
     #[Test]
     public function database_failures_and_non_single_claim_results_fail_closed(): void {
         foreach ( array( false, 0, 2, '1' ) as $result ) {
-            [ $repo, $db ] = $this->repository();
+            [ $repo, $db ] = $this->repository( array( 'awb' => 'AWB-1' ) );
             $db->forcedResult = $result;
             $this->assertSame(
                 [
@@ -255,7 +258,7 @@ final class InstantLifecycleRepositoryRuntimeTest extends TestCase {
     #[Test]
     public function ids_are_exact_and_sql_placeholders_are_prepared_even_for_injection_strings(): void {
         foreach ( array( '000123', "KA-' OR 1=1 -- %s", 'KA-雪' ) as $id ) {
-            [ $repo, $db ] = $this->repository( array( 'order_id' => $id ) );
+            [ $repo, $db ] = $this->repository( array( 'order_id' => $id, 'awb' => 'AWB-1' ) );
             $this->assertSame(
                 [
                     'repo.claimInstantCancellation( \'different-id\', 100 )' => false,
@@ -359,7 +362,7 @@ final class InstantLifecycleWpdbFake {
     }
 
     public function query( string $sql ) {
-        $pattern = "/^UPDATE wp_kiriminaja_transactions\s+SET rejected_reason = 'Instant cancellation requires reconciliation\.'\s+WHERE order_id = '((?:''|[^'])*)'\s+AND delivery_type = 'instant'\s+AND service IN \('gosend', 'grab_express'\)\s+AND status IN \('pending', 'request_pickup'\)\s+AND instant_status_code IN \(100, 105, 110\)\s+AND instant_status_code = (-?[0-9]+)\s+AND \(rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation\.'\)\s+AND instant_payment_id IS NOT NULL\s+AND instant_payment_id <> ''\s+AND \(instant_payment_status IS NULL OR instant_payment_status <> 'refunded'\)$/";
+        $pattern = "/^UPDATE wp_kiriminaja_transactions\s+SET rejected_reason = 'Instant cancellation requires reconciliation\.'\s+WHERE order_id = '((?:''|[^'])*)'\s+AND delivery_type = 'instant'\s+AND service IN \('gosend', 'grab_express'\)\s+AND status IN \('pending', 'request_pickup'\)\s+AND instant_status_code IN \(100, 105, 110\)\s+AND instant_status_code = (-?[0-9]+)\s+AND \(rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation\.'\)\s+AND instant_payment_id IS NOT NULL\s+AND instant_payment_id <> ''\s+AND instant_payment_status = 'paid'\s+AND awb IS NOT NULL\s+AND awb <> ''$/";
         if ( ! preg_match( $pattern, $sql, $match ) ) {
             throw new RuntimeException( 'Unexpected cancellation SQL or missing guard.' );
         }
@@ -375,7 +378,8 @@ final class InstantLifecycleWpdbFake {
             || (int) $this->row['instant_status_code'] !== (int) $match[2]
             || in_array( $this->row['instant_payment_id'], array( null, '' ), true )
             || 'Instant cancellation requires reconciliation.' === $this->row['rejected_reason']
-            || 'refunded' === $this->row['instant_payment_status'] ) {
+            || 'paid' !== $this->row['instant_payment_status']
+            || in_array( $this->row['awb'], array( null, '' ), true ) ) {
             return 0;
         }
         $this->row['rejected_reason'] = 'Instant cancellation requires reconciliation.';

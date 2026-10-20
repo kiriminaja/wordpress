@@ -18,7 +18,10 @@ namespace KiriminAja\Base\Api {
 	}
 }
 namespace KiriminAjaOfficial\Infrastructure {
-	class InstantApiTransport extends \KiriminAja\Base\Api\Api {}
+	class InstantApiTransport extends \KiriminAja\Base\Api\Api {
+		public function diagnostics(): array { return $GLOBALS['diagnostics']; }
+		public function errorResponse(): ?array { $GLOBALS['error_reads']++; return $GLOBALS['error_response']; }
+	}
 }
 namespace {
 	define( 'ABSPATH', __DIR__ );
@@ -34,11 +37,14 @@ namespace {
 	$GLOBALS['calls'] = array();
 	$GLOBALS['logs'] = array();
 	$GLOBALS['throw'] = false;
+	$GLOBALS['diagnostics'] = array( 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 );
+	$GLOBALS['error_response'] = null;
+	$GLOBALS['error_reads'] = 0;
 	$repository = new LifecycleFixtureRepository();
 	$tracking = array( 'status' => true, 'code' => 0, 'text' => 'loaded', 'result' => array( 'order_id' => 'order-1', 'status' => 105, 'driver' => array( 'name' => 'private driver' ), 'history' => array( array( 'status' => 105 ) ) ), 'extra' => array( 'full' => true ) );
 	$cancel = array( 'status' => true, 'code' => 0, 'text' => 'void accepted', 'result' => array( 'payment_id' => 'payment-1', 'packages' => array( array( 'order_id' => 'order-1', 'service' => 'gosend', 'status' => 105 ) ) ), 'extra' => array( 'full' => true ) );
 PHP;
-		$code = 'namespace { define( "ROOT", ' . var_export( PLUGIN_DIR, true ) . ' ); }' . $fixture . "\n" . $scenario . "\n" . 'echo json_encode( array( "result" => $result, "calls" => $GLOBALS["calls"], "logs" => $GLOBALS["logs"] ) ); }';
+		$code = 'namespace { define( "ROOT", ' . var_export( PLUGIN_DIR, true ) . ' ); }' . $fixture . "\n" . $scenario . "\n" . 'echo json_encode( array( "result" => $result, "calls" => $GLOBALS["calls"], "logs" => $GLOBALS["logs"], "diagnostics" => $repository->cancellationDiagnostics(), "error_reads" => $GLOBALS["error_reads"] ) ); }';
 		exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( $code ) . ' 2>&1', $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
@@ -173,6 +179,107 @@ PHP;
 			foreach ( array( '$GLOBALS["transport"][0] = false;', '$GLOBALS["transport"] = array( false, "private recipient 08123456789 address secret" );', '$GLOBALS["throw"] = true;' ) as $mutation ) {
 				$this->assert_sanitized_failure( $method, $body, '', $mutation );
 			}
+		}
+	}
+
+	public function test_cancel_classifies_only_strict_explicit_rejections(): void {
+		foreach ( array( 1, -2, '2', '-12', '999999999999999999999999' ) as $code ) {
+			foreach ( array( 'null', '(object) array()' ) as $result ) {
+				$fixture = $this->run_fixture( '$GLOBALS["transport"] = array( true, array( "status" => false, "code" => ' . var_export( $code, true ) . ', "result" => ' . $result . ', "text" => "private PIN 123456 token recipient" ) ); $result = $repository->cancel( "order-1" );' );
+				$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.', 'operation_rejected' => true ), $fixture['result'] );
+				$this->assertSame( array( 'reason' => 'api_rejection', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 ), $fixture['diagnostics'] );
+				$this->assertSame( array(), $fixture['logs'] );
+			}
+		}
+	}
+
+	public function test_cancel_malformed_codes_and_contradictory_identities_remain_ambiguous(): void {
+		$mutations = array(
+			'unset( $body["code"] );', '$body["code"] = 0;', '$body["code"] = "0";', '$body["code"] = 0.0;',
+			'$body["code"] = 2.0;', '$body["code"] = true;', '$body["code"] = false;', '$body["code"] = null;',
+			'$body["code"] = "02";', '$body["code"] = "+2";', '$body["code"] = " 2";', '$body["code"] = "2 ";',
+			'$body["code"] = "2.0";', '$body["code"] = "2e0";', '$body["code"] = "-0";', '$body["code"] = array( 2 );',
+			'unset( $body["result"] );', '$body["result"] = array();', '$body["result"] = "";', '$body["result"] = false;',
+			'$body["result"] = array( "order_id" => "private-order" );', '$body["result"] = array( "payment_id" => "private-payment" );',
+			'$body["order_id"] = "private-order";', '$body["payment_id"] = "private-payment";', '$body["id"] = "private-id";',
+			'$body["packages"] = array( array( "order_id" => "private-order" ) );', '$body["results"] = array( "payment_id" => "private-payment" );',
+			'$body["status"] = 0;', '$body["status"] = "false";', '$body["status"] = true;',
+		);
+		foreach ( $mutations as $mutation ) {
+			$fixture = $this->run_fixture( '$body = array( "status" => false, "code" => 2, "result" => null ); ' . $mutation . ' $GLOBALS["transport"] = array( true, $body ); $result = $repository->cancel( "order-1" );' );
+			$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.' ), $fixture['result'], $mutation );
+			$this->assertSame( 'invalid_response', $fixture['diagnostics']['reason'], $mutation );
+		}
+	}
+
+	public function test_cancel_http_errors_require_safe_status_and_structured_null_result(): void {
+		foreach ( array( 200, 201, 204, 301, 400, 401, 403, 404, 408, 409, 422, 425, 429, 499, 500, 502, 503, 504 ) as $http ) {
+			$rejectable = $http >= 400 && $http < 500 && ! in_array( $http, array( 408, 409, 425, 429 ), true );
+			foreach ( array( 'null', '(object) array()', 'array( "payment_id" => "private-payment" )' ) as $body_result ) {
+				$fixture = $this->run_fixture( '$GLOBALS["diagnostics"]["http_status"] = ' . $http . '; $GLOBALS["transport"] = array( false, "private failure" ); $GLOBALS["error_response"] = array( "status" => false, "code" => "2", "result" => ' . $body_result . ' ); $result = $repository->cancel( "order-1" );' );
+				$rejected = $rejectable && 'null' === $body_result;
+				$expected = array( 'status' => false, 'data' => 'Instant cancellation failed.' );
+				if ( $rejected ) {
+					$expected['operation_rejected'] = true;
+				}
+				$this->assertSame( $expected, $fixture['result'], (string) $http . $body_result );
+				$this->assertSame( $rejected ? 'api_rejection' : 'transport_failure', $fixture['diagnostics']['reason'] );
+				$this->assertSame( $rejectable ? 1 : 0, $fixture['error_reads'] );
+				$this->assertCount( 1, $fixture['calls'] );
+			}
+		}
+	}
+
+	public function test_cancel_diagnostics_reset_whitelist_and_pre_submission_proof(): void {
+		$fixture = $this->run_fixture( '
+			$GLOBALS["diagnostics"] = array( "http_status" => 503, "submitted" => true, "elapsed_ms" => 12, "code" => "private token", "error_body" => array( "PIN" => "123456", "customer" => "recipient" ), "order_id" => "private-order" );
+			$GLOBALS["transport"] = array( false, "private error" );
+			$first = $repository->cancel( "order-1" );
+			$first_diagnostics = $repository->cancellationDiagnostics();
+			$GLOBALS["diagnostics"] = array( "http_status" => null, "submitted" => false, "elapsed_ms" => 3 );
+			$second = $repository->cancel( "order-1" );
+			$second_diagnostics = $repository->cancellationDiagnostics();
+			$third = $repository->cancel( "../private-order" );
+			$result = array( $first, $first_diagnostics, $second, $second_diagnostics, $third );' );
+		$this->assertSame( array( 'reason' => 'transport_failure', 'http_status' => 503, 'submitted' => true, 'elapsed_ms' => 12 ), $fixture['result'][1] );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.', 'operation_rejected' => true ), $fixture['result'][2] );
+		$this->assertSame( array( 'reason' => 'request_not_submitted', 'http_status' => null, 'submitted' => false, 'elapsed_ms' => 3 ), $fixture['result'][3] );
+		$this->assertSame( array( 'reason' => 'invalid_identity', 'http_status' => null, 'submitted' => false, 'elapsed_ms' => 0 ), $fixture['diagnostics'] );
+		$this->assertSame( array(), $fixture['logs'] );
+		$this->assertStringNotContainsString( 'private', json_encode( array( $fixture['result'], $fixture['diagnostics'] ) ) );
+	}
+
+	public function test_cancel_diagnostics_cover_acceptance_identity_and_untrusted_fact_types(): void {
+		$fixture = $this->run_fixture( '
+			$GLOBALS["transport"] = array( true, $cancel );
+			$repository->cancel( "order-1" );
+			$accepted = $repository->cancellationDiagnostics();
+			$cancel["result"]["packages"][0]["order_id"] = "other-order";
+			$GLOBALS["transport"] = array( true, $cancel );
+			$repository->cancel( "order-1" );
+			$identity = $repository->cancellationDiagnostics();
+			$GLOBALS["diagnostics"] = array( "http_status" => "422", "submitted" => "false", "elapsed_ms" => "private", "error_body" => "PIN 123456 token private" );
+			$GLOBALS["transport"] = array( false, "private" );
+			$response = $repository->cancel( "order-1" );
+			$result = array( $accepted, $identity, $response );' );
+		$this->assertSame( array( 'reason' => 'accepted', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 ), $fixture['result'][0] );
+		$this->assertSame( array( 'reason' => 'invalid_identity', 'http_status' => 200, 'submitted' => true, 'elapsed_ms' => 7 ), $fixture['result'][1] );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant cancellation failed.' ), $fixture['result'][2] );
+		$this->assertSame( 'transport_failure', $fixture['diagnostics']['reason'] );
+		$this->assertNull( $fixture['diagnostics']['http_status'] );
+		$this->assertTrue( $fixture['diagnostics']['submitted'] );
+		$this->assertIsInt( $fixture['diagnostics']['elapsed_ms'] );
+		$this->assertGreaterThanOrEqual( 0, $fixture['diagnostics']['elapsed_ms'] );
+		$this->assertCount( 4, $fixture['diagnostics'] );
+		$this->assertSame( array(), $fixture['logs'] );
+	}
+
+	public function test_cancel_exceptions_use_only_explicit_submission_facts(): void {
+		foreach ( array( true, false ) as $submitted ) {
+			$fixture = $this->run_fixture( '$GLOBALS["throw"] = true; $GLOBALS["diagnostics"]["submitted"] = ' . var_export( $submitted, true ) . '; $result = $repository->cancel( "order-1" );' );
+			$this->assertSame( ! $submitted, $fixture['result']['operation_rejected'] ?? false );
+			$this->assertSame( $submitted ? 'transport_failure' : 'request_not_submitted', $fixture['diagnostics']['reason'] );
+			$this->assertSame( array(), $fixture['logs'] );
 		}
 	}
 

@@ -10,6 +10,9 @@ use KiriminAjaOfficial\Base\BaseService;
 use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
 use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
+use KiriminAjaOfficial\Services\ExpressCancellationEligibility;
+
+require_once dirname( __DIR__ ) . '/ExpressCancellationEligibility.php';
 
 class CancelTransactionService extends BaseService {
 
@@ -61,15 +64,14 @@ class CancelTransactionService extends BaseService {
                 return self::error( [], __( 'Instant shipment cancellation is not available yet.', 'kiriminaja-official' ) );
             }
 
-            // Only allow cancel for transactions that haven't been shipped/finished/canceled yet
-            $nonCancelableStatuses = [ 'shipped', 'finished', 'returned', 'return', 'canceled' ];
-            if ( in_array( $transaction->status, $nonCancelableStatuses, true ) ) {
-                return self::error( [], 'Transaction cannot be canceled (status: ' . $transaction->status . ')' );
-            }
-
             // AWB is required — cancel is only for post-pickup transactions
             if ( empty( $transaction->awb ) ) {
                 return self::error( [], 'Transaction has no AWB yet, cannot cancel shipment' );
+            }
+
+            // An AWB does not make an unpaid or unconfirmed Express booking cancelable.
+            if ( ! ExpressCancellationEligibility::canCancel( $transaction ) ) {
+                return self::error( [], 'Transaction cannot be canceled (status: ' . $transaction->status . ')' );
             }
 
             // Call Mitra API to cancel the shipment

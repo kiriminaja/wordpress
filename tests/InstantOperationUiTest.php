@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use KiriminAjaOfficial\Services\InstantShipmentState;
+use KiriminAjaOfficial\Services\InstantDeliveryStatus;
 use KiriminAjaOfficial\Services\InstantTrackingPresentation;
+
+if (!function_exists('__')) {
+    function __($text, $domain = ''): string { return $text; }
+}
 
 // The shared validators are pure apart from these WordPress URL helpers.
 // Match the isolated renderer fixture without booting WordPress or its services.
@@ -27,7 +32,7 @@ final class InstantOperationUiTest extends TestCase {
     private function confirmedBooking(): array {
         return [
             'delivery_type' => 'instant', 'service' => 'gosend', 'vehicle' => 'motor',
-            'status' => 'request_pickup', 'order_id' => 'KA-1', 'awb' => '',
+            'status' => 'request_pickup', 'order_id' => 'KA-1', 'awb' => 'AWB-1',
             'instant_status_code' => 100, 'instant_payment_id' => 'PAY-1',
             'instant_payment_method' => 'qris', 'instant_payment_status' => 'paid',
             'shipping_cost' => 12000,
@@ -46,12 +51,12 @@ final class InstantOperationUiTest extends TestCase {
         }
     }
 
-    public function test_confirmed_bookings_can_cancel_without_an_awb_but_unknown_and_terminal_states_cannot(): void {
+    public function test_only_paid_ready_bookings_with_valid_awb_can_cancel(): void {
         $valid = array(
             'service'             => array( 'gosend', 'grab_express' ),
             'status'              => array( 'pending', 'request_pickup' ),
             'instant_status_code' => array( 100, 105, 110, '100', '105', '110' ),
-            'awb'                 => array( '', null, 'BOOKED-AWB' ),
+            'awb'                 => array( 'AWB-1', 'BOOKED-AWB' ),
         );
         $expectedStates = $actualStates = [];
         foreach ( $valid as $field => $values ) {
@@ -66,7 +71,12 @@ final class InstantOperationUiTest extends TestCase {
             ['status' => 'pending', 'instant_status_code' => null],
             ['status' => 'pending', 'instant_status_code' => 999],
             ['instant_payment_id' => null], ['instant_payment_id' => ''],
-            ['instant_payment_status' => 'refunded'], ['order_id' => ''], ['awb' => 'invalid awb'],
+            ['instant_payment_status' => 'refunded'], ['instant_payment_status' => 'unpaid'],
+            ['instant_payment_status' => 'pending'], ['instant_payment_status' => null],
+            ['instant_payment_status' => 'PAID'], ['instant_payment_status' => true],
+            ['order_id' => ''], ['order_id' => 'bad id'], ['instant_payment_id' => 'bad id'],
+            ['awb' => 'invalid awb'], ['awb' => ''], ['awb' => null],
+            ['rejected_reason' => 'Instant cancellation requires reconciliation.'],
             ['instant_status_code' => 101], ['instant_status_code' => '101'], ['instant_status_code' => 106], ['instant_status_code' => 200],
             ['instant_status_code' => 300], ['instant_status_code' => 350],
             ['status' => 'shipped'], ['status' => 'finished'], ['status' => 'canceled'],
@@ -85,6 +95,48 @@ final class InstantOperationUiTest extends TestCase {
                 ['confirmed actions' => array_map(static fn($action) => $row['actions'][$action], ['cancel', 'changeOrigin', 'adjustDeficit', 'cancelDeficit']), 'terminal cancel' => $terminal['actions']['cancel']],
                 "$mode / cancellation actions"
             );
+        }
+    }
+
+    public function test_cancel_payment_awb_and_ready_status_matrix_in_list_and_detail(): void {
+        $cases = [];
+        foreach ([100, 105, 110] as $code) {
+            foreach (['paid', 'unpaid', 'pending', 'refunded', null] as $payment) {
+                $cases["code $code / payment " . json_encode($payment)] = [
+                    ['instant_status_code' => $code, 'instant_payment_status' => $payment], 'paid' === $payment,
+                ];
+            }
+            foreach ([null, '', ' ', 'bad awb', 123, str_repeat('A', 101)] as $awb) {
+                $cases["code $code / AWB " . json_encode($awb)] = [
+                    ['instant_status_code' => $code, 'awb' => $awb], false,
+                ];
+            }
+        }
+        foreach ([101, '101', 106, 200, 300, 302, 350, 400, 401, 402, 403, 404, 405, 500, 555, 701, 702, 703, 704, 303, 301, 333, 999, null] as $code) {
+            $cases['non-ready code ' . json_encode($code)] = [['instant_status_code' => $code], false];
+        }
+        foreach (['new', 'shipped', 'finished', 'canceled', 'return', 'returned', 'rejected', null] as $status) {
+            $cases['local status ' . json_encode($status)] = [['status' => $status], false];
+        }
+        foreach (['gosend', 'grab_express'] as $service) {
+            foreach (['pending', 'request_pickup'] as $status) {
+                foreach ([100, 105, 110, '100', '105', '110'] as $code) {
+                    $cases["ready $service / $status / " . json_encode($code)] = [
+                        ['service' => $service, 'status' => $status, 'instant_status_code' => $code], true,
+                    ];
+                }
+            }
+        }
+        foreach (['list', 'detail'] as $mode) {
+            foreach ($cases as $name => [$changes, $expected]) {
+                $payload = array_replace($this->confirmedBooking(), $changes, ['mode' => $mode]);
+                $row = $this->row($payload);
+                $this->assertSame($expected, $row['actions']['cancel'], "$mode / $name");
+                if ($expected) {
+                    $this->assertSame('ready_delivered', InstantDeliveryStatus::describe($payload)['key'], "$mode / $name");
+                    $this->assertSame('Ready for Shipment', $row['status']['label'], "$mode / $name");
+                }
+            }
         }
     }
 

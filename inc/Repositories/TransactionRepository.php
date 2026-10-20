@@ -260,7 +260,9 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
                     AND (rejected_reason IS NULL OR rejected_reason <> 'Instant cancellation requires reconciliation.')
                     AND instant_payment_id IS NOT NULL
                     AND instant_payment_id <> ''
-                    AND (instant_payment_status IS NULL OR instant_payment_status <> 'refunded')",
+                    AND instant_payment_status = 'paid'
+                    AND awb IS NOT NULL
+                    AND awb <> ''",
                 $id,
                 $expected_code
             )

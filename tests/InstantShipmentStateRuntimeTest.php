@@ -6,6 +6,7 @@ declare(strict_types=1);
 if (in_array('--fixture', $argv ?? [], true)) {
     define('ABSPATH', __DIR__);
     function esc_html__($text, $domain) { return $text; }
+    function __($text, $domain) { return $text; }
     function wp_parse_url($url) { return parse_url($url); }
     function esc_url_raw($url, $protocols = []) { return $url; }
     function wp_json_encode($value) { return json_encode($value); }
@@ -26,6 +27,7 @@ if (in_array('--fixture', $argv ?? [], true)) {
             }
         }');
     require __DIR__ . '/../inc/Services/TransactionDeliveryType.php';
+    require __DIR__ . '/../inc/Services/InstantDeliveryStatus.php';
     require __DIR__ . '/../inc/Services/InstantShipmentState.php';
     require __DIR__ . '/../inc/Services/InstantTrackingPresentation.php';
     require __DIR__ . '/../inc/Services/InstantWebhookService.php';
@@ -532,7 +534,7 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
     }
 
     #[Test]
-    public function null_awb_is_omission_and_cancel_does_not_require_awb(): void {
+    public function null_awb_is_omission_but_cancel_requires_a_persisted_valid_awb(): void {
         $r = $this->runFixture(['events'=>[$this->event(105, ['awb'=>null])]]);
         $this->assertSame(
             [
@@ -549,7 +551,7 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
             $r = $this->runFixture(['row'=>['awb'=>$awb], 'events'=>[$this->event(105, ['awb'=>null])]]);
             $this->assertSame(
                 [
-                    'cancelable' => true,
+                    'cancelable' => false,
                     'row.instant_status_code' => 105,
                     'row.status' => 'request_pickup',
                 ],
@@ -566,6 +568,41 @@ final class InstantShipmentStateRuntimeTest extends TestCase {
         }
         $r = $this->runFixture(['row'=>['awb'=>'bad awb'], 'events'=>[]]);
         $this->assertFalse($r['cancelable']);
+    }
+
+    #[Test]
+    public function cancellation_requires_paid_ready_state_and_valid_identifiers_without_writes(): void {
+        $cases = [];
+        foreach ([100, 105, 110, '100', '105', '110'] as $code) {
+            $cases['ready code ' . json_encode($code)] = [['instant_status_code' => $code], true];
+            foreach (['unpaid', 'pending', 'refunded', null] as $payment) {
+                $cases['code ' . json_encode($code) . ' / payment ' . json_encode($payment)] = [
+                    ['instant_status_code' => $code, 'instant_payment_status' => $payment], false,
+                ];
+            }
+            foreach ([null, ''] as $awb) {
+                $cases['code ' . json_encode($code) . ' / AWB ' . json_encode($awb)] = [
+                    ['instant_status_code' => $code, 'awb' => $awb], false,
+                ];
+            }
+        }
+        foreach ([
+            ['instant_status_code' => 101], ['instant_status_code' => 106], ['instant_status_code' => null],
+            ['status' => 'shipped'], ['status' => 'finished'], ['status' => 'canceled'],
+            ['service' => 'borzo'], ['delivery_type' => 'express', 'service' => 'jne'],
+            ['instant_payment_status' => 'PAID'], ['instant_payment_status' => true],
+            ['awb' => 'bad awb'], ['awb' => 123], ['awb' => str_repeat('A', 101)],
+            ['order_id' => 'bad id'], ['instant_payment_id' => ''], ['instant_payment_id' => null],
+            ['rejected_reason' => 'Instant cancellation requires reconciliation.'],
+        ] as $changes) {
+            $cases[json_encode($changes)] = [$changes, false];
+        }
+        foreach ($cases as $name => [$changes, $expected]) {
+            $r = $this->runFixture(['row' => $changes, 'events' => []]);
+            $this->assertSame(['cancelable' => $expected, 'writes' => []], [
+                'cancelable' => $r['cancelable'], 'writes' => $r['writes'],
+            ], $name);
+        }
     }
 
     #[Test]

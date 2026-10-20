@@ -205,6 +205,7 @@ export type InstantOperationRow = {
     | 'not_found'
     | 'unknown'
     | 'cancel_requested'
+    | 'cancel_rejected'
     | 'canceled'
     | 'reconciled';
   tracking_url: string;

@@ -41,7 +41,7 @@
       completed = true;
       rows = orderIds.map((id) => {
         const row = response.data?.rows?.find((item) => item.id === id);
-        return row && ['tracked', 'tracking_unavailable', 'tracking_pending', 'not_found', 'unknown', 'cancel_requested', 'canceled', 'reconciled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
+        return row && ['tracked', 'tracking_unavailable', 'tracking_pending', 'not_found', 'unknown', 'cancel_requested', 'cancel_rejected', 'canceled', 'reconciled'].includes(row.status) ? row : { id, status: 'unknown', tracking_url: '', message: '' };
       });
     } catch {
       if (!disposed) { completed = true; rows = orderIds.map((id) => ({ id, status: 'unknown', tracking_url: '', message: '' })); }
@@ -82,7 +82,7 @@
         {:else if mode !== 'tracking'}
           <div role="status">
             <strong>{i18n[`instantResult_${row.status}`] ?? i18n.instantResult_unknown}</strong>
-            {#if row.status === 'unknown'}<p>{i18n.instantOperationUnknown}</p>{:else if row.message}<p>{row.message}</p>{/if}
+            {#if row.status === 'unknown'}<p>{i18n.instantOperationUnknown}</p>{:else if row.status === 'cancel_rejected'}<p>{i18n.instantCancelRejected}</p>{:else if row.message}<p>{row.message}</p>{/if}
           </div>
         {/if}
         {#if hasTracking}

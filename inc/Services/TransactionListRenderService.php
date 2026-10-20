@@ -305,6 +305,8 @@ class TransactionListRenderService
             "openInNewTab" => __("Open in new tab", "kiriminaja-official"),
             "instantResult_not_found" => __("Shipment not found", "kiriminaja-official"),
             "instantResult_cancel_requested" => __("Cancellation requested", "kiriminaja-official"),
+            "instantResult_cancel_rejected" => __("Cancellation rejected", "kiriminaja-official"),
+            "instantCancelRejected" => __("Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.", "kiriminaja-official"),
             "instantResult_canceled" => __("Shipment canceled", "kiriminaja-official"),
             "instantPaymentPollTimeout" => __("Automatic payment checks stopped after the time limit. Refresh payment status manually.", "kiriminaja-official"),
                 "instantPaymentPollExpired" => __("This payment has expired. Automatic payment checks stopped.", "kiriminaja-official"),
