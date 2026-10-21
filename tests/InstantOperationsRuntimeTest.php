@@ -210,7 +210,7 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantOperationsRuntimeTest extends TestCase {
     private function fixture(array $input = []): array {
-        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__FILE__) . ' --fixture ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)) . ' 2>&1', $output, $status);
+        exec(escapeshellarg(PHP_BINARY) . ' -n ' . escapeshellarg(__FILE__) . ' --fixture ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)) . ' 2>&1', $output, $status);
         $this->assertSame(0, $status, implode("\n", $output));
         return json_decode(implode("\n", $output), true, 512, JSON_THROW_ON_ERROR);
     }

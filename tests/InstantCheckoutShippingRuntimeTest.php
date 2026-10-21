@@ -4,9 +4,14 @@ use PHPUnit\Framework\TestCase;
 /** Run the real WooCommerce method in isolated, network-free PHP fixtures. */
 final class InstantCheckoutShippingRuntimeTest extends TestCase {
 	private function run_fixture(): array {
-		$output = array();
-		$status = 0;
-		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/instant-checkout-shipping-runtime.php' ) . ' 2>&1', $output, $status );
+		// The isolated fixture returns all scenarios in one deterministic snapshot.
+		// Share it within this worker, but retain the assertions in every test.
+		static $output = null;
+		static $status = 0;
+		if ( null === $output ) {
+			$output = array();
+			exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/instant-checkout-shipping-runtime.php' ) . ' 2>&1', $output, $status );
+		}
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 		$this->assertSame( array(), $result['logs'] );

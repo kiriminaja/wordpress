@@ -50,8 +50,14 @@ final class PluginStructureTest extends TestCase
         }
 
         $violations = [];
+        $excludedDirectories = ['vendor', '.git', '.cache', 'node_modules'];
         $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($buildDir, RecursiveDirectoryIterator::SKIP_DOTS)
+            new RecursiveCallbackFilterIterator(
+                new RecursiveDirectoryIterator($buildDir, RecursiveDirectoryIterator::SKIP_DOTS),
+                static function (SplFileInfo $file) use ($excludedDirectories): bool {
+                    return !$file->isDir() || !in_array($file->getFilename(), $excludedDirectories, true);
+                }
+            )
         );
 
         foreach ($iterator as $file) {
@@ -61,11 +67,6 @@ final class PluginStructureTest extends TestCase
             $buildPath = $file->getPathname();
             $relativePath = str_replace($buildDir . '/', '', $buildPath);
             $sourcePath = PLUGIN_DIR . '/' . $relativePath;
-
-            // Skip vendor (build uses --no-dev so files will differ)
-            if (str_starts_with($relativePath, 'vendor/')) {
-                continue;
-            }
 
             if (!file_exists($sourcePath)) {
                 continue; // Build-only files are OK (e.g., vendor)

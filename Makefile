@@ -18,6 +18,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.php-version \
 	--exclude=.vscode/ \
 	--exclude=node_modules/ \
+	--exclude=/vendor/ \
 	--exclude=src/ \
 	--exclude=package.json \
 	--exclude=bun.lock \
@@ -163,13 +164,7 @@ zip: frontend
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
 	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
-	# The KiriminAja SDK's Packagist archive can omit its PSR-4 source tree. Prefer
-	# the Git source so runtime classes such as KiriminAja\Base\Api\Api are packaged.
-	rm -rf $(STAGE_DIR)/vendor
-	(cd $(STAGE_DIR) && composer install --no-dev --prefer-source --optimize-autoloader --no-interaction)
-	find $(STAGE_DIR)/vendor -type d -name .git -prune -exec rm -rf {} +
-	find $(STAGE_DIR)/vendor -type d \( -name .github -o -name docs -o -name example -o -name tests -o -name vendor-bin \) -prune -exec rm -rf {} +
-	find $(STAGE_DIR)/vendor -type f \( -name CHANGELOG.md -o -name README.md -o -name UPGRADING.md -o -name composer.lock \) -delete
+	php scripts/package-production-vendor.php . $(STAGE_DIR)/vendor $(BUILD_DIR)/composer-vendor-cache
 	@test -f $(STAGE_DIR)/vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php || (echo "KiriminAja SDK API client source is missing from the package." && exit 1)
 	rm -f $(STAGE_DIR)/composer.lock $(STAGE_DIR)/vendor/bin/.phpunit.result.cache
 	@CUSTOM_LOCATION_LIMIT=$$(if [ -f .env ]; then grep '^MAX_CUSTOM_SHIPMENT_LOCATIONS=' .env | head -1 | cut -d= -f2- | xargs; fi); \

@@ -23,10 +23,61 @@ if (!function_exists('esc_url_raw')) {
 }
 
 final class InstantOperationUiTest extends TestCase {
-    private function row(array $payload): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
+    private static array $snapshots = [];
 
-        return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+    private function row(array $payload): array {
+        $key = json_encode($payload, JSON_THROW_ON_ERROR);
+        if (!isset(self::$snapshots[$key])) {
+            $this->primeRows([$payload]);
+        }
+        return self::$snapshots[$key];
+    }
+
+    private function renderBatch(array $payloads): array {
+        // STDIN avoids the command-line size limit for large renderer matrices.
+        $process = proc_open([PHP_BINARY, '-n', PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php', '--batch'], [
+            0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
+        ], $pipes);
+        $this->assertIsResource($process);
+        fwrite($pipes[0], json_encode($payloads, JSON_THROW_ON_ERROR));
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        $errors = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $this->assertSame(0, proc_close($process), $errors . $output);
+        $rows = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertCount(count($payloads), $rows);
+        return $rows;
+    }
+
+    private function primeRows(array $payloads): void {
+        $missing = [];
+        foreach ($payloads as $payload) {
+            $key = json_encode($payload, JSON_THROW_ON_ERROR);
+            if (!isset(self::$snapshots[$key])) {
+                $missing[$key] = $payload;
+            }
+        }
+        // Bound both pipe input and output. Each chunk boots the classes once,
+        // but every case still builds its own row, order, and service instances.
+        foreach (array_chunk($missing, 16, true) as $chunk) {
+            foreach (array_combine(array_keys($chunk), $this->renderBatch(array_values($chunk))) as $key => $row) {
+                self::$snapshots[$key] = $row;
+            }
+        }
+    }
+
+    public function test_batch_rendering_preserves_fresh_process_case_isolation(): void {
+        $plain = $this->confirmedBooking();
+        $withOrder = array_replace($plain, ['mode' => 'detail', 'wc_order' => ['paid' => true, 'status' => 'completed']]);
+        $fallback = array_replace($plain, ['mode' => 'fallback']);
+        $payloads = [$plain, $withOrder, $plain, $fallback, $withOrder, $plain];
+        $expected = [];
+        foreach ($payloads as $payload) {
+            $expected[] = $this->renderBatch([$payload])[0];
+        }
+        $this->assertSame($expected, $this->renderBatch($payloads));
     }
 
     private function confirmedBooking(): array {
@@ -128,6 +179,13 @@ final class InstantOperationUiTest extends TestCase {
                 }
             }
         }
+        $payloads = [];
+        foreach (['list', 'detail'] as $mode) {
+            foreach ($cases as [$changes]) {
+                $payloads[] = array_replace($this->confirmedBooking(), $changes, ['mode' => $mode]);
+            }
+        }
+        $this->primeRows($payloads);
         foreach (['list', 'detail'] as $mode) {
             foreach ($cases as $name => [$changes, $expected]) {
                 $payload = array_replace($this->confirmedBooking(), $changes, ['mode' => $mode]);
@@ -148,6 +206,21 @@ final class InstantOperationUiTest extends TestCase {
             'paid with null AWB' => [['awb' => null], false],
             'paid with empty AWB' => [['awb' => ''], false],
         ];
+        $payloads = [];
+        foreach (['list', 'detail'] as $mode) {
+            foreach (['gosend', 'grab_express'] as $service) {
+                foreach ([100, 105, 110] as $code) {
+                    foreach ($cases as $name => [$changes, $expected]) {
+                        $payload = array_replace($this->confirmedBooking(), [
+                            'mode' => $mode, 'service' => $service, 'instant_status_code' => $code,
+                            'rejected_reason' => 'Instant cancellation requires reconciliation.',
+                        ], $changes);
+                        $payloads[] = $payload;
+                    }
+                }
+            }
+        }
+        $this->primeRows($payloads);
         foreach (['list', 'detail'] as $mode) {
             foreach (['gosend', 'grab_express'] as $service) {
                 foreach ([100, 105, 110] as $code) {

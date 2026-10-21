@@ -7,8 +7,14 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 	private const INVALID = 'Invalid Instant request parameters.';
 
 	private function run_controller( array $input = array() ): array {
-		$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-delivery-controller-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
-		return json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
+		// Cache only exact, deterministic isolated inputs, never application state.
+		static $snapshots = array();
+		$key = json_encode( $input, JSON_THROW_ON_ERROR );
+		if ( isset( $snapshots[ $key ] ) ) {
+			return $snapshots[ $key ];
+		}
+		$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' -n ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-delivery-controller-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
+		return $snapshots[ $key ] = json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
 	}
 
 	private function assert_rejected( array $input, string $message = self::INVALID, string $case = '' ): array {

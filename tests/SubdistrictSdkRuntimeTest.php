@@ -3,11 +3,18 @@
 use PHPUnit\Framework\TestCase;
 
 final class SubdistrictSdkRuntimeTest extends TestCase {
+    // All scenarios run in one isolated, input-free subprocess. Reuse its
+    // decoded snapshot, never any production globals or persistent disk cache.
+    private static ?array $result = null;
+
     private function scenarios(): array {
+        if ( null !== self::$result ) {
+            return self::$result;
+        }
         $command = escapeshellarg( PHP_BINARY ) . ' -d display_errors=stderr ' . escapeshellarg( __DIR__ . '/fixtures/subdistrict-sdk-runtime.php' );
         exec( $command, $output, $status );
         $this->assertSame( 0, $status, implode( "\n", $output ) );
-        return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+        return self::$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
     }
 
     public function test_names_and_postcodes_use_one_authoritative_unified_lookup(): void {

@@ -3,10 +3,16 @@
 use PHPUnit\Framework\TestCase;
 
 final class ExpressCouponRepricingRuntimeTest extends TestCase {
+    // The subprocess exercises every transition itself, without test inputs.
+    private static ?array $result = null;
+
     private function runtime(): array {
+        if ( null !== self::$result ) {
+            return self::$result;
+        }
         exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/express-coupon-repricing-runtime.php' ) . ' 2>&1', $output, $status );
         $this->assertSame( 0, $status, implode( "\n", $output ) );
-        return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+        return self::$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
     }
 
     public function test_native_selected_ninja_rate_reprices_raw_cache_on_every_coupon_change(): void {

@@ -3,12 +3,19 @@ use PHPUnit\Framework\TestCase;
 
 /** Production Cart status and Store API refresh, isolated from WP/network/autoload. */
 final class InstantCheckoutStatusRuntimeTest extends TestCase {
+    // This input-free subprocess returns all scenarios together. Cache only in
+    // this worker; PHP arrays are copy-on-write, so callers cannot mutate it.
+    private static ?array $result = null;
+
     private function fixture(): array {
+        if ( null !== self::$result ) {
+            return self::$result;
+        }
         $output = array();
         $status = 0;
         exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/instant-checkout-status-runtime.php' ) . ' 2>&1', $output, $status );
         $this->assertSame( 0, $status, implode( "\n", $output ) );
-        return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+        return self::$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
     }
 
     public function test_canonical_package_and_currency_guards_override_valid_cached_native_rates(): void {

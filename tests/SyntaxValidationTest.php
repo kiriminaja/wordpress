@@ -50,8 +50,10 @@ final class SyntaxValidationTest extends TestCase
         foreach ($files as $filePath) {
             $output = [];
             $exitCode = 0;
-            // Use the runner's PHP version and retain compiler checks beyond TOKEN_PARSE.
-            exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($filePath) . ' 2>&1', $output, $exitCode);
+            // Lint needs the compiler, not php.ini's database/debug extensions. Avoid
+            // initializing those extensions for every file while retaining all of
+            // php -l's compiler checks (TOKEN_PARSE alone misses some fatal errors).
+            exec(escapeshellarg(PHP_BINARY) . ' -n -l ' . escapeshellarg($filePath) . ' 2>&1', $output, $exitCode);
             if ($exitCode !== 0) {
                 $failures[] = "{$filePath}:\n" . implode("\n", $output);
             }

@@ -7,8 +7,14 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantShipmentContextRuntimeTest extends TestCase {
     private function runFixture(array $input = []): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-shipment-context-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
-        return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
+        // Inputs fully define this isolated fixture; arrays are returned by value.
+        static $snapshots = [];
+        $key = json_encode($input, JSON_THROW_ON_ERROR);
+        if (isset($snapshots[$key])) {
+            return $snapshots[$key];
+        }
+        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' -n ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-shipment-context-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        return $snapshots[$key] = json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
     }
 
     #[Test]

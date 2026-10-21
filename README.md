@@ -67,7 +67,9 @@ vendor/bin/paratest --configuration paratest.xml --filter SettingServiceDependen
 
 The required unit/runtime suites run from the plugin root without a WordPress server or network API. PHP needs the curl, SQLite3 and PDO SQLite extensions for runtime fixtures. Frontend checks require Bun 1.4.2 and Node 20.19+ or 22.12+ (Vite 8); CI uses Node 22. Locked React, React DOM and Happy DOM development dependencies are required: DOM suites fail rather than skip when dependencies are missing. These VM/DOM and compiled Svelte tests execute production code with fixture transport/UI boundaries; they are not live-browser E2E coverage.
 
-`make zip` includes `bun run frontend:check` (formatting, lint, Svelte checking, style checks and payment/buyer/instant runtime suites) and the frontend build. The pre-commit hook runs frontend checks for staged frontend assets, blocks, tests, scripts, locks, translations and PHP integration changes. PR CI tests PHP 8.1, 8.2, 8.3 and 8.5; WP-CLI smoke checks cover the declared WordPress 6.8 / WooCommerce 8.5 minimum and WordPress 6.8 / WooCommerce 10.6, without starting a browser server.
+`make zip` includes `bun run frontend:check` (formatting, lint, Svelte checking, style checks and frontend runtime suites) and the frontend build. Successful frontend checks and buyer builds are reused only when content-matched inputs and generated output hashes agree. Changed source, tests, configs, locks, dependency metadata, runtime, or environment invalidates the receipt. Run `bun run frontend:check:all` to execute every check explicitly, or set `KIRIOF_BUILD_FORCE=1` to bypass receipts. Receipts live in ignored `node_modules/.cache/kiriof`; `bun install --frozen-lockfile` should be rerun after any manual dependency edits, since cache identity tracks installed dependency manifests, not every dependency source file.
+
+The pre-commit hook runs frontend checks for staged frontend assets, blocks, tests, scripts, locks, translations and PHP integration changes. PR CI tests PHP 8.1, 8.2, 8.3 and 8.5; WP-CLI smoke checks cover the declared WordPress 6.8 / WooCommerce 8.5 minimum and WordPress 6.8 / WooCommerce 10.6, without starting a browser server.
 
 ### Logging
 
@@ -97,6 +99,10 @@ make zip
 ```
 
 Produces `kiriminaja-official.zip` ready for distribution (`make zip dev` and `make zip stg` use versioned environment-specific names).
+
+Packaging does not copy the development `vendor/` tree. It caches a separate production-only Composer install under `build/composer-vendor-cache`, keyed by the manifests, PHP/platform/Composer identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading. The SDK retains its required source install; other packages use dist archives. `make clean` removes this cache as well as the staged build. The first build still installs dependencies and runs all checks; unchanged subsequent builds avoid those costs.
+
+PHP tests still execute on every `make test`. Deterministic fixture results are reused inside a worker, heavy UI matrices are batched with fresh case state, and extension-free fixture/lint subprocesses omit unnecessary php.ini startup. Other fixtures retain the SQLite/curl extensions they need.
 
 ### Releasing
 

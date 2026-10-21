@@ -50,45 +50,60 @@ namespace {
     require ABSPATH . 'inc/Services/InstantLabelService.php';
     require ABSPATH . 'inc/Services/TransactionListViewModelFactory.php';
     require ABSPATH . 'inc/Services/TransactionDetailPageData.php';
-    $payload = json_decode($argv[1] ?? '{}', true) ?: [];
-    // Keep legacy display-only cases orderless. Return the same fake on every
-    // lookup: the factory and real label guard independently load the WC order.
-    $fixture_order = isset($payload['wc_order']) && is_array($payload['wc_order'])
-        ? new class($payload['wc_order']) {
-            public function __construct(private array $data) {}
-            public function get_status(): string { return $this->data['status'] ?? 'processing'; }
-            public function is_paid(): bool { return $this->data['paid'] ?? false; }
-            public function get_address($type): array { return $this->data['address'] ?? []; }
-            public function get_meta($key, $single = true): string { return ''; }
-            public function get_payment_method(): string { return 'bacs'; }
-            public function get_discount_total(): float { return 0; }
-            public function get_coupon_codes(): array { return []; }
-            public function get_shipping_total(): float { return 12000; }
-            public function get_total(): float { return 62000; }
-            public function get_subtotal(): float { return 50000; }
-            public function get_items($type = 'line_item'): array {
-                return [new class {
-                    public function get_product() { return false; } // Deleted product.
-                    public function get_name(): string { return 'Current WC item'; }
-                    public function get_quantity(): int { return 1; }
-                    public function get_total(): float { return 50000; }
-                }];
-            }
-        } : false;
     function wc_get_order($id) {
         global $fixture_order;
         return (int) $id === 10 ? $fixture_order : false;
     }
-    unset($payload['wc_order']);
-    $row = (object) array_merge([
-        'id' => 1, 'wc_order_id' => 10, 'wp_wc_order_stat_order_id' => 10, 'wc_date_created' => '2025-01-01',
-        'status' => 'new', 'service' => 'jne', 'post_status' => 'wc-processing',
-        'awb' => 'AWB-1', 'order_id' => 'KA-1',
-    ], $payload);
-    if (in_array($payload['mode'] ?? '', ['detail', 'fallback'], true)) {
-        $data = new \KiriminAjaOfficial\Services\TransactionDetailPageData();
-        echo json_encode(($payload['mode'] === 'fallback' ? $data->prepareFallback($row, 'Test fallback') : $data->prepare($row))['transaction'], JSON_THROW_ON_ERROR);
-        exit;
+
+    function renderTransactionFixture(array $payload): array {
+        global $fixture_order;
+        // Keep legacy display-only cases orderless. Return the same fake on every
+        // lookup: the factory and real label guard independently load the WC order.
+        $fixture_order = isset($payload['wc_order']) && is_array($payload['wc_order'])
+            ? new class($payload['wc_order']) {
+                public function __construct(private array $data) {}
+                public function get_status(): string { return $this->data['status'] ?? 'processing'; }
+                public function is_paid(): bool { return $this->data['paid'] ?? false; }
+                public function get_address($type): array { return $this->data['address'] ?? []; }
+                public function get_meta($key, $single = true): string { return ''; }
+                public function get_payment_method(): string { return 'bacs'; }
+                public function get_discount_total(): float { return 0; }
+                public function get_coupon_codes(): array { return []; }
+                public function get_shipping_total(): float { return 12000; }
+                public function get_total(): float { return 62000; }
+                public function get_subtotal(): float { return 50000; }
+                public function get_items($type = 'line_item'): array {
+                    return [new class {
+                        public function get_product() { return false; } // Deleted product.
+                        public function get_name(): string { return 'Current WC item'; }
+                        public function get_quantity(): int { return 1; }
+                        public function get_total(): float { return 50000; }
+                    }];
+                }
+            } : false;
+        unset($payload['wc_order']);
+        $row = (object) array_merge([
+            'id' => 1, 'wc_order_id' => 10, 'wp_wc_order_stat_order_id' => 10, 'wc_date_created' => '2025-01-01',
+            'status' => 'new', 'service' => 'jne', 'post_status' => 'wc-processing',
+            'awb' => 'AWB-1', 'order_id' => 'KA-1',
+        ], $payload);
+        if (in_array($payload['mode'] ?? '', ['detail', 'fallback'], true)) {
+            $data = new \KiriminAjaOfficial\Services\TransactionDetailPageData();
+            return ($payload['mode'] === 'fallback' ? $data->prepareFallback($row, 'Test fallback') : $data->prepare($row))['transaction'];
+        }
+        return (new \KiriminAjaOfficial\Services\TransactionListViewModelFactory())->createRows([$row], 'all')[0];
     }
-    echo json_encode((new \KiriminAjaOfficial\Services\TransactionListViewModelFactory())->createRows([$row], 'all')[0], JSON_THROW_ON_ERROR);
+
+    // Each render creates fresh services and resets the only mutable fixture
+    // global (the WC order). Loaded production classes have no static caches.
+    if (($argv[1] ?? '') === '--batch') {
+        $payloads = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
+        $rows = [];
+        foreach ($payloads as $payload) {
+            $rows[] = renderTransactionFixture($payload);
+        }
+        echo json_encode($rows, JSON_THROW_ON_ERROR);
+    } else {
+        echo json_encode(renderTransactionFixture(json_decode($argv[1] ?? '{}', true) ?: []), JSON_THROW_ON_ERROR);
+    }
 }
