@@ -269,6 +269,7 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
 ## Testing
 
 - Test runner: ParaTest
+- `make test` / `composer test` and the named JS test scripts reuse content-matched successful runs. Use `make test-force`, `composer test:force`, or `KIRIOF_TEST_FORCE=1` when fresh execution is required; report cache hits as reused results, not newly executed tests.
 - ParaTest is the only supported PHP test entry point (`make test` or `composer test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
 - Test files: `tests/` directory
 - Run: `vendor/bin/paratest --configuration paratest.xml` or `make test`

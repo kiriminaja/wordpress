@@ -61,7 +61,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: frontend zip clean changelog release test tag publish dev stg plain
+.PHONY: frontend zip clean changelog release test test-force tag publish dev stg plain
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -107,7 +107,10 @@ ifneq ($(RELEASE_GOALS),)
 endif
 
 test:
-	vendor/bin/paratest --configuration paratest.xml --testdox
+	php scripts/test-cache.php -- vendor/bin/paratest --configuration paratest.xml --testdox
+
+test-force:
+	php scripts/test-cache.php --force -- vendor/bin/paratest --configuration paratest.xml --testdox
 
 frontend:
 	@test -x "$(BUN)" || (echo "Bun is required to build frontend assets." && exit 127)

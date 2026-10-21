@@ -37,7 +37,8 @@
     "kiriminaja/kiriminaja-php": "^2.1.4"
   },
   "scripts": {
-    "test": "paratest --configuration paratest.xml --testdox",
-    "phpstan": "phpstan analyse --memory-limit=1G"
+    "test": "@php scripts/test-cache.php -- vendor/bin/paratest --configuration paratest.xml --testdox",
+    "phpstan": "phpstan analyse --memory-limit=1G",
+    "test:force": "@php scripts/test-cache.php --force -- vendor/bin/paratest --configuration paratest.xml --testdox"
   }
 }
