@@ -122,13 +122,11 @@ use KiriminAjaOfficial\Migration\SetupMigration;
 
 function migrate_settings() {
 	$method = new ReflectionMethod( SetupMigration::class, 'settingsTable' );
-	$method->setAccessible( true );
 	$method->invoke( new SetupMigration() );
 }
 function reset_repository_cache() {
 	foreach ( array( 'setting_cache', 'whitelist_expedition_ids_cache' ) as $name ) {
 		$property = new ReflectionProperty( SettingRepository::class, $name );
-		$property->setAccessible( true );
 		$property->setValue( null, array() );
 	}
 }

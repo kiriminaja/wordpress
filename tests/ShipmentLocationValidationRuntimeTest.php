@@ -65,7 +65,6 @@ final class ShipmentLocationValidationRuntimeTest extends TestCase {
             ->getMock();
         $controller = new SettingController( new ShipmentLocationTrackingPageRepositoryFake(), $setting_repository );
         $method     = new ReflectionMethod( SettingController::class, 'isValidShipmentLocationData' );
-        $method->setAccessible( true );
 
         return (bool) $method->invoke( $controller, $payload );
     }

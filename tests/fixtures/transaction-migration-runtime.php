@@ -221,7 +221,6 @@ switch ( $scenario ) {
 }
 
 $method = new ReflectionMethod( $migration, 'transactionsTable' );
-$method->setAccessible( true );
 $alter_counts = array();
 $database_query_counts = array();
 $option_history = array();

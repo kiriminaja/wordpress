@@ -78,7 +78,7 @@ function kiriof_test_runtime(): array {
 		'binary' => kiriof_test_digest( array( PHP_BINARY, $binary, $binary_hash, PHP_VERSION, PHP_VERSION_ID, PHP_OS, PHP_OS_FAMILY, PHP_INT_SIZE, php_uname() ) ),
 		'extensions' => kiriof_test_digest( $extensions ),
 		'ini' => kiriof_test_digest( array( $settings, $ini ) ),
-		'locale' => kiriof_test_digest( array( setlocale( LC_ALL, 0 ), date_default_timezone_get() ) ),
+		'locale' => kiriof_test_digest( array( setlocale( LC_ALL, '0' ), date_default_timezone_get() ) ),
 		'environment' => kiriof_test_digest( $environment ),
 	);
 }

@@ -22,6 +22,9 @@ final class ProductVolumetricReadinessRepositoryRuntimeTest extends TestCase {
 	protected function setUp(): void {
 		global $wpdb;
 		$this->previous_wpdb = $wpdb ?? null;
+		// Onboarding constructs its default settings repository alongside the
+		// injected readiness contract; provide the WordPress table prefix too.
+		$wpdb = (object) array( 'prefix' => 'wp_' );
 	}
 
 	#[Test]

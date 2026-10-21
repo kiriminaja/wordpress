@@ -179,8 +179,15 @@ async function compactRouteGeometry(browser: any, width: number) {
   await expect(browser.locator(region)).toBeVisible();
   await expect.poll(() => browser.evaluate(() => {
     const map = document.querySelector('.kiriof-detail-status-card .leaflet-container');
-    return !!map && map.querySelectorAll('.leaflet-tile-loaded').length > 0 && map.querySelectorAll('.leaflet-overlay-pane path').length === 3 && Array.from(map.querySelectorAll<HTMLImageElement>('img')).every(img => img.complete && img.naturalWidth > 0);
-  })).toBe(true);
+    return {
+      tilesLoaded: !!map && map.querySelectorAll('.leaflet-tile-loaded').length > 0,
+      // The route is an overlay path; the two endpoints are now DOM divIcon
+      // markers in Leaflet's marker pane, not the former circle overlay paths.
+      routePaths: map?.querySelectorAll('.leaflet-overlay-pane path').length ?? 0,
+      markerIcons: Array.from(map?.querySelectorAll('.leaflet-marker-pane .leaflet-marker-icon svg') ?? []).map(svg => svg.getAttribute('data-icon')),
+      imagesLoaded: !!map && Array.from(map.querySelectorAll<HTMLImageElement>('img')).every(img => img.complete && img.naturalWidth > 0),
+    };
+  })).toEqual({ tilesLoaded: true, routePaths: 1, markerIcons: ['building-warehouse', 'map-pin'], imagesLoaded: true });
   const result = await browser.evaluate(() => {
     const card = document.querySelector('.kiriof-detail-status-card')!;
     const region = card.querySelector<HTMLElement>('[role="region"]')!;
@@ -201,6 +208,11 @@ async function compactRouteGeometry(browser: any, width: number) {
       caption: header.querySelector('p')?.textContent, ariaHidden: header.getAttribute('aria-hidden'), display: getComputedStyle(header).display, visibility: getComputedStyle(header).visibility,
       error: section.querySelector('[role="status"]')?.textContent || '',
       paths: Array.from(region.querySelectorAll<SVGPathElement>('.leaflet-overlay-pane path')).map(path => ({ d: path.getAttribute('d'), dash: path.getAttribute('stroke-dasharray') })),
+      markers: Array.from(region.querySelectorAll<HTMLElement>('.leaflet-marker-pane .leaflet-marker-icon [role="img"]')).map(marker => ({
+        label: marker.getAttribute('aria-label'), title: marker.title,
+        width: marker.getBoundingClientRect().width, height: marker.getBoundingClientRect().height,
+        paths: Array.from(marker.querySelectorAll('path')).map(path => path.getAttribute('d')),
+      })),
     };
   });
   expect(result.embedded).toBe(true);
@@ -226,6 +238,16 @@ async function compactRouteGeometry(browser: any, width: number) {
   expect(result.error).toBe('');
   expect(result.paths[0].dash).toBe('6 8');
   for (const path of result.paths) expect(path.d).toMatch(/M/);
+  expect(result.markers).toHaveLength(2);
+  for (const marker of result.markers) {
+    expect(marker.label?.length).toBeGreaterThan(0);
+    expect(marker.title).toBe(marker.label);
+    expect(marker.width).toBe(32);
+    expect(marker.height).toBe(32);
+    expect(marker.paths.length).toBeGreaterThan(0);
+    for (const path of marker.paths) expect(path).toMatch(/M/i);
+  }
+  expect(result.markers[0].label).not.toBe(result.markers[1].label);
   // Leaflet intentionally keeps off-screen tile/pan layers for dragging. Verify
   // the viewport clips those layers instead of treating its scrollWidth as UI overflow.
   const viewport = await browser.evaluate(() => {

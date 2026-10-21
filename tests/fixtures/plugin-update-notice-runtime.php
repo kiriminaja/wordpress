@@ -4,7 +4,7 @@ define('ABSPATH', __DIR__ . '/');
 define('HOUR_IN_SECONDS', 3600);
 define('KIRIOF_VERSION', '2.4.3');
 define('KIRIOF_PLUGIN_BASENAME', 'kiriminaja-official/kiriminaja-official.php');
-$scenario = json_decode($argv[1], true, 512, JSON_THROW_ON_ERROR);
+$scenario = json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
 $calls = array();
 $writes = array();
 $nonce_actions = array();

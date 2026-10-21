@@ -23,7 +23,6 @@ final class CreditBalanceExtractorTest extends TestCase {
 		$service = new class() extends \KiriminAjaOfficial\Services\TransactionProcessServices\GetCreditBalanceService {
 			public function expose( $data ): ?float {
 				$method = new ReflectionMethod( parent::class, 'extract_balance' );
-				$method->setAccessible( true );
 
 				return $method->invoke( $this, $data );
 			}

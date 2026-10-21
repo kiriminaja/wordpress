@@ -39,7 +39,6 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
             \KiriminAjaOfficial\Services\UtilServices\GetWCCartAttributeService::class,
             'getResolvedProductAttribute'
         );
-        $method->setAccessible(true);
 
         $attributes = array(
             100 => array(
@@ -170,7 +169,6 @@ final class ShopVerseBlockCheckoutCompatibilityTest extends TestCase
 
         $controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\CheckoutController::class ) )->newInstanceWithoutConstructor();
         $method = new ReflectionMethod($controller, 'kiriof_fee_cache_matches');
-        $method->setAccessible(true);
 
         $cachedContext = array(
             'shipping_method' => 'kiriminaja-official_idx_06',

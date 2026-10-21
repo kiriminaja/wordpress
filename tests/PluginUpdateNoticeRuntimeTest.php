@@ -4,9 +4,22 @@ use PHPUnit\Framework\TestCase;
 final class PluginUpdateNoticeRuntimeTest extends TestCase {
     private function runScenario(array $scenario = array()): array {
         // WordPress metadata, cache and compatibility APIs are local fakes.
-        exec(kiriof_test_fixture_php_shell() . ' ' . escapeshellarg(__DIR__ . '/fixtures/plugin-update-notice-runtime.php') . ' ' . escapeshellarg(json_encode($scenario, JSON_THROW_ON_ERROR)) . ' 2>&1', $output, $status);
-        $this->assertSame(0, $status, implode("\n", $output));
-        return json_decode(implode("\n", $output), true, 512, JSON_THROW_ON_ERROR);
+        // Linux limits a single argv string to 128 KiB. Oversized changelog
+        // scenarios must reach the service, not fail while starting PHP.
+        $input = tmpfile();
+        $this->assertIsResource($input);
+        try {
+            fwrite($input, json_encode($scenario, JSON_THROW_ON_ERROR));
+            rewind($input);
+            $process = proc_open(kiriof_test_fixture_php_argv(array(__DIR__ . '/fixtures/plugin-update-notice-runtime.php')), array(0 => $input, 1 => array('pipe', 'w'), 2 => array('redirect', 1)), $pipes);
+            $this->assertIsResource($process);
+            $output = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $this->assertSame(0, proc_close($process), $output);
+            return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        } finally {
+            fclose($input);
+        }
     }
 
     public function test_contract_uses_actual_version_canonical_page_and_exact_release(): void {

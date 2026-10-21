@@ -71,8 +71,11 @@ final class PluginUpdateNoticeService extends BaseService {
             echo '<p>' . esc_html( $detail ) . '</p>';
         }
         echo '<p>';
-        $primary_attributes = $update['primaryExternal'] ? ' target="_blank" rel="noopener noreferrer"' : '';
-        echo '<a class="button button-primary" href="' . esc_url( $update['primaryUrl'] ) . '"' . $primary_attributes . '>' . esc_html( $update['primaryLabel'] ) . '</a> ';
+        echo '<a class="button button-primary" href="' . esc_url( $update['primaryUrl'] ) . '"';
+        if ( $update['primaryExternal'] ) {
+            echo ' target="_blank" rel="noopener noreferrer"';
+        }
+        echo '>' . esc_html( $update['primaryLabel'] ) . '</a> ';
         echo '<a class="button button-link-delete" href="' . esc_url( $update['dismissUrl'] ) . '">' . esc_html( $update['dismissLabel'] ) . '</a>';
         echo '</p>';
 
