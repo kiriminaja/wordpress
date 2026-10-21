@@ -270,7 +270,12 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			if ( isset( $package['destination']['address_note'] ) && ! is_string( $package['destination']['address_note'] ) ) {
 				return $this->notSubmittedFailure( 'Instant address notes must be text.' );
 			}
-			$payload['packages'][ $index ]['destination']['address_note'] = '' !== trim( $package['destination']['address_note'] ?? '' ) ? $package['destination']['address_note'] : $package['destination']['address'];
+			$note = '' !== trim( $package['destination']['address_note'] ?? '' ) ? $package['destination']['address_note'] : $package['destination']['address'];
+			// Bound only the API note; the separate full destination address stays intact.
+			if ( 1 !== preg_match( '/\A.{0,100}/us', $note, $matches ) ) {
+				return $this->notSubmittedFailure( 'Instant destination address notes must be valid UTF-8 text.' );
+			}
+			$payload['packages'][ $index ]['destination']['address_note'] = $matches[0];
 		}
 
 		// The inherited post() logs remote errors, which may echo the PIN.
