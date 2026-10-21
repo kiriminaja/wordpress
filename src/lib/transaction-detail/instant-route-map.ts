@@ -7,6 +7,7 @@ import type {
   GoogleMapInstance,
   GoogleOverlay,
   GoogleLatLngLiteral,
+  GoogleLatLng,
 } from '../../buyer/map/types';
 
 export type RoutePoint = [number, number];
@@ -16,6 +17,56 @@ export type NormalizedInstantRoute = {
   points: RoutePoint[];
   mode: 'recorded' | 'illustration';
 };
+
+/** Native map panes need DOM nodes, not mounted UI components. */
+export function createRouteMarker(
+  document: Document,
+  kind: 'origin' | 'destination',
+  label: string,
+): HTMLElement {
+  const node = document.createElement('div');
+  node.className =
+    kind === 'origin'
+      ? 'box-border flex items-center justify-center rounded-full border-2 border-success bg-card text-success'
+      : 'box-border flex items-center justify-center rounded-full border-2 border-destructive bg-card text-destructive';
+  node.style.width = '32px';
+  node.style.height = '32px';
+  node.setAttribute('role', 'img');
+  node.setAttribute('aria-label', label);
+  node.title = label;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('data-icon', kind === 'origin' ? 'building-warehouse' : 'map-pin');
+  // Tabler outline paths from the installed @tabler/icons-svelte icons:
+  // building-warehouse.svelte and map-pin.svelte (MIT licensed).
+  const paths =
+    kind === 'origin'
+      ? [
+          'M3 21v-13l9 -4l9 4v13',
+          'M13 13h4v8h-10v-6h6',
+          'M13 21v-9a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3',
+        ]
+      : [
+          'M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0',
+          'M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0',
+        ];
+  for (const d of paths) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    svg.appendChild(path);
+  }
+  node.appendChild(svg);
+  return node;
+}
 
 export type RouteMapLabels = {
   origin: string;
@@ -118,18 +169,23 @@ export function createInstantRouteMapSession(
       .addTo(map);
     const start = route.origin ?? route.points[0]!;
     const end = route.destination ?? route.points[route.points.length - 1]!;
-    for (const [point, label, color] of [
-      [start, route.origin ? labels?.origin : labels?.start, 'var(--success)'],
-      [end, route.destination ? labels?.destination : labels?.end, 'var(--destructive)'],
+    for (const [point, label, kind] of [
+      [start, route.origin ? labels?.origin : labels?.start, 'origin'],
+      [end, route.destination ? labels?.destination : labels?.end, 'destination'],
     ] as const) {
       const tooltip = container.ownerDocument.createElement('span');
       tooltip.textContent = label ?? '';
-      const marker = leaflet.circleMarker([...point] as RoutePoint, {
-        radius: 7,
-        color,
-        fillColor: color,
-        fillOpacity: 1,
-        weight: 2,
+      const marker = leaflet.marker([...point] as RoutePoint, {
+        icon: leaflet.divIcon({
+          html: createRouteMarker(container.ownerDocument, kind, label ?? ''),
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          className: '',
+        }),
+        title: label ?? '',
+        alt: label ?? '',
+        draggable: false,
+        keyboard: false,
       });
       if (label) marker.bindTooltip(tooltip);
       marker.addTo(map);
@@ -163,6 +219,7 @@ export function createGoogleInstantRouteMapSession(
   route: NormalizedInstantRoute,
   google: GoogleMapsAPI,
   onError: () => void,
+  labels?: RouteMapLabels,
 ): { dispose: () => void } {
   // Route-specific additions keep the shared buyer API small.
   type RouteMap = GoogleMapInstance & {
@@ -171,14 +228,25 @@ export function createGoogleInstantRouteMapSession(
       padding: number,
     ): void;
   };
+  type RouteOverlayView = GoogleOverlay & {
+    onAdd(): void;
+    draw(): void;
+    onRemove(): void;
+    getPanes(): { markerLayer: HTMLElement } | null;
+    getProjection(): {
+      fromLatLngToDivPixel(point: GoogleLatLng): { x: number; y: number } | null;
+    };
+  };
   type RouteAPI = {
     Map: new (node: HTMLElement, options: Record<string, unknown>) => RouteMap;
     Polyline: new (options: Record<string, unknown>) => GoogleOverlay;
-    Circle: new (options: Record<string, unknown>) => GoogleOverlay;
+    OverlayView: new () => RouteOverlayView;
+    LatLng: new (lat: number, lng: number) => GoogleLatLng;
   };
   const api = google as unknown as RouteAPI;
   let map: RouteMap | undefined;
   const overlays: GoogleOverlay[] = [];
+  const markerNodes: HTMLElement[] = [];
   let observer: ResizeObserver | undefined;
   let disposed = false;
   const literal = (point: RoutePoint): GoogleLatLngLiteral => ({ lat: point[0], lng: point[1] });
@@ -193,27 +261,41 @@ export function createGoogleInstantRouteMapSession(
     probe.remove();
     return resolved;
   };
-  const primary = color('--primary'),
-    success = color('--success'),
-    destructive = color('--destructive');
+  const primary = color('--primary');
   const dispose = () => {
     if (disposed) return;
     disposed = true;
     observer?.disconnect();
     for (const overlay of overlays) {
-      google.event.clearInstanceListeners(overlay);
-      overlay.setMap(null);
+      try {
+        google.event.clearInstanceListeners(overlay);
+      } catch {
+        // Continue cleaning up other resources if provider listener cleanup fails.
+      }
+      try {
+        overlay.setMap(null);
+      } catch {
+        // A partially attached provider overlay must not prevent DOM cleanup.
+      }
     }
-    if (map) google.event.clearInstanceListeners(map);
-    container.replaceChildren();
+    for (const node of markerNodes) node.remove();
+    try {
+      if (map) google.event.clearInstanceListeners(map);
+    } catch {
+      // Cleanup remains idempotent even when a partially initialized map fails.
+    } finally {
+      container.replaceChildren();
+    }
   };
   try {
-    if (!api.Map || !api.Polyline || !api.Circle) throw new Error('Map unavailable');
+    if (!api.Map || !api.Polyline || !api.OverlayView || !api.LatLng)
+      throw new Error('Map unavailable');
     const start = route.origin ?? route.points[0]!;
     const end = route.destination ?? route.points[route.points.length - 1]!;
     map = new api.Map(container, {
       center: literal(start),
       zoom: 13,
+      maxZoom: 18,
       scrollwheel: false,
       draggable: false,
       disableDoubleClickZoom: true,
@@ -250,22 +332,40 @@ export function createGoogleInstantRouteMapSession(
           : {}),
       }),
     );
-    for (const [point, color] of [
-      [start, success],
-      [end, destructive],
+    class RouteMarker extends api.OverlayView {
+      constructor(
+        private node: HTMLElement,
+        private position: GoogleLatLng,
+      ) {
+        super();
+        node.style.position = 'absolute';
+        node.style.transform = 'translate(-50%, -50%)';
+        node.style.pointerEvents = 'none';
+      }
+      onAdd() {
+        if (!disposed) this.getPanes()?.markerLayer.appendChild(this.node);
+      }
+      draw() {
+        if (disposed) return;
+        const pixel = this.getProjection().fromLatLngToDivPixel(this.position);
+        if (!pixel) return;
+        this.node.style.left = `${pixel.x}px`;
+        this.node.style.top = `${pixel.y}px`;
+      }
+      onRemove() {
+        this.node.remove();
+      }
+    }
+    for (const [point, label, kind] of [
+      [start, route.origin ? labels?.origin : labels?.start, 'origin'],
+      [end, route.destination ? labels?.destination : labels?.end, 'destination'],
     ] as const) {
-      overlays.push(
-        new api.Circle({
-          map,
-          center: literal(point),
-          radius: 35,
-          clickable: false,
-          fillColor: color,
-          fillOpacity: 1,
-          strokeColor: color,
-          strokeWeight: 2,
-        }),
-      );
+      const node = createRouteMarker(container.ownerDocument, kind, label ?? '');
+      markerNodes.push(node);
+      const marker = new RouteMarker(node, new api.LatLng(point[0], point[1]));
+      // Track before attachment: setMap can throw after onAdd has inserted the node.
+      overlays.push(marker);
+      marker.setMap(map);
     }
     const points = [...route.points, start, end];
     if (!points.every((point) => point[0] === start[0] && point[1] === start[1])) {
@@ -318,7 +418,7 @@ export function mountInstantRouteMap(
       void loadGoogleMaps(provider.apiKey)
         .then((api) => {
           if (!disposed)
-            session = createGoogleInstantRouteMapSession(container, route, api, report);
+            session = createGoogleInstantRouteMapSession(container, route, api, report, labels);
         })
         .catch(report);
     } else {

@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
 import { happy } from './helpers/ui-runtime';
-import { normalizeInstantRoute, routePoint, mountInstantRouteMap } from '../src/lib/transaction-detail/instant-route-map';
+import { createRouteMarker, normalizeInstantRoute, routePoint, mountInstantRouteMap } from '../src/lib/transaction-detail/instant-route-map';
 
 const root = resolve(import.meta.dir, '..');
 const illustration = { origin: { latitude: 0, longitude: 0 }, destination: { latitude: -6.2, longitude: 106.8 }, points: [], mode: 'illustration' as const };
@@ -31,7 +31,8 @@ async function fixture(data: any = illustration, missingLeaflet = false, config?
   const directory = mkdtempSync(join(root, 'node_modules', '.instant-map-runtime-'));
   const saved = new Map<string, PropertyDescriptor | undefined>();
   const maps: any[] = [], lines: any[] = [], markers: any[] = [], layers: any[] = [], observers: any[] = [];
-  const timers = new Map<number, () => void>(); let timer = 0, requests = 0;
+  const timers = new Map<number, () => void>(); let timer = 0, requests = 0, geolocations = 0;
+  Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition() { geolocations++; throw new Error('No geolocation'); }, watchPosition() { geolocations++; throw new Error('No geolocation'); } } });
   class Observer {
     disconnected = false;
     constructor(public callback: () => void) { observers.push(this); }
@@ -43,6 +44,7 @@ async function fixture(data: any = illustration, missingLeaflet = false, config?
       const map = { element, options, removed: 0, offCount: 0, fit: null as any, view: null as any, resized: 0,
         fitBounds(points: any, options: any) { this.fit = { points, options }; return this; },
         setView(point: any, zoom: any) { this.view = { point, zoom }; return this; },
+        setZoom(zoom: number) { this.view = { ...this.view, zoom }; return this; },
         invalidateSize() { this.resized++; }, off() { this.offCount++; }, remove() { this.removed++; },
       }; maps.push(map); return map;
     },
@@ -53,7 +55,14 @@ async function fixture(data: any = illustration, missingLeaflet = false, config?
       }; layers.push(layer); return layer;
     },
     polyline(points: any, options: any) { const line = { points, options, addTo() { return this; } }; lines.push(line); return line; },
-    circleMarker(point: any, options: any) { const marker = { point, options, tooltip: null as any, bindTooltip(node: any) { this.tooltip = node; return this; }, addTo() { return this; } }; markers.push(marker); return marker; },
+    divIcon(options: any) { return { options }; },
+    circleMarker() { throw new Error('Route pins must not use circleMarker'); },
+    marker(point: any, options: any) {
+      const marker = { point, options, tooltip: null as any,
+        bindTooltip(node: any) { this.tooltip = node; return this; },
+        addTo(map: any) { map.element.appendChild(options.icon.options.html); return this; },
+      }; markers.push(marker); return marker;
+    },
   };
   if (!missingLeaflet) (window as any).L = L;
   if (google) (window as any).google = { maps: google };
@@ -83,7 +92,7 @@ async function fixture(data: any = illustration, missingLeaflet = false, config?
     requests: () => requests,
     change: async (value: any) => { host.change(value); await settle(); },
     changeConfig: async (value: any) => { host.changeConfig(value); await settle(); },
-    cleanup: async () => { try { await destroy(); expect(timers.size).toBe(0); expect(requests).toBe(0); } finally { window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } rmSync(directory, { recursive: true, force: true }); } },
+    cleanup: async () => { try { await destroy(); expect(timers.size).toBe(0); expect(requests).toBe(0); expect(geolocations).toBe(0); } finally { window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } rmSync(directory, { recursive: true, force: true }); } },
   };
 }
 
@@ -160,21 +169,64 @@ describe('InstantRouteMap compiled Svelte lifecycle', () => {
 });
 
 
-function googleFixture() {
-  const maps: any[] = [], overlays: any[] = [], cleared: object[] = [];
-  class Map {
-    fit: any;
-    constructor(public node: HTMLElement, public options: any) { maps.push(this); }
-    fitBounds(bounds: any, padding: any) { this.fit = { bounds, padding }; }
+function googleFixture(failAttachment = 0) {
+  const maps: any[] = [], overlays: any[] = [], cleared: object[] = [], projected: any[] = [];
+  let circleCalls = 0, attachments = 0;
+  class LatLng {
+    constructor(private latitude: number, private longitude: number) {}
+    lat() { return this.latitude; }
+    lng() { return this.longitude; }
   }
-  class Overlay {
+  class APIMap {
+    fit: any;
+    zoom = 13;
+    markerLayer: HTMLElement;
+    constructor(public node: HTMLElement, public options: any) {
+      this.markerLayer = node.ownerDocument.createElement('div');
+      node.appendChild(this.markerLayer); maps.push(this);
+    }
+    fitBounds(bounds: any, padding: any) { this.fit = { bounds, padding }; }
+    setZoom(zoom: number) {
+      this.zoom = zoom;
+      for (const overlay of overlays) if (overlay.map === this && overlay.draw) overlay.draw();
+    }
+  }
+  class Polyline {
     detached = 0;
     constructor(public options: any) { overlays.push(this); }
     setMap(value: any) { if (value === null) this.detached++; }
   }
-  return { maps, overlays, cleared, api: { Map, Polyline: Overlay, Circle: Overlay, event: {
-    clearInstanceListeners: (instance: object) => cleared.push(instance), trigger() {},
-  } } };
+  class OverlayView {
+    map: APIMap | null = null;
+    lastMap: APIMap | null = null;
+    detached = 0;
+    constructor() { overlays.push(this); }
+    onAdd() {}
+    draw() {}
+    onRemove() {}
+    getPanes() { return { markerLayer: this.lastMap!.markerLayer }; }
+    getProjection() {
+      return { fromLatLngToDivPixel: (point: LatLng) => {
+        expect(point).toBeInstanceOf(LatLng);
+        projected.push([point.lat(), point.lng()]);
+        const scale = 2 ** this.lastMap!.zoom;
+        return { x: (point.lng() + 180) * scale, y: (90 - point.lat()) * scale };
+      } };
+    }
+    setMap(value: APIMap | null) {
+      this.map = value;
+      if (value) {
+        this.lastMap = value; this.onAdd(); this.draw();
+        if (++attachments === failAttachment) throw new Error('Partial provider attachment');
+      } else { this.detached++; this.onRemove(); }
+    }
+  }
+  return { maps, overlays, cleared, projected, circleCalls: () => circleCalls,
+    api: { Map: APIMap, Polyline, OverlayView, LatLng,
+      Circle: class { constructor() { circleCalls++; throw new Error('No geographic Circle pins'); } },
+      event: { clearInstanceListeners: (instance: object) => cleared.push(instance), trigger() {} },
+    },
+  };
 }
 
 const googleConfig = { enabled: true, provider: 'google', apiKey: 'fixture_key', tiles: '', attribution: '' };
@@ -187,9 +239,10 @@ test('Google route map copies original recorded geometry, uses read-only overlay
     expect(google.maps[0].options.draggable).toBe(false);
     expect(google.overlays[0].options.path).toEqual(recorded.points.map(([lat, lng]) => ({ lat, lng })));
     expect(google.overlays[0].options.geodesic).toBe(false);
-    // The production adapter resolves semantic theme colors in the DOM. This
-    // unstyled fixture uses currentColor instead of pinning a duplicate palette.
-    expect(google.overlays.slice(1).every(o => typeof o.options.fillColor === 'string' && o.options.fillColor.length > 0)).toBe(true);
+    expect(google.overlays).toHaveLength(3);
+    expect(google.overlays.slice(1).every(o => o instanceof google.api.OverlayView)).toBe(true);
+    expect(google.circleCalls()).toBe(0);
+    expect(google.projected).toEqual([[0, 0], [-6.2, 106.8]]);
     expect(google.maps[0].fit.padding).toBe(24);
     google.overlays[0].options.path[0].lat = 42;
     expect(recorded.points[0]).toEqual([0, 0]);
@@ -220,3 +273,138 @@ test('late Google loader completion after disposal creates no stale route map or
     window.happyDOM.abort();
   }
 });
+
+const markerPaths = {
+  origin: ['M3 21v-13l9 -4l9 4v13', 'M13 13h4v8h-10v-6h6', 'M13 21v-9a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3'],
+  destination: ['M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0', 'M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0'],
+};
+function assertMarker(node: any, kind: 'origin' | 'destination', label: string) {
+  expect(node.style.width).toBe('32px'); expect(node.style.height).toBe('32px');
+  expect(node.getAttribute('role')).toBe('img'); expect(node.getAttribute('aria-label')).toBe(label); expect(node.title).toBe(label);
+  expect(node.classList.contains('bg-card')).toBe(true);
+  expect(node.classList.contains(kind === 'origin' ? 'border-success' : 'border-destructive')).toBe(true);
+  expect(node.classList.contains(kind === 'origin' ? 'text-success' : 'text-destructive')).toBe(true);
+  const svg = node.querySelector('svg');
+  expect(svg.namespaceURI).toBe('http://www.w3.org/2000/svg');
+  expect(svg.getAttribute('width')).toBe('16'); expect(svg.getAttribute('height')).toBe('16');
+  expect(svg.getAttribute('viewBox')).toBe('0 0 24 24'); expect(svg.getAttribute('aria-hidden')).toBe('true');
+  expect(svg.getAttribute('focusable')).toBe('false');
+  expect(svg.getAttribute('data-icon')).toBe(kind === 'origin' ? 'building-warehouse' : 'map-pin');
+  expect([...svg.querySelectorAll('path')].map((path: any) => path.getAttribute('d'))).toEqual(markerPaths[kind]);
+}
+
+const nearby = { origin: { latitude: 0, longitude: 0 }, destination: { latitude: 0.00001, longitude: 0.00001 }, points: [], mode: 'illustration' as const };
+
+test('shared fixed DOM markers treat untrusted labels as attributes, never HTML', () => {
+  const window = new happy.Window();
+  try {
+    const label = '<img src=x onerror="alert(1)"><script>alert(2)</script>&"';
+    for (const kind of ['origin', 'destination'] as const) {
+      const node = createRouteMarker(window.document as any, kind, label);
+      assertMarker(node, kind, label);
+      expect(node.querySelector('img, script')).toBeNull();
+      expect(node.querySelector('[onerror], [onclick]')).toBeNull();
+      expect(node.children).toHaveLength(1);
+    }
+  } finally { window.happyDOM.abort(); }
+});
+
+test('compiled Leaflet nearby endpoints keep distinct fixed 32px divIcons at zoom 5, 13 and 18 without changing saved coordinates', async () => {
+  const before = JSON.stringify(nearby);
+  const h = await fixture(nearby);
+  try {
+    expect(h.markers).toHaveLength(2);
+    expect(h.markers.map(m => m.point)).toEqual([[0, 0], [0.00001, 0.00001]]);
+    expect(h.lines[0].points).toEqual([[0, 0], [0.00001, 0.00001]]);
+    for (const zoom of [5, 13, 18]) {
+      h.maps[0].setZoom(zoom);
+      h.markers.forEach((marker, index) => {
+        const label = index === 0 ? 'Penjemputan tersimpan' : 'Tujuan tersimpan';
+        expect(marker.options.icon.options.iconSize).toEqual([32, 32]);
+        expect(marker.options.icon.options.iconAnchor).toEqual([16, 16]);
+        expect(marker.options.icon.options.className).toBe('');
+        expect(marker.options).toMatchObject({ title: label, alt: label, draggable: false, keyboard: false });
+        expect(marker.tooltip.textContent).toBe(label);
+        const node = marker.options.icon.options.html;
+        expect(h.maps[0].element.contains(node)).toBe(true);
+        assertMarker(node, index === 0 ? 'origin' : 'destination', label);
+      });
+    }
+    expect(JSON.stringify(nearby)).toBe(before);
+  } finally { await h.cleanup(); }
+});
+
+test('compiled Google nearby endpoint overlays redraw only pixel position at zoom 5, 13 and 18 and ignore stale callbacks after disposal', async () => {
+  const google = googleFixture(); const before = JSON.stringify(nearby);
+  const h = await fixture(nearby, false, googleConfig, google.api);
+  try {
+    expect(google.overlays).toHaveLength(3);
+    expect(google.overlays[0].options.path).toEqual([{ lat: 0, lng: 0 }, { lat: 0.00001, lng: 0.00001 }]);
+    expect(google.overlays[0].options.strokeOpacity).toBe(0);
+    const nodes = [...google.maps[0].markerLayer.children] as HTMLElement[];
+    expect(nodes).toHaveLength(2);
+    const positions: string[] = [];
+    for (const zoom of [5, 13, 18]) {
+      google.maps[0].setZoom(zoom);
+      nodes.forEach((node, index) => {
+        assertMarker(node, index === 0 ? 'origin' : 'destination', index === 0 ? 'Penjemputan tersimpan' : 'Tujuan tersimpan');
+        expect(node.style.position).toBe('absolute'); expect(node.style.transform).toBe('translate(-50%, -50%)');
+        expect(node.style.pointerEvents).toBe('none');
+        const point = index === 0 ? [0, 0] : [0.00001, 0.00001];
+        expect(node.style.left).toBe(`${(point[1]! + 180) * 2 ** zoom}px`);
+        expect(node.style.top).toBe(`${(90 - point[0]!) * 2 ** zoom}px`);
+      });
+      expect(nodes[0]!.style.left).not.toBe(nodes[1]!.style.left);
+      expect(nodes[0]!.style.top).not.toBe(nodes[1]!.style.top);
+      positions.push(nodes.map(n => `${n.style.left}/${n.style.top}`).join(','));
+    }
+    expect(new Set(positions).size).toBe(3);
+    expect(JSON.stringify(nearby)).toBe(before); expect(google.circleCalls()).toBe(0);
+    const styles = nodes.map(n => n.getAttribute('style')); const projected = google.projected.length;
+    await h.destroy();
+    for (const overlay of google.overlays.slice(1)) { overlay.onAdd(); overlay.draw(); }
+    expect(google.projected).toHaveLength(projected);
+    expect(nodes.map(n => n.getAttribute('style'))).toEqual(styles);
+    expect(nodes.every(n => !n.isConnected)).toBe(true);
+    expect(google.maps[0].markerLayer.children).toHaveLength(0);
+    expect(google.overlays.every(o => o.detached === 1)).toBe(true);
+    expect(google.cleared).toHaveLength(4);
+  } finally { await h.cleanup(); }
+});
+
+test('compiled Google recorded endpoints use translated fallback labels and keep geometry immutable', async () => {
+  const google = googleFixture(); const data = { ...recorded, origin: null, destination: null };
+  const before = JSON.stringify(data);
+  const h = await fixture(data, false, googleConfig, google.api);
+  try {
+    const nodes = [...google.maps[0].markerLayer.children];
+    assertMarker(nodes[0], 'origin', 'Awal rute tercatat');
+    assertMarker(nodes[1], 'destination', 'Akhir rute tercatat');
+    expect(google.projected).toEqual([recorded.points[0], recorded.points[2]]);
+    google.overlays[0].options.path[0].lat = 42;
+    expect(JSON.stringify(data)).toBe(before);
+    await h.change({ ...recorded, destination: null });
+    const next = [...google.maps[1].markerLayer.children];
+    assertMarker(next[0], 'origin', 'Penjemputan tersimpan'); assertMarker(next[1], 'destination', 'Akhir rute tercatat');
+  } finally { await h.cleanup(); }
+});
+
+for (const failAttachment of [1, 2]) {
+  test(`Google partial marker attachment ${failAttachment} failure detaches every tracked overlay and removes marker DOM`, async () => {
+    const google = googleFixture(failAttachment);
+    const h = await fixture(nearby, false, googleConfig, google.api);
+    try {
+      expect(google.overlays).toHaveLength(failAttachment + 1);
+      expect(google.overlays.every(o => o.detached === 1)).toBe(true);
+      expect(google.cleared).toHaveLength(failAttachment + 2);
+      expect(google.maps[0].markerLayer.children).toHaveLength(0);
+      expect(google.maps[0].node.children).toHaveLength(0);
+      expect(h.target.textContent).toContain('could not be displayed');
+      await h.destroy();
+      for (const overlay of google.overlays.slice(1)) { overlay.onAdd(); overlay.draw(); }
+      expect(google.maps[0].markerLayer.children).toHaveLength(0);
+      expect(google.overlays.every(o => o.detached === 1)).toBe(true);
+      expect(google.circleCalls()).toBe(0);
+    } finally { await h.cleanup(); }
+  });
+}
