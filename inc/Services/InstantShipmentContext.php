@@ -100,7 +100,7 @@ class InstantShipmentContext {
 		}
 		$origin = array(
 			'name'      => $this->value( $source, array( 'origin_name', 'location_name', 'name' ) ),
-			'phone'     => $this->value( $source, array( 'origin_phone', 'phone' ) ),
+			'phone'     => InstantPhoneNumber::normalize( array_key_exists( 'origin_phone', $source ) ? $source['origin_phone'] : ( $source['phone'] ?? null ) ),
 			'address'   => $this->value( $source, array( 'origin_address', 'address', 'address_1' ) ),
 			'zipcode'   => $this->value( $source, array( 'origin_zip_code', 'zip_code', 'postcode', 'zipcode' ) ),
 			'latitude'  => $this->coordinate( $this->value( $source, array( 'origin_latitude', 'latitude', 'lat' ) ), 90 ),
@@ -144,6 +144,12 @@ class InstantShipmentContext {
 				}
 			}
 		}
+		// Inspect the selected native contact before the legacy resolver string-casts
+		// it. Empty shipping contacts may use current getters/billing, never history.
+		$current_phone = $this->currentPhone( $order );
+		if ( ! $this->validPhone( $current_phone ) ) {
+			throw new InvalidArgumentException( esc_html__( 'The current recipient name, phone, street, city and postcode are required.', 'kiriminaja-official' ) );
+		}
 		$current       = $this->recipients->resolve( $order, null, $transaction );
 		// Resolve the checkout snapshot separately: don't let resolver fallback hide
 		// an intentionally cleared current address_2 and reuse an obsolete pin.
@@ -177,6 +183,7 @@ class InstantShipmentContext {
 				}
 			}
 		}
+		$current['phone'] = $current_phone;
 		$name = trim( $current['first_name'] . ' ' . $current['last_name'] );
 		if ( '' === $name || ! $this->validPhone( $current['phone'] ) || '' === $current['address_1'] || '' === $current['city'] || '' === $current['postcode'] ) {
 			throw new InvalidArgumentException( esc_html__( 'The current recipient name, phone, street, city and postcode are required.', 'kiriminaja-official' ) );
@@ -267,6 +274,23 @@ class InstantShipmentContext {
 		}
 		$context['fingerprint'] = hash( 'sha256', $encoded );
 		return $context;
+	}
+
+	/** Match RecipientDataResolver's current shipping/getter -> billing/getter order without coercion. */
+	private function currentPhone( object $order ): string {
+		foreach ( array( 'shipping', 'billing' ) as $type ) {
+			$contact = (array) $order->get_address( $type );
+			$phone = $contact['phone'] ?? null;
+			if ( null === $phone || ( is_string( $phone ) && '' === trim( $phone ) ) ) {
+				$getter = 'get_' . $type . '_phone';
+				$phone = method_exists( $order, $getter ) ? $order->$getter() : null;
+			}
+			if ( null !== $phone && ( ! is_string( $phone ) || '' !== trim( $phone ) ) ) {
+				// A malformed selected contact must fail, not fall through to billing.
+				return InstantPhoneNumber::normalize( $phone );
+			}
+		}
+		return '';
 	}
 
 	private function value( array $source, array $keys ): string {

@@ -22,7 +22,7 @@
     "check:semantic-style-tokens": "node scripts/check-semantic-style-tokens.mjs",
     "build:admin": "vite build",
     "build:buyer": "node scripts/build-buyer.mjs",
-    "test:transactions": "bun test --timeout 20000 tests/TransactionPendingCounts.test.ts tests/TransactionPrintFilterRuntime.test.ts tests/TransactionDetailShipmentRuntime.test.ts",
+    "test:transactions": "bun test --timeout 20000 tests/TransactionPendingCounts.test.ts tests/TransactionPrintFilterRuntime.test.ts tests/TransactionDetailShipmentRuntime.test.ts tests/PluginUpdateDialogRuntime.test.ts",
     "test:maps": "bun test --timeout 20000 tests/GoogleMapProvider.test.ts tests/GoogleMapsIntegration.test.ts tests/AdminOriginMapsRuntime.test.ts"
   },
   "dependencies": {

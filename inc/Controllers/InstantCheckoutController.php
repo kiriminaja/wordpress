@@ -6,6 +6,7 @@ use KiriminAjaOfficial\Repositories\TransactionRepository;
 use KiriminAjaOfficial\Services\BuyerDestination;
 use KiriminAjaOfficial\Services\InstantCheckoutQuoteService;
 use KiriminAjaOfficial\Services\InstantCheckoutRecipient;
+use KiriminAjaOfficial\Services\InstantPhoneNumber;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
 use KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId;
 
@@ -170,11 +171,13 @@ class InstantCheckoutController {
 			if ( 2 !== $destination['version'] || $destination['shipping_address'] !== BuyerDestination::address( $current ) || BuyerDestination::address( $package['destination'] ) !== BuyerDestination::address( $current ) ) {
 				throw new \InvalidArgumentException( 'address_changed' );
 			}
-			foreach ( array( 'first_name', 'last_name', 'phone' ) as $field ) {
+			foreach ( array( 'first_name', 'last_name' ) as $field ) {
 				if ( ! is_string( $package['destination'][ $field ] ?? null ) || trim( $package['destination'][ $field ] ) !== trim( $current[ $field ] ) ) {
 					throw new \InvalidArgumentException( 'recipient_changed' );
 				}
 			}
+			// Compare phone identity only; retain native formatting in the order and receipt.
+			$this->checkPhone( $current['phone'], $package['destination']['phone'] ?? null );
 			$this->checkZone( $line, $package );
 			// Express insurance preferences never apply to an Instant quote/order.
 			$snapshot = $this->quotes->validate( (string) $line->get_meta( 'kiriof_instant_quote_token' ), (string) $line->get_meta( 'kiriof_instant_courier' ), (string) $line->get_meta( 'kiriof_instant_service' ), $package, $destination, $order->get_payment_method(), false );
@@ -317,10 +320,19 @@ class InstantCheckoutController {
 			throw new \InvalidArgumentException( 'snapshot_changed' );
 		}
 		$current = $this->orderAddress( $order );
-		foreach ( array( 'first_name', 'last_name', 'phone' ) as $field ) {
+		foreach ( array( 'first_name', 'last_name' ) as $field ) {
 			if ( trim( $current[ $field ] ) !== ( $context['recipient'][ $field ] ?? null ) ) {
 				throw new \InvalidArgumentException( 'recipient_changed' );
 			}
+		}
+		$this->checkPhone( $current['phone'], $context['recipient']['phone'] ?? null );
+	}
+
+	/** Invalid contacts never compare equal, even when both normalize to empty. */
+	private function checkPhone( $current, $expected ): void {
+		$phone = InstantPhoneNumber::normalize( $current );
+		if ( '' === $phone || $phone !== InstantPhoneNumber::normalize( $expected ) ) {
+			throw new \InvalidArgumentException( 'recipient_changed' );
 		}
 	}
 
@@ -412,7 +424,7 @@ class InstantCheckoutController {
 
 	/** Only fixed codes can reach logs; never upstream details or selected tokens. */
 	private function reason( \Throwable $error, string $fallback ): string {
-		$allowed = array( 'currency_unsupported', 'shipping_tax_invalid', 'outside_instant_radius', 'shipping_invalid', 'packages_invalid', 'address_invalid', 'address_changed', 'recipient_changed', 'method_invalid', 'method_disabled', 'rate_invalid', 'snapshot_invalid', 'selection_changed', 'snapshot_changed', 'order_invalid', 'checkout_busy', 'transaction_conflict', 'snapshot_missing', 'insert_failed', 'quote_invalid', 'quote_expired_or_changed', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'items_invalid', 'timezone_unsupported', 'context_unavailable' );
+		$allowed = array( 'currency_unsupported', 'shipping_tax_invalid', 'outside_instant_radius', 'shipping_invalid', 'packages_invalid', 'address_invalid', 'address_changed', 'recipient_changed', 'method_invalid', 'method_disabled', 'rate_invalid', 'snapshot_invalid', 'selection_changed', 'snapshot_changed', 'order_invalid', 'checkout_busy', 'transaction_conflict', 'snapshot_missing', 'insert_failed', 'quote_invalid', 'quote_expired_or_changed', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'recipient_address_invalid', 'origin_invalid', 'items_invalid', 'timezone_unsupported', 'context_unavailable' );
 		return in_array( $error->getMessage(), $allowed, true ) ? $error->getMessage() : $fallback;
 	}
 

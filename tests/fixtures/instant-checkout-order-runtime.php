@@ -17,6 +17,7 @@ namespace {
     function esc_html($value) { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
     function wp_unslash($value) { return $value; }
     // Reuse the isolated live quote doubles, with output buffered, not production APIs.
+    $formattedInput = json_decode($argv[1] ?? '{}', true);
     $argv[1] = json_encode(['scenario' => in_array($argv[2] ?? '', ['example_total', 'zero_admin', 'zero_price'], true) ? $argv[2] : '']);
     ob_start();
     require __DIR__ . '/instant-checkout-quote-runtime.php';
@@ -73,8 +74,16 @@ namespace {
         unset($item);
         $service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService($settings, $locations, $api);
     }
+    if (!empty($formattedInput)) {
+        // Start with a new live quote/session, never hand-write a token or receipt.
+        WC()->session = new QuoteSession();
+        $api->calls = 0; $api->payloads = [];
+        $package['destination']['phone'] = $formattedInput['quote_phone'];
+        $quote = $service->quote($package, $destination, 'bacs', false);
+        if (isset($formattedInput['package_phone'])) { $package['destination']['phone'] = $formattedInput['package_phone']; }
+    }
     $GLOBALS['hooks'] = []; $GLOBALS['locks'] = []; $GLOBALS['logs'] = [];
-    function add_action($hook, $callback, $priority, $args) { $GLOBALS['hooks'][$hook] = [$priority, $args]; }
+    function add_action($hook, $callback, $priority = 10, $args = 1) { $GLOBALS['hooks'][$hook] = [$priority, $args]; }
     function add_option($key, $value, $deprecated = '', $autoload = false) { if (isset($GLOBALS['locks'][$key])) { return false; } $GLOBALS['locks'][$key] = $value; return true; }
     function delete_option($key) { unset($GLOBALS['locks'][$key]); }
     function get_option($key, $default = '') { return $GLOBALS['locks'][$key] ?? $default; }
@@ -153,6 +162,8 @@ namespace {
         if ($scenario === 'coupon_removed') { $wc->cart->coupons = []; }
         if ($scenario === 'coupon_tamper') { $line->total++; }
     }
+    if (isset($formattedInput['order_phone'])) { $order->address['phone'] = $formattedInput['order_phone']; }
+    if (isset($formattedInput['order_name'])) { $order->address['first_name'] = $formattedInput['order_name']; }
     $request = new OrderRequest(); $request->params = ['shipping_address' => $order->address, 'payment_method' => 'bacs', 'extensions' => ['kiriminaja-official' => ['destination' => $destination]]];
     $transactions = new \KiriminAjaOfficial\Repositories\TransactionRepository();
     $controller = new \KiriminAjaOfficial\Controllers\InstantCheckoutController($settings, $transactions, $service, $generator = new \KiriminAjaOfficial\Services\KiriminAja\GenerateOrderId());
@@ -222,7 +233,7 @@ namespace {
     }
     $controller->addAdminFee($cartFees);
     $controller->addAdminFee($cartFees);
-    if ($reload) {
+    if ($reload || !empty($formattedInput)) {
         $reloadState['raw_package_has_type'] = array_key_exists('package_type_id', $wc->packages[0]);
         $reloadState['product_types'] = array_map(static fn($item) => $item['data']->get_meta('_kiriof_package_type_id'), $wc->packages[0]['contents']);
         $reloadState['fresh_rate'] = $savedRates[0] !== $line;
@@ -246,7 +257,13 @@ namespace {
         if ($scenario === 'classic_tamper') { $changed=$destination; $changed['destination_latitude']='-6.4'; $_POST['kiriof_buyer_destination_snapshot']=json_encode($changed); }
     }
     try { if ($scenario === 'classic' || strpos($scenario,'classic_') === 0) { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
+    $validatedSnapshot = $order->get_meta($controller::SNAPSHOT_META_KEY);
     if ($error === '') {
+        if (!empty($formattedInput)) {
+            $wc->session->data = []; $wc->cart = null;
+            if (isset($formattedInput['processed_phone'])) { $order->address['phone'] = $formattedInput['processed_phone']; }
+            if (isset($formattedInput['processed_name'])) { $order->address['first_name'] = $formattedInput['processed_name']; }
+        }
         if (str_starts_with($scenario, 'coupon_')) { $wc->session->data = []; $wc->cart = null; }
         if ($scenario === 'coupon_durable_tamper') { $order->meta[$controller::CUSTOMER_DISCOUNT_META_KEY]++; }
         if (str_starts_with($scenario, 'legacy_') || $scenario === 'new_missing_pricing') {
@@ -288,5 +305,5 @@ namespace {
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
         }
     }
-    echo json_encode(['error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs'], 'reload' => $reloadState]);
+    echo json_encode(['validated_snapshot' => $validatedSnapshot, 'quote' => !empty($formattedInput) ? $quote : null, 'package_phone' => $wc->packages[0]['destination']['phone'] ?? null, 'session_empty' => empty($wc->session->data), 'error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs'], 'reload' => $reloadState]);
 }

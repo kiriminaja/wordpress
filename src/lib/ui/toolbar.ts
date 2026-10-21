@@ -4,6 +4,9 @@ export type ToolbarUpdate = {
   version: string;
   description: string;
   details: string[];
+  changelog: string;
+  changelogLabel: string;
+  changelogUnavailable: string;
   primaryUrl: string;
   primaryLabel: string;
   primaryExternal: boolean;

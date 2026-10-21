@@ -2738,3 +2738,44 @@ msgstr ""
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Invalid coupon amount."
 msgstr ""
+
+#. translators: %s: latest plugin version, without a leading v.
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "New Update v%s Available"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Release changelog"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Release notes are not available yet. View the plugin page for details."
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Review the release notes, then update from Plugins in your WordPress dashboard."
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "View Plugin Page"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Dismiss"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Update Now"
+msgstr ""
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Review the release notes, then select Update Now to continue with the WordPress updater."
+msgstr ""
+
+#: inc/Services/InstantCheckoutQuoteService.php
+msgid "A valid recipient name and Indonesian phone number are required for Instant delivery."
+msgstr ""
+
+#: inc/Services/InstantCheckoutQuoteService.php
+msgid "The shipping recipient address must contain 20 to 250 characters for Instant delivery."
+msgstr ""

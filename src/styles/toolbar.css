@@ -152,81 +152,12 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
   @apply shrink-0 opacity-60;
 }
 
-.kiriof-plugin-update-trigger {
-  @apply inline-flex min-h-8 items-center gap-1.5 px-3 border border-warning-border rounded-full bg-warning-background text-warning-foreground [font:inherit] text-xs font-semibold leading-none cursor-pointer transition-colors duration-150;
-}
-
-.kiriof-plugin-update-trigger:hover {
-  @apply border-warning bg-warning-background text-warning-foreground;
-}
-
-.kiriof-plugin-update-trigger:focus-visible {
-  @apply outline-2 outline-ring outline-offset-2;
-}
-
 .kiriof-plugin-update-dialog {
-  @apply [width:min(520px,calc(100vw_-_32px))] [max-height:calc(100vh_-_48px)] overflow-y-auto text-foreground;
-}
-
-.kiriof-plugin-update-dialog__heading {
-  @apply flex items-start gap-3 [padding-right:28px];
-}
-
-.kiriof-plugin-update-dialog__icon {
-  @apply inline-flex flex-none items-center justify-center w-9 h-9 rounded-lg bg-warning-background text-warning-foreground;
-}
-
-.kiriof-plugin-update-dialog__eyebrow {
-  @apply block mb-1 text-warning-foreground text-xs font-bold tracking-wide leading-tight;
-}
-
-.kiriof-plugin-update-dialog [data-slot='dialog-title'] {
-  @apply [line-height:1.25];
-}
-
-.kiriof-plugin-update-dialog__details {
-  @apply grid gap-2 px-3.5 py-3 border border-warning-border rounded-lg bg-warning-background text-warning-foreground text-[13px] leading-normal;
-}
-
-.kiriof-plugin-update-dialog__details p {
-  @apply m-0;
+  @apply [width:min(480px,calc(100vw_-_32px))] [max-height:calc(100dvh_-_48px)] overflow-y-auto text-foreground;
 }
 
 .kiriof-plugin-update-dialog [data-slot='dialog-footer'] {
   @apply items-center flex-wrap;
-}
-
-.kiriof-plugin-update-dialog__primary,
-.kiriof-plugin-update-dialog__secondary,
-.kiriof-plugin-update-dialog__dismiss {
-  @apply inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg [padding:0_10px] [font-size:13px] font-semibold no-underline;
-}
-
-.kiriof-plugin-update-dialog__primary {
-  @apply bg-primary text-primary-foreground;
-}
-
-.kiriof-plugin-update-dialog__primary:hover {
-  @apply bg-primary/90 text-primary-foreground;
-}
-
-.kiriof-plugin-update-dialog__secondary {
-  @apply text-primary;
-}
-
-.kiriof-plugin-update-dialog__secondary:hover,
-.kiriof-plugin-update-dialog__dismiss:hover {
-  @apply bg-primary/10;
-}
-
-.kiriof-plugin-update-dialog__dismiss {
-  @apply text-muted-foreground;
-}
-
-.kiriof-plugin-update-dialog__primary:focus-visible,
-.kiriof-plugin-update-dialog__secondary:focus-visible,
-.kiriof-plugin-update-dialog__dismiss:focus-visible {
-  @apply outline-2 outline-ring outline-offset-2;
 }
 
 @media (max-width: 782px) {
@@ -244,13 +175,5 @@ body:has(.kiriof-workspace-shell) #wpbody-content {
 
   .kiriof-app-toolbar__actions {
     @apply gap-1.5;
-  }
-
-  .kiriof-plugin-update-trigger {
-    @apply [padding:0_9px];
-  }
-
-  .kiriof-plugin-update-trigger span {
-    @apply hidden;
   }
 }

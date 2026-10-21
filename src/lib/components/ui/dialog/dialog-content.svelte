@@ -14,11 +14,13 @@
 		portalProps,
 		children,
 		showCloseButton = true,
+		closeLabel = "Close",
 		...restProps
 	}: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
 		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof DialogPortal>>;
 		children: Snippet;
 		showCloseButton?: boolean;
+		closeLabel?: string;
 	} = $props();
 </script>
 
@@ -39,7 +41,7 @@
 				class={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "absolute end-4 top-4 p-0! [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4")}
 			>
 				<IconX />
-				<span class="sr-only">Close</span>
+				<span class="sr-only">{closeLabel}</span>
 			</DialogPrimitive.Close>
 		{/if}
 	</DialogPrimitive.Content>

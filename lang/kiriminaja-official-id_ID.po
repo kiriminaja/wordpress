@@ -5919,3 +5919,44 @@ msgstr "Instant ≤ 40 km"
 #: inc/Services/ShippingDiscountCouponService.php
 msgid "Invalid coupon amount."
 msgstr "Jumlah kupon tidak valid."
+
+#. translators: %s: latest plugin version, without a leading v.
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "New Update v%s Available"
+msgstr "Pembaruan Baru v%s Tersedia"
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Release changelog"
+msgstr "Catatan perubahan rilis"
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Release notes are not available yet. View the plugin page for details."
+msgstr "Catatan rilis belum tersedia. Lihat halaman plugin untuk detailnya."
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Review the release notes, then update from Plugins in your WordPress dashboard."
+msgstr "Tinjau catatan rilis, lalu perbarui melalui halaman Plugin di dashboard WordPress."
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "View Plugin Page"
+msgstr "Lihat Halaman Plugin"
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Dismiss"
+msgstr "Sembunyikan"
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Update Now"
+msgstr "Perbarui Sekarang"
+
+#: inc/Services/PluginUpdateNoticeService.php
+msgid "Review the release notes, then select Update Now to continue with the WordPress updater."
+msgstr "Tinjau catatan rilis, lalu pilih Perbarui Sekarang untuk melanjutkan melalui pembaru WordPress."
+
+#: inc/Services/InstantCheckoutQuoteService.php
+msgid "A valid recipient name and Indonesian phone number are required for Instant delivery."
+msgstr "Nama penerima dan nomor telepon Indonesia yang valid diperlukan untuk pengiriman Instant."
+
+#: inc/Services/InstantCheckoutQuoteService.php
+msgid "The shipping recipient address must contain 20 to 250 characters for Instant delivery."
+msgstr "Alamat penerima harus terdiri dari 20 hingga 250 karakter untuk pengiriman Instant."

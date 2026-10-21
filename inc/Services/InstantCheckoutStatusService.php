@@ -49,6 +49,7 @@ final class InstantCheckoutStatusService {
             'destination_required' => __( 'Choose a shipping address and map pin for Instant delivery.', 'kiriminaja-official' ),
             'destination_invalid' => __( 'Choose a shipping address and map pin for Instant delivery.', 'kiriminaja-official' ),
             'recipient_invalid' => __( 'Complete the shipping recipient name and phone number for Instant delivery.', 'kiriminaja-official' ),
+            'recipient_address_invalid' => __( 'The shipping recipient address must contain 20 to 250 characters for Instant delivery.', 'kiriminaja-official' ),
             'items_invalid' => __( 'The items in this cart are not eligible for Instant delivery.', 'kiriminaja-official' ),
             'quote_failed' => __( 'Instant delivery rates are temporarily unavailable. Please try again.', 'kiriminaja-official' ),
             'quote_failed_or_unavailable' => __( 'Instant delivery rates are temporarily unavailable. Please try again.', 'kiriminaja-official' ),

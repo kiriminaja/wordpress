@@ -217,6 +217,7 @@ function kiriof_instant_shipping_method() {
 				'account_unavailable' => __( 'Instant delivery is not available for this store.', 'kiriminaja-official' ),
 				'destination_invalid' => __( 'Complete your Indonesian shipping address and update its map pin for Instant delivery.', 'kiriminaja-official' ),
 				'recipient_invalid' => __( 'A valid recipient name, Indonesian phone number and full address are required for Instant delivery.', 'kiriminaja-official' ),
+				'recipient_address_invalid' => __( 'A full recipient address between 20 and 250 characters is required for Instant delivery.', 'kiriminaja-official' ),
 				'origin_invalid' => __( 'The store pickup address is not ready for Instant delivery.', 'kiriminaja-official' ),
 				'timezone_unsupported' => __( 'A supported Indonesian timezone is required for Instant delivery.', 'kiriminaja-official' ),
 				'items_invalid' => __( 'Instant delivery requires valid physical items weighing at most 40000 grams.', 'kiriminaja-official' ),

@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/InstantPhoneNumber.php';
+
 /** Live buyer quotes only. Never books, writes transactions or shares Express caches. */
 class InstantCheckoutQuoteService {
 	public const SESSION_KEY = 'kiriof_instant_checkout_quotes';
@@ -183,10 +185,13 @@ class InstantCheckoutQuoteService {
 		}
 		$buyer = $package['destination'];
 		$name = trim( $this->text( $buyer, array( 'first_name' ) ) . ' ' . $this->text( $buyer, array( 'last_name' ) ) );
-		$phone = $this->text( $buyer, array( 'phone', 'shipping_phone' ) );
+		$phone = InstantPhoneNumber::normalize( array_key_exists( 'phone', $buyer ) ? $buyer['phone'] : ( $buyer['shipping_phone'] ?? null ) );
 		$address = implode( ', ', array_filter( array( $current['address_1'], $current['address_2'], $current['city'], $current['state'], $current['postcode'] ), static fn( $value ) => '' !== $value ) );
-		if ( ! $this->length( $name, 1, 255 ) || ! $this->phone( $phone ) || ! $this->length( $address, 20, 250 ) ) {
+		if ( ! $this->length( $name, 1, 255 ) || ! $this->phone( $phone ) ) {
 			throw new InvalidArgumentException( 'recipient_invalid' );
+		}
+		if ( ! $this->length( $address, 20, 250 ) ) {
+			throw new InvalidArgumentException( 'recipient_address_invalid' );
 		}
 		$recipient = array( 'name' => $name, 'first_name' => $this->text( $buyer, array( 'first_name' ) ), 'last_name' => $this->text( $buyer, array( 'last_name' ) ), 'phone' => $phone, 'address' => $address,
 			'latitude' => (float) $destination['destination_latitude'], 'longitude' => (float) $destination['destination_longitude'], 'zipcode' => $current['postcode'] );
@@ -203,7 +208,7 @@ class InstantCheckoutQuoteService {
 		$origin = array(
 			'location_id' => $this->integer( $source['location_id'] ?? $source['id'] ?? 0, 0, 'origin_invalid' ),
 			'name' => $this->text( $source, array( 'origin_name', 'location_name', 'name' ) ),
-			'phone' => $this->text( $source, array( 'origin_phone', 'phone' ) ),
+			'phone' => InstantPhoneNumber::normalize( array_key_exists( 'origin_phone', $source ) ? $source['origin_phone'] : ( $source['phone'] ?? null ) ),
 			'address' => $this->text( $source, array( 'origin_address', 'address', 'address_1' ) ),
 			'zipcode' => $this->text( $source, array( 'origin_zip_code', 'zip_code', 'postcode', 'zipcode' ) ),
 		);
@@ -480,7 +485,8 @@ class InstantCheckoutQuoteService {
 			'services_disabled' => __( 'No Instant courier services are enabled.', 'kiriminaja-official' ),
 			'account_unavailable' => __( 'Instant delivery is not available for this store.', 'kiriminaja-official' ),
 			'destination_invalid' => __( 'Complete your Indonesian shipping address and update its map pin for Instant delivery.', 'kiriminaja-official' ),
-			'recipient_invalid' => __( 'A valid recipient name, Indonesian phone number and full address are required for Instant delivery.', 'kiriminaja-official' ),
+			'recipient_invalid' => __( 'A valid recipient name and Indonesian phone number are required for Instant delivery.', 'kiriminaja-official' ),
+			'recipient_address_invalid' => __( 'The shipping recipient address must contain 20 to 250 characters for Instant delivery.', 'kiriminaja-official' ),
 			'origin_invalid' => __( 'The store pickup address is not ready for Instant delivery.', 'kiriminaja-official' ),
 			'timezone_unsupported' => __( 'A supported Indonesian timezone is required for Instant delivery.', 'kiriminaja-official' ),
 			'items_invalid' => __( 'Instant delivery requires physical items with valid quantities, weights and dimensions, weighing at most 40000 grams.', 'kiriminaja-official' ),
@@ -503,7 +509,7 @@ class InstantCheckoutQuoteService {
 
 	/** Only internal reason codes may cross the buyer boundary, even for repository exceptions. */
 	private function reason( string $reason ): string {
-		$allowed = array( 'currency_unsupported', 'packages_invalid', 'outside_instant_radius', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'origin_invalid', 'timezone_unsupported', 'items_invalid', 'no_rates', 'context_invalid', 'context_unavailable', 'session_unavailable', 'quote_unavailable', 'quote_invalid', 'quote_expired_or_changed' );
+		$allowed = array( 'currency_unsupported', 'packages_invalid', 'outside_instant_radius', 'cod_unsupported', 'insurance_unsupported', 'services_disabled', 'account_unavailable', 'destination_invalid', 'recipient_invalid', 'recipient_address_invalid', 'origin_invalid', 'timezone_unsupported', 'items_invalid', 'no_rates', 'context_invalid', 'context_unavailable', 'session_unavailable', 'quote_unavailable', 'quote_invalid', 'quote_expired_or_changed' );
 		return in_array( $reason, $allowed, true ) ? $reason : 'context_unavailable';
 	}
 }
