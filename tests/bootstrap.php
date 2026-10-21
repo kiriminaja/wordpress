@@ -11,6 +11,7 @@ define('PLUGIN_PREFIX', 'kiriof_');
 define('PLUGIN_DEFINE_PREFIX', 'KIRIOF_');
 
 require_once PLUGIN_DIR . '/vendor/autoload.php';
+require_once __DIR__ . '/helpers/fixture-php.php';
 
 if (!defined('ABSPATH')) {
     define('ABSPATH', PLUGIN_DIR . '/');

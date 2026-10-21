@@ -44,6 +44,16 @@ final class TestResultCacheRuntimeTest extends TestCase {
 		$this->assertSame( array(), $this->receipts() );
 	}
 
+	public function test_forced_success_does_not_publish_a_cache_receipt(): void {
+		$this->assertSame( 0, $this->runCache() );
+		$this->assertCount( 1, $this->receipts() );
+		$this->assertSame( 0, $this->runCache( array(), array(), array(), true ) );
+		$this->assertSame( array(), $this->receipts() );
+		$this->assertSame( 0, $this->runCache( array(), array( 'KIRIOF_TEST_FORCE' => '1' ) ) );
+		$this->assertSame( array(), $this->receipts() );
+		$this->assertSame( 3, $this->countRuns() );
+	}
+
 	private function remove( string $path ): void {
 		if ( is_dir( $path ) && ! is_link( $path ) ) {
 			foreach ( scandir( $path ) as $name ) {

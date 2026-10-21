@@ -72,7 +72,7 @@ PHP;
         foreach (['PendingQuery' => 4, 'LegacyDeliveryQuery' => 0, 'HistoricalQuery' => 0] as $query => $pending_issue) {
             foreach (['', 'filtered order'] as $key) {
                 $get = ['status' => 'order-issue', 'key' => $key, 'courier' => 'jne', 'cod' => '1', 'print_status' => '1', 'date_from' => '2026-01-01', 'date_to' => '2026-01-31'];
-                $command = escapeshellarg(PHP_BINARY) . ' -r ' . escapeshellarg($runtime) . ' ' . escapeshellarg(PLUGIN_DIR) . ' ' . escapeshellarg($query) . ' ' . escapeshellarg(json_encode($get, JSON_THROW_ON_ERROR));
+                $command = kiriof_test_fixture_php_shell(['-r', $runtime, PLUGIN_DIR, $query, json_encode($get, JSON_THROW_ON_ERROR)]);
                 $output = shell_exec($command);
 
                 $bootstrap = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
@@ -105,7 +105,7 @@ PHP;
     }
 
     private function runFixture(string $fixture, array $payload): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/' . $fixture) . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
+        $output = shell_exec(kiriof_test_fixture_php_shell([PLUGIN_DIR . '/tests/fixtures/' . $fixture, json_encode($payload, JSON_THROW_ON_ERROR)]));
 
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }

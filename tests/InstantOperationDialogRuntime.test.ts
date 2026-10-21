@@ -5,13 +5,18 @@ import { compile } from 'svelte/compiler';
 import { happy } from './helpers/ui-runtime';
 
 const root = resolve(import.meta.dir, '..');
-let directory: string;
-afterAll(() => { if (directory) rmSync(directory, { recursive: true, force: true }); });
+let buildDirectory: string | undefined;
+let bundlePromise: Promise<Buffer> | undefined;
+let bundleBuildCount = 0;
+afterAll(() => { try { if (bundlePromise) expect(bundleBuildCount).toBe(1); } finally { if (buildDirectory) rmSync(buildDirectory, { recursive: true, force: true }); } });
 
-async function compiledRuntime() {
-  // Isolate Svelte's cached native DOM getters for each HappyDOM window.
-  if (directory) rmSync(directory, { recursive: true, force: true });
-  directory = mkdtempSync(join(root, 'node_modules', '.instant-operation-runtime-'));
+// Compile once; evaluate identical bytes at a unique path for each Window so
+// Svelte's cached native DOM getters and module state never cross fixtures.
+function compiledBundle(): Promise<Buffer> { return bundlePromise ??= buildBundle(); }
+
+async function buildBundle(): Promise<Buffer> {
+  const directory = buildDirectory = mkdtempSync(join(root, 'node_modules', '.instant-operation-build-'));
+  bundleBuildCount++;
   const put = (name: string, source: string) => writeFileSync(join(directory, name), source);
   // Only the dialog, button and HTTP boundaries are doubled. Production script,
   // markup, lifecycle and safeInstantTrackingUrl from types.ts remain unchanged.
@@ -50,10 +55,12 @@ async function compiledRuntime() {
     } }],
   });
   if (!build.success) throw new Error(build.logs.join('\n'));
-  return await import(join(directory, 'runtime.js'));
+  return readFileSync(join(directory, 'runtime.js'));
 }
 
-async function fixture(orderIds = ['42'], mode = 'reconcile') {
+async function fixture(orderIds = ['42'], mode = 'reconcile', failSetup?: (stage: string, directory: string) => void) {
+  const bundle = await compiledBundle();
+  const directory = mkdtempSync(join(root, 'node_modules', '.instant-operation-runtime-'));
   const window = new happy.Window({ url: 'https://fixture.test' });
   const saved = new Map<string, PropertyDescriptor | undefined>();
   const requests: any[] = [];
@@ -71,49 +78,60 @@ async function fixture(orderIds = ['42'], mode = 'reconcile') {
       requests.push({ action, values, options, resolve, reject });
     }),
   };
-  for (const [key, value] of Object.entries(globals)) {
-    saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
-    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
-  }
-  const runtime = await compiledRuntime();
-  const i18n = {
-    instantRecheck: 'Recheck', instantRecheckDescription: 'Check the existing booking without booking again.',
-    instantClose: 'Close', liveTracking: 'Live Tracking', instantCancel: 'Cancel',
-    instantResult_reconciled: 'Shipment status refreshed', instantResult_not_found: 'Booking not found',
-    instantResult_unknown: 'Unknown result', instantOperationUnknown: mode === 'cancel' ? 'Unable to confirm the operation. Contact support before trying again.' : 'Check again later; do not dispatch again.',
-    instantResult_cancel_rejected: 'Cancellation rejected',
-    instantCancelRejected: 'Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.',
-    instantTrackingUnavailableTitle: 'Live tracking is not available yet', instantTrackingErrorTitle: 'Live tracking could not be loaded',
-    instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
-    instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
-    instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
-    instantTrackingPending: 'Please wait a moment before refreshing',
-    instantTrackingLoading: 'Loading live tracking', instantTrackingRefresh: 'Refresh tracking', instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.',
-    openInNewTab: 'Open in new tab',
-  };
-  const target = window.document.createElement('main');
-  window.document.body.append(target);
-  const component = runtime.mount(runtime.Production, { target, props: {
-    mode, orderIds, ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'recheck-nonce', i18n,
-    onClose: (completed: boolean) => closes.push(completed),
-  } });
-  async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); runtime.flushSync(); } }
-  await settle();
-  const query = (selector: string): any => target.querySelector(selector);
-  const button = (label: string): any => [...target.querySelectorAll('button')].find(node => node.textContent === label);
-  async function click(node: any) { expect(node).toBeTruthy(); node.click(); await settle(); }
-  async function reply(rows: any[]) { requests[requests.length - 1].resolve({ data: { rows } }); await settle(); }
+  let runtime: any, component: any;
+  async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); runtime?.flushSync(); } }
   async function cleanup() {
-    try { await runtime.unmount(component); await settle(); }
+    try { if (component) { await runtime.unmount(component); component = undefined; await settle(); } }
     finally {
-      window.happyDOM.abort();
-      for (const [key, descriptor] of saved) {
-        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-        else delete (globalThis as any)[key];
+      try { await window.happyDOM.abort(); }
+      finally {
+        try { for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } }
+        finally { rmSync(directory, { recursive: true, force: true }); }
       }
     }
   }
-  return { target, query, button, click, reply, requests, closes, settle, cleanup, runtime, window };
+  try {
+    for (const [key, value] of Object.entries(globals)) {
+      saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+      Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    }
+    failSetup?.('globals', directory);
+    writeFileSync(join(directory, 'runtime.js'), bundle);
+    runtime = await import(join(directory, 'runtime.js'));
+    failSetup?.('imported', directory);
+    const i18n = {
+      instantRecheck: 'Recheck', instantRecheckDescription: 'Check the existing booking without booking again.',
+      instantClose: 'Close', liveTracking: 'Live Tracking', instantCancel: 'Cancel',
+      instantResult_reconciled: 'Shipment status refreshed', instantResult_not_found: 'Booking not found',
+      instantResult_unknown: 'Unknown result', instantOperationUnknown: mode === 'cancel' ? 'Unable to confirm the operation. Contact support before trying again.' : 'Check again later; do not dispatch again.',
+      instantResult_cancel_rejected: 'Cancellation rejected',
+      instantCancelRejected: 'Cancellation was rejected. The shipment status has not changed. You may try again after checking the shipment.',
+      instantTrackingUnavailableTitle: 'Live tracking is not available yet', instantTrackingErrorTitle: 'Live tracking could not be loaded',
+      instantResult_tracked: 'Tracking available', instantTrackingUnavailable: 'The courier has not provided a live tracking link for this shipment yet. Check again later.',
+      instantTrackingDescription: 'Follow the courier tracking page for this shipment.',
+      instantTrackingEmbedHint: 'If the courier page does not display here, open it in a new tab.',
+      instantTrackingPending: 'Please wait a moment before refreshing',
+      instantTrackingLoading: 'Loading live tracking', instantTrackingRefresh: 'Refresh tracking', instantTrackingError: 'Unable to load live tracking. Refresh tracking to try again.',
+      openInNewTab: 'Open in new tab',
+    };
+    const target = window.document.createElement('main');
+    window.document.body.append(target);
+    component = runtime.mount(runtime.Production, { target, props: {
+      mode, orderIds, ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'recheck-nonce', i18n,
+      onClose: (completed: boolean) => closes.push(completed),
+    } });
+    failSetup?.('mounted', directory);
+    await settle();
+    failSetup?.('settled', directory);
+    const query = (selector: string): any => target.querySelector(selector);
+    const button = (label: string): any => [...target.querySelectorAll('button')].find(node => node.textContent === label);
+    async function click(node: any) { expect(node).toBeTruthy(); node.click(); await settle(); }
+    async function reply(rows: any[]) { requests[requests.length - 1].resolve({ data: { rows } }); await settle(); }
+    return { target, query, button, click, reply, requests, closes, settle, cleanup, runtime, window };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
 }
 
 function expectNoRetryOrDispatch(h: Awaited<ReturnType<typeof fixture>>) {
@@ -121,6 +139,24 @@ function expectNoRetryOrDispatch(h: Awaited<ReturnType<typeof fixture>>) {
   expect([...h.target.querySelectorAll('button')].some(node => /retry|dispatch|confirm|process/i.test(node.textContent ?? ''))).toBe(false);
   expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_reconcile']);
 }
+
+test('fixture setup failures restore globals and remove temporary runtime paths', async () => {
+  for (const stage of ['globals', 'imported', 'mounted', 'settled']) {
+    const before = Object.getOwnPropertyDescriptors(globalThis);
+    const oldNow = Date.now;
+    let directory = '';
+    const failure = new Error(`Injected setup failure: ${stage}`);
+    function inject(current: string, path: string) { if (current === stage) { directory = path; throw failure; } }
+    await expect(fixture(['42'], 'reconcile', inject)).rejects.toBe(failure);
+    expect(directory).not.toBe('');
+    expect(existsSync(directory)).toBe(false);
+    expect(Date.now).toBe(oldNow);
+    const after = Object.getOwnPropertyDescriptors(globalThis);
+    for (const key of ['window', 'document', 'navigator', 'Node', 'Element', 'HTMLElement', 'HTMLButtonElement', 'SVGElement', 'DocumentFragment', 'HTMLInputElement', 'HTMLSelectElement', 'Text', 'Comment', 'Event', 'CustomEvent', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'fetch', '__instantDialogAjax', '__instantOperationAjax']) {
+      expect(after[key]).toEqual(before[key]);
+    }
+  }
+});
 
 describe('InstantOperationDialog recheck compiled production Svelte (real DOM)', () => {
   for (const outcome of ['cancel_rejected', 'unknown', 'invalid_status', 'timeout']) test(`cancellation ${outcome} distinguishes rejection from uncertainty without retry or private backend text`, async () => {
@@ -385,4 +421,23 @@ describe('InstantOperationDialog recheck compiled production Svelte (real DOM)',
       expect(h.requests).toHaveLength(0);
     } finally { await h.cleanup(); }
   });
+  test('reused bundle evaluates fresh DOM and request state in successive Windows', async () => {
+    let previous: Awaited<ReturnType<typeof fixture>> | undefined;
+    for (let i = 0; i < 2; i++) {
+      const h = await fixture(['42'], 'tracking'); try {
+        expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_tracking']);
+        await h.reply([{ id: '42', status: 'tracked', tracking_url: `https://courier.test/window-${i}`, message: '' }]);
+        expect(h.query('iframe').ownerDocument).toBe(h.window.document);
+        expect([...h.target.querySelectorAll('*')].every(node => node.ownerDocument === h.window.document)).toBe(true);
+        if (previous) {
+          expect(h.window.document).not.toBe(previous.window.document);
+          expect(previous.target.textContent).toBe('');
+          expect(previous.requests).toHaveLength(1);
+        }
+        expect(h.requests).toHaveLength(1);
+      } finally { await h.cleanup(); }
+      previous = h;
+    }
+  });
+
 });

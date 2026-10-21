@@ -112,7 +112,9 @@ Produces `kiriminaja-official.zip` ready for distribution (`make zip dev` and `m
 
 Packaging does not copy the development `vendor/` tree. It caches a separate production-only Composer install under `build/composer-vendor-cache`, keyed by the manifests, PHP/platform/Composer identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading. The SDK retains its required source install; other packages use dist archives. `make clean` removes this cache as well as the staged build. The first build still installs dependencies and runs all checks; unchanged subsequent builds avoid those costs.
 
-On a test cache miss, deterministic fixture results are reused inside a worker, heavy UI matrices are batched with fresh case state, and extension-free fixture/lint subprocesses omit unnecessary php.ini startup. Other fixtures retain the SQLite/curl extensions they need.
+On a test cache miss, deterministic fixture results are reused inside a worker and heavy UI matrices are batched with fresh case state. Forced test runs skip fingerprinting and receipt publication entirely; they invalidate any old success and execute immediately. Compiled Svelte suites build once per test process, then evaluate those bytes at a unique module path for each fresh DOM Window; production module state and native DOM caches are never shared between fixtures. Fixture teardown is also checked after failed setup.
+
+Self-contained PHP fixtures use `tests/helpers/fixture-php.php` to avoid unrelated php.ini startup while preserving the parent's `ctype`/`mbstring` availability, including shared-extension installations. Unresolvable profiles fall back to normal PHP startup. Fixtures using real SQLite/curl keep their configured runtime; PHP syntax lint needs no extensions. Keep performance measurements on `make test-force` / `bun run test:js:force` so cached success cannot mask cold-run regressions.
 
 ### Releasing
 

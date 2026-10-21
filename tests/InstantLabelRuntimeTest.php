@@ -4,7 +4,8 @@ use PHPUnit\Framework\TestCase;
 
 final class InstantLabelRuntimeTest extends TestCase {
 	private function run_label( array $input = array() ): array {
-		$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-label-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
+		// Read-only WordPress/carrier fakes need no php.ini or external transport.
+		$output = shell_exec( kiriof_test_fixture_php_shell() . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-label-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
 		$result = json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
 		$this->assertSame(
 		    [

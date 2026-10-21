@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { afterAll, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
@@ -12,9 +12,33 @@ const bootstrap: GoogleMapsBootstrap = { configured: true, maskedKey: mask('AIza
   title: 'Google Maps', guidance: 'Use your own browser key', configured: 'Configured', notConfigured: 'Not configured', keyLabel: 'Replacement key', placeholder: 'Enter a replacement', save: 'Save key', remove: 'Remove key', busy: 'Saving', saved: 'Settings saved', failed: 'Unable to save settings',
 } };
 
+let buildDirectory: string | undefined;
+let bundlePromise: Promise<Buffer> | undefined;
+let bundleBuildCount = 0;
+afterAll(() => {
+  try { if (bundlePromise) expect(bundleBuildCount).toBe(1); }
+  finally { if (buildDirectory) rmSync(buildDirectory, { recursive: true, force: true }); }
+});
+
+// Fresh evaluation keeps Svelte's cached native DOM getters local to each Window.
+function compiledBundle(): Promise<Buffer> { return bundlePromise ??= buildBundle(); }
+async function buildBundle(): Promise<Buffer> {
+  const directory = buildDirectory = mkdtempSync(join(root, 'node_modules', '.google-settings-build-'));
+  bundleBuildCount++;
+  writeFileSync(join(directory, 'entry.ts'), `export {mount, unmount, flushSync} from 'svelte'; export {default as Component} from ${JSON.stringify(join(root, 'src/lib/settings/GoogleMapsIntegration.svelte'))};`);
+  const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'production-svelte', setup(builder) {
+    builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
+    builder.onResolve({ filter: /^\$lib\// }, ({ path }) => ({ path: path === '$lib/components/ui/button' ? join(root, 'src/lib/components/ui/button/index.ts') : join(root, 'src/lib', path.slice(5).replace(/\.js$/, '.ts')) }));
+    builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
+  } }] });
+  if (!build.success) throw new Error(build.logs.join('\n'));
+  return readFileSync(join(directory, 'runtime.js'));
+}
+
 // Compile the actual production component and its actual Button dependency; only
 // fetch is a mocked WordPress boundary. No source-string assertions or substitute UI.
 async function fixture(response: (body: URLSearchParams) => unknown) {
+  const bundle = await compiledBundle();
   const window = new happy.Window({ url: 'https://fixture.test' });
   const directory = mkdtempSync(join(root, 'node_modules', '.google-settings-runtime-'));
   const saved = new Map<string, PropertyDescriptor | undefined>();
@@ -28,13 +52,7 @@ async function fixture(response: (body: URLSearchParams) => unknown) {
   let runtime: any, component: any;
   const cleanup = async () => { try { if (component) await runtime.unmount(component); } finally { window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } rmSync(directory, { recursive: true, force: true }); } };
   try {
-    writeFileSync(join(directory, 'entry.ts'), `export {mount, unmount, flushSync} from 'svelte'; export {default as Component} from ${JSON.stringify(join(root, 'src/lib/settings/GoogleMapsIntegration.svelte'))};`);
-    const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'production-svelte', setup(builder) {
-      builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
-      builder.onResolve({ filter: /^\$lib\// }, ({ path }) => ({ path: path === '$lib/components/ui/button' ? join(root, 'src/lib/components/ui/button/index.ts') : join(root, 'src/lib', path.slice(5).replace(/\.js$/, '.ts')) }));
-      builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
-    } }] });
-    if (!build.success) throw new Error(build.logs.join('\n'));
+    writeFileSync(join(directory, 'runtime.js'), bundle);
     runtime = await import(join(directory, 'runtime.js'));
     const target = window.document.createElement('main'); window.document.body.append(target);
     component = runtime.mount(runtime.Component, { target, props: { bootstrap } });
@@ -68,4 +86,26 @@ test('production DOM never echoes a credential-bearing transport error or malfor
     await h.submit(); expect(h.target.querySelector('[role="alert"]')?.textContent).toBe(bootstrap.i18n.failed); expect(h.target.innerHTML).not.toContain(raw); expect(h.input.value).toBe('');
     await h.submit(); expect(h.target.querySelector('code')?.textContent).toBe(''); expect(h.target.innerHTML).not.toContain(raw); expect(h.input.value).toBe('');
   } finally { await h.cleanup(); }
+});
+
+test('fresh settings fixtures own their DOM and requests independently', async () => {
+  const first = await fixture(() => ({ success: true, data: { status: 200, data: { configured: true, maskedKey: mask(raw) } } }));
+  try {
+    expect(first.input.ownerDocument).toBe(first.window.document);
+    await first.submit(); expect(first.requests).toHaveLength(1);
+  } finally { await first.cleanup(); }
+  const second = await fixture(() => ({ success: false, data: { message: 'Rejected' } }));
+  try {
+    expect(second.window.document).not.toBe(first.window.document);
+    expect(second.input.ownerDocument).toBe(second.window.document);
+    expect(second.target.querySelector('button')?.ownerDocument).toBe(second.window.document);
+    expect(second.requests).not.toBe(first.requests); expect(second.requests).toHaveLength(0);
+    expect(second.target.querySelector('code')?.textContent).toBe(bootstrap.maskedKey);
+    await second.submit(); expect(second.requests).toHaveLength(1); expect(first.requests).toHaveLength(1);
+    expect(second.target.querySelector('[role="alert"]')?.textContent).toBe(bootstrap.i18n.failed);
+  } finally { await second.cleanup(); }
+});
+
+test('settings bundle compiles at most once per suite', () => {
+  expect(bundleBuildCount).toBe(bundlePromise ? 1 : 0);
 });

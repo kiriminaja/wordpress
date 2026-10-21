@@ -84,6 +84,27 @@ function fixture() {
 }
 
 describe('JavaScript success receipts', () => {
+  test('forced runs execute without fingerprinting or publishing receipts', async () => {
+    const f = fixture();
+    await f.run();
+    let probes = 0;
+    const runtimeProbe = () => {
+      probes++;
+      throw new Error('force must not fingerprint');
+    };
+    expect((await f.run({ force: true, runtimeProbe })).status).toBe(0);
+    expect(f.receipts()).toHaveLength(0);
+    expect(
+      (
+        await f.run({
+          environment: { ...f.options.environment, KIRIOF_TEST_FORCE: '1' },
+          runtimeProbe,
+        })
+      ).status,
+    ).toBe(0);
+    expect(probes).toBe(0);
+    expect(f.runs()).toBe(3);
+  });
   test('launcher removal and retargeting invalidate aggregate validation', async () => {
     const f = fixture();
     f.put('node_modules/example/cli.js', 'first launcher');
@@ -327,6 +348,7 @@ describe('JavaScript success receipts', () => {
     expect(spawnSync(node, [cli, '--bad'], { encoding: 'utf8' }).status).toBe(2);
     const result = spawnSync(node, [cli, '--', node, 'fixture.mjs', 'with spaces', '6'], {
       encoding: 'utf8',
+      env: { ...process.env, KIRIOF_TEST_FORCE: '0', KIRIOF_BUILD_FORCE: '0' },
     });
     expect(result.status).toBe(6);
     expect(result.stdout).toContain('cache unavailable');

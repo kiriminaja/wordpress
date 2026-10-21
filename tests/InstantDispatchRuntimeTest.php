@@ -690,7 +690,10 @@ final class InstantDispatchRuntimeTest extends TestCase {
     }
 
     private function runFixture(array $input = []): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-dispatch-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        // WP, database and API boundaries are local fakes; the fixture needs only
+        // built-in PHP functions. Keep a fresh process (and no result cache):
+        // quotes, leases and diagnostic references deliberately use time/RNG.
+        $output = shell_exec(kiriof_test_fixture_php_shell() . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-dispatch-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string)$output, true, 512, JSON_THROW_ON_ERROR);
     }
 

@@ -80,7 +80,8 @@ final class InstantProcessedPaymentRuntimeTest extends TestCase {
 	}
 
 	private function execute( array $input ): array {
-		$command = escapeshellarg( PHP_BINARY ) . ' -d error_reporting=22527 ' . escapeshellarg( __DIR__ . '/fixtures/instant-processed-payment-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) );
+		// Composer/Mockery and WordPress fakes run without host php.ini or a real database.
+		$command = kiriof_test_fixture_php_shell( array( '-d', 'error_reporting=22527' ) ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/instant-processed-payment-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) );
 		exec( $command, $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );

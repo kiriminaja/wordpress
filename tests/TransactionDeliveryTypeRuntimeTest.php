@@ -10,7 +10,7 @@ require_once PLUGIN_DIR . '/inc/Services/TransactionDeliveryType.php';
 
 final class TransactionDeliveryTypeRuntimeTest extends TestCase {
     private function runFixture(array $input): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-delivery-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        $output = shell_exec(kiriof_test_fixture_php_shell([PLUGIN_DIR . '/tests/fixtures/transaction-delivery-runtime.php', json_encode($input, JSON_THROW_ON_ERROR)]));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
     }
 

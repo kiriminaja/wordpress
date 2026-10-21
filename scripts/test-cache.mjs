@@ -323,7 +323,7 @@ export async function runCachedTests(
   await lockDirectory(lock, lockWaitMs);
   let temporary;
   try {
-    const bypass = uncacheableCommand(command);
+    const bypass = force || forceRequested([], environment) || uncacheableCommand(command);
     let key;
     if (!bypass)
       try {

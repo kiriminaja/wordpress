@@ -35,7 +35,7 @@ final class InstantOperationUiTest extends TestCase {
 
     private function renderBatch(array $payloads): array {
         // STDIN avoids the command-line size limit for large renderer matrices.
-        $process = proc_open([PHP_BINARY, '-n', PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php', '--batch'], [
+        $process = proc_open(kiriof_test_fixture_php_argv([PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php', '--batch']), [
             0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
         ], $pipes);
         $this->assertIsResource($process);

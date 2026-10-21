@@ -9,7 +9,8 @@ final class InstantMetadataPersistenceRuntimeTest extends TestCase {
     private const FIELDS = ['instant_status_code', 'instant_payment_status', 'instant_payment_method', 'instant_payment_id', 'destination_latitude', 'destination_longitude', 'live_tracking_url'];
 
     private function runFixture(array $input): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-metadata-persistence-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        // The database and WordPress are fakes; no configured database extensions are needed.
+        $output = shell_exec(kiriof_test_fixture_php_shell() . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-metadata-persistence-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
         }
 

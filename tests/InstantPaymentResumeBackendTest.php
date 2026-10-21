@@ -80,7 +80,8 @@ final class InstantPaymentResumeBackendTest extends TestCase {
             foreach (['qris', 'credit', 'top'] as $method) {
                 foreach (['PAY-1', '', 'bad/id'] as $id) {
                     $input = ['delivery_type'=>'instant','service'=>'gosend','instant_payment_id'=>$id,'instant_payment_method'=>$method,'instant_payment_status'=>$status];
-                    $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+                    // WordPress and service collaborators are fakes; no configured extensions are needed.
+                    $output = shell_exec(kiriof_test_fixture_php_shell() . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
                     $row = json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
                     if ('qris' === $method && 'PAY-1' === $id && in_array($status, ['pending','unpaid'], true)) {
                         $this->assertStringContainsString('page=kiriminaja-request-pickup&key=PAY-1&instant_payment_id=PAY-1&open_payment=1', $row['actions']['paymentUrl']);
@@ -93,7 +94,8 @@ final class InstantPaymentResumeBackendTest extends TestCase {
     }
 
     private function dispatch(array $input): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-dispatch-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        // Isolated WP/API fakes need no php.ini; retain a fresh process for time-based dispatch state.
+        $output = shell_exec(kiriof_test_fixture_php_shell() . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-dispatch-runtime.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
     }
 

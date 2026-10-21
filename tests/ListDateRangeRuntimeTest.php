@@ -40,7 +40,11 @@ final class ListDateRangeRuntimeTest extends TestCase {
     }
 
     private function runFixture(string $name, array $input): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/' . $name . '.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR)));
+        // Only the fake renderer is extension-independent; database fixtures need PDO SQLite.
+        $command = 'transaction-multi-filter-runtime' === $name
+            ? kiriof_test_fixture_php_shell([PLUGIN_DIR . '/tests/fixtures/' . $name . '.php', json_encode($input, JSON_THROW_ON_ERROR)])
+            : escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/' . $name . '.php') . ' ' . escapeshellarg(json_encode($input, JSON_THROW_ON_ERROR));
+        $output = shell_exec($command);
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);
     }
 

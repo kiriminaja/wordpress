@@ -203,10 +203,12 @@ function kiriof_test_main( array $args ): int {
 	}
 	try {
 		$key = null;
-		try {
-			$key = kiriof_test_key( $root, $command );
-		} catch ( Throwable $error ) {
-			fwrite( STDERR, "[test-cache] inputs unavailable; running ParaTest\n" );
+		if ( ! $force ) {
+			try {
+				$key = kiriof_test_key( $root, $command );
+			} catch ( Throwable $error ) {
+				fwrite( STDERR, "[test-cache] inputs unavailable; running ParaTest\n" );
+			}
 		}
 		$saved = json_decode( (string) @file_get_contents( $receipt ), true );
 		if ( ! $force && null !== $key && is_array( $saved ) && array_keys( $saved ) === array( 'schema', 'command', 'key' ) && 1 === $saved['schema'] && $command_hash === $saved['command'] && $key === $saved['key'] ) {

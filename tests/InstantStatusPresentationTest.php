@@ -130,7 +130,8 @@ final class InstantStatusPresentationTest extends TestCase {
     }
 
     private function row(array $payload): array {
-        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
+        // WordPress and service collaborators are fakes; no configured extensions are needed.
+        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' -n ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php') . ' ' . escapeshellarg(json_encode($payload, JSON_THROW_ON_ERROR)));
 
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }

@@ -1,19 +1,23 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { happy } from './helpers/ui-runtime';
 import { join, resolve } from 'node:path';
 import { compile, compileModule } from 'svelte/compiler';
 
 const runtimeTest = test;
 const root = resolve(import.meta.dir, '..');
-let directory: string;
-let runtime: any;
-afterAll(() => { if (directory) rmSync(directory, { recursive: true, force: true }); });
+let buildDirectory: string | undefined;
+let bundlePromise: Promise<Buffer> | undefined;
+let bundleBuildCount = 0;
+afterAll(() => { try { if (bundlePromise) expect(bundleBuildCount).toBe(1); } finally { if (buildDirectory) rmSync(buildDirectory, { recursive: true, force: true }); } });
 
-async function compiledRuntime() {
-  // Svelte caches native DOM getters; each happy-dom Window needs an isolated bundle.
-  if (directory) rmSync(directory, { recursive: true, force: true });
-  directory = mkdtempSync(join(root, 'node_modules', '.instant-dialog-runtime-'));
+// Compile once; evaluate identical bytes at a unique path for each Window so
+// Svelte's cached native DOM getters and module state never cross fixtures.
+function compiledBundle(): Promise<Buffer> { return bundlePromise ??= buildBundle(); }
+
+async function buildBundle(): Promise<Buffer> {
+  const directory = buildDirectory = mkdtempSync(join(root, 'node_modules', '.instant-dialog-build-'));
+  bundleBuildCount++;
   const put = (name: string, source: string) => writeFileSync(join(directory, name), source);
   // Only UI/transport boundaries are doubled. The production script, effects,
   // event handlers, markup, clock, token session and payment poller run unchanged.
@@ -66,8 +70,7 @@ async function compiledRuntime() {
     builder.onLoad({ filter: /\.svelte$/ }, async ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
   } }] });
   if (!build.success) throw new Error(build.logs.join('\n'));
-  runtime = await import(join(directory, 'runtime.js'));
-  return runtime;
+  return readFileSync(join(directory, 'runtime.js'));
 }
 
 function deferred() {
@@ -75,7 +78,9 @@ function deferred() {
   const promise = new Promise<any>((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
-async function fixture() {
+async function fixture(failSetup?: (stage: string, directory: string) => void) {
+  const bundle = await compiledBundle();
+  const directory = mkdtempSync(join(root, 'node_modules', '.instant-dialog-runtime-'));
   const window = new happy.Window({ url: 'https://fixture.test' });
   const saved = new Map<string, PropertyDescriptor | undefined>();
   let now = 1_700_000_000_000, timerId = 0;
@@ -88,28 +93,69 @@ async function fixture() {
     clearTimeout: (id: number) => timers.delete(id),
     __instantDialogAjax: (action: string, values: any, options: any) => { const task = deferred(); requests.push({ action, values, options, ...task }); return task.promise; },
   };
-  for (const [key, value] of Object.entries(globals)) { saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
-  const oldNow = Date.now; Date.now = () => now;
-  const r = await compiledRuntime();
-  const keys = [...readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8').matchAll(/text\('([^']+)'\)/g)].map(match => match[1]);
-  const i18n = Object.fromEntries(keys.map(key => [key, key]));
-  Object.assign(i18n, { creditDescription: 'Remaining Credit', instantResult_booked: 'BOOKED', instantResult_failed: 'FAILED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
-  const target = window.document.createElement('main'); window.document.body.append(target);
-  const host = r.mount(r.Host, { target, props: { props: { orderIds: ['1', '2', '3', '4', '5', '6'], ajaxUrl: '/ajax', nonce: 'nonce', i18n, onComplete: () => { completions++; } } } });
-  async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); r.flushSync(); } }
-  await settle();
-  const query = (selector: string): any => target.querySelector(selector);
-  const button = (label: string): any => [...target.querySelectorAll('button')].find((node: any) => node.textContent.includes(label));
-  async function click(node: any) { expect(node).toBeTruthy(); node.click(); await settle(); await advance(0); }
-  async function change(selector: string, value: string) { const node = query(selector); node.value = value; node.dispatchEvent(new window.Event(selector === '#instant-credit-pin' ? 'input' : 'change', { bubbles: true })); await settle(); }
-  async function reply(data: any, index = requests.length - 1) { requests[index].resolve({ data }); await settle(); }
-  async function advance(ms: number) { const end = now + ms; let steps = 0; while (true) { const next = [...timers].sort((a, b) => a[1].at - b[1].at)[0]; if (!next || next[1].at > end) break; if (++steps > 1000) throw new Error('Timer loop'); now = next[1].at; timers.delete(next[0]); next[1].callback(); await settle(); } now = end; await settle(); }
-  function quote(token = 'quote-a', methods = ['top'], rows?: any[]) { return { token, expires_at: now / 1000 + 120, payment_methods: methods, credit_balance: 4000724100, batch_count: 1, rows: rows ?? Array.from({ length: 6 }, (_, i) => ({ id: String(i + 1), wc_order_number: `WC-${i + 1}`, before: 1000, after: 1000, eligible: true, changed: false, error: '' })) }; }
+  const oldNow = Date.now;
+  let r: any, host: any;
   let destroyed = false;
-  async function destroy() { if (!destroyed) { destroyed = true; await r.unmount(host); await settle(); } }
-  async function cleanup() { try { await destroy(); await advance(0); expect(timers.size).toBe(0); } finally { Date.now = oldNow; window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } } }
-  return { target, query, button, click, change, reply, advance, quote, requests, timers, settle, destroy, cleanup, get completions() { return completions; }, close: async () => { host.setOpen(false); await settle(); }, setOrderIds: async (value: string[]) => { host.setOrderIds(value); await settle(); } };
+  async function settle() { for (let i = 0; i < 8; i++) { await Promise.resolve(); r?.flushSync(); } }
+  async function destroy() { if (host && !destroyed) { destroyed = true; await r.unmount(host); await settle(); } }
+  async function advance(ms: number) { const end = now + ms; let steps = 0; while (true) { const next = [...timers].sort((a, b) => a[1].at - b[1].at)[0]; if (!next || next[1].at > end) break; if (++steps > 1000) throw new Error('Timer loop'); now = next[1].at; timers.delete(next[0]); next[1].callback(); await settle(); } now = end; await settle(); }
+  async function cleanup() {
+    try { await destroy(); if (r) await advance(0); expect(timers.size).toBe(0); }
+    finally {
+      Date.now = oldNow;
+      timers.clear();
+      try { await window.happyDOM.abort(); }
+      finally {
+        try { for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } }
+        finally { rmSync(directory, { recursive: true, force: true }); }
+      }
+    }
+  }
+  try {
+    for (const [key, value] of Object.entries(globals)) { saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
+    Date.now = () => now;
+    failSetup?.('globals', directory);
+    writeFileSync(join(directory, 'runtime.js'), bundle);
+    r = await import(join(directory, 'runtime.js'));
+    failSetup?.('imported', directory);
+    const keys = [...readFileSync(join(root, 'src/lib/transactions/InstantProcessDialog.svelte'), 'utf8').matchAll(/text\('([^']+)'\)/g)].map(match => match[1]);
+    const i18n = Object.fromEntries(keys.map(key => [key, key]));
+    Object.assign(i18n, { creditDescription: 'Remaining Credit', instantResult_booked: 'BOOKED', instantResult_failed: 'FAILED', instantResult_unknown: 'UNKNOWN', instantResult_skipped: 'SKIPPED', instantTop: 'TOP', instantConfirmTop: 'I confirm this shipment', paymentMethod: 'Payment method' });
+    const target = window.document.createElement('main'); window.document.body.append(target);
+    host = r.mount(r.Host, { target, props: { props: { orderIds: ['1', '2', '3', '4', '5', '6'], ajaxUrl: '/ajax', nonce: 'nonce', i18n, onComplete: () => { completions++; } } } });
+    failSetup?.('mounted', directory);
+    await settle();
+    failSetup?.('settled', directory);
+    const query = (selector: string): any => target.querySelector(selector);
+    const button = (label: string): any => [...target.querySelectorAll('button')].find((node: any) => node.textContent.includes(label));
+    async function click(node: any) { expect(node).toBeTruthy(); node.click(); await settle(); await advance(0); }
+    async function change(selector: string, value: string) { const node = query(selector); node.value = value; node.dispatchEvent(new window.Event(selector === '#instant-credit-pin' ? 'input' : 'change', { bubbles: true })); await settle(); }
+    async function reply(data: any, index = requests.length - 1) { requests[index].resolve({ data }); await settle(); }
+    function quote(token = 'quote-a', methods = ['top'], rows?: any[]) { return { token, expires_at: now / 1000 + 120, payment_methods: methods, credit_balance: 4000724100, batch_count: 1, rows: rows ?? Array.from({ length: 6 }, (_, i) => ({ id: String(i + 1), wc_order_number: `WC-${i + 1}`, before: 1000, after: 1000, eligible: true, changed: false, error: '' })) }; }
+    return { target, query, button, click, change, reply, advance, quote, requests, timers, settle, destroy, cleanup, get completions() { return completions; }, close: async () => { host.setOpen(false); await settle(); }, setOrderIds: async (value: string[]) => { host.setOrderIds(value); await settle(); } };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
 }
+
+test('fixture setup failures restore globals and remove temporary runtime paths', async () => {
+  for (const stage of ['globals', 'imported', 'mounted', 'settled']) {
+    const before = Object.getOwnPropertyDescriptors(globalThis);
+    const oldNow = Date.now;
+    let directory = '';
+    const failure = new Error(`Injected setup failure: ${stage}`);
+    function inject(current: string, path: string) { if (current === stage) { directory = path; throw failure; } }
+    await expect(fixture(inject)).rejects.toBe(failure);
+    expect(directory).not.toBe('');
+    expect(existsSync(directory)).toBe(false);
+    expect(Date.now).toBe(oldNow);
+    const after = Object.getOwnPropertyDescriptors(globalThis);
+    for (const key of ['window', 'document', 'navigator', 'Node', 'Element', 'HTMLElement', 'HTMLButtonElement', 'SVGElement', 'DocumentFragment', 'HTMLInputElement', 'HTMLSelectElement', 'Text', 'Comment', 'Event', 'CustomEvent', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'fetch', '__instantDialogAjax', '__instantOperationAjax']) {
+      expect(after[key]).toEqual(before[key]);
+    }
+  }
+});
 
 describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
   runtimeTest('QRIS status refresh retains QR and amount, centers it and places refresh beside Close', async () => {
@@ -554,4 +600,24 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       await h.advance(600000); expect(h.requests).toHaveLength(2);
     } finally { await h.cleanup(); }
   });
+  runtimeTest('reused bundle evaluates fresh DOM and request state in successive Windows', async () => {
+    let previous: Awaited<ReturnType<typeof fixture>> | undefined;
+    for (let i = 0; i < 2; i++) {
+      const h = await fixture(); try {
+        expect(h.requests.map(request => request.action)).toEqual(['kiriof_instant_quote']);
+        await h.reply(h.quote(`window-${i}`));
+        expect(h.button('confirmProcess').ownerDocument).toBe(h.target.ownerDocument);
+        expect([...h.target.querySelectorAll('*')].every(node => node.ownerDocument === h.target.ownerDocument)).toBe(true);
+        if (previous) {
+          expect(h.target.ownerDocument).not.toBe(previous.target.ownerDocument);
+          expect(previous.target.textContent).toBe('');
+          expect(previous.requests).toHaveLength(1);
+          expect(previous.timers.size).toBe(0);
+        }
+      } finally { await h.cleanup(); }
+      expect(h.timers.size).toBe(0);
+      previous = h;
+    }
+  });
+
 });

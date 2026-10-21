@@ -13,7 +13,7 @@ final class InstantDeliveryControllerRuntimeTest extends TestCase {
 		if ( isset( $snapshots[ $key ] ) ) {
 			return $snapshots[ $key ];
 		}
-		$output = shell_exec( escapeshellarg( PHP_BINARY ) . ' -n ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-delivery-controller-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
+		$output = shell_exec( kiriof_test_fixture_php_shell() . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/instant-delivery-controller-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
 		return $snapshots[ $key ] = json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
 	}
 

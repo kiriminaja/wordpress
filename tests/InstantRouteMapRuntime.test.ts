@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile } from 'svelte/compiler';
 import { happy } from './helpers/ui-runtime';
@@ -26,7 +26,34 @@ test('saved coordinates accept zero/decimal strings, reject missing, non-finite 
   expect(normalizeInstantRoute({ ...illustration, destination: null })).toBeNull();
 });
 
-async function fixture(data: any = illustration, missingLeaflet = false, config?: any, google?: any) {
+let buildDirectory: string | undefined;
+let bundlePromise: Promise<Buffer> | undefined;
+let bundleBuildCount = 0;
+afterAll(() => {
+  try { if (bundlePromise) expect(bundleBuildCount).toBe(1); }
+  finally { if (buildDirectory) rmSync(buildDirectory, { recursive: true, force: true }); }
+});
+
+// Compile once, but evaluate at a unique path for each fresh Window: Svelte's
+// cached native DOM getters must belong to that fixture's document.
+function compiledBundle(): Promise<Buffer> { return bundlePromise ??= buildBundle(); }
+async function buildBundle(): Promise<Buffer> {
+  const directory = buildDirectory = mkdtempSync(join(root, 'node_modules', '.instant-map-build-'));
+  bundleBuildCount++;
+  const source = readFileSync(join(root, 'src/lib/transaction-detail/InstantRouteMap.svelte'), 'utf8').replace("'./instant-route-map'", JSON.stringify(join(root, 'src/lib/transaction-detail/instant-route-map.ts')));
+  writeFileSync(join(directory, 'Production.svelte'), source);
+  writeFileSync(join(directory, 'Host.svelte'), `<script>import Production from './Production.svelte'; let {initial, config} = $props(); let data = $state(initial); let mapConfig = $state(config); export function change(value) {data = value;} export function changeConfig(value) {mapConfig = value;}</script><Production {data} config={mapConfig} i18n={{routeOrigin: 'Penjemputan tersimpan', routeDestination: 'Tujuan tersimpan', routeStart: 'Awal rute tercatat', routeEnd: 'Akhir rute tercatat'}} />`);
+  writeFileSync(join(directory, 'entry.ts'), `export {mount, unmount, flushSync} from 'svelte'; export {default as Host} from './Host.svelte';`);
+  const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'compiled-svelte', setup(builder) {
+    builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
+    builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
+  } }] });
+  if (!build.success) throw new Error(build.logs.join('\n'));
+  return readFileSync(join(directory, 'runtime.js'));
+}
+
+async function fixture(data: any = illustration, missingLeaflet = false, config?: any, google?: any, failSetup?: (stage: string, directory: string) => void) {
+  const bundle = await compiledBundle();
   const window = new happy.Window({ url: 'https://fixture.test' });
   const directory = mkdtempSync(join(root, 'node_modules', '.instant-map-runtime-'));
   const saved = new Map<string, PropertyDescriptor | undefined>();
@@ -71,30 +98,61 @@ async function fixture(data: any = illustration, missingLeaflet = false, config?
     setTimeout: (callback: () => void) => { timers.set(++timer, callback); return timer; }, clearTimeout: (id: number) => timers.delete(id),
     fetch: () => { requests++; throw new Error('Map must not fetch API data'); },
   };
-  for (const [key, value] of Object.entries(globals)) { saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
-  const source = readFileSync(join(root, 'src/lib/transaction-detail/InstantRouteMap.svelte'), 'utf8').replace("'./instant-route-map'", JSON.stringify(join(root, 'src/lib/transaction-detail/instant-route-map.ts')));
-  writeFileSync(join(directory, 'Production.svelte'), source);
-  writeFileSync(join(directory, 'Host.svelte'), `<script>import Production from './Production.svelte'; let {initial, config} = $props(); let data = $state(initial); let mapConfig = $state(config); export function change(value) {data = value;} export function changeConfig(value) {mapConfig = value;}</script><Production {data} config={mapConfig} i18n={{routeOrigin: 'Penjemputan tersimpan', routeDestination: 'Tujuan tersimpan', routeStart: 'Awal rute tercatat', routeEnd: 'Akhir rute tercatat'}} />`);
-  writeFileSync(join(directory, 'entry.ts'), `export {mount, unmount, flushSync} from 'svelte'; export {default as Host} from './Host.svelte';`);
-  const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'compiled-svelte', setup(builder) {
-    builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
-    builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
-  } }] });
-  if (!build.success) throw new Error(build.logs.join('\n'));
-  const r = await import(join(directory, 'runtime.js'));
-  const target = window.document.createElement('main'); window.document.body.append(target);
-  const host = r.mount(r.Host, { target, props: { initial: data, config: config ?? { enabled: true, tiles: '/tiles/{z}/{x}/{y}.png', attribution: 'Saved map' } } });
-  const settle = async () => { for (let i = 0; i < 6; i++) { await Promise.resolve(); r.flushSync(); } };
-  await settle();
+  let r: any, host: any;
   let destroyed = false;
-  const destroy = async () => { if (!destroyed) { destroyed = true; await r.unmount(host); await settle(); } };
-  return { window, target, maps, lines, markers, layers, observers, timers, settle, destroy,
-    requests: () => requests,
-    change: async (value: any) => { host.change(value); await settle(); },
-    changeConfig: async (value: any) => { host.changeConfig(value); await settle(); },
-    cleanup: async () => { try { await destroy(); expect(timers.size).toBe(0); expect(requests).toBe(0); expect(geolocations).toBe(0); } finally { window.happyDOM.abort(); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } rmSync(directory, { recursive: true, force: true }); } },
-  };
+  const settle = async () => { for (let i = 0; i < 6; i++) { await Promise.resolve(); r?.flushSync(); } };
+  const destroy = async () => { if (host && !destroyed) { destroyed = true; await r.unmount(host); await settle(); } };
+  async function cleanup() {
+    try { await destroy(); expect(timers.size).toBe(0); expect(requests).toBe(0); expect(geolocations).toBe(0); }
+    finally {
+      timers.clear();
+      try { await window.happyDOM.abort(); }
+      finally {
+        try { for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } }
+        finally { rmSync(directory, { recursive: true, force: true }); }
+      }
+    }
+  }
+  try {
+    for (const [key, value] of Object.entries(globals)) { saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { configurable: true, writable: true, value }); }
+    failSetup?.('globals', directory);
+    writeFileSync(join(directory, 'runtime.js'), bundle);
+    r = await import(join(directory, 'runtime.js'));
+    failSetup?.('imported', directory);
+    const target = window.document.createElement('main'); window.document.body.append(target);
+    host = r.mount(r.Host, { target, props: { initial: data, config: config ?? { enabled: true, tiles: '/tiles/{z}/{x}/{y}.png', attribution: 'Saved map' } } });
+    failSetup?.('mounted', directory);
+    await settle();
+    failSetup?.('settled', directory);
+    return { window, target, maps, lines, markers, layers, observers, timers, settle, destroy,
+      requests: () => requests,
+      change: async (value: any) => { host.change(value); await settle(); },
+      changeConfig: async (value: any) => { host.changeConfig(value); await settle(); },
+      cleanup,
+    };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
 }
+
+test('fixture setup failures restore globals and remove temporary runtime paths', async () => {
+  for (const stage of ['globals', 'imported', 'mounted', 'settled']) {
+    const before = Object.getOwnPropertyDescriptors(globalThis);
+    const oldNow = Date.now;
+    let directory = '';
+    const failure = new Error(`Injected setup failure: ${stage}`);
+    function inject(current: string, path: string) { if (current === stage) { directory = path; throw failure; } }
+    await expect(fixture(illustration, false, undefined, undefined, inject)).rejects.toBe(failure);
+    expect(directory).not.toBe('');
+    expect(existsSync(directory)).toBe(false);
+    expect(Date.now).toBe(oldNow);
+    const after = Object.getOwnPropertyDescriptors(globalThis);
+    for (const key of ['window', 'document', 'navigator', 'Node', 'Element', 'HTMLElement', 'HTMLButtonElement', 'SVGElement', 'DocumentFragment', 'HTMLInputElement', 'HTMLSelectElement', 'Text', 'Comment', 'Event', 'CustomEvent', 'MutationObserver', 'ResizeObserver', 'getComputedStyle', 'requestAnimationFrame', 'cancelAnimationFrame', 'setTimeout', 'clearTimeout', 'fetch', '__instantDialogAjax', '__instantOperationAjax']) {
+      expect(after[key]).toEqual(before[key]);
+    }
+  }
+});
 
 describe('InstantRouteMap compiled Svelte lifecycle', () => {
   test('zero-valued saved points render dashed illustration; prop updates render solid recorded path and dispose all resources', async () => {
@@ -408,3 +466,26 @@ for (const failAttachment of [1, 2]) {
     } finally { await h.cleanup(); }
   });
 }
+
+test('fresh map fixtures own their DOM and map resources independently', async () => {
+  const first = await fixture();
+  try {
+    expect(first.maps[0].element.ownerDocument).toBe(first.window.document);
+    expect(first.markers[0].options.icon.options.html.ownerDocument).toBe(first.window.document);
+  } finally { await first.cleanup(); }
+  const second = await fixture(recorded);
+  try {
+    expect(second.window.document).not.toBe(first.window.document);
+    expect(second.maps[0]).not.toBe(first.maps[0]);
+    expect(second.maps[0].element.ownerDocument).toBe(second.window.document);
+    expect(second.markers[0].options.icon.options.html.ownerDocument).toBe(second.window.document);
+    expect(second.markers[0].tooltip.ownerDocument).toBe(second.window.document);
+    expect(first.maps).toHaveLength(1); expect(first.maps[0].removed).toBe(1);
+    expect(first.maps[0].offCount).toBe(1); expect(first.observers[0].disconnected).toBe(true);
+    expect(first.timers.size).toBe(0); expect(first.requests()).toBe(0); expect(second.requests()).toBe(0);
+  } finally { await second.cleanup(); }
+});
+
+test('map bundle compiles at most once per suite', () => {
+  expect(bundleBuildCount).toBe(bundlePromise ? 1 : 0);
+});

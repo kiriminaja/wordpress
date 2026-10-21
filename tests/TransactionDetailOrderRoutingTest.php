@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 
 final class TransactionDetailOrderRoutingTest extends TestCase {
     private function route( array $input ): array {
-        $output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/transaction-detail-order-routing-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
+        $output = shell_exec( kiriof_test_fixture_php_shell( array( PLUGIN_DIR . '/tests/fixtures/transaction-detail-order-routing-runtime.php', json_encode( $input, JSON_THROW_ON_ERROR ) ) ) );
         return json_decode( $output, true, 512, JSON_THROW_ON_ERROR );
     }
     private function rows(): array {
@@ -44,7 +44,7 @@ final class TransactionDetailOrderRoutingTest extends TestCase {
     public function test_list_detail_links_use_woocommerce_id_for_regular_and_instant(): void {
         foreach ( array( 'express', 'instant' ) as $type ) {
             $input = array( 'id' => 104, 'wc_order_id' => 504, 'wp_wc_order_stat_order_id' => 504, 'delivery_type' => $type );
-            $output = shell_exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php' ) . ' ' . escapeshellarg( json_encode( $input, JSON_THROW_ON_ERROR ) ) );
+            $output = shell_exec( kiriof_test_fixture_php_shell( array( PLUGIN_DIR . '/tests/fixtures/transaction-instant-ui-runtime.php', json_encode( $input, JSON_THROW_ON_ERROR ) ) ) );
             $row = json_decode( (string) $output, true, 512, JSON_THROW_ON_ERROR );
             $this->assertSame( 'admin.php?page=kiriminaja-transaction-detail&id=504', $row['detailUrl'] );
             $this->assertSame( 104, $row['id'] );

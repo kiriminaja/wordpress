@@ -5,6 +5,12 @@ use PHPUnit\Framework\TestCase;
 /** Real repository with an isolated SDK transport spy (no network or SDK facade). */
 final class InstantLifecycleApiRuntimeTest extends TestCase {
 	private function run_fixture( string $scenario ): array {
+		// Reuse only an identical scenario's decoded result, not its SDK/global state.
+		// Every cache miss still gets its own PHP process and fresh repository.
+		static $snapshots = array();
+		if ( isset( $snapshots[ $scenario ] ) ) {
+			return $snapshots[ $scenario ];
+		}
 		$fixture = <<<'PHP'
 namespace KiriminAja\Base\Api {
 	class Api {
@@ -53,9 +59,11 @@ namespace {
 	$cancel = array( 'status' => true, 'code' => 0, 'text' => 'void accepted', 'result' => array( 'payment_id' => 'payment-1', 'packages' => array( array( 'order_id' => 'order-1', 'service' => 'gosend', 'status' => 105 ) ) ), 'extra' => array( 'full' => true ) );
 PHP;
 		$code = 'namespace { define( "ROOT", ' . var_export( PLUGIN_DIR, true ) . ' ); }' . $fixture . "\n" . $scenario . "\n" . 'echo json_encode( array( "result" => $result, "calls" => $GLOBALS["calls"], "logs" => $GLOBALS["logs"], "diagnostics" => $repository->cancellationDiagnostics(), "error_reads" => $GLOBALS["error_reads"] ) ); }';
-		exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( $code ) . ' 2>&1', $output, $status );
+		// The SDK transport/cache are fakes; JSON and PCRE are built in. Composer
+		// disables platform-check, so no host extensions or php.ini are needed.
+		exec( kiriof_test_fixture_php_shell( array( '-r' ) ) . ' ' . escapeshellarg( $code ) . ' 2>&1', $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
-		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+		return $snapshots[ $scenario ] = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
 	public function test_tracking_uses_only_direct_instant_get_and_preserves_full_object_body(): void {

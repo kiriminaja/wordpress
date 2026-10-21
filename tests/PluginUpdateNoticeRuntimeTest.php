@@ -3,7 +3,8 @@ use PHPUnit\Framework\TestCase;
 
 final class PluginUpdateNoticeRuntimeTest extends TestCase {
     private function runScenario(array $scenario = array()): array {
-        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(__DIR__ . '/fixtures/plugin-update-notice-runtime.php') . ' ' . escapeshellarg(json_encode($scenario, JSON_THROW_ON_ERROR)) . ' 2>&1', $output, $status);
+        // WordPress metadata, cache and compatibility APIs are local fakes.
+        exec(kiriof_test_fixture_php_shell() . ' ' . escapeshellarg(__DIR__ . '/fixtures/plugin-update-notice-runtime.php') . ' ' . escapeshellarg(json_encode($scenario, JSON_THROW_ON_ERROR)) . ' 2>&1', $output, $status);
         $this->assertSame(0, $status, implode("\n", $output));
         return json_decode(implode("\n", $output), true, 512, JSON_THROW_ON_ERROR);
     }
