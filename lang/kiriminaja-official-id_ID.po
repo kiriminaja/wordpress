@@ -3925,6 +3925,22 @@ msgid "No transactions found."
 msgstr "Tidak ada transaksi ditemukan."
 
 #: inc/Services/TransactionListRenderService.php
+msgid "Transactions for the selected delivery type and date range will appear here."
+msgstr "Transaksi untuk jenis pengiriman dan rentang tanggal yang dipilih akan muncul di sini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "No order issues found."
+msgstr "Tidak ada pesanan bermasalah yang ditemukan."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Orders with shipment issues for the selected date range will appear here."
+msgstr "Pesanan dengan masalah pengiriman untuk rentang tanggal yang dipilih akan muncul di sini."
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Try a different search or adjust the filters above."
+msgstr "Coba pencarian lain atau sesuaikan filter di atas."
+
+#: inc/Services/TransactionListRenderService.php
 msgid "Print Labels"
 msgstr "Cetak Label"
 

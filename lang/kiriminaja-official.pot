@@ -2558,6 +2558,22 @@ msgid "Search statuses…"
 msgstr ""
 
 #: inc/Services/TransactionListRenderService.php
+msgid "Transactions for the selected delivery type and date range will appear here."
+msgstr ""
+
+#: inc/Services/TransactionListRenderService.php
+msgid "No order issues found."
+msgstr ""
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Orders with shipment issues for the selected date range will appear here."
+msgstr ""
+
+#: inc/Services/TransactionListRenderService.php
+msgid "Try a different search or adjust the filters above."
+msgstr ""
+
+#: inc/Services/TransactionListRenderService.php
 msgid "Search couriers…"
 msgstr ""
 

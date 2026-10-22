@@ -76,6 +76,13 @@ PHP;
                 $output = shell_exec($command);
 
                 $bootstrap = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+                $empty_copy = array(
+                    'emptyDescription' => 'Transactions for the selected delivery type and date range will appear here.',
+                    'emptyIssueTitle' => 'No order issues found.',
+                    'emptyIssueDescription' => 'Orders with shipment issues for the selected date range will appear here.',
+                    'emptyFilteredDescription' => 'Try a different search or adjust the filters above.',
+                );
+                $this->assertSame( $empty_copy, array_intersect_key( $bootstrap['i18n'], $empty_copy ) );
                 $contractCase = 'case ' . count( $expectedCases );
                 $expectedCases[$contractCase . " / " . count( $expectedCases )] = [
                     '1: bootstrap[deliveryCounts][issue]' => $pending_issue,

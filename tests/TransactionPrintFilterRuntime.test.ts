@@ -50,7 +50,7 @@ function readdirIsDirectory(path: string): boolean {
 }
 
 const baseUrl = 'https://fixture.test/wp-admin/admin.php?page=kiriminaja-transactions&delivery_type=instant&key=parcel+42&status=processed%2Cwaiting_for_shipment&courier=gosend%2Cgrab&month=2026-01&date_from=2026-01-02&date_to=2026-01-27&per_page=50&cpage=4&print_status=0&cod=1&search_by=awb';
-async function fixture(deliveryType = 'instant', initialPrint = '0', rows: any[] = []) {
+async function fixture(deliveryType = 'instant', initialPrint = '0', rows: any[] = [], filterOverrides: Record<string, string> = {}) {
   const directory = mkdtempSync(join(root, 'node_modules', '.transaction-print-runtime-'));
   const initialUrl = new URL(baseUrl);
   initialUrl.searchParams.set('delivery_type', deliveryType);
@@ -79,6 +79,13 @@ async function fixture(deliveryType = 'instant', initialPrint = '0', rows: any[]
     deliveryCounts: { regular: 2, instant: 3, issue: 0 }, bulk: { ajaxUrl: '/ajax', nonce: 'test', printPreviewNonce: 'print' }, shipmentLocations: [],
     i18n: { scanToPay: 'Scan to Pay', action: 'Actions', detail: 'Detail', instantRecheck: 'Recheck', instantCancel: 'Cancel Instant', liveTracking: 'Live tracking', vehicle: 'Vehicle', changeOrigin: 'Change origin', adjustDeficit: 'Adjust deficit', cancel: 'Cancel', regularDelivery: 'Regular', instantDelivery: 'Instant', orderIssue: 'Order issue', transactionScope: 'Delivery workspace', print: 'Print', processShipment: 'Process shipment', requestPickup: 'Request pickup', allDates: 'Date range', apply: 'Apply', clearFilters: 'All', clear: 'Clear filters', allPrints: 'All prints', printed: 'Printed', unprinted: 'Unprinted', allPayment: 'All payment', cod: 'COD', nonCod: 'Non COD', status: 'Status', allCouriers: 'All couriers', search: 'Search', autoRefresh: 'Refresh transactions', refreshLabels: {}, notFound: 'No transactions', items: 'items', pageOf: 'of', searchStatuses: 'Search statuses', searchCouriers: 'Search couriers', selectedFilters: 'selected', noFilterOptions: 'No options' },
   };
+  Object.assign(bootstrap.filters, filterOverrides);
+  Object.assign(bootstrap.i18n, {
+    emptyDescription: 'Transactions for the selected delivery type and date range will appear here.',
+    emptyIssueTitle: 'No order issues found.',
+    emptyIssueDescription: 'Orders with shipment issues for the selected date range will appear here.',
+    emptyFilteredDescription: 'Try a different search or adjust the filters above.',
+  });
   async function cleanup() {
     completeNavigation?.();
     if (app) await runtime.unmount(app);
@@ -131,6 +138,65 @@ function expectedFilterUrl(initial: URL, printStatus: string, deliveryType = 'in
 }
 
 describe('TransactionsApp print filters (compiled production Svelte and bits-ui)', () => {
+  test('empty lists use labelled shared Empty components for each workspace without creating shipment actions', async () => {
+    for (const [deliveryType, status] of [['express', 'all'], ['instant', 'all'], ['express', 'order-issue']]) {
+      const h = await fixture(deliveryType, '', [], { key: '', courier: '', cod: '', status });
+      try {
+        const empty = h.target.querySelector('[data-slot="empty"]')!;
+        expect(empty).not.toBeNull();
+        expect(empty.closest('td')?.getAttribute('colspan')).toBe('7');
+        expect(empty.getAttribute('role')).toBe('region');
+        const title = empty.querySelector('[data-slot="empty-title"]')!;
+        const description = empty.querySelector('[data-slot="empty-description"]')!;
+        expect(empty.getAttribute('aria-labelledby')).toBe(title.id);
+        expect(empty.getAttribute('aria-describedby')).toBe(description.id);
+        expect(title.textContent).toBe(status === 'order-issue' ? 'No order issues found.' : 'No transactions');
+        expect(description.textContent).toContain(status === 'order-issue' ? 'Orders with shipment issues' : 'Transactions for the selected delivery type');
+        expect(empty.querySelector('[data-slot="empty-icon"] svg')?.getAttribute('aria-hidden')).toBe('true');
+        expect(empty.querySelector('button, a')).toBeNull();
+        expect(h.navigations).toEqual([]);
+      } finally { await h.cleanup(); }
+    }
+  });
+
+  test('All filter sentinels and hidden Instant COD do not create a false filtered empty state', async () => {
+    for (const deliveryType of ['express', 'instant']) {
+      const h = await fixture(deliveryType, 'all', [], { key: '', courier: 'all', cod: deliveryType === 'instant' ? '1' : 'all', status: 'all' });
+      try {
+        const empty = h.target.querySelector('[data-slot="empty"]')!;
+        expect(empty.querySelector('button')).toBeNull();
+        expect(empty.querySelector('[data-slot="empty-description"]')?.textContent).toContain('Transactions for the selected delivery type');
+      } finally { await h.cleanup(); }
+    }
+  });
+
+  test('empty filtered lists clear row filters once while preserving workspace, dates and page size', async () => {
+    const h = await fixture('express', '1', [], { status: 'order-issue' });
+    try {
+      const empty = h.target.querySelector('[data-slot="empty"]')!;
+      expect(empty.querySelector('[data-slot="empty-description"]')?.textContent).toBe('Try a different search or adjust the filters above.');
+      const button = empty.querySelector<HTMLButtonElement>('button')!;
+      expect(button.textContent?.trim()).toBe('Clear filters');
+      expect(button.getAttribute('type')).toBe('button');
+      expect(button.querySelector('svg')?.getAttribute('data-icon')).toBe('inline-start');
+      button.focus();
+      expect(h.window.document.activeElement).toBe(button);
+      button.click(); await h.settle();
+      expect(button.disabled).toBe(true);
+      expect(h.navigations).toHaveLength(1);
+      const url = new URL(h.navigations[0]);
+      for (const key of ['key', 'courier', 'cod', 'print_status', 'search_by']) expect(url.searchParams.has(key)).toBe(false);
+      expect(url.searchParams.get('status')).toBe('order-issue');
+      expect(url.searchParams.get('delivery_type')).toBe('express');
+      expect(url.searchParams.get('month')).toBe('2026-01');
+      expect(url.searchParams.get('date_from')).toBe('2026-01-02');
+      expect(url.searchParams.get('date_to')).toBe('2026-01-27');
+      expect(url.searchParams.get('per_page')).toBe('50');
+      expect(url.searchParams.get('cpage')).toBe('1');
+      await h.finish(); expect(button.disabled).toBe(false);
+    } finally { await h.cleanup(); }
+  });
+
   const transactionRow = (deliveryType: string, paymentUrl: string) => ({
     id: 1, kaOrderId: 'KA-1', wcOrderId: 42, wcOrderUrl: '/order/42', detailUrl: '/detail/KA-1', deliveryType,
     customer: { name: 'Fixture buyer', phone: '' }, courier: { code: 'fixture', service: 'Fixture courier', paymentLabel: 'NON COD' },
@@ -145,6 +211,7 @@ describe('TransactionsApp print filters (compiled production Svelte and bits-ui)
     const paymentUrl = '/wp-admin/admin.php?page=kiriminaja-request-pickup&instant_payment_id=PAY-1&open_payment=1';
     const h = await fixture('instant', '0', [transactionRow('instant', paymentUrl)]); try {
       const row = h.target.querySelector('tbody tr')!;
+      expect(h.target.querySelector('[data-slot="empty"]')).toBeNull();
       const payment = row.querySelector<HTMLAnchorElement>('a[aria-label="Scan to Pay"]')!;
       expect(payment.getAttribute('href')).toBe(paymentUrl);
       expect(payment.closest('td')?.classList.contains('is-actions')).toBe(true);

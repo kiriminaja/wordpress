@@ -32,6 +32,7 @@
   import TransactionRowAction from './TransactionRowAction.svelte';
   import * as Select from '$lib/components/ui/select';
   import * as Table from '$lib/components/ui/table';
+  import * as Empty from '$lib/components/ui/empty';
   import WorkspaceTabs from '$lib/ui/WorkspaceTabs.svelte';
   import Toolbar from '$lib/ui/Toolbar.svelte';
   import KiriofCard from '$lib/ui/KiriofCard.svelte';
@@ -93,6 +94,7 @@
   let actionDialog = $state<TransactionActionDialog | null>(null);
   let printPreviewOpen = $state(false);
   let printPreviewOrderIds = $state<string[]>([]);
+  const emptyId = $props.id();
 
   const isOrderIssue = $derived(filters.status === 'order-issue');
   const isInstant = $derived(!isOrderIssue && filters.delivery_type === 'instant');
@@ -115,9 +117,9 @@
     Boolean(
       filters.key.trim() ||
         (!isOrderIssue && filters.status && filters.status !== 'all') ||
-        filters.cod ||
-        filters.courier ||
-        filters.print_status,
+        (!isInstant && filters.cod && filters.cod !== 'all') ||
+        (filters.courier && filters.courier !== 'all') ||
+        (filters.print_status && filters.print_status !== 'all'),
     ),
   );
   const scopeValue = $derived(isOrderIssue ? 'order-issue' : isInstant ? 'instant' : 'regular');
@@ -408,7 +410,27 @@
         </Table.Header>
         <Table.Body>
           {#if bootstrap.rows.length === 0}
-            <Table.Row><Table.Cell colspan={7} class="kiriof-empty-cell">{bootstrap.i18n.notFound}</Table.Cell></Table.Row>
+            <Table.Row>
+              <Table.Cell colspan={7} class="whitespace-normal">
+                <Empty.Root class="box-border py-10 md:py-12" role="region" aria-labelledby={`${emptyId}-title`} aria-describedby={`${emptyId}-description`}>
+                  <Empty.Header>
+                    <Empty.Media variant="icon">
+                      {#if hasActiveFilters}<IconSearch aria-hidden="true" />{:else if isOrderIssue}<IconCircleCheck aria-hidden="true" />{:else}<IconPackage aria-hidden="true" />{/if}
+                    </Empty.Media>
+                    <Empty.Title id={`${emptyId}-title`}>{isOrderIssue && !hasActiveFilters ? bootstrap.i18n.emptyIssueTitle : bootstrap.i18n.notFound}</Empty.Title>
+                    <Empty.Description id={`${emptyId}-description`}>{hasActiveFilters ? bootstrap.i18n.emptyFilteredDescription : isOrderIssue ? bootstrap.i18n.emptyIssueDescription : bootstrap.i18n.emptyDescription}</Empty.Description>
+                  </Empty.Header>
+                  {#if hasActiveFilters}
+                    <Empty.Content>
+                      <Button variant="outline" disabled={refreshing} onclick={clearFilters}>
+                        <IconX data-icon="inline-start" />
+                        {bootstrap.i18n.clear}
+                      </Button>
+                    </Empty.Content>
+                  {/if}
+                </Empty.Root>
+              </Table.Cell>
+            </Table.Row>
           {:else}
             {#each bootstrap.rows as row, rowIndex (row.id)}
               <Table.Row class={selected[row.kaOrderId] ? 'is-selected' : undefined}>

@@ -356,6 +356,22 @@ class TransactionListRenderService
                     "No transactions found.",
                     "kiriminaja-official",
                 ),
+                "emptyDescription" => __(
+                    "Transactions for the selected delivery type and date range will appear here.",
+                    "kiriminaja-official",
+                ),
+                "emptyIssueTitle" => __(
+                    "No order issues found.",
+                    "kiriminaja-official",
+                ),
+                "emptyIssueDescription" => __(
+                    "Orders with shipment issues for the selected date range will appear here.",
+                    "kiriminaja-official",
+                ),
+                "emptyFilteredDescription" => __(
+                    "Try a different search or adjust the filters above.",
+                    "kiriminaja-official",
+                ),
                 "detail" => __("Detail", "kiriminaja-official"),
                 "changeOrigin" => __("Change Origin", "kiriminaja-official"),
                 "currentShipmentOrigin" => __(
