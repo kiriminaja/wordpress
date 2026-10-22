@@ -55,7 +55,16 @@ class KiriminAjaApi {
         return new WordPressApiClient();
     }
 
-	/** Preserve utility API envelopes and the WordPress identity lost by facade calls. */
+	/**
+	 * Fetch a utility envelope through the SDK client with WordPress identity.
+	 *
+	 * @param string                $method         GET or POST request method.
+	 * @param string                $endpoint       API path relative to the configured base URL.
+	 * @param array                 $body           Query parameters or JSON request payload.
+	 * @param array<string, string> $fields         Required fields mapped to list, object, or scalar.
+	 * @param bool                  $require_status Whether an absent API status is an error. Explicit non-true statuses always fail.
+	 * @return array{status: bool, data: object|string} Validated envelope or a fixed, secret-safe error.
+	 */
 	protected function fetch_utility( string $method, string $endpoint, array $body = array(), array $fields = array(), bool $require_status = true ): array {
 		try {
 			$client = $this->create_api_client();
@@ -90,6 +99,11 @@ class KiriminAjaApi {
 		}
 	}
 
+	/**
+	 * Normalize supported SDK profile wrappers into the results field.
+	 *
+	 * @return array{status: bool, data: object|string} Profile envelope or a secret-safe error.
+	 */
 	protected function fetch_profile(): array {
 		$response = $this->fetch_utility( 'GET', 'api/mitra/v6.2/profile', array(), array(), false );
 		if ( ! $response['status'] ) {
@@ -109,6 +123,11 @@ class KiriminAjaApi {
 		return $this->error_response( 'Invalid KiriminAja profile response.' );
 	}
 
+	/**
+	 * Preserve supported balance wrappers only when the shared parser accepts the amount.
+	 *
+	 * @return array{status: bool, data: object|string} Balance envelope or a secret-safe error.
+	 */
 	protected function fetch_credit_balance(): array {
 		$response = $this->fetch_utility( 'GET', 'api/mitra/v6.2/credit/balance', array(), array(), false );
 		if ( $response['status'] && null !== CreditBalance::parse( $response['data'] ) ) {

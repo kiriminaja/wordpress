@@ -18,7 +18,12 @@ const i18n = {
   searchStatuses: 'Search statuses…', searchCouriers: 'Search couriers…', noFilterOptions: 'No matching options.',
   selectedFilters: '%s selected', items: 'items', order: 'Order / Transaction', expedition: 'Expedition & Service',
   airwaybill: 'Airwaybill / Order ID', route: 'Shipment Route', packages: 'Packages & Fee', action: 'Action',
-  notFound: 'No transactions found.', autoRefresh: 'Auto Refresh Timer', selectAll: 'Select all orders',
+  notFound: 'No transactions found.',
+  emptyDescription: 'Transactions for the selected delivery type and date range will appear here.',
+  emptyIssueTitle: 'No order issues found.',
+  emptyIssueDescription: 'Orders with shipment issues for the selected date range will appear here.',
+  emptyFilteredDescription: 'Try a different search or adjust the filters above.',
+  autoRefresh: 'Auto Refresh Timer', selectAll: 'Select all orders',
   weight: 'Weight', actualShipping: 'Actual Shipping', shippingCost: 'Shipping', insurance: 'Insurance',
   codFee: 'COD Fee', itemDiscount: 'Item Discount', shippingDiscount: 'Shipping Discount',
   copyAwb: 'Copy AWB', copyKaOrderId: 'Copy KA Order ID', copied: 'Copied',
@@ -206,8 +211,33 @@ for (const width of [1440, 1100, 390]) {
       for (const active of [false, true]) {
         await app.open(path(scope, active));
         await expect(browser.locator(rowSelector)).toBeVisible();
-        await expect(browser.locator('.kiriof-empty-cell')).toContainText('No transactions found.');
+        const empty = browser.locator('.kiriof-transactions-table [role="region"]');
+        await expect(empty).toBeVisible();
+        const title = scope === 'issue' && !active ? i18n.emptyIssueTitle : i18n.notFound;
+        const description = active ? i18n.emptyFilteredDescription : scope === 'issue' ? i18n.emptyIssueDescription : i18n.emptyDescription;
+        await expect(empty).toContainText(title);
+        await expect(empty).toContainText(description);
+        expect(await browser.evaluate(() => {
+          const region = document.querySelector('.kiriof-transactions-table [role="region"]')!;
+          return {
+            title: document.getElementById(region.getAttribute('aria-labelledby')!)?.textContent,
+            description: document.getElementById(region.getAttribute('aria-describedby')!)?.textContent,
+            actions: Array.from(region.querySelectorAll('button')).map(button => button.textContent?.trim()),
+          };
+        })).toEqual({ title, description, actions: active ? [i18n.clear] : [] });
         await assertGeometry(browser, width, scope, active);
+        if (active) {
+          const before = boundary.requests.length;
+          await browser.locator('.kiriof-transactions-table [role="region"] button').click();
+          await expect.poll(() => boundary.requests.length).toBe(before + 1);
+          await expect.poll(() => browser.evaluate(() => {
+            const params = new URL(location.href).searchParams;
+            return Object.fromEntries(['delivery_type', 'status', 'key', 'courier', 'cod', 'print_status', 'cpage', 'per_page'].map(key => [key, params.get(key) || '']));
+          })).toEqual({ delivery_type: scope === 'instant' ? 'instant' : 'express', status: scope === 'issue' ? 'order-issue' : 'all', key: '', courier: '', cod: '', print_status: '', cpage: '1', per_page: '25' });
+          await expect(empty).toContainText(scope === 'issue' ? i18n.emptyIssueTitle : i18n.notFound);
+          await expect(empty).toContainText(scope === 'issue' ? i18n.emptyIssueDescription : i18n.emptyDescription);
+          await assertGeometry(browser, width, scope, false);
+        }
       }
     }
 

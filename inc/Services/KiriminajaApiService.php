@@ -91,6 +91,12 @@ class KiriminajaApiService extends BaseService{
 		return self::success( $include_instant ? $all : $express );
     }
 
+	/**
+	 * Validate courier rows before either cache family is updated.
+	 *
+	 * @param mixed $rows Decoded courier list; an empty list is valid.
+	 * @return bool Whether every row contains a nonempty courier code.
+	 */
 	private function validCourierRows( $rows ): bool {
 		if ( ! is_array( $rows ) || ! array_is_list( $rows ) ) {
 			return false;
