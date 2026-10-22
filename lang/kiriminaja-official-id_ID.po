@@ -1874,12 +1874,12 @@ msgid "Percentage shipping discount"
 msgstr "Diskon ongkir persentase"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:32
-msgid "Area Restrictions"
-msgstr "Batasan Area"
+msgid "Area Selection"
+msgstr "Pilihan Area"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:38
-msgid "Courier Restrictions"
-msgstr "Batasan Kurir"
+msgid "Courier Selection"
+msgstr "Pilihan Kurir"
 
 #: inc/Controllers/ShippingDiscountCouponController.php:48
 msgid "Allowed Regions"
@@ -2758,8 +2758,8 @@ msgid "Region data loaded from bundled file."
 msgstr "Data wilayah dimuat dari file bawaan."
 
 #: inc/Controllers/ShippingDiscountCouponController.php
-msgid "Leave empty (All Indonesian Regions) to allow all shipping destinations. Only applies to shipping discount coupon types."
-msgstr "Kosongkan (Semua Wilayah Indonesia) untuk mengizinkan semua tujuan pengiriman. Hanya berlaku untuk tipe kupon diskon ongkir."
+msgid "Select the destinations eligible for this coupon. Choose \"All Indonesian Regions\" to include every destination. Only applies to shipping discount coupon types."
+msgstr "Pilih tujuan pengiriman yang dapat menggunakan kupon ini. Pilih \"Semua Wilayah Indonesia\" untuk mencakup semua tujuan. Hanya berlaku untuk tipe kupon diskon ongkir."
 
 #: templates/cache/index.php inc/Pages/Admin.php
 msgid "Cache"
@@ -2814,8 +2814,8 @@ msgid "Province and city data used for coupon area restrictions. Re-validate to 
 msgstr "Data provinsi dan kota yang digunakan untuk pembatasan area kupon. Re-validasi untuk mengambil data terbaru dari API KiriminAja."
 
 #: inc/Controllers/ShippingDiscountCouponController.php
-msgid "Restrict this coupon to specific couriers. Leave as \"All Couriers\" to apply to every courier."
-msgstr "Batasi kupon ini ke kurir tertentu. Biarkan \"Semua Kurir\" untuk berlaku di semua kurir."
+msgid "Select the couriers eligible for this coupon. Choose \"All Couriers\" to include every courier."
+msgstr "Pilih kurir yang dapat menggunakan kupon ini. Pilih \"Semua Kurir\" untuk mencakup semua kurir."
 
 #: inc/Controllers/ShippingDiscountCouponController.php
 msgid "Selected Couriers"

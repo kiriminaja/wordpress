@@ -181,11 +181,13 @@ final class AccountShippingDestinationRuntimeTest extends TestCase {
         ) );
         $result = $this->runFixture( array( 'operations' => array( 'assets' ) ) );
         $this->assertSame( array(
-            'styles' => array( 'kiriof-account-destination', 'kiriof-leaflet' ),
+            'styles' => array( 'kiriof-account-destination', 'kiriof-leaflet', 'kiriof-account-selectors' ),
             'scripts' => array( 'kiriof-map-provider', 'kiriof-account-shipping' ),
             'map provider dependencies' => array( 'kiriof-leaflet' ),
-            'account shipping dependencies' => array( 'kiriof-map-provider' ),
+            'account shipping dependencies' => array( 'kiriof-map-provider', 'wc-country-select', 'wc-address-i18n' ),
             'account shipping bundle' => true,
+            'selector stylesheet' => true,
+            'selector stylesheet dependencies' => array( 'kiriof-account-destination' ),
             'localized' => array( 'kiriof-account-shipping', 'kiriofAccountShippingConfig' ),
             'localized nonce' => 'lookup-nonce',
             'localized ajaxUrl' => '/wp-admin/admin-ajax.php',
@@ -198,6 +200,8 @@ final class AccountShippingDestinationRuntimeTest extends TestCase {
             'map provider dependencies' => $result['scripts'][0][2],
             'account shipping dependencies' => $result['scripts'][1][2],
             'account shipping bundle' => str_contains( $result['scripts'][1][1], 'assets/buyer/dist/kiriminaja-buyer-account-shipping.js' ),
+            'selector stylesheet' => str_contains( $result['styles'][2][1], 'assets/buyer/dist/kiriminaja-buyer-account-shipping.css' ),
+            'selector stylesheet dependencies' => $result['styles'][2][2],
             'localized' => array_slice( $result['localized'][0], 0, 2 ),
             'localized nonce' => $result['localized'][0][2]['nonce'],
             'localized ajaxUrl' => $result['localized'][0][2]['ajaxUrl'],

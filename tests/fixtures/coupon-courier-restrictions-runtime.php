@@ -5,6 +5,7 @@ function __( $text, $domain = '' ) { return $text; }
 function esc_attr( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 function esc_html( $value ) { return esc_attr( $value ); }
 function esc_html__( $text, $domain = '' ) { return esc_html( $text ); }
+function esc_attr__( $text, $domain = '' ) { return esc_attr( $text ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-zA-Z0-9_-]/', '', $value ) ); }
 function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : stripslashes( $value ); }
@@ -31,6 +32,7 @@ function get_transient( $key ) {
 }
 function add_filter( $hook, $callback, $priority = 10, $accepted = 1 ) { $GLOBALS['hooks'][ $hook ][ $priority ][] = array( $callback, $accepted ); }
 function add_action( $hook, $callback, $priority = 10, $accepted = 1 ) { add_filter( $hook, $callback, $priority, $accepted ); }
+function add_meta_box( $id, $title, ...$args ) { $GLOBALS['metabox_titles'][ $id ] = $title; }
 function do_action( $hook, ...$args ) {
 	$callbacks = $GLOBALS['hooks'][ $hook ] ?? array();
 	ksort( $callbacks );
@@ -47,20 +49,38 @@ class WC_Coupon {
 }
 $root = dirname( __DIR__, 2 );
 require $root . '/inc/Services/CourierServiceCatalog.php';
-// register() only references this unrelated cron constant; no region work runs.
+// Region rendering uses deterministic cached data without a database or API.
 class CouponRegionCache {
 	public const CRON_HOOK = 'kiriof_test_unused_region_refresh';
+	public function getStatus() { return array( 'state' => 'ready' ); }
+	public function isRefreshPending() { return false; }
 }
 class_alias( CouponRegionCache::class, 'KiriminAjaOfficial\\Services\\ShippingDiscountRegionCacheService' );
+class CouponRegionRepository {
+	public function getProvinces() { return array(); }
+	public function isCacheStale() { return false; }
+}
+class_alias( CouponRegionRepository::class, 'KiriminAjaOfficial\\Repositories\\ShippingDiscountRegionRepository' );
 require $root . '/inc/Services/ShippingDiscountCouponService.php';
 require $root . '/inc/Controllers/ShippingDiscountCouponController.php';
-// None of the exercised paths needs the region repository or its database.
+// Only wording rendering needs the stubbed region repository; no database is used.
 $controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\ShippingDiscountCouponController::class ) )->newInstanceWithoutConstructor();
 $key = \KiriminAjaOfficial\Services\ShippingDiscountCouponService::META_COURIERS;
 $GLOBALS['can_edit'] = true;
 $GLOBALS['meta'] = array();
 $result = array();
-if ( 'render' === ( $argv[1] ?? '' ) ) {
+if ( 'wording' === ( $argv[1] ?? '' ) ) {
+	$controller->registerAreaRestrictionsMetabox();
+	$result['titles'] = $GLOBALS['metabox_titles'];
+	$repository = ( new ReflectionClass( $controller ) )->getProperty( 'region_repository' );
+	$repository->setValue( $controller, new CouponRegionRepository() );
+	ob_start();
+	$controller->renderAreaRestrictionsMetabox( (object) array( 'ID' => 42 ) );
+	$result['area'] = ob_get_clean();
+	ob_start();
+	$controller->renderCourierRestrictionsMetabox( (object) array( 'ID' => 42 ) );
+	$result['couriers'] = ob_get_clean();
+} elseif ( 'render' === ( $argv[1] ?? '' ) ) {
 	$render = new ReflectionMethod( $controller, 'renderCourierRestrictionFields' );
 	foreach ( array( 'all' => array(), 'selected' => array( 'grab_express', 'gosend', 'ninja' ) ) as $scope => $saved ) {
 		$GLOBALS['meta'][ $key ] = $saved;

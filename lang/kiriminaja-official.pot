@@ -128,11 +128,11 @@ msgid "Percentage shipping discount"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:32
-msgid "Area Restrictions"
+msgid "Area Selection"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:38
-msgid "Courier Restrictions"
+msgid "Courier Selection"
 msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php:48
@@ -2778,4 +2778,12 @@ msgstr ""
 
 #: inc/Services/InstantCheckoutQuoteService.php
 msgid "The shipping recipient address must contain 20 to 250 characters for Instant delivery."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Select the destinations eligible for this coupon. Choose \"All Indonesian Regions\" to include every destination. Only applies to shipping discount coupon types."
+msgstr ""
+
+#: inc/Controllers/ShippingDiscountCouponController.php
+msgid "Select the couriers eligible for this coupon. Choose \"All Couriers\" to include every courier."
 msgstr ""

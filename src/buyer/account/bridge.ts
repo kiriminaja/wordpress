@@ -6,6 +6,7 @@ import { bindDistrict } from './district';
 import { createAccountState } from './state.svelte';
 import type { AccountRoot, Address, Destination } from './types';
 import type { Point } from '../map/types';
+import { startClassicSelectors } from '../classic/selector';
 
 /** Woo owns the six shipping controls, validation, nonce and submit. No checkout stores. */
 export function bootAccountShipping(root: AccountRoot) {
@@ -13,6 +14,7 @@ export function bootAccountShipping(root: AccountRoot) {
   let active = true;
   const editors: (() => void)[] = [];
   const initialized = new WeakSet<HTMLElement>();
+  const selectors = startClassicSelectors(root);
   const bridge = {
     dispose() {
       if (!active) return;
@@ -20,6 +22,7 @@ export function bootAccountShipping(root: AccountRoot) {
       root.document.removeEventListener('DOMContentLoaded', ready);
       root.removeEventListener('pagehide', bridge.dispose);
       editors.forEach((dispose) => dispose());
+      selectors.dispose?.();
       if (root.__kiriofAccountShippingBridge === bridge) delete root.__kiriofAccountShippingBridge;
     },
   };

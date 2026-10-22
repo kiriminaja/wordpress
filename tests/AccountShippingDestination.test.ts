@@ -84,11 +84,16 @@ function activeAccount(
   extra: any = {},
   synchronousLocation = false,
   locationMode = 'pending',
+  nativeProvince = false,
 ) {
   const window = new happy.Window({ url: 'https://account.example.test' }) as any;
   const document = window.document;
   document.body.innerHTML = `<form>${Object.entries(initialAddress)
-    .map(([key, value]) => `<input name="shipping_${key}" value="${value}">`)
+    .map(([key, value]) =>
+      nativeProvince && key === 'state'
+        ? '<label for="shipping_state">Province</label><select id="shipping_state" name="shipping_state" class="state_select" required aria-required="true" aria-describedby="province-help"><option value="">Choose province</option><option value="JK" selected>Jakarta</option><option value="JB">West Java</option></select><span id="province-help">Shipping province</span>'
+        : `<input name="shipping_${key}" value="${value}">`,
+    )
     .join('')}
   <input name="woocommerce-edit-address-nonce" value="native-nonce"><button name="save_address">Save address</button>
   <div class="kiriof-account-shipping"><div class="kiriof-account-shipping-status"></div><input name="kiriof_account_destination" type="hidden">
@@ -214,7 +219,19 @@ function activeAccount(
     new Promise((resolve, reject) => requests.push({ url, options, resolve, reject }));
   // Keep Svelte's delegated-event bookkeeping on real runtime timers. Only
   // root.setTimeout (account debounce, request deadline and map) is controlled.
-  runInNewContext(accountSource, buyerBrowserContext(window, { setTimeout, clearTimeout }));
+  runInNewContext(
+    accountSource,
+    buyerBrowserContext(window, {
+      setTimeout,
+      clearTimeout,
+      CustomEvent: window.CustomEvent,
+      HTMLInputElement: window.HTMLInputElement,
+      HTMLSelectElement: window.HTMLSelectElement,
+      HTMLButtonElement: window.HTMLButtonElement,
+      KeyboardEvent: window.KeyboardEvent,
+      PointerEvent: window.PointerEvent,
+    }),
+  );
   document.dispatchEvent(new window.Event('DOMContentLoaded'));
   flush();
   return {
@@ -369,6 +386,153 @@ function fixture(saved: any = null, extra: any = {}, locationMode = 'grant') {
 async function settle() {
   for (let index = 0; index < 8; index++) await Promise.resolve();
 }
+
+test('account entry enhances the native province without SelectWoo and keeps native save authority', async () => {
+  const h = activeAccount(savedPin(), { map: { enabled: false } }, false, 'pending', true);
+  accounts.push(h);
+  const province = h.node('#shipping_state');
+  const originalValue = h.hidden.value;
+  const changes: Event[] = [];
+  province.addEventListener('change', (event: Event) => changes.push(event));
+  const trigger = h.node('.kiriof-buyer-combobox-trigger');
+  expect(trigger).not.toBeNull();
+  expect(trigger.textContent).toContain('Jakarta');
+  expect(trigger.getAttribute('aria-labelledby')).toBe('shipping_state-buyer-selector-label');
+  expect(trigger.getAttribute('aria-required')).toBe('true');
+  expect(trigger.getAttribute('aria-describedby')).toBe('province-help');
+  expect(h.hidden.value).toBe(originalValue);
+  expect(h.node('#kiriof-account-district').classList.contains('kiriof-buyer-native-select')).toBe(
+    false,
+  );
+  trigger.dispatchEvent(new h.window.PointerEvent('pointerdown', { bubbles: true }));
+  await settle();
+  h.flush();
+  const option = h.node('[data-combobox-item][data-value="JB"]');
+  expect(option).not.toBeNull();
+  option.dispatchEvent(new h.window.MouseEvent('pointermove', { bubbles: true }));
+  option.dispatchEvent(
+    new h.window.PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse' }),
+  );
+  await settle();
+  h.flush();
+  expect(province.value).toBe('JB');
+  expect(new h.window.FormData(h.form).get('shipping_state')).toBe('JB');
+  expect(changes).toHaveLength(1);
+  expect(h.posted().version).toBe(1);
+  expect(h.posted().shipping_address).toBeUndefined();
+  expect(h.node('[name="woocommerce-edit-address-nonce"]').value).toBe('native-nonce');
+  expect(h.submit().defaultPrevented).toBe(false);
+});
+
+test('account province tracks Woo replacements, late enhancement and native validation without touching billing or country', async () => {
+  const h = activeAccount(null, { map: { enabled: false } }, false, 'pending', true);
+  accounts.push(h);
+  const province = h.node('#shipping_state');
+  h.form.insertAdjacentHTML(
+    'afterbegin',
+    '<select id="billing_state" name="billing_state"><option value="JK">Billing</option></select><select id="other_country" class="country_select"><option value="ID">Indonesia</option></select>',
+  );
+  const changes: Event[] = [];
+  h.form.addEventListener('change', (event: Event) => changes.push(event));
+  let enhancement: object | null = {};
+  const destroyed: string[] = [];
+  h.window.jQuery = (node: Element) => ({
+    data: () => (node === province ? enhancement : null),
+    selectWoo(action: string) {
+      destroyed.push(action);
+      enhancement = null;
+      province.removeAttribute('tabindex');
+      province.removeAttribute('aria-hidden');
+    },
+    on() {},
+    off() {},
+  });
+  province.insertAdjacentHTML(
+    'afterend',
+    '<span class="select2-container"><span id="select2-shipping_state-container">Stale province</span></span>',
+  );
+  h.node('#other_country').insertAdjacentHTML(
+    'afterend',
+    '<span class="select2-container"><span id="select2-other_country-container">Country</span></span>',
+  );
+  province.classList.add('select2-hidden-accessible');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  h.flush();
+  expect(destroyed).toEqual(['destroy']);
+  expect(province.getAttribute('tabindex')).toBe('-1');
+  expect(province.getAttribute('aria-hidden')).toBe('true');
+  expect(h.node('#select2-shipping_state-container')).toBeNull();
+  expect(h.node('#select2-other_country-container')).not.toBeNull();
+  expect(h.node('#billing_state').classList.contains('kiriof-buyer-native-select')).toBe(false);
+  expect(h.document.querySelectorAll('.kiriof-buyer-combobox-trigger')).toHaveLength(1);
+  province.innerHTML =
+    '<option value="">Choose province</option><option value="JT" selected>Central Java</option>';
+  province.disabled = true;
+  province.setAttribute('aria-invalid', 'true');
+  h.window.kiriofBuyerSelectors.refresh();
+  h.flush();
+  expect(h.node('.kiriof-buyer-combobox-trigger').disabled).toBe(true);
+  expect(h.node('.kiriof-buyer-combobox-trigger').getAttribute('aria-invalid')).toBe('true');
+  expect(h.node('.kiriof-buyer-combobox-trigger').textContent).toContain('Central Java');
+  expect(changes).toHaveLength(0);
+  const replacement = h.document.createElement('input');
+  replacement.id = 'shipping_state';
+  replacement.name = 'shipping_state';
+  replacement.value = 'Tokyo';
+  province.replaceWith(replacement);
+  h.window.kiriofBuyerSelectors.refresh();
+  h.flush();
+  expect(h.node('#shipping_state')).toBe(replacement);
+  expect(h.node('.kiriof-buyer-selector')).toBeNull();
+  expect(province.isConnected).toBe(false);
+  const restored = h.document.createElement('select');
+  restored.id = 'shipping_state';
+  restored.name = 'shipping_state';
+  restored.innerHTML = '<option value="JB" selected>West Java</option>';
+  replacement.replaceWith(restored);
+  h.window.kiriofBuyerSelectors.refresh();
+  h.flush();
+  expect(h.node('.kiriof-buyer-combobox-trigger').textContent).toContain('West Java');
+  expect(new h.window.FormData(h.form).get('shipping_state')).toBe('JB');
+  h.window.__kiriofAccountShippingBridge.dispose();
+  h.flush();
+  expect(h.node('.kiriof-buyer-selector')).toBeNull();
+  expect(restored.getAttribute('aria-hidden')).toBeNull();
+  expect(restored.getAttribute('tabindex')).toBeNull();
+});
+
+test('account province supports keyboard search, Escape and selection without form submission', async () => {
+  const h = activeAccount(null, { map: { enabled: false } }, false, 'pending', true);
+  accounts.push(h);
+  const trigger = h.node('.kiriof-buyer-combobox-trigger');
+  expect(trigger).not.toBeNull();
+  const key = async (node: Element, value: string) => {
+    node.dispatchEvent(
+      new h.window.KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }),
+    );
+    await settle();
+    h.flush();
+  };
+  trigger.focus();
+  await key(trigger, 'Enter');
+  let search = h.node('[data-combobox-input]');
+  expect(search).not.toBeNull();
+  await key(search, 'Escape');
+  expect(trigger.getAttribute('data-state')).toBe('closed');
+  expect(h.document.activeElement).toBe(trigger);
+  expect(h.node('#shipping_state').value).toBe('JK');
+  await key(trigger, ' ');
+  search = h.node('[data-combobox-input]');
+  search.value = 'West';
+  search.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+  await settle();
+  h.flush();
+  expect(h.document.querySelectorAll('[data-combobox-item]')).toHaveLength(1);
+  await key(search, 'ArrowDown');
+  await key(search, 'Enter');
+  expect(h.node('#shipping_state').value).toBe('JB');
+  expect(trigger.getAttribute('data-state')).toBe('closed');
+});
 
 test('actual native select unlocks after success, failure and timeout; retry publishes canonical choices', async () => {
   const h = fixture(destination(), { map: { enabled: false } }, 'pending');
@@ -1026,7 +1190,7 @@ describe('Account shipping destination native form', () => {
     expect(h.posted().district_id).toBe('12');
     expect(h.posted().version).toBe(1);
   });
-  test('DOMContentLoaded initializes once, bridge disposes, and no body observers or polling are installed', async () => {
+  test('DOMContentLoaded initializes once and pagehide disposes account and selector bridges', async () => {
     const window = new happy.Window({ url: 'https://account.example.test' }) as any;
     try {
       Object.defineProperty(window.document, 'readyState', {
@@ -1039,16 +1203,12 @@ describe('Account shipping destination native form', () => {
       window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
       window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
       expect(window.__kiriofAccountShippingBridge).toBe(bridge);
+      expect(window.kiriofBuyerSelectors.active()).toBe(false);
       window.dispatchEvent(new window.Event('pagehide'));
       window.__accountFlush();
       expect(window.__kiriofAccountShippingBridge).toBeUndefined();
-      const bridgeSource = readFileSync(
-        new URL('../src/buyer/account/bridge.ts', import.meta.url),
-        'utf8',
-      );
-      expect(bridgeSource).not.toContain('MutationObserver');
-      expect(bridgeSource).not.toContain('setInterval');
-      expect(bridgeSource).not.toContain('Object.getOwnPropertyDescriptor');
+      expect(window.kiriofBuyerSelectors).toBeUndefined();
+      expect(window.kiriofClassicChoices).toBeUndefined();
     } finally {
       await window.happyDOM.close();
     }

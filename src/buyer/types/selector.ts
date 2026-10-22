@@ -27,4 +27,5 @@ export type SelectorBridge = {
   refresh: () => void;
   initDistrict: (select: HTMLSelectElement) => unknown;
   initShipping: (select: HTMLSelectElement) => unknown;
+  dispose?: () => void;
 };

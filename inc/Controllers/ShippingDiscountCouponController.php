@@ -542,7 +542,7 @@ class ShippingDiscountCouponController {
     public function registerAreaRestrictionsMetabox() {
         add_meta_box(
             'kiriof_area_restrictions_metabox',
-            __( 'Area Restrictions', 'kiriminaja-official' ),
+            __( 'Area Selection', 'kiriminaja-official' ),
             array( $this, 'renderAreaRestrictionsMetabox' ),
             'shop_coupon',
             'normal',
@@ -550,7 +550,7 @@ class ShippingDiscountCouponController {
         );
         add_meta_box(
             'kiriof_courier_restrictions_metabox',
-            __( 'Courier Restrictions', 'kiriminaja-official' ),
+            __( 'Courier Selection', 'kiriminaja-official' ),
             array( $this, 'renderCourierRestrictionsMetabox' ),
             'shop_coupon',
             'normal',
@@ -608,7 +608,7 @@ class ShippingDiscountCouponController {
         echo '<div class="kiriof-area-restrictions-metabox">';
 
         echo '<div class="kiriof-metabox-header">';
-        echo '<p class="description">' . esc_html__( 'Leave empty (All Indonesian Regions) to allow all shipping destinations. Only applies to shipping discount coupon types.', 'kiriminaja-official' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Select the destinations eligible for this coupon. Choose "All Indonesian Regions" to include every destination. Only applies to shipping discount coupon types.', 'kiriminaja-official' ) . '</p>';
         echo '</div>';
 
         echo '<input type="hidden" id="kiriof_coupon_regions" name="' . esc_attr( self::META_REGIONS ) . '" value="' . esc_attr( wp_json_encode( $savedRegions ) ) . '" />';
@@ -652,7 +652,7 @@ class ShippingDiscountCouponController {
 
         echo '<div class="kiriof-courier-restrictions">';
 
-        echo '<p class="description">' . esc_html__( 'Restrict this coupon to specific couriers. Leave as "All Couriers" to apply to every courier.', 'kiriminaja-official' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Select the couriers eligible for this coupon. Choose "All Couriers" to include every courier.', 'kiriminaja-official' ) . '</p>';
 
         echo '<div class="kiriof-region-picker-mode" style="display:flex;gap:16px">';
         echo '<label class="kiriof-region-toggle"><input type="radio" name="kiriof_coupon_courier_scope" value="all" ' . checked( $scope, 'all', false ) . ' /> ' . esc_html__( 'All Couriers', 'kiriminaja-official' ) . '</label>';

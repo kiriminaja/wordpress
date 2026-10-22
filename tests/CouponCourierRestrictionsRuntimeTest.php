@@ -3,6 +3,14 @@
 use PHPUnit\Framework\TestCase;
 
 final class CouponCourierRestrictionsRuntimeTest extends TestCase {
+	public function test_coupon_editor_describes_eligible_selections(): void {
+		$result = $this->run_fixture( 'wording' );
+		$this->assertSame( 'Area Selection', $result['titles']['kiriof_area_restrictions_metabox'] );
+		$this->assertSame( 'Courier Selection', $result['titles']['kiriof_courier_restrictions_metabox'] );
+		$this->assertStringContainsString( 'Select the destinations eligible for this coupon. Choose &quot;All Indonesian Regions&quot; to include every destination. Only applies to shipping discount coupon types.', $result['area'] );
+		$this->assertStringContainsString( 'Select the couriers eligible for this coupon. Choose &quot;All Couriers&quot; to include every courier.', $result['couriers'] );
+	}
+
 	private function run_fixture( string $mode ): array {
 		$output = array();
 		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/coupon-courier-restrictions-runtime.php' ) . ' ' . escapeshellarg( $mode ) . ' 2>&1', $output, $status );

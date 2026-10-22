@@ -37,6 +37,7 @@ describe('buyer asset ownership and classic-script builds', () => {
     for (const entry of ['state', 'blocks', 'classic', 'pin', 'tracking', 'account-shipping']) {
       expect(existsSync(resolve(dist, `kiriminaja-buyer-${entry}.js`))).toBe(true);
     }
+    expect(existsSync(resolve(dist, 'kiriminaja-buyer-account-shipping.css'))).toBe(true);
     for (const file of readdirSync(dist).filter((file) => file.endsWith('.js'))) {
       const source = readFileSync(resolve(dist, file), 'utf8');
       expect(source).not.toMatch(/^\s*(?:import|export)\s/m);

@@ -13,6 +13,7 @@ type JQueryField = {
 };
 type ClassicWindow = Window & {
   kiriofBillingAddressConfig?: SelectorConfig;
+  kiriofAccountShippingConfig?: SelectorConfig;
   kiriofAjax?: { nonce?: string; ajaxurl?: string };
   kiriofBuyerSelectors?: SelectorBridge;
   kiriofClassicChoices?: SelectorBridge;
@@ -43,13 +44,13 @@ const metadata = [
   'data-note',
 ];
 
-/** Minimal DOM bridge for Classic Woo; component state never owns checkout writes. */
+/** Native Woo fields retain form/save authority; this bridge owns presentation only. */
 export function startClassicSelectors(
   root: ClassicWindow = window as ClassicWindow,
 ): SelectorBridge {
   if (root.kiriofBuyerSelectors) return root.kiriofBuyerSelectors;
   const document = root.document;
-  const config = root.kiriofBillingAddressConfig || {};
+  const config = root.kiriofAccountShippingConfig || root.kiriofBillingAddressConfig || {};
   const strings = config.i18n || {};
   const districtKey = config.fieldKey || 'kiriof_destination_area';
   const records = new Map<HTMLSelectElement, RecordEntry>();
@@ -57,21 +58,29 @@ export function startClassicSelectors(
   let stopped = false;
   let queued = false;
   let observer: MutationObserver | undefined;
+  const accountForm = (select: Element) =>
+    !!select.closest('form')?.querySelector('.kiriof-account-shipping');
   const active = () =>
     !stopped &&
-    !!document.querySelector('form.checkout, form.woocommerce-checkout') &&
+    !!document.querySelector(
+      'form.checkout, form.woocommerce-checkout, form .kiriof-account-shipping',
+    ) &&
     !document.querySelector('.wc-block-checkout');
   const district = (select: HTMLSelectElement) =>
     select.name === districtKey || select.name === 'kiriof_shipping_destination_area';
   const shipping = (select: HTMLSelectElement) =>
     select.classList.contains('kiriof-classic-shipping-method-select');
   const eligible = (select: HTMLSelectElement) =>
-    !!select.closest('form.checkout, form.woocommerce-checkout') &&
-    (district(select) ||
-      shipping(select) ||
-      ['billing_state', 'shipping_state'].includes(select.id));
+    (accountForm(select) && select.id === 'shipping_state') ||
+    (!!select.closest('form.checkout, form.woocommerce-checkout') &&
+      (district(select) ||
+        shipping(select) ||
+        ['billing_state', 'shipping_state'].includes(select.id)));
   function addressScope(select: HTMLSelectElement) {
-    const type = select.name === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
+    const type =
+      select.name === 'kiriof_shipping_destination_area' || accountForm(select)
+        ? 'shipping'
+        : 'billing';
     const country = document.getElementById(`${type}_country`) as HTMLSelectElement | null;
     const state = document.getElementById(`${type}_state`) as HTMLSelectElement | null;
     const separate = document.querySelector<HTMLInputElement>('[name="ship_to_different_address"]');
@@ -418,12 +427,7 @@ export function startClassicSelectors(
       }
       synchronize(record);
     }
-    if (active())
-      document
-        .querySelectorAll<HTMLSelectElement>(
-          'form.checkout select, form.woocommerce-checkout select',
-        )
-        .forEach(init);
+    if (active()) document.querySelectorAll<HTMLSelectElement>('form select').forEach(init);
   }
   function queueRefresh() {
     if (queued || stopped) return;
@@ -492,12 +496,8 @@ export function startClassicSelectors(
     refresh,
     initDistrict: (select) => (district(select) ? init(select) : null),
     initShipping: (select) => (shipping(select) ? init(select) : null),
-  };
-  root.kiriofBuyerSelectors = bridge;
-  root.kiriofClassicChoices = bridge; // Compatibility for guarded legacy Classic handlers only.
-  root.addEventListener(
-    'pagehide',
-    () => {
+    dispose() {
+      if (stopped) return;
       stopped = true;
       observer?.disconnect();
       document.removeEventListener('DOMContentLoaded', start);
@@ -505,10 +505,15 @@ export function startClassicSelectors(
       document.body.removeEventListener('updated_checkout', queueRefresh);
       document.body.removeEventListener('country_to_state_changed', queueRefresh);
       root.jQuery?.(document.body).off('.kiriofBuyerSelectors');
+      root.removeEventListener('pagehide', bridge.dispose!);
       records.forEach(destroy);
+      if (root.kiriofBuyerSelectors === bridge) delete root.kiriofBuyerSelectors;
+      if (root.kiriofClassicChoices === bridge) delete root.kiriofClassicChoices;
     },
-    { once: true },
-  );
+  };
+  root.kiriofBuyerSelectors = bridge;
+  root.kiriofClassicChoices = bridge; // Compatibility for guarded legacy Classic handlers only.
+  root.addEventListener('pagehide', bridge.dispose!, { once: true });
   if (document.readyState === 'loading')
     document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
