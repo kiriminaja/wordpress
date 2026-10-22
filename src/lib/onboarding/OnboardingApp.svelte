@@ -1024,7 +1024,7 @@
             </Button>
           {:else}
             <Button
-              href={bootstrap.dashboardUrl || 'admin.php?page=kiriminaja-setting'}
+              href={bootstrap.dashboardUrl || 'admin.php?page=kiriminaja-transaction'}
               class="no-underline hover:no-underline focus:no-underline"
             >
               Go to KiriminAja

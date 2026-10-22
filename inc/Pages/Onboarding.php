@@ -102,7 +102,7 @@ class Onboarding extends BaseInit {
 			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
 			'nonce'        => wp_create_nonce( KIRIOF_NONCE ),
 			'shippingUrl'  => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-			'dashboardUrl' => esc_url( admin_url() ),
+			'dashboardUrl' => admin_url( 'admin.php?page=kiriminaja-transaction' ),
 			'helpUrl'      => 'https://kiriminaja.com/solusi/plugin-woocommerce',
 			'i18n'         => array(
 				'back'                      => __( 'Back', 'kiriminaja-official' ),
