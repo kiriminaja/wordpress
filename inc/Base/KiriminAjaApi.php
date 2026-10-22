@@ -10,6 +10,7 @@ use KiriminAjaOfficial\Infrastructure\WordPressApiClient;
 use KiriminAja\Base\Config\Cache\Mode;
 use KiriminAja\Base\Config\KiriminAjaConfig;
 use KiriminAja\Responses\ServiceResponse;
+use KiriminAjaOfficial\Utils\CreditBalance;
 
 class KiriminAjaApi {
     protected string $base_url;
@@ -53,6 +54,68 @@ class KiriminAjaApi {
     protected function create_api_client(): WordPressApiClient {
         return new WordPressApiClient();
     }
+
+	/** Preserve utility API envelopes and the WordPress identity lost by facade calls. */
+	protected function fetch_utility( string $method, string $endpoint, array $body = array(), array $fields = array(), bool $require_status = true ): array {
+		try {
+			$client = $this->create_api_client();
+			[ $transport, $response ] = 'GET' === $method ? $client->get( $endpoint, $body ) : $client->post( $endpoint, $body );
+			if ( true !== $transport || ! is_array( $response ) || ( array_key_exists( 'status', $response ) ? true !== $response['status'] : $require_status ) ) {
+				return $this->error_response( 'Could not load utility data from KiriminAja.' );
+			}
+			foreach ( $fields as $field => $type ) {
+				$value = $response[ $field ] ?? null;
+				if ( 'scalar' === $type ) {
+					if ( ! is_scalar( $value ) ) {
+						return $this->error_response( 'Invalid KiriminAja utility response.' );
+					}
+					continue;
+				}
+				if ( ! is_array( $value ) || ( 'list' === $type ? ! array_is_list( $value ) : array_is_list( $value ) ) ) {
+					return $this->error_response( 'Invalid KiriminAja utility response.' );
+				}
+				if ( 'list' === $type ) {
+					foreach ( $value as $row ) {
+						if ( ! is_array( $row ) || array_is_list( $row ) ) {
+							return $this->error_response( 'Invalid KiriminAja utility response.' );
+						}
+					}
+				}
+			}
+			$response['status'] = true;
+			return array( 'status' => true, 'data' => $this->objectify( $response ) );
+		} catch ( \Throwable $throwable ) {
+			// Utility errors can echo credentials or payment details.
+			return $this->error_response( 'Could not load utility data from KiriminAja.' );
+		}
+	}
+
+	protected function fetch_profile(): array {
+		$response = $this->fetch_utility( 'GET', 'api/mitra/v6.2/profile', array(), array(), false );
+		if ( ! $response['status'] ) {
+			return $response;
+		}
+		$body = $response['data'];
+		foreach ( array( 'results', 'result', 'data' ) as $field ) {
+			if ( isset( $body->$field ) && is_object( $body->$field ) && array() !== get_object_vars( $body->$field ) ) {
+				$body->results = $body->$field;
+				return $response;
+			}
+		}
+		if ( isset( $body->id ) || isset( $body->name ) || isset( $body->email ) || isset( $body->metadata ) ) {
+			$body->results = clone $body;
+			return $response;
+		}
+		return $this->error_response( 'Invalid KiriminAja profile response.' );
+	}
+
+	protected function fetch_credit_balance(): array {
+		$response = $this->fetch_utility( 'GET', 'api/mitra/v6.2/credit/balance', array(), array(), false );
+		if ( $response['status'] && null !== CreditBalance::parse( $response['data'] ) ) {
+			return $response;
+		}
+		return $this->error_response( 'Unable to verify credit balance.' );
+	}
 
     private function request_with_sdk( string $method, string $endpoint, $body, array $log_context ): array {
         $endpoint     = ltrim( (string) $endpoint, '/' );

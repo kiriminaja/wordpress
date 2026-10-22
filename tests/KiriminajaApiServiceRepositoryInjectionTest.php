@@ -21,6 +21,11 @@ if ( ! function_exists( 'get_transient' ) ) {
 		return $GLOBALS['kiriof_settings_page_transients'][ $key ] ?? false;
 	}
 }
+if ( ! function_exists( '__' ) ) {
+	function __( $text, $domain = 'default' ) {
+		return $text;
+	}
+}
 if ( ! function_exists( 'set_transient' ) ) {
 	function set_transient( string $key, $value, int $expiration ): bool {
 		unset( $key, $value, $expiration );
@@ -107,5 +112,17 @@ final class KiriminajaApiServiceRepositoryInjectionTest extends TestCase {
 		$result = ( new KiriminajaApiService( $repository ) )->sub_district_search( 'Sleman' );
 
 		$this->assertSame( array( 400, array(), 'Could not load subdistricts.' ), array( $result->status, $result->data, $result->message ) );
+	}
+
+	public function test_region_api_rejections_with_rows_are_not_successful_lists(): void {
+		foreach ( array( false, 'true', 1, null ) as $status ) {
+			$repository = Mockery::mock( KiriminajaApiRepository::class );
+			$response = array( 'status' => true, 'data' => (object) array( 'status' => $status, 'text' => 'Rejected', 'datas' => array( (object) array( 'id' => 1, 'name' => 'Region' ) ) ) );
+			$repository->shouldReceive( 'getProvinces' )->once()->andReturn( $response );
+			$repository->shouldReceive( 'getCitiesByProvinceId' )->once()->with( 5 )->andReturn( $response );
+			$service = new KiriminajaApiService( $repository );
+			$this->assertSame( 400, $service->getProvinces()->status );
+			$this->assertSame( 400, $service->getCitiesByProvinceId( 5 )->status );
+		}
 	}
 }

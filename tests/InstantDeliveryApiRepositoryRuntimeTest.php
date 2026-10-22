@@ -129,22 +129,29 @@ namespace KiriminAja\Services {
 			$GLOBALS['calls'][] = array( 'price', $data->toArray() );
 			return $GLOBALS['sdk'];
 		}
-		public static function getPayment( $id, $instant = false ) {
-			$GLOBALS['calls'][] = array( 'payment', $id, $instant );
-			return $GLOBALS['sdk'];
-		}
-		public static function getProfile() {
-			$GLOBALS['calls'][] = array( 'profile' );
-			return new \KiriminAja\Responses\ServiceResponse( true, 'loaded', array( 'metadata' => array( 'payment_method' => $GLOBALS['merchant'] ), 'name' => 'merchant' ) );
-		}
-		public static function getCreditBalance() {
-			$GLOBALS['calls'][] = array( 'balance' );
-			return new \KiriminAja\Responses\ServiceResponse( $GLOBALS['balance_status'] ?? true, 'Secret upstream error 123456', $GLOBALS['balance_payload'] ?? array( 'balance' => $GLOBALS['balance'] ) );
-		}
+		public static function getPayment( ...$args ) { throw new \RuntimeException( 'Utility facade forbidden' ); }
+		public static function getProfile() { throw new \RuntimeException( 'Utility facade forbidden' ); }
+		public static function getCreditBalance() { throw new \RuntimeException( 'Utility facade forbidden' ); }
 		public static function requestPickupInstant( ...$args ) { throw new \RuntimeException( 'Legacy booking forbidden' ); }
 	}
 }
 namespace KiriminAjaOfficial\Infrastructure {
+	class WordPressApiClient extends \KiriminAja\Base\Api\Api {
+		public function get( $endpoint, $payload = array() ) {
+			$GLOBALS['calls'][] = array( 'get', $endpoint, $payload );
+			if ( ! empty( $GLOBALS['throw_utility'] ) ) { throw new \RuntimeException( 'private-token PIN 123456 private address' ); }
+			if ( isset( $GLOBALS['utility'] ) ) { return $GLOBALS['utility']; }
+			if ( 'api/mitra/v6.2/profile' === $endpoint ) {
+				return array( true, array( 'status' => true, 'text' => 'loaded', 'results' => array( 'metadata' => array( 'payment_method' => $GLOBALS['merchant'] ), 'name' => 'merchant' ) ) );
+			}
+			return array( true, array( 'status' => $GLOBALS['balance_status'] ?? true, 'results' => $GLOBALS['balance_payload'] ?? array( 'balance' => $GLOBALS['balance'] ) ) );
+		}
+		public function post( $endpoint, $payload ) {
+			$GLOBALS['calls'][] = array( 'post', $endpoint, $payload );
+			if ( ! empty( $GLOBALS['throw_utility'] ) ) { throw new \RuntimeException( 'private-token PIN 123456 private address' ); }
+			return $GLOBALS['utility'];
+		}
+	}
 	class InstantApiTransport extends \KiriminAja\Base\Api\Api {
 		public function diagnostics(): array { return $GLOBALS['diagnostics'] ?? array( 'code' => 'transport_success', 'http_status' => 200, 'elapsed_ms' => 1, 'submitted' => true ); }
 	}
@@ -158,6 +165,7 @@ namespace {
 	require ROOT . '/inc/Repositories/InstantDeliveryApiRepository.php';
 	class FixtureInstantRepository extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRepository {
 		public function __construct() {}
+		protected function create_api_client(): \KiriminAjaOfficial\Infrastructure\WordPressApiClient { return new \KiriminAjaOfficial\Infrastructure\WordPressApiClient(); }
 		public function post( $endpoint, $body = array(), $log_context = array(), $request_args = array() ) { throw new \RuntimeException( 'Inherited logging transport forbidden' ); }
 	}
 	$GLOBALS['calls'] = array();
@@ -355,22 +363,24 @@ PHP;
 	}
 
 	public function test_payment_selects_instant_and_keeps_numeric_state_without_guessing_paid(): void {
-		$fixture = $this->run_fixture( '$GLOBALS["sdk"] = new \KiriminAja\Responses\ServiceResponse( true, "loaded", array( "status_code" => 9, "qr_content" => "qr", "paid_at" => null ) ); $result = $repository->payment( "payment-id" );' );
+		$fixture = $this->run_fixture( '$GLOBALS["utility"] = array( true, array( "status" => true, "result" => array( "status_code" => 9, "qr_content" => "qr", "paid_at" => null ) ) ); $result = $repository->payment( "payment-id" );' );
 		$this->assertSame(
 			array(
-				'calls' => array( 'payment', 'payment-id', true ),
+				'calls' => array( 'post', 'api/mitra/v2/get_payment', array( 'payment_id' => 'payment-id' ) ),
 				'status_code' => 9,
 				'paid_at' => null,
+				'qr_content' => 'qr',
 			),
 			array(
 				'calls' => $fixture['calls'][0],
 				'status_code' => $fixture['result']['data']['result']['status_code'],
 				'paid_at' => $fixture['result']['data']['result']['paid_at'],
+				'qr_content' => $fixture['result']['data']['result']['qr_content'],
 			)
 		);
 	}
 
-	public function test_profile_keeps_sdk_profile_data(): void {
+	public function test_profile_keeps_raw_profile_data(): void {
 		$fixture = $this->run_fixture( '$result = $repository->profile();' );
 		$this->assertSame(
 			array(
@@ -389,7 +399,7 @@ PHP;
 		$this->assertSame(
 			array(
 				'status' => true,
-				'calls' => array( 'profile', 'post', 'balance' ),
+				'calls' => array( 'get', 'post', 'get' ),
 				'calls check 2' => 'api/mitra/v6.2/pin/validate',
 				'logs' => array(),
 			),
@@ -418,7 +428,7 @@ PHP;
 		$this->assertSame(
 			array(
 				'status' => false,
-				'calls' => array( array( 'profile' ) ),
+				'calls' => array( array( 'get', 'api/mitra/v6.2/profile', array() ) ),
 			),
 			array(
 				'status' => $fixture['result']['status'],
@@ -445,7 +455,7 @@ PHP;
 		$this->assertSame(
 			array(
 				'status' => false,
-				'calls' => array( 'profile', 'post' ),
+				'calls' => array( 'get', 'post' ),
 				'logs' => array(),
 				'redacts 123456' => false,
 			),
@@ -463,7 +473,7 @@ PHP;
 		$this->assertSame(
 			array(
 				'result' => array( 'status' => false, 'data' => 'PIN validation failed.' ),
-				'calls' => array( 'profile', 'post' ),
+				'calls' => array( 'get', 'post' ),
 				'logs' => array(),
 			),
 			array(
@@ -472,6 +482,73 @@ PHP;
 				'logs' => $fixture['logs'],
 			)
 		);
+	}
+
+	public function test_utility_reads_require_boolean_success_and_expected_object_envelopes_without_secrets(): void {
+		foreach ( array( 'payment', 'profile' ) as $method ) {
+			$field = 'payment' === $method ? 'result' : 'results';
+			$call = 'payment' === $method ? '$repository->payment( "payment-id" )' : '$repository->profile()';
+			foreach ( array(
+				'array( false, "private-token PIN 123456 private address" )',
+				'array( true, array( "status" => false, "message" => "private-token PIN 123456 private address", "' . $field . '" => array( "id" => 1 ) ) )',
+				'array( true, array( "status" => "true", "' . $field . '" => array( "id" => 1 ) ) )',
+				'array( true, array( "status" => true ) )',
+				'array( true, array( "status" => true, "' . $field . '" => array() ) )',
+				'array( true, array( "status" => true, "' . $field . '" => array( array( "id" => 1 ) ) ) )',
+				'array( true, array( "status" => true, "' . $field . '" => "private-token PIN 123456 private address" ) )',
+			) as $tuple ) {
+				$r = $this->run_fixture( '$GLOBALS["utility"] = ' . $tuple . '; $result = ' . $call . ';' );
+				$this->assertFalse( $r['result']['status'] );
+				$this->assertCount( 1, $r['calls'] );
+				$this->assertSame( array(), $r['logs'] );
+				foreach ( array( 'private-token', '123456', 'private address' ) as $secret ) {
+					$this->assertStringNotContainsString( $secret, json_encode( array( $r['result'], $r['logs'] ) ) );
+				}
+			}
+			if ( 'payment' === $method ) {
+				$r = $this->run_fixture( '$GLOBALS["utility"] = array( true, array( "result" => array( "id" => 1 ) ) ); $result = ' . $call . ';' );
+				$this->assertFalse( $r['result']['status'] );
+			}
+			$r = $this->run_fixture( '$GLOBALS["throw_utility"] = true; $result = ' . $call . ';' );
+			$this->assertFalse( $r['result']['status'] );
+			$this->assertSame( array(), $r['logs'] );
+			$this->assertStringNotContainsString( 'private-token', json_encode( $r['result'] ) );
+		}
+		$r = $this->run_fixture( '$result = $repository->payment( "  " );' );
+		$this->assertSame( array( 'status' => false, 'data' => 'Instant payment ID is required.' ), $r['result'] );
+		$this->assertSame( array(), $r['calls'] );
+	}
+
+	public function test_balance_reads_raw_wrappers_and_preserves_normalized_output(): void {
+		foreach ( array( 'array( "balance" => 4000724100 )', 'array( "results" => array( "balance" => "4000724100" ) )', 'array( "data" => array( "balance" => "4000724100.50" ) )' ) as $payload ) {
+			$r = $this->run_fixture( '$GLOBALS["balance_payload"] = ' . $payload . '; $result = $repository->creditBalance();' );
+			$this->assertTrue( $r['result']['status'] );
+			$this->assertGreaterThanOrEqual( 4000724100, $r['result']['data']['balance'] );
+			$this->assertSame( array( array( 'get', 'api/mitra/v6.2/credit/balance', array() ) ), $r['calls'] );
+			$this->assertSame( array(), $r['logs'] );
+		}
+	}
+
+	public function test_balance_rejects_signed_exponential_malformed_and_failed_responses_with_fixed_diagnostic(): void {
+		$scenarios = array(
+			'$GLOBALS["balance_status"] = false;',
+			'$GLOBALS["throw_utility"] = true;',
+			'$GLOBALS["utility"] = array( false, "private-token PIN 123456 private address" );',
+			'$GLOBALS["utility"] = array( true, array( "status" => false, "balance" => 50000, "message" => "private-token PIN 123456 private address" ) );',
+			'$GLOBALS["utility"] = array( true, "private-token PIN 123456 private address" );',
+		);
+		foreach ( array( '+20000', '-1', '2e4', '2E4', ' 20000', 'private-token PIN 123456 private address', null, true, array(), array( 'balance' => 100 ) ) as $value ) {
+			$scenarios[] = '$GLOBALS["balance_payload"] = array( "balance" => ' . var_export( $value, true ) . ' );';
+		}
+		foreach ( $scenarios as $scenario ) {
+			$r = $this->run_fixture( $scenario . '$result = $repository->creditBalance();' );
+			$this->assertSame( array( 'status' => false, 'data' => 'Unable to verify credit balance.' ), $r['result'] );
+			$this->assertSame( array( array( 'get', 'api/mitra/v6.2/credit/balance', array() ) ), $r['calls'] );
+			$this->assertSame( array( array( 'warning', 'Unable to verify credit balance.', array( 'source' => 'kiriminaja_api', 'operation' => 'credit_balance', 'reason' => 'balance_unavailable' ) ) ), $r['logs'] );
+			foreach ( array( 'private-token', '123456', 'private address' ) as $secret ) {
+				$this->assertStringNotContainsString( $secret, json_encode( array( $r['result'], $r['logs'] ) ) );
+			}
+		}
 	}
 
 	public function test_sdk_failure_uses_standard_error_shape(): void {

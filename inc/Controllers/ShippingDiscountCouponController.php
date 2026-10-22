@@ -952,7 +952,7 @@ class ShippingDiscountCouponController {
 
         $service       = new KiriminajaApiService();
         $service->invalidateCouriersCache( false );
-        $fresh = $service->get_couriers();
+        $fresh = $service->get_couriers( true );
 
         if ( 200 !== $fresh->status || 'courier_cache_fallback' === $fresh->customCode ) {
             wp_send_json_error( array( 'message' => __( 'Could not refresh couriers from the API. The last successful courier list remains available.', 'kiriminaja-official' ) ) );
