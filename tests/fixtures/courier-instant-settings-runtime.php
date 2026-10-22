@@ -18,8 +18,9 @@ function current_user_can( $capability ) { same( $capability, 'manage_woocommerc
 function wp_verify_nonce( $nonce, $action ) { same( $action, KIRIOF_NONCE ); return 'valid' === $nonce; }
 function wp_unslash( $value ) { return $value; }
 function wp_json_encode( $value ) { return json_encode( $value ); }
-function wp_send_json_success( $value ) { $GLOBALS['ajax'] = array( true, $value ); }
-function wp_send_json_error( $value ) { $GLOBALS['ajax'] = array( false, $value ); }
+class CourierAjaxResponse extends RuntimeException {}
+function wp_send_json_success( $value ) { $GLOBALS['ajax'] = array( true, $value ); if ( ! empty( $GLOBALS['terminate_ajax'] ) ) { throw new CourierAjaxResponse(); } }
+function wp_send_json_error( $value ) { $GLOBALS['ajax'] = array( false, $value ); if ( ! empty( $GLOBALS['terminate_ajax'] ) ) { throw new CourierAjaxResponse(); } }
 function same( $actual, $expected ): void {
     if ( $actual !== $expected ) { throw new RuntimeException( 'Mismatch: ' . var_export( array( $actual, $expected ), true ) ); }
 }
@@ -112,14 +113,14 @@ switch ( $scenario ) {
         same( array_column( $api->get_couriers()->data, 'code' ), array( 'jne' ) );
         $old = $GLOBALS['transients'];
         same( array_column( $api->get_couriers( true )->data, 'code' ), $all_codes );
-        same( $GLOBALS['api_calls'], 2 );
+        same( $GLOBALS['api_calls'], 1 );
         foreach ( $old as $key => $value ) { same( $GLOBALS['transients'][$key], $value ); }
         same( array_column( $GLOBALS['transients']['kiriof_couriers_all_v1'], 'code' ), $all_codes );
         same( $GLOBALS['transients']['kiriof_couriers_all_last_success_v1'], $GLOBALS['transients']['kiriof_couriers_all_v1'] );
         same( $GLOBALS['ttls']['kiriof_couriers_all_v1'], DAY_IN_SECONDS );
         same( $GLOBALS['ttls']['kiriof_couriers_all_last_success_v1'], WEEK_IN_SECONDS );
         same( array_column( $api->get_couriers()->data, 'code' ), array( 'jne' ) );
-        same( $GLOBALS['api_calls'], 2 );
+        same( $GLOBALS['api_calls'], 1 );
         break;
     case 'warm':
         $GLOBALS['transients']['kiriof_couriers_all_v1'] = $raw;
@@ -143,11 +144,60 @@ switch ( $scenario ) {
         same( array_column( $result->data, 'code' ), $all_codes );
         same( $result->customCode, 'courier_cache_fallback' );
         same( $result->message, 'Using cached courier data.' );
-        same( $GLOBALS['transients']['kiriof_couriers_all_v1'], $result->data );
+        same( isset( $GLOBALS['transients']['kiriof_couriers_all_v1'] ), false );
+        same( $api->get_couriers( true )->customCode, 'courier_cache_fallback' );
         same( array_column( $api->get_couriers()->data, 'code' ), array( 'jne' ) );
         unset( $GLOBALS['transients']['kiriof_couriers_list_v2'], $GLOBALS['transients']['kiriof_couriers_last_success_cache'] );
         same( $api->get_couriers()->status, 400 );
         break;
+	case 'malformed':
+		$invalid = array( null, 'bad', (object) array( 'code' => 'jne' ), array( null ), array( 'bad' ), array( (object) array( 'name' => 'Missing code' ) ) );
+		foreach ( $invalid as $rows ) {
+			$GLOBALS['transients'] = array();
+			$GLOBALS['api_result'] = array( 'status' => true, 'data' => (object) array( 'status' => true, 'datas' => $rows ) );
+			same( $api->get_couriers( true )->status, 400 );
+			same( $GLOBALS['transients'], array() );
+			$GLOBALS['transients']['kiriof_couriers_all_last_success_v1'] = $raw;
+			same( $api->get_couriers( true )->customCode, 'courier_cache_fallback' );
+			same( $GLOBALS['transients'], array( 'kiriof_couriers_all_last_success_v1' => $raw ) );
+		}
+		$GLOBALS['transients'] = array();
+		$GLOBALS['api_result']['data']->datas = array();
+		same( $api->get_couriers( true )->data, array() );
+		same( $GLOBALS['transients']['kiriof_couriers_all_v1'], array() );
+		break;
+	case 'flush':
+	case 'flush-failure':
+	case 'flush-permission':
+	case 'flush-nonce':
+	case 'flush-missing-nonce':
+		$keys = array( 'kiriof_couriers_list_v2', 'kiriof_couriers_all_v1', 'kiriof_couriers_last_success_cache', 'kiriof_couriers_all_last_success_v1' );
+		foreach ( $keys as $key ) { $GLOBALS['transients'][ $key ] = array( array( 'code' => 'stale', 'name' => 'Stale' ) ); }
+		$before = $GLOBALS['transients'];
+		$denied = in_array( $scenario, array( 'flush-permission', 'flush-nonce', 'flush-missing-nonce' ), true );
+		$GLOBALS['allowed'] = 'flush-permission' !== $scenario;
+		$GLOBALS['terminate_ajax'] = true;
+		$_POST = 'flush-missing-nonce' === $scenario ? array() : array( 'nonce' => 'flush-nonce' === $scenario ? 'invalid' : 'valid' );
+		if ( 'flush-failure' === $scenario ) { $GLOBALS['api_result'] = array( 'status' => false ); }
+		$flush_controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\ShippingDiscountCouponController::class ) )->newInstanceWithoutConstructor();
+		try { $flush_controller->flushCouriersCache(); throw new RuntimeException( 'AJAX did not terminate' ); } catch ( CourierAjaxResponse $response ) {}
+		same( $GLOBALS['ajax'][0], 'flush' === $scenario );
+		same( $GLOBALS['api_calls'], $denied ? 0 : 1 );
+		if ( $denied ) { same( $GLOBALS['transients'], $before ); break; }
+		if ( 'flush-failure' === $scenario ) {
+			foreach ( array_slice( $keys, 0, 2 ) as $key ) { same( isset( $GLOBALS['transients'][ $key ] ), false ); }
+			foreach ( array_slice( $keys, 2 ) as $key ) { same( $GLOBALS['transients'][ $key ], $before[ $key ] ); }
+			same( $api->get_couriers( true )->customCode, 'courier_cache_fallback' );
+			break;
+		}
+		same( $GLOBALS['ajax'][1]['count'], count( $all_codes ) );
+		same( array_column( $GLOBALS['transients']['kiriof_couriers_all_v1'], 'code' ), $all_codes );
+		same( array_column( $GLOBALS['transients']['kiriof_couriers_list_v2'], 'code' ), array( 'jne' ) );
+		same( $GLOBALS['transients']['kiriof_couriers_all_v1'], $GLOBALS['transients']['kiriof_couriers_all_last_success_v1'] );
+		same( $GLOBALS['transients']['kiriof_couriers_list_v2'], $GLOBALS['transients']['kiriof_couriers_last_success_cache'] );
+		same( $api->get_couriers( true )->customCode, null );
+		same( $GLOBALS['api_calls'], 1 );
+		break;
     case 'missing':
         $missing = array( array( 'code' => 'gosend' ), array( 'code' => 'grab_express', 'services' => array() ), array( 'code' => 'borzo', 'services' => array( array( 'code' => '' ), array( 'code' => null ), array( 'code' => false ), array( 'name' => 'Label only' ) ) ), array( 'code' => 'mystery' ) );
         same( array_column( Catalog::enrich( $missing ), 'code' ), array( 'mystery' ) );

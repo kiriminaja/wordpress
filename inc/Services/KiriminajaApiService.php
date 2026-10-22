@@ -65,7 +65,7 @@ class KiriminajaApiService extends BaseService{
         }
 
         $repo = $this->repository->get_couriers();
-        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) {
+        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || true !== ( $repo['data']->status ?? null ) || ! $this->validCourierRows( $repo['data']->datas ?? null ) ) {
             $last_success = get_transient( $fallback_key );
             if ( false !== $last_success ) {
                 $last_success = CourierServiceCatalog::filterSupported( (array) $last_success, $delivery_type );
@@ -74,18 +74,44 @@ class KiriminajaApiService extends BaseService{
                     'Courier lookup used the cached fallback because the live API request failed.',
                     array( 'source' => 'kiriminaja_api' )
                 );
-                set_transient( $cache_key, $last_success, self::KIRIOF_COURIERS_CACHE_TTL );
                 return self::success( $last_success, 'Using cached courier data.', 'courier_cache_fallback' );
             }
 
             return self::error( array(), $this->extractErrorMessage( $repo, 'Something is wrong' ) );
         }
 
-        $data = CourierServiceCatalog::filterSupported( (array) $repo['data']->datas, $delivery_type );
-        set_transient( $cache_key, $data, self::KIRIOF_COURIERS_CACHE_TTL );
-        set_transient( $fallback_key, $data, WEEK_IN_SECONDS );
-        return self::success( $data );
+		// Both views come from one response; a refresh must not leave settings stale.
+		$all = CourierServiceCatalog::filterSupported( $repo['data']->datas, null );
+		$express = CourierServiceCatalog::filterSupported( $all, 'express' );
+		foreach ( array( self::KIRIOF_ALL_COURIERS_CACHE_KEY => $all, self::KIRIOF_COURIERS_CACHE_KEY => $express ) as $key => $rows ) {
+			set_transient( $key, $rows, self::KIRIOF_COURIERS_CACHE_TTL );
+		}
+		set_transient( self::KIRIOF_ALL_COURIERS_LAST_SUCCESS_CACHE_KEY, $all, WEEK_IN_SECONDS );
+		set_transient( self::KIRIOF_COURIERS_LAST_SUCCESS_CACHE_KEY, $express, WEEK_IN_SECONDS );
+		return self::success( $include_instant ? $all : $express );
     }
+
+	/**
+	 * Validate courier rows before either cache family is updated.
+	 *
+	 * @param mixed $rows Decoded courier list; an empty list is valid.
+	 * @return bool Whether every row contains a nonempty courier code.
+	 */
+	private function validCourierRows( $rows ): bool {
+		if ( ! is_array( $rows ) || ! array_is_list( $rows ) ) {
+			return false;
+		}
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) && ! is_object( $row ) ) {
+				return false;
+			}
+			$row = (array) $row;
+			if ( ! is_string( $row['code'] ?? null ) || '' === trim( $row['code'] ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
 
     public function invalidateCouriersCache( bool $include_last_success = true ): void {
         delete_transient( self::KIRIOF_COURIERS_CACHE_KEY );
@@ -130,7 +156,7 @@ class KiriminajaApiService extends BaseService{
     public function getProvinces(){
         $repo = $this->repository->getProvinces();
         $rows = $this->extractListRows($repo);
-        if ( empty( $repo['status'] ) || empty( $rows ) ) {
+        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || true !== ( $repo['data']->status ?? null ) || empty( $rows ) ) {
             return self::error([], $this->extractErrorMessage($repo, __('Failed to load provinces.', 'kiriminaja-official')));
         }
 
@@ -139,7 +165,7 @@ class KiriminajaApiService extends BaseService{
     public function getCitiesByProvinceId($provinceId){
         $repo = $this->repository->getCitiesByProvinceId($provinceId);
         $rows = $this->extractListRows($repo);
-        if ( empty( $repo['status'] ) || ( ( ! is_object( $repo['data'] ?? null ) || empty( $repo['data']->status ) ) && empty( $rows ) ) ) {
+        if ( empty( $repo['status'] ) || ! is_object( $repo['data'] ?? null ) || true !== ( $repo['data']->status ?? null ) ) {
             return self::error([], $this->extractErrorMessage($repo, __('Failed to load cities.', 'kiriminaja-official')));
         }
 

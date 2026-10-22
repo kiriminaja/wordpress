@@ -212,27 +212,11 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function getPayment( $payload ) {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getPayment( (string) $payload['payment_id'] ),
-            static fn( $data, $message ) => array(
-                'status' => true,
-                'text'   => $message,
-                'data'   => $data,
-            )
-        );
+		return $this->fetch_utility( 'POST', 'api/mitra/v2/get_payment', array( 'payment_id' => (string) $payload['payment_id'] ), array( 'data' => 'object' ) );
     }
 
     public function getTracking( $payload ) {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getTracking( (string) $payload['order_id'] ),
-            static fn( $data, $message ) => array_merge(
-                array(
-                    'status' => true,
-                    'text'   => $message,
-                ),
-                is_array( $data ) ? $data : array()
-            )
-        );
+		return $this->fetch_utility( 'POST', 'api/mitra/tracking', array( 'order_id' => (string) $payload['order_id'] ), array( 'status_code' => 'scalar', 'details' => 'object', 'histories' => 'list' ) );
     }
 
     public function getPricing( $payload ) {
@@ -268,14 +252,7 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function getRequestPickupSchedule() {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getSchedules(),
-            static fn( $data, $message ) => array(
-                'status'    => true,
-                'text'      => $message,
-                'schedules' => $data,
-            )
-        );
+		return $this->fetch_utility( 'POST', 'api/mitra/v2/schedules', array(), array( 'schedules' => 'list' ) );
     }
 
     public function sendPickupRequest( $payload ) {
@@ -311,42 +288,15 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function get_couriers() {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getCouriers(),
-            static fn( $data, $message ) => array(
-                'status' => true,
-                'text'   => $message,
-                'datas'  => $data,
-            )
-        );
+		return $this->fetch_utility( 'POST', 'api/mitra/couriers', array(), array( 'datas' => 'list' ) );
     }
 
     public function getProvinces() {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getProvince(),
-            static fn( $data, $message ) => array(
-                'status' => true,
-                'text'   => $message,
-                'datas'  => $data,
-            )
-        );
+		return $this->fetch_utility( 'POST', 'api/mitra/province', array(), array( 'datas' => 'list' ) );
     }
 
     public function getCitiesByProvinceId( $province_id ) {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getCity( (int) $province_id ),
-            static function ( $data, $message ) {
-                if ( is_array( $data ) && array_key_exists( 'status', $data ) ) {
-                    return $data;
-                }
-
-                return array(
-                    'status' => true,
-                    'text'   => $message,
-                    'datas'  => $data,
-                );
-            }
-        );
+		return $this->fetch_utility( 'POST', 'api/mitra/city', array( 'provinsi_id' => (int) $province_id ), array( 'datas' => 'list' ) );
     }
 
     public function getPrintAwb( $awb ) {
@@ -411,25 +361,11 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function getProfile() {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getProfile(),
-            static fn( $data, $message ) => array(
-                'status'  => true,
-                'text'    => $message,
-                'results' => $data,
-            )
-        );
+		return $this->fetch_profile();
     }
 
     public function getCreditBalance() {
-        return $this->call_sdk(
-            static fn() => KiriminAja::getCreditBalance(),
-            static fn( $data, $message ) => array(
-                'status'  => true,
-                'text'    => $message,
-                'results' => $data,
-            )
-        );
+		return $this->fetch_credit_balance();
     }
 
     public function pinValidate( $pin ) {

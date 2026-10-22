@@ -18,6 +18,12 @@ final class CourierInstantSettingsRuntimeTest extends TestCase {
     public function test_retired_borzo_cannot_reappear_from_persisted_policy_or_cache(): void { $this->runScenario( 'retired' ); }
     public function test_legacy_csv_does_not_opt_in_instant(): void { $this->runScenario( 'legacy' ); }
     public function test_cache_invalidation_clears_both_families_and_preserves_optional_fallbacks(): void { $this->runScenario( 'invalidation' ); }
+	public function test_malformed_couriers_do_not_replace_last_success_or_become_empty_success(): void { $this->runScenario( 'malformed' ); }
+	public function test_flush_refills_both_cache_families_from_one_live_request(): void { $this->runScenario( 'flush' ); }
+	public function test_failed_flush_retains_last_success_without_claiming_freshness(): void { $this->runScenario( 'flush-failure' ); }
+	public function test_flush_requires_permission(): void { $this->runScenario( 'flush-permission' ); }
+	public function test_flush_requires_valid_nonce(): void { $this->runScenario( 'flush-nonce' ); }
+	public function test_flush_requires_nonce_present(): void { $this->runScenario( 'flush-missing-nonce' ); }
     public function test_get_requires_permission(): void { $this->runScenario( 'get-permission' ); }
     public function test_save_requires_permission(): void { $this->runScenario( 'save-permission' ); }
     public function test_get_requires_valid_nonce(): void { $this->runScenario( 'get-nonce' ); }

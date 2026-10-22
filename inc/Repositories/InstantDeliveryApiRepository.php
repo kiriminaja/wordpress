@@ -381,18 +381,13 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		if ( '' === trim( $id ) ) {
 			return $this->failure( 'Instant payment ID is required.' );
 		}
-		// SDK true explicitly selects GetPaymentInstantService, whose payload is result.
-		return $this->call_sdk(
-			static fn() => KiriminAja::getPayment( $id, true ),
-			static fn( $data, $message ) => array( 'status' => true, 'text' => $message, 'result' => $data )
-		);
+		// Installed ShippingInstantRepository/GetPaymentInstantService use this
+		// POST endpoint (without an /instant segment) and the result envelope.
+		return $this->fetch_utility( 'POST', 'api/mitra/v2/get_payment', array( 'payment_id' => $id ), array( 'result' => 'object' ) );
 	}
 
 	public function profile(): array {
-		return $this->call_sdk(
-			static fn() => KiriminAja::getProfile(),
-			static fn( $data, $message ) => array( 'status' => true, 'text' => $message, 'results' => $data )
-		);
+		return $this->fetch_profile();
 	}
 
 	public function validateCredit( string $pin, int|float $amount ): array {
@@ -437,11 +432,11 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		return $balance;
 	}
 
-	/** Single SDK lookup. Never expose or log upstream error text. */
+	/** Single utility lookup. Never expose or log upstream error text. */
 	public function creditBalance(): array {
 		try {
-			$response = KiriminAja::getCreditBalance();
-			$balance = $response instanceof ServiceResponse && true === $response->status ? CreditBalance::parse( $response->data ) : null;
+			$response = $this->fetch_credit_balance();
+			$balance = true === $response['status'] ? CreditBalance::parse( $response['data'] ) : null;
 			if ( null !== $balance ) {
 				return array( 'status' => true, 'data' => (object) array( 'balance' => $balance ) );
 			}
