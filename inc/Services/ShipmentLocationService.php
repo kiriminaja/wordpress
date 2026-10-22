@@ -27,6 +27,7 @@ class ShipmentLocationService
      * @var ShipmentLocationRepository
      */
     private $repository;
+    private SettingRepository $setting_repository;
 
     /**
      * In-request cache of resolved default location.
@@ -35,9 +36,13 @@ class ShipmentLocationService
      */
     private $defaultCache = null;
 
-    public function __construct()
+    public function __construct(
+        ?ShipmentLocationRepository $repository = null,
+        ?SettingRepository $setting_repository = null
+    )
     {
-        $this->repository = new ShipmentLocationRepository();
+        $this->repository         = $repository ?? new ShipmentLocationRepository();
+        $this->setting_repository = $setting_repository ?? new SettingRepository();
     }
 
     /**
@@ -71,7 +76,7 @@ class ShipmentLocationService
             return false;
         }
 
-        $settings = (new SettingRepository())->getSettingByArray(array(
+        $settings = $this->setting_repository->getSettingByArray(array(
             'origin_name',
             'origin_phone',
             'origin_address',

@@ -7,11 +7,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\TransactionRepository;
+use KiriminAjaOfficial\Services\TransactionDeliveryType;
+use KiriminAjaOfficial\Services\ExpressCancellationEligibility;
+
+require_once dirname( __DIR__ ) . '/ExpressCancellationEligibility.php';
 
 class CancelTransactionService extends BaseService {
 
     private string $orderId = '';
     private string $reason  = '';
+    private TransactionRepository $transaction_repository;
+    private KiriminajaApiRepository $api_repository;
+
+    public function __construct(
+        TransactionRepository $transaction_repository,
+        KiriminajaApiRepository $api_repository
+    ) {
+        $this->transaction_repository = $transaction_repository;
+        $this->api_repository         = $api_repository;
+    }
 
     public function orderId( string $orderId ) {
         $this->orderId = $orderId;
@@ -37,17 +53,15 @@ class CancelTransactionService extends BaseService {
                 return self::error( [], 'Reason is too long (maximum 200 characters)' );
             }
 
-            $transactionRepo = new \KiriminAjaOfficial\Repositories\TransactionRepository();
+            $transactionRepo = $this->transaction_repository;
             $transaction     = $transactionRepo->getTransactionByOrderId( $this->orderId );
 
             if ( ! $transaction ) {
                 return self::error( [], 'Transaction not found' );
             }
 
-            // Only allow cancel for transactions that haven't been shipped/finished/canceled yet
-            $nonCancelableStatuses = [ 'shipped', 'finished', 'returned', 'return', 'canceled' ];
-            if ( in_array( $transaction->status, $nonCancelableStatuses, true ) ) {
-                return self::error( [], 'Transaction cannot be canceled (status: ' . $transaction->status . ')' );
+            if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
+                return self::error( [], __( 'Instant shipment cancellation is not available yet.', 'kiriminaja-official' ) );
             }
 
             // AWB is required — cancel is only for post-pickup transactions
@@ -55,9 +69,13 @@ class CancelTransactionService extends BaseService {
                 return self::error( [], 'Transaction has no AWB yet, cannot cancel shipment' );
             }
 
+            // An AWB does not make an unpaid or unconfirmed Express booking cancelable.
+            if ( ! ExpressCancellationEligibility::canCancel( $transaction ) ) {
+                return self::error( [], 'Transaction cannot be canceled (status: ' . $transaction->status . ')' );
+            }
+
             // Call Mitra API to cancel the shipment
-            $apiRepo  = new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository();
-            $response = $apiRepo->cancelShipment( $transaction->awb, $this->reason );
+            $response = $this->api_repository->cancelShipment( $transaction->awb, $this->reason );
 
             ( new \KiriminAjaOfficial\Base\BaseInit() )->logThis( 'cancelShipment', [ $response ] );
 

@@ -29,6 +29,8 @@ final class ShipmentLocationServiceRuntimeTest extends TestCase {
     protected function setUp(): void {
         global $wpdb;
         $this->previousWpdb = $wpdb ?? null;
+        // Default repositories still resolve their table names for pure mappers.
+        $wpdb = new ShipmentLocationServiceWpdbFake( array() );
     }
 
     protected function tearDown(): void {

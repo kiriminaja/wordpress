@@ -20,8 +20,8 @@ A WordPress/WooCommerce plugin that integrates [KiriminAja](https://kiriminaja.c
 
 ## Requirements
 
-- WordPress 6.0+
-- WooCommerce 8.5+
+- WordPress 6.8+
+- WooCommerce 8.5+ (checkout fixtures cover 10.6)
 - PHP 8.1+
 
 ## Installation
@@ -46,18 +46,40 @@ https://developer.kiriminaja.com/docs
 git clone git@github.com:kiriminaja/plugin-wp.git
 cd plugin-wp
 composer install
+bun install --frozen-lockfile
 ```
 
 ### Running Tests
 
 ```bash
+make zip                     # required before source/package parity checks
 make test
 ```
 
-This runs 400+ ParaTest-backed tests covering security, escaping, prefix compliance, template structure, and build integrity.
-The suite is executed through ParaTest so test files run in parallel using `paratest.xml`.
+This runs the PHP unit/runtime tests and repository validation checks through ParaTest, with test files parallelized using `paratest.xml`. `make test` and `composer test` reuse an unchanged successful suite; cache hits are explicitly printed instead of pretending to execute tests.
 
-> **Note:** Your workspace/IDE must be opened at the WordPress root directory so the plugin is located at `wp-content/plugins/kiriminaja-official`. Tests depend on WordPress core paths (`ABSPATH`) and will not work if you open the plugin folder in isolation.
+```bash
+make test-force                         # fresh PHP execution, no result reuse
+composer test:force                     # same fresh ParaTest suite
+bun run test:js                         # cached JS test groups
+bun run test:js:force                   # rerun every JS group
+KIRIOF_TEST_FORCE=1 make test            # environment equivalent
+KIRIOF_TEST_FORCE=1 bun run test:instant # force one JS group
+```
+
+PHP receipts live under `.paratest.cache/kiriof-tests`; JS receipts live under `node_modules/.cache/kiriof/tests`. Keys include source/test/config/lock bytes, exact command arguments, relevant generated assets, installed dependency contents, runtime binaries/configuration, and environment. PHP also tracks the staged package used by parity checks; JS tracks PHP's runtime because some tests call PHP fixtures. Failures, unreadable inputs, and edits during execution cannot publish success. Coverage/report/watch/update and nondeterministic modes execute normally rather than reusing success. These are local optimizations, not proof of a new execution or compatibility with live external services; use force for a fresh run.
+
+For PHP behavior tests, call the production method and use Mockery at repository, API, and WooCommerce boundaries. Use `MockeryPHPUnitIntegration` so expectations are verified and mocks are closed after each test. Assert returned values and side effects, not PHP source snippets or private implementation details. Keep static checks for packaging and repository-wide standards, and test independent input rules separately instead of multiplying unrelated permutations.
+
+```bash
+vendor/bin/paratest --configuration paratest.xml --filter SettingServiceDependencyInjectionRuntimeTest
+```
+
+The required unit/runtime suites run from the plugin root without a WordPress server or network API. PHP needs the curl, SQLite3 and PDO SQLite extensions for runtime fixtures. Frontend checks require Bun 1.4.2 and Node 20.19+ or 22.12+ (Vite 8); CI uses Node 22. Locked React, React DOM and Happy DOM development dependencies are required: DOM suites fail rather than skip when dependencies are missing. These VM/DOM and compiled Svelte tests execute production code with fixture transport/UI boundaries; they are not live-browser E2E coverage.
+
+`make zip` includes `bun run frontend:check` (formatting, lint, Svelte checking, style checks and frontend runtime suites) and the frontend build. Successful frontend checks and buyer builds are reused only when content-matched inputs and generated output hashes agree. Changed source, tests, configs, locks, dependencies, runtime, or environment invalidates the receipt. Run `KIRIOF_TEST_FORCE=1 bun run frontend:check` to rerun validation, or set `KIRIOF_BUILD_FORCE=1` to bypass both test and build receipts. Buyer-build receipts track installed dependency manifests rather than every dependency source file; reinstall with `bun install --frozen-lockfile` after manual dependency edits and force a rebuild. Test/validation receipts check dependency file contents.
+
+The pre-commit hook runs frontend checks for staged frontend assets, blocks, tests, scripts, locks, translations and PHP integration changes. PR CI tests PHP 8.1, 8.2, 8.3 and 8.5; WP-CLI smoke checks cover the declared WordPress 6.8 / WooCommerce 8.5 minimum and WordPress 6.8 / WooCommerce 10.6, without starting a browser server.
 
 ### Logging
 
@@ -86,7 +108,13 @@ Available filters:
 make zip
 ```
 
-Produces a `kiriminaja-official-{version}.zip` ready for distribution.
+Produces `kiriminaja-official.zip` ready for distribution (`make zip dev` and `make zip stg` use versioned environment-specific names).
+
+Packaging does not copy the development `vendor/` tree. It caches a separate production-only Composer install under `build/composer-vendor-cache`, keyed by the manifests, PHP/platform/Composer identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading. The SDK retains its required source install; other packages use dist archives. `make clean` removes this cache as well as the staged build. The first build still installs dependencies and runs all checks; unchanged subsequent builds avoid those costs.
+
+On a test cache miss, deterministic fixture results are reused inside a worker and heavy UI matrices are batched with fresh case state. Forced test runs skip fingerprinting and receipt publication entirely; they invalidate any old success and execute immediately. Compiled Svelte suites build once per test process, then evaluate those bytes at a unique module path for each fresh DOM Window; production module state and native DOM caches are never shared between fixtures. Fixture teardown is also checked after failed setup.
+
+Self-contained PHP fixtures use `tests/helpers/fixture-php.php` to avoid unrelated php.ini startup while preserving the parent's `ctype`/`mbstring` availability, including shared-extension installations. Unresolvable profiles fall back to normal PHP startup. Fixtures using real SQLite/curl keep their configured runtime; PHP syntax lint needs no extensions. Keep performance measurements on `make test-force` / `bun run test:js:force` so cached success cannot mask cold-run regressions.
 
 ### Releasing
 
@@ -111,6 +139,8 @@ make tag                      # create local git tag v$(VERSION)
 `BUMP` rules: `patch` auto-rolls to `minor` at `.99`; `minor` auto-rolls to `major` at `.99`.
 
 Changelogs use GitHub's generated release notes, with one entry per pull request rather than individual commits. Install the GitHub CLI, run `gh auth login`, and push the release branch before running `make changelog` or `make release`. `FROM` selects the previous release tag, for example `make changelog FROM=v2.4.2`.
+
+Tag publishing first builds the official zip, then runs `make test` against that exact source/staged artifact before GitHub release or SVN deployment. No artifact is rebuilt after verification.
 
 The publish workflow reads the version's saved changelog from `readme.txt` and uses the same notes for the GitHub release. You can edit that entry before tagging without having GitHub generate a different change list. No version bump or release is created by opening a pull request.
 

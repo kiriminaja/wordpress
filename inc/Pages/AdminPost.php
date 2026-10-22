@@ -1,6 +1,8 @@
 <?php
 namespace KiriminAjaOfficial\Pages;
 
+use KiriminAjaOfficial\Contracts\TrackingPageRepositoryInterface;
+
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -11,26 +13,34 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AdminPost
 {
+    private TrackingPageRepositoryInterface $tracking_page_repository;
+
+    public function __construct( TrackingPageRepositoryInterface $tracking_page_repository )
+    {
+        $this->tracking_page_repository = $tracking_page_repository;
+    }
+
     public function register(){
         if ( ! current_user_can( 'manage_woocommerce' ) ) {
             return;
         }
         if( kiriof_check_woocommerce() ){
-            if( empty(self::checkPageExist('checkout')) ){
+            if ( $this->hasConfiguredPage( 'woocommerce_checkout_page_id' ) ) {
+                // Preserve the merchant's chosen page and Classic/Blocks content.
+            } elseif( empty(self::checkPageExist('checkout')) ){
                 self::createPageKiriminaja();
             }else{
-                self::updatePage(self::checkPageExist('checkout')->ID,'[woocommerce_checkout]');
                 self::setPageCheckoutWoocommerce(self::checkPageExist('checkout')->ID);
             }
-            self::ensureTrackingPage();
-            if( empty(self::checkPageExist('cart')) ){
+            $this->ensureTrackingPage();
+            if ( $this->hasConfiguredPage( 'woocommerce_cart_page_id' ) ) {
+                // Existing page selection is not owned by plugin activation.
+            } elseif( empty(self::checkPageExist('cart')) ){
                 self::createPageCartKiriminaja();
             }else{
-                self::updatePage(self::checkPageExist('cart')->ID,'[woocommerce_cart]');
                 self::setPageCartWoocommerce(self::checkPageExist('cart')->ID);
             }
             
-            self::setLegacyWoocommerceKiriminaja();
             self::setShippingCalculateCartWoocommerce();
             self::setShippingCodEnabled();            
         }
@@ -108,24 +118,15 @@ class AdminPost
     private function checkPageExist($slug){
         return get_page_by_path($slug);
     }
+    private function hasConfiguredPage( string $option ): bool {
+        $page = get_post( absint( get_option( $option, 0 ) ) );
+        return $page && 'page' === $page->post_type && ! in_array( $page->post_status, array( 'trash', 'auto-draft' ), true );
+    }
     private function getTrackingPageByShortcode(){
-        global $wpdb;
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-        return $wpdb->get_row(
-            "SELECT ID FROM {$wpdb->posts}
-             WHERE post_type = 'page'
-               AND post_status NOT IN ('trash', 'auto-draft')
-               AND (
-                   post_content LIKE '%[kiriminaja-tracking-front-page%'
-                   OR post_content LIKE '%[wp-tracking-front-page%'
-               )
-             ORDER BY post_status = 'publish' DESC, ID ASC
-             LIMIT 1"
-        );
+        return $this->tracking_page_repository->findPreferredTrackingShortcodePage();
     }
     private function ensureTrackingPage(){
-        $tracking_page = self::getTrackingPageByShortcode();
+        $tracking_page = $this->getTrackingPageByShortcode();
         if ( ! empty( $tracking_page->ID ) ) {
             self::setPageTrackingKiriminaja( $tracking_page->ID );
             return;
@@ -147,14 +148,6 @@ class AdminPost
         );
       
         wp_update_post( $args );
-    }
-    /** set Legacy Woocommerce Kiriminaja */
-    private function setLegacyWoocommerceKiriminaja(){
-        global $wpdb;
-        #set Legacy Woocommerce Kiriminaja
-        $data   = array( 'option_value'=>'no');
-        $where  = array( 'option_name' => 'woocommerce_custom_orders_table_enabled' );
-        $wpdb->update( $wpdb->prefix . 'options', $data, $where );  // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching      
     }
     /** Set Shipping Woocommerce Calculate Shipping Cart */
     private function setShippingCalculateCartWoocommerce(){

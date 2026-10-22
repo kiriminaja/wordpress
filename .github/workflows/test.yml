@@ -9,32 +9,37 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Cancel in-progress runs for the same PR/branch when a new commit is pushed.
 concurrency:
   group: tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  static:
-    name: "Static Tests (PHP 8.1)"
+  build:
+    name: "Frontend checks + package"
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.1"
+          extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           tools: composer
+          coverage: none
 
       - name: Get Composer cache directory
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -43,6 +48,19 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
 
       - name: Install gettext
         run: |
@@ -57,24 +75,79 @@ jobs:
         id: build
         run: |
           make zip
-          ZIP_FILE=$(ls kiriminaja-official*.zip 2>/dev/null | sort | head -1)
-          test -n "$ZIP_FILE" || { echo "ERROR: build zip not found"; exit 1; }
+          ZIP_FILE=kiriminaja-official.zip
+          test -f "$ZIP_FILE" || { echo "ERROR: build zip not found"; exit 1; }
           echo "zip_file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
 
-      - name: Run tests
-        run: make test
-
-      - name: Upload build artifact for integration tests
-        uses: actions/upload-artifact@v4
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-build
           path: ${{ steps.build.outputs.zip_file }}
           if-no-files-found: error
 
-  wordpress:
-    name: "Integration + Plugin Check (WP latest / WC latest / PHP 8.1)"
+  static:
+    name: "PHP tests (${{ matrix.php }})"
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.1", "8.5"]
     runs-on: ubuntu-latest
-    needs: static
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
+          tools: composer
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Download validated package
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-build
+          path: ${{ runner.temp }}/plugin-build
+
+      - name: Restore package and generated assets for parity tests
+        run: |
+          unzip -q "$RUNNER_TEMP/plugin-build/kiriminaja-official.zip" -d build
+          rsync -a build/kiriminaja-official/assets/ assets/
+          rsync -a build/kiriminaja-official/blocks/ blocks/
+          rsync -a build/kiriminaja-official/lang/ lang/
+
+      - name: Run PHP behavior and package tests
+        run: make test
+
+  wordpress:
+    name: "WP-CLI smoke + Plugin Check (WP ${{ matrix.wp }} / WC ${{ matrix.wc }} / PHP 8.1)"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - wp: "7.1"
+            wc: "11.x"
+    runs-on: ubuntu-latest
+    needs: build
 
     services:
       mysql:
@@ -92,7 +165,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -106,7 +179,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-no-dev-${{ hashFiles('**/composer.lock') }}
@@ -114,7 +187,7 @@ jobs:
             ${{ runner.os }}-composer-no-dev-
 
       - name: Cache WP-CLI downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.wp-cli/cache
           key: ${{ runner.os }}-wp-cli-cache
@@ -124,13 +197,29 @@ jobs:
 
       - name: Install WordPress
         run: |
-          wp core download --path=/tmp/wordpress --allow-root
+          wp core download --version=${{ matrix.wp }} --path=/tmp/wordpress --allow-root
           wp config create --dbname=wordpress_test --dbuser=root --dbpass=root --dbhost=127.0.0.1 --path=/tmp/wordpress --allow-root
           wp core install --url=http://localhost --title="Test" --admin_user=admin --admin_password=admin --admin_email=test@test.com --path=/tmp/wordpress --allow-root
 
       - name: Install WooCommerce
+        id: woocommerce
         run: |
-          wp plugin install woocommerce --activate --path=/tmp/wordpress --allow-root
+          curl --fail --silent --show-error --globoff \
+            'https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request[slug]=woocommerce&request[fields][versions]=1' \
+            -o "$RUNNER_TEMP/woocommerce-info.json"
+          WC_VERSION=$(php -r '
+            $info = json_decode(file_get_contents($argv[1]), true, 512, JSON_THROW_ON_ERROR);
+            $versions = array_filter(array_keys($info["versions"] ?? []), static fn($version) => preg_match("/^11\\.[0-9]+\\.[0-9]+$/", $version));
+            if (!$versions) {
+              fwrite(STDERR, "No stable WooCommerce 11.x release is available.\n");
+              exit(1);
+            }
+            usort($versions, "version_compare");
+            echo end($versions);
+          ' "$RUNNER_TEMP/woocommerce-info.json")
+          echo "Using WooCommerce $WC_VERSION"
+          echo "version=$WC_VERSION" >> "$GITHUB_OUTPUT"
+          wp plugin install woocommerce --version="$WC_VERSION" --activate --path=/tmp/wordpress --allow-root
 
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -226,8 +315,8 @@ jobs:
 
       - name: Upload Plugin Check results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: plugin-check-results
+          name: plugin-check-results-wp-${{ matrix.wp }}-wc-${{ steps.woocommerce.outputs.version || matrix.wc }}
           path: /tmp/plugin-check-results.json
           overwrite: true

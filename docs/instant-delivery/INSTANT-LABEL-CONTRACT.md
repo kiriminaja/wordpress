@@ -1,0 +1,25 @@
+# Instant label contract investigation
+
+## Verified published evidence
+
+Read-only investigation of the current official [OpenAPI JSON](https://developer.kiriminaja.com/docs/openapi/json) (version `6.2.0`) found **no label or print operation** in its `paths`. Its introductory Shipping Label section describes required content, including Code 128A AWB barcodes, but does not establish an Instant label endpoint or an HTML/PDF response contract.
+
+The bundled official `kiriminaja/kiriminaja-php` SDK provides `KiriminAja::printAWB(array $data)`; `src/Repositories/AWBRepository.php` posts to `api/mitra/v6.1/awb/print`. Its README demonstrates `['awb' => ['AWB123', 'AWB456']]`. The current [upstream repository source](https://raw.githubusercontent.com/kiriminaja/php/master/src/Repositories/AWBRepository.php) agrees. None of these sources explicitly promises GoSend/Grab Instant support. The suggested `/api/mitra/v3/label` endpoint is absent from both the current OpenAPI and bundled SDK. The plugin's Express `getPrintAwb()` uses `/api/mitra/v6.1/awb/print` with legacy payload retries; these retries do not prove Instant support.
+
+## Carrier-first preview implementation
+
+The authenticated Instant AJAX preview now makes an explicitly requested read-only attempt through the **same `KiriminajaApiRepository::getPrintAwb()` endpoint as Express**, `/api/mitra/v6.1/awb/print`, using verified persisted AWBs (not WooCommerce or KiriminAja order IDs). Missing documentation is not a reason to skip this attempt; it is also **not a guarantee** that KiriminAja supports every Instant courier/account or returns a PDF. No live API, booking, payment, or shipment was submitted to validate this change; fake print clients cover the response contract.
+
+`InstantLabelService::preview(ids)` first calls `prepare(ids)` to validate the **entire** batch. Validation failures propagate before any print API call. Exact transaction identity, Instant partition, supported booked courier/state, eligible WooCommerce order, immutable booked address/item snapshots, syntactically valid persisted AWB, and distinct AWBs remain required. The optional final constructor callable receives the AWB array and returns the existing repository response shape; production lazily creates the repository only after validation.
+
+A successful response (`status: true`, `1`, or `"1"`) can return a URL in `data` as a string, `data.url`, `data.link`, `data.data.url`, `data.data.link`, or top-level `url`; nested data can be arrays or objects. Carrier metadata is `provider: carrier`, `type: pdf`, `carrier_available: true`, `url: <validated URL>`. The PDF designation follows the existing AWB print preview convention, not MIME/content verification or a guarantee of carrier support.
+
+Carrier URLs must be absolute HTTPS, have no credentials, control characters (including encoded controls), whitespace, backslashes, nonstandard ports, IP-literal hosts, or local/reserved hostname suffixes. A syntactically public DNS host is accepted because existing AWB responses may use arbitrary signed cloud-storage/CDN URLs; there is **no invented exact-host allowlist**. Signed query strings are preserved. URLs are returned to the authorized browser, never fetched/proxied by WordPress or injected as remote HTML into the admin DOM. DNS resolution and remote MIME/content are not verified; a public-looking hostname is not proof of hosting ownership or public DNS resolution. A separately verified host list can tighten this contract if KiriminAja publishes one.
+
+Unsuccessful, missing, malformed, unsafe, or throwing carrier responses result in `provider: local`, `type: html`, `carrier_available: false`, and a fixed translated `fallback_reason` (never a raw remote error). The controller supplies the same-origin `url` for local results and always supplies `local_url` as a separately nonced `admin-post.php?action=kiriof_instant_labels` route, including carrier successes. The local render route revalidates all rows and **never retries the remote print endpoint**. Its template continues to state that it is not a courier-issued label and prints the actual persisted AWB text without inventing a barcode.
+
+Authorization and the AJAX/render nonces remain mandatory. Preview and local rendering never mark printed or write shipment, payment, booking, or print bookkeeping. Mixed Express/Instant batches are rejected before the carrier call; frontend partitioning uses separate providers. The UI must use metadata to distinguish HTTPS carrier PDF URLs from same-origin local HTML and retain an accessible local fallback when remote viewing fails.
+
+## Remaining verification
+
+Confirm actual GoSend/Grab support and permissions with KiriminAja, response MIME/identity, and official asset host policy before claiming guaranteed carrier-issued Instant printing. Existing fake-client tests exercise carrier success, response aliases, remote failure/exception, unsafe URLs, zero-call invalid batches, and the separately nonced local fallback; they do not demonstrate production carrier acceptance.

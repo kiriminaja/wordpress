@@ -90,7 +90,11 @@ namespace {
     require ABSPATH . 'inc/Base/BaseService.php';
     require ABSPATH . 'inc/Services/ShippingProcessServices/GetShippingProcessPayment.php';
 
-    $response = ( new \KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment() )
+    $response = ( new \KiriminAjaOfficial\Services\ShippingProcessServices\GetShippingProcessPayment(
+        new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository(),
+        new \KiriminAjaOfficial\Repositories\PaymentRepository(),
+        new \KiriminAjaOfficial\Repositories\TransactionRepository()
+    ) )
         ->payment_id( 'PICKUP-TEST' )->call();
     $state = $GLOBALS['paymentRefresh'];
     echo json_encode( array(

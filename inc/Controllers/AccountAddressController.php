@@ -20,6 +20,16 @@ class AccountAddressController {
             return $fields;
         }
 
+        if ( 'shipping' === $address_type ) {
+            // Shipping is owned by the validated district/pin form, not the legacy Select2 writer.
+            foreach ( array_keys( $fields ) as $key ) {
+                if ( false !== strpos( (string) $key, 'kiriof_destination_area' ) ) {
+                    unset( $fields[$key] );
+                }
+            }
+            return $fields;
+        }
+
         $fields = $this->removeBlocksDistrictFields( $fields, $address_type );
         $district = ( new CustomerDistrictService() )->get( get_current_user_id(), $address_type );
         $field_key = $address_type . '_kiriof_destination_area';
@@ -37,7 +47,7 @@ class AccountAddressController {
         $fields = $this->hideBlockMirrorDistrictFields( $fields, $address_type, $district );
 
         $field = array(
-            'label'    => __( 'District', 'kiriminaja-official' ),
+            'label'    => __( 'Subdistrict', 'kiriminaja-official' ),
             'required' => true,
             'class'    => array( 'form-row-wide' ),
             'type'     => 'select',
@@ -73,17 +83,23 @@ class AccountAddressController {
         if ( ! in_array( $address_type, array( 'billing', 'shipping' ), true ) ) {
             return;
         }
+        if ( 'shipping' === $address_type ) {
+            return;
+        }
 
         $district_id = $this->postedDistrictId( $address_type );
         $district_name = $this->postedDistrictName( $address_type );
         $this->clearPollutedAddress2Post( $address_type, $district_id );
         if ( $district_id < 1 || '' === $district_name ) {
-            wc_add_notice( __( 'Please select a District.', 'kiriminaja-official' ), 'error' );
+            wc_add_notice( __( 'Please select a Subdistrict.', 'kiriminaja-official' ), 'error' );
         }
     }
 
     public function saveDistrict( int $user_id, string $address_type ): void {
         if ( ! in_array( $address_type, array( 'billing', 'shipping' ), true ) ) {
+            return;
+        }
+        if ( 'shipping' === $address_type ) {
             return;
         }
 

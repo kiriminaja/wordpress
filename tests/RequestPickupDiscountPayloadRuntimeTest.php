@@ -55,9 +55,8 @@ final class RequestPickupDiscountPayloadRuntimeTest extends TestCase {
     }
 
     private function appendDiscountFields( object $transaction ): array {
-        $service = new SendRequestPickupTransactionService();
+        $service = ( new ReflectionClass( SendRequestPickupTransactionService::class ) )->newInstanceWithoutConstructor();
         $method  = new ReflectionMethod( $service, 'appendPickupDiscountFields' );
-        $method->setAccessible( true );
 
         return $method->invoke( $service, array( 'order_id' => 'ORDER-1' ), $transaction );
     }

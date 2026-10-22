@@ -17,9 +17,9 @@ jobs:
       run:
         shell: bash
 
-    steps:      
+    steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -27,6 +27,24 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.1"
+          extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
+          tools: composer
+
+      - name: Install PHP test dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
 
       - name: Install gettext
         run: |
@@ -51,10 +69,15 @@ jobs:
           else
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
-          
+
 
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
+
+      - name: Verify exact release source and artifact
+        run: |
+          test -f kiriminaja-official.zip
+          make test
 
       - name: Read release notes from readme changelog
         env:

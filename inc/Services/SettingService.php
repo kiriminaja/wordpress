@@ -7,8 +7,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use \KiriminAjaOfficial\Base\BaseService;
+use KiriminAjaOfficial\Repositories\KiriminajaApiRepository;
+use KiriminAjaOfficial\Repositories\SettingRepository;
+
 class SettingService extends BaseService
 {
+    private SettingRepository $setting_repository;
+    private KiriminajaApiRepository $api_repository;
+
+    public function __construct(
+        ?SettingRepository $setting_repository = null,
+        ?KiriminajaApiRepository $api_repository = null
+    ) {
+        $this->setting_repository = $setting_repository ?? new SettingRepository();
+        $this->api_repository = $api_repository ?? new KiriminajaApiRepository();
+    }
+
     private function getDefaultCallbackUrl(): string {
         return esc_url_raw( add_query_arg( 'feed', 'kiriminaja-callback', home_url( '/' ) ) );
     }
@@ -16,7 +30,7 @@ class SettingService extends BaseService
     public function getIntegrationData()
     {
         try {
-            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getIntegrationData();
+            $repo = $this->setting_repository->getIntegrationData();
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -41,7 +55,7 @@ class SettingService extends BaseService
                 'setup_key' => $setupKey,
                 'callback_url' => $this->getDefaultCallbackUrl(),
             ];
-            $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->processSetupKey($setupPayload);
+            $repo = $this->api_repository->processSetupKey($setupPayload);
             $arrayRepo = (array) $repo;
             $arrayRepoData = (array) $arrayRepo['data'];
             if (!@$arrayRepo['status'] || !@$arrayRepoData['status']) {
@@ -49,15 +63,29 @@ class SettingService extends BaseService
             }
             /** Storing result to DB*/
             $arrayRepoDataData = (array) $arrayRepoData['result'];
-            (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateProfileCache();
-            (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateCouriersCache();
-            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeIntegrationData([
+            $integration_data = array(
                 'api_key' => sanitize_text_field($arrayRepoDataData['api_key']),
                 'oid_prefix' => sanitize_text_field($arrayRepoDataData['oid_prefix']),
                 'setup_key' => sanitize_text_field($setupPayload['setup_key']),
                 'callback_url' => $setupPayload['callback_url'],
-                'is_top' => self::resolveIsTop(),
-            ]);
+                'is_top' => false,
+            );
+            // Persist the new token before constructing the API service. The SDK
+            // reads its token during construction, so resolving the profile first
+            // would keep using the old/empty credential in this request.
+            $this->setting_repository->storeIntegrationData($integration_data);
+            $this->setting_repository->clearCache();
+            $api_service = new \KiriminAjaOfficial\Services\KiriminajaApiService();
+            $api_service->invalidateProfileCache();
+            $api_service->invalidateCouriersCache();
+            $profile_service = $api_service->getProfile();
+            $profile = 200 === $profile_service->status && ! empty( $profile_service->data )
+                ? $profile_service->data
+                : null;
+            // Keep the established TOP-resolution path. Request Pickup relies on
+            // the persisted is_top value to hide payment methods for TOP users.
+            $integration_data['is_top'] = self::resolveIsTop();
+            $this->setting_repository->storeIntegrationData($integration_data);
             kiriof_log(
                 'notice',
                 'KiriminAja setup key was processed successfully.',
@@ -77,14 +105,20 @@ class SettingService extends BaseService
             );
             return self::error([], $th->getMessage());
         }
-        return self::success([]);
+        return self::success(
+            array(
+                'connected'    => true,
+                'profile'      => $profile,
+                'profileError' => null === $profile,
+            )
+        );
     }
     public function disconnectIntegration()
     {
         try {
             (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateProfileCache();
             (new \KiriminAjaOfficial\Services\KiriminajaApiService())->invalidateCouriersCache();
-            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->disconnectIntegration();
+            $repo = $this->setting_repository->disconnectIntegration();
             kiriof_log(
                 'notice',
                 'KiriminAja integration settings were disconnected.',
@@ -108,7 +142,7 @@ class SettingService extends BaseService
     public function getOriginData()
     {
         try {
-            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getOriginData();
+            $repo = $this->setting_repository->getOriginData();
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -160,7 +194,7 @@ class SettingService extends BaseService
                 }
             }
 
-            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeOriginData([
+            $this->setting_repository->storeOriginData([
                 'origin_name'                       => sanitize_text_field( (string) $payloads['origin_name'] ),
                 'origin_phone'                      => sanitize_text_field( (string) $payloads['origin_phone'] ),
                 'origin_address'                    => sanitize_textarea_field( (string) $payloads['origin_address'] ),
@@ -204,7 +238,7 @@ class SettingService extends BaseService
     public function getCallbackData()
     {
         try {
-            $repo = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getCallbackData();
+            $repo = $this->setting_repository->getCallbackData();
             if (!$repo) {
                 return self::error([], 'Server Error');
             }
@@ -228,7 +262,7 @@ class SettingService extends BaseService
                 return self::error([], $validate['msg']);
             }
             /** Store to KJ*/
-            $repo = (new \KiriminAjaOfficial\Repositories\KiriminajaApiRepository())->setCallback($callback_url);
+            $repo = $this->api_repository->setCallback($callback_url);
             if (!@$repo['status'] || !@$repo['data']->status) {
                 kiriof_log(
                     'warning',
@@ -242,7 +276,7 @@ class SettingService extends BaseService
                 return self::error([], @$repo['data'] ?? 'Something is wrong');
             }
             /** Storing to DB*/
-            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeCallbackData([
+            $this->setting_repository->storeCallbackData([
                 'callback_url' => $callback_url,
             ]);
         } catch (\Throwable $th) {
@@ -279,7 +313,7 @@ class SettingService extends BaseService
             }
 
             // Persist to KiriminAja settings table
-            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeConfigData([
+            $this->setting_repository->storeConfigData([
                 'enable_cod' => $enable_cod,
             ]);
 
@@ -341,7 +375,7 @@ class SettingService extends BaseService
             if (!$validate['status']) {
                 return self::error([], $validate['msg']);
             }
-            (new \KiriminAjaOfficial\Repositories\SettingRepository())->storeInsuranceData($enable_insurance);
+            $this->setting_repository->storeInsuranceData($enable_insurance);
         } catch (\Throwable $th) {
             kiriof_log(
                 'error',
@@ -373,7 +407,7 @@ class SettingService extends BaseService
      */
     public function isTopPaymentMethod(): bool
     {
-        $setting = (new \KiriminAjaOfficial\Repositories\SettingRepository())->getSettingByKey('is_top');
+        $setting = $this->setting_repository->getSettingByKey('is_top');
         if (!$setting || !isset($setting->value)) {
             return self::resolveIsTop();
         }
