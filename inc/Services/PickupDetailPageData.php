@@ -166,6 +166,7 @@ class PickupDetailPageData {
 				'courier'      => __( 'Courier & Service', 'kiriminaja-official' ),
 				'airwaybill'   => __( 'Airwaybill / Order ID', 'kiriminaja-official' ),
 				'route'        => __( 'Shipment Route', 'kiriminaja-official' ),
+				'viewAddressDetails' => __( 'View address details', 'kiriminaja-official' ),
 				'packages'     => __( 'Packages & Fee', 'kiriminaja-official' ),
 				'codValue'     => __( 'COD Value', 'kiriminaja-official' ),
 				'status'       => __( 'Status', 'kiriminaja-official' ),

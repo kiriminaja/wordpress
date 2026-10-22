@@ -48,18 +48,21 @@ test('actual admin workspace saves and removes a BYOK credential using masked su
     return route.fulfill({ status: 409, body: 'No live network permitted' });
   });
   await app.open('/wp-admin/admin.php?page=kiriminaja-setting&section=technical');
-  const card = browser.locator('section[aria-labelledby="kiriof-google-maps-title"]');
+  const card = browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"]');
+  await expect(card).toHaveCount(1);
   await expect(browser.locator('#kiriof-google-maps-title')).toHaveText(googleMaps.i18n.title);
-  await expect(browser.locator('section[aria-labelledby="kiriof-google-maps-title"] code')).toHaveText(mask(savedKey));
+  await expect(browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] [data-slot="badge"]')).toHaveText(googleMaps.i18n.configured);
+  await expect(browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] code')).toHaveText(mask(savedKey));
   const input = browser.locator('#kiriof-google-maps-key');
   expect(await browser.evaluate(() => { const input = document.querySelector<HTMLInputElement>('#kiriof-google-maps-key')!; return { type: input.type, value: input.value, attribute: input.getAttribute('value') }; })).toEqual({ type: 'password', value: '', attribute: null });
-  await input.fill(replacement); await browser.locator('section[aria-labelledby="kiriof-google-maps-title"] button[type="submit"]').click();
-  await expect(browser.locator('section[aria-labelledby="kiriof-google-maps-title"] [role="status"]')).toHaveText(googleMaps.i18n.saved);
-  await expect(browser.locator('section[aria-labelledby="kiriof-google-maps-title"] code')).toHaveText(mask(replacement));
+  await input.fill(replacement); await browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] button[type="submit"]').click();
+  await expect(browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] [role="status"]')).toHaveText(googleMaps.i18n.saved);
+  await expect(browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] code')).toHaveText(mask(replacement));
   expect(await browser.evaluate(() => document.querySelector<HTMLInputElement>('#kiriof-google-maps-key')!.value)).toBe('');
   expect(await browser.evaluate(() => document.body.innerHTML)).not.toContain(replacement);
-  await browser.locator('section[aria-labelledby="kiriof-google-maps-title"] button[type="button"]').click();
-  await expect(card).toContainText(googleMaps.i18n.notConfigured);
+  await browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] button[type="button"]').click();
+  await expect(browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] [data-slot="badge"]')).toHaveText(googleMaps.i18n.notConfigured);
+  await expect(browser.locator('[data-slot="card"][aria-labelledby="kiriof-google-maps-title"] code')).toHaveCount(0);
   expect(bodies).toHaveLength(2); expect(responses.join('')).not.toContain(replacement);
   expect(await browser.evaluate(() => ({ value: document.querySelector<HTMLInputElement>('#kiriof-google-maps-key')!.value, scripts: document.querySelectorAll('script[data-kiriminaja-google-maps]').length }))).toEqual({ value: '', scripts: 0 });
   expect(unexpected).toEqual([]);
@@ -67,7 +70,7 @@ test('actual admin workspace saves and removes a BYOK credential using masked su
 
 function originHtml() {
   // Native Woo form contract stays authoritative; map bridge only changes coords.
-  return `<!doctype html><html><head><meta charset="utf-8"><style>.fixture-google-map{width:500px;height:260px}.fixture-map-pin{pointer-events:none}</style></head><body><form id="native-origin-form"><input name="_wpnonce" value="native-woo-nonce"><input name="save" value="Save changes"><input name="kiriof_wc_origin_latitude" id="kiriof_wc_origin_latitude" value="0"><input name="kiriof_wc_origin_longitude" id="kiriof_wc_origin_longitude" value="0"><div id="kiriof-wc-origin-map" class="fixture-google-map"></div><span class="fixture-map-pin" aria-hidden="true">📍</span><p id="kiriof-wc-map-error" hidden></p><div class="kiriof-wc-location-card__body"><input name="locations[7][latitude]" class="kiriof-wc-location-latitude" value="-6.2"><input name="locations[7][longitude]" class="kiriof-wc-location-longitude" value="106.8"><div class="kiriof-wc-origin-map fixture-google-map"></div></div></form><script>window.__runtimeErrors=[];window.addEventListener('error',e=>window.__runtimeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>window.__runtimeErrors.push(String(e.reason)));window.__nativeSubmissions=0;document.querySelector('form').addEventListener('submit',e=>{e.preventDefault();window.__nativeSubmissions++});window.kiriofAdminMapsConfig=${json({ provider: 'google', apiKey: runtimeKey })};window.kiriofSettings={i18n:{mapUnavailable:'Map unavailable'}};</script><script src="/assets/buyer/dist/kiriminaja-buyer-admin-maps.js"></script></body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><style>.fixture-google-map{width:500px;height:260px}.fixture-map-pin{pointer-events:none}</style></head><body><form id="native-origin-form"><input name="_wpnonce" value="native-woo-nonce"><input name="save" value="Save changes"><input name="kiriof_wc_origin_latitude" id="kiriof_wc_origin_latitude" value="0"><input name="kiriof_wc_origin_longitude" id="kiriof_wc_origin_longitude" value="0"><div id="kiriof-wc-origin-map" class="fixture-google-map"></div><span class="fixture-map-pin" aria-hidden="true">📍</span><p id="kiriof-wc-map-error" hidden></p></form><script>window.__runtimeErrors=[];window.addEventListener('error',e=>window.__runtimeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>window.__runtimeErrors.push(String(e.reason)));window.__nativeSubmissions=0;document.querySelector('form').addEventListener('submit',e=>{e.preventDefault();window.__nativeSubmissions++});window.kiriofAdminMapsConfig=${json({ provider: 'google', apiKey: runtimeKey })};window.kiriofSettings={i18n:{mapUnavailable:'Map unavailable'}};</script><script src="/assets/buyer/dist/kiriminaja-buyer-admin-maps.js"></script></body></html>`;
 }
 // Google SDK boundary only: production loader, registry, adapter and origin bridge
 // are real. A DOM button invokes the SDK click callback like an actual map click.
@@ -78,7 +81,7 @@ function mockGoogle(callback: string) {
 }
 
 for (const failure of [false, true]) {
-  test(failure ? 'Google load failure fails closed without fetching Leaflet or changing native coords' : 'actual origin bridge shares one Google runtime and preserves native form saving', async ({ app, browser }) => {
+  test(failure ? 'Google load failure fails closed without fetching Leaflet or changing native coords' : 'actual Woo General origin bridge loads one Google runtime and preserves native form saving', async ({ app, browser }) => {
     const unexpected: string[] = [], googleRequests: string[] = [];
     const html = originHtml(); expect(html).not.toContain('leaflet');
     await browser.route('**/*', (route: any) => {
@@ -99,24 +102,13 @@ for (const failure of [false, true]) {
     if (failure) {
       await expect(browser.locator('#kiriof-wc-map-error')).toHaveText('Map unavailable');
       expect(await browser.evaluate(() => document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value)).toBe('0');
-      await expect(browser.locator('.kiriof-wc-location-card__body [role="status"]')).toHaveText('Map unavailable');
-      expect(await browser.evaluate(() => [...document.querySelectorAll('#kiriof-wc-map-error, .kiriof-wc-location-card__body [role="status"]')].map(node => node.textContent))).toEqual(['Map unavailable', 'Map unavailable']);
-      expect(await browser.evaluate(() => ({ lng: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!.value, secondaryLat: document.querySelector<HTMLInputElement>('.kiriof-wc-location-latitude')!.value, secondaryLng: document.querySelector<HTMLInputElement>('.kiriof-wc-location-longitude')!.value, submissions: (window as any).__nativeSubmissions }))).toEqual({ lng: '0', secondaryLat: '-6.2', secondaryLng: '106.8', submissions: 0 });
+      expect(await browser.evaluate(() => ({ lng: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!.value, submissions: (window as any).__nativeSubmissions }))).toEqual({ lng: '0', submissions: 0 });
     } else {
       await expect(browser.locator('#kiriof-wc-origin-map button')).toBeVisible();
-      await expect(browser.locator('.kiriof-wc-origin-map button')).toBeVisible();
       await browser.locator('#kiriof-wc-origin-map button').click();
-      expect(await browser.evaluate(() => ({ lat: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value, lng: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!.value, submissions: (window as any).__nativeSubmissions, nonce: String((new FormData(document.querySelector('form')!)).get('_wpnonce')), save: String((new FormData(document.querySelector('form')!)).get('save')), secondary: document.querySelector<HTMLInputElement>('.kiriof-wc-location-latitude')!.value }))).toEqual({ lat: '-6.2100000', lng: '106.8100000', submissions: 0, nonce: 'native-woo-nonce', save: 'Save changes', secondary: '-6.2' });
+      expect(await browser.evaluate(() => ({ lat: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value, lng: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!.value, submissions: (window as any).__nativeSubmissions, nonce: String((new FormData(document.querySelector('form')!)).get('_wpnonce')), save: String((new FormData(document.querySelector('form')!)).get('save')) }))).toEqual({ lat: '-6.2100000', lng: '106.8100000', submissions: 0, nonce: 'native-woo-nonce', save: 'Save changes' });
       expect(await browser.evaluate(() => document.querySelectorAll('script[data-kiriminaja-google-maps]').length)).toBe(1);
-      await browser.locator('.kiriof-wc-location-card__body .kiriof-wc-origin-map button').click();
-      expect(await browser.evaluate(() => ({
-        lat: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value,
-        lng: document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!.value,
-        secondaryLat: document.querySelector<HTMLInputElement>('.kiriof-wc-location-latitude')!.value,
-        secondaryLng: document.querySelector<HTMLInputElement>('.kiriof-wc-location-longitude')!.value,
-        submissions: (window as any).__nativeSubmissions,
-        maps: (window as any).__googleMaps.length,
-      }))).toEqual({ lat: '-6.2100000', lng: '106.8100000', secondaryLat: '-6.2100000', secondaryLng: '106.8100000', submissions: 0, maps: 2 });
+      expect(await browser.evaluate(() => (window as any).__googleMaps.length)).toBe(1);
     }
     expect(googleRequests).toHaveLength(1);
     expect(await browser.evaluate(() => ({ leaflet: typeof (window as any).L, references: [...document.querySelectorAll('script[src],link[href]')].map(node => node.getAttribute('src') || node.getAttribute('href')).filter(value => /leaflet|openstreetmap/i.test(value || '')) }))).toEqual({ leaflet: 'undefined', references: [] });

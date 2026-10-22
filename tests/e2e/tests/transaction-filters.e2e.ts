@@ -9,6 +9,15 @@ const rowSelector = '.kiriof-transactions-filterrow';
 const longPrinted = 'Printed — shipping labels already prepared for the warehouse packing and dispatch team';
 const longCourier = 'GoSend — same-day motorcycle delivery with a very long translated courier service label';
 const longStatus = 'Awaiting payment confirmation with a very long translated shipment status description';
+const routeDetails = {
+  origin: 'Warehouse <North & West> ' + 'Origin'.repeat(35),
+  destination: 'Recipient "Example" & <South> ' + 'Destination'.repeat(30),
+  addressLines: [
+    'Address <img src=x onerror="window.__routeInjection=true"> & "quoted" ' + ' '.repeat(300) + 'UnbrokenAddress'.repeat(55),
+    'Second full address line & <literal markup> — building 17, floor 22, door 81',
+    'Third full address line: synthetic district, synthetic city, 123456',
+  ],
+};
 const i18n = {
   regularDelivery: 'Regular Delivery', instantDelivery: 'Instant Delivery', orderIssue: 'Order Issue',
   transactionScope: 'Transaction scope', processShipment: 'Process Shipment', requestPickup: 'Request Pickup',
@@ -17,7 +26,11 @@ const i18n = {
   status: 'All Status', allCouriers: 'All Couriers', allPrints: 'All Prints', printed: longPrinted, unprinted: 'Unprinted',
   searchStatuses: 'Search statuses…', searchCouriers: 'Search couriers…', noFilterOptions: 'No matching options.',
   selectedFilters: '%s selected', items: 'items', order: 'Order / Transaction', expedition: 'Expedition & Service',
-  airwaybill: 'Airwaybill / Order ID', route: 'Shipment Route', packages: 'Packages & Fee', action: 'Action',
+  airwaybill: 'Airwaybill / Order ID', route: 'Shipment Route', viewAddressDetails: 'View address details', packages: 'Packages & Fee', action: 'Action',
+  emptyDescription: 'Transactions for the selected delivery type and date range will appear here.',
+  emptyIssueTitle: 'No order issues found.',
+  emptyIssueDescription: 'Orders with shipment issues for the selected date range will appear here.',
+  emptyFilteredDescription: 'Try a different search or adjust the filters above.',
   notFound: 'No transactions found.', autoRefresh: 'Auto Refresh Timer', selectAll: 'Select all orders',
   weight: 'Weight', actualShipping: 'Actual Shipping', shippingCost: 'Shipping', insurance: 'Insurance',
   codFee: 'COD Fee', itemDiscount: 'Item Discount', shippingDiscount: 'Shipping Discount',
@@ -67,6 +80,13 @@ function html(url: URL): string {
     bulk: { showPrint: true, printAction: 'kiriof_print', printNonce: 'isolated', printPreviewNonce: 'isolated', ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'isolated', pickupUrl: '/wp-admin/admin.php?page=kiriminaja-request-pickup' },
     i18n,
   };
+  if (params.has('route_details') && bootstrap.rows.length) {
+    // Both baselines have identical row counts and non-route data. Only the
+    // first route changes; the second proves independent portaled instances.
+    bootstrap.rows.push({ ...bootstrap.rows[0], id: 2,
+      route: { origin: 'Second warehouse', destination: 'Second recipient', addressLines: ['Second row private address'] } });
+    if (params.get('route_details') === '1') bootstrap.rows[0].route = routeDetails;
+  }
   if (params.get('driver_not_found') === '1' && bootstrap.rows.length) {
     const row = JSON.parse(execFileSync('php', [root + 'tests/fixtures/transaction-instant-ui-runtime.php', JSON.stringify({delivery_type:'instant', service:'gosend', status:'request_pickup', order_id:'KA-1', awb:'AWB-1', instant_status_code:101, instant_payment_id:'PAY-1', instant_payment_status:'paid'})], {encoding:'utf8'}));
     Object.assign(bootstrap.rows[0].actions, {cancel:row.actions.cancel});
@@ -74,7 +94,7 @@ function html(url: URL): string {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Transactions fixture</title>
     <style>body{margin:0;font-family:Arial,sans-serif;background:#f0f0f1}input,button{font:inherit}</style>
     ${['kiriminaja-kiriof-var.css', 'kiriminaja-kiriof-component.css', 'kiriminaja-admin-workspace.css'].map(name => `<link id="kiriof-${name}" rel="stylesheet" href="/assets/admin/dist/${name}">`).join('')}
-    </head><body><main class="kiriof-workspace-shell" data-kiriof-transactions-page>
+    </head><body class="wp-admin kiriof-admin"><main class="wrap kj-wrap kiriof-workspace-shell" data-kiriof-transactions-page>
     <div data-kiriof-transactions-root></div><script type="application/json" data-kiriof-transactions-payload>${JSON.stringify(bootstrap).replace(/</g, '\\u003c')}</script>
     </main><script type="module" src="/assets/admin/dist/kiriminaja-admin-workspace.js"></script></body></html>`;
 }
@@ -206,7 +226,25 @@ for (const width of [1440, 1100, 390]) {
       for (const active of [false, true]) {
         await app.open(path(scope, active));
         await expect(browser.locator(rowSelector)).toBeVisible();
-        await expect(browser.locator('.kiriof-empty-cell')).toContainText('No transactions found.');
+        // The deployed table uses the shared Empty component, not the retired
+        // kiriof-empty-cell class. Assert the accessible state and its copy for
+        // each scope, including the unfiltered Order Issue success state.
+        const title = scope === 'issue' && !active ? i18n.emptyIssueTitle : i18n.notFound;
+        const description = active ? i18n.emptyFilteredDescription : scope === 'issue' ? i18n.emptyIssueDescription : i18n.emptyDescription;
+        const emptySelector = '.kiriof-transactions-table tbody [data-slot="empty"][role="region"]';
+        await expect(browser.locator(emptySelector)).toBeVisible();
+        await expect(browser.locator(emptySelector + ' [data-slot="empty-title"]')).toHaveText(title);
+        await expect(browser.locator(emptySelector + ' [data-slot="empty-description"]')).toHaveText(description);
+        await expect(browser.locator(emptySelector + ' button')).toHaveCount(active ? 1 : 0);
+        if (active) await expect(browser.locator(emptySelector + ' button')).toHaveText(i18n.clear);
+        const semantics = await browser.evaluate(() => {
+          const region = document.querySelector('.kiriof-transactions-table tbody [data-slot="empty"]')!;
+          return {
+            title: document.getElementById(region.getAttribute('aria-labelledby')!)?.textContent,
+            description: document.getElementById(region.getAttribute('aria-describedby')!)?.textContent,
+          };
+        });
+        expect(semantics).toEqual({ title, description });
         await assertGeometry(browser, width, scope, active);
       }
     }
@@ -384,3 +422,97 @@ test('tracking cooldown stays informative and manual refresh can display a newly
   await expect(browser.locator('iframe.kiriof-live-tracking-frame')).toHaveAttribute('src',tracking.url);
   expect(state.trackingCalls).toHaveLength(2); expect(state.unexpected).toEqual([]);
 });
+
+
+for (const width of [1440, 390]) {
+  test(`compact shipment route preserves full escaped Popover details and keyboard isolation at ${width}px`, async ({ app, browser }) => {
+    const state = await fixture(browser);
+    await browser.setViewport({ width, height: 1000 });
+    const url = '/wp-admin/admin.php?page=kiriminaja-transaction&delivery_type=instant&row_actions=1&route_details=';
+    const routes = '[data-shipment-route]';
+    const trigger = routes + ' button[aria-label="View address details"]';
+    const popover = '[data-slot="popover-content"]';
+    const dimensions = () => browser.evaluate(() => {
+      const route = document.querySelector<HTMLElement>('[data-shipment-route]')!;
+      const table = document.querySelector<HTMLElement>('.kiriof-transactions-table')!;
+      return { route: route.getBoundingClientRect().width, cell: route.closest('td')!.getBoundingClientRect().width,
+        table: table.getBoundingClientRect().width,
+        tableScroll: table.scrollWidth, pageScroll: document.documentElement.scrollWidth };
+    });
+    await app.open(url + '0');
+    await expect(browser.locator(trigger)).toHaveCount(2);
+    const baseline = await dimensions();
+    await app.open(url + '1');
+    await expect(browser.locator(trigger)).toHaveCount(2);
+    const long = await dimensions();
+    expect(long.route).toBeLessThanOrEqual(240);
+    expect(long.route).toBeGreaterThan(0);
+    // Existing table min-widths may exceed the mobile viewport, but a long
+    // route must not widen either its actual table cell or the whole table.
+    for (const key of ['route', 'cell', 'table', 'tableScroll', 'pageScroll'] as const) {
+      expect(Math.abs(long[key] - baseline[key])).toBeLessThanOrEqual(1);
+    }
+    const summary = await browser.evaluate(() => {
+      const route = document.querySelector<HTMLElement>('[data-shipment-route]')!;
+      const button = route.querySelector('button')!;
+      return { title: route.getAttribute('title'), icons: button.querySelectorAll('svg.tabler-icon').length,
+        unicodeArrow: button.textContent!.includes('→'),
+        labels: [...button.querySelectorAll<HTMLElement>('.truncate')].map(label => {
+          const css = getComputedStyle(label);
+          return { ellipsis: css.textOverflow, whitespace: css.whiteSpace, overflow: css.overflow,
+            clipped: label.scrollWidth > label.clientWidth };
+        }) };
+    });
+    expect(summary.title).toBe(null); // Native title tooltips cannot disclose the full route.
+    expect(summary.icons).toBe(1); expect(summary.unicodeArrow).toBe(false);
+    expect(summary.labels).toHaveLength(3);
+    for (const label of summary.labels) expect(label).toEqual({ ellipsis: 'ellipsis', whitespace: 'nowrap', overflow: 'hidden', clipped: true });
+
+    // Focus the real deployed Button, then exercise Bits UI's keyboard lifecycle.
+    await browser.evaluate(() => document.querySelector<HTMLButtonElement>('[data-shipment-route] button')!.focus());
+    await browser.keyboard.press('Enter');
+    await expect(browser.locator(popover)).toBeVisible();
+    await expect(browser.locator(popover)).toHaveAttribute('role', 'dialog');
+    const details = await browser.evaluate(() => {
+      const content = document.querySelector<HTMLElement>('[data-slot="popover-content"]')!;
+      const bounds = content.getBoundingClientRect();
+      const text = [...content.querySelectorAll<HTMLElement>('li, p')];
+      return { title: document.getElementById(content.getAttribute('aria-labelledby')!)?.textContent,
+        lines: text.map(element => element.textContent),
+        horizontalFit: bounds.left >= 0 && bounds.right <= innerWidth,
+        overflow: content.scrollWidth - content.clientWidth,
+        pageScroll: document.documentElement.scrollWidth,
+        wrapped: text.map(element => element.getBoundingClientRect().height > Number.parseFloat(getComputedStyle(element).lineHeight) * 1.5),
+        untruncated: text.every(element => {
+          const css = getComputedStyle(element);
+          return css.textOverflow !== 'ellipsis' && css.whiteSpace !== 'nowrap' && element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1;
+        }),
+        injectedElements: content.querySelectorAll('img, script').length,
+        injected: Boolean((window as any).__routeInjection),
+        icons: content.querySelectorAll('svg.tabler-icon').length,
+        unicodeArrow: content.textContent!.includes('→') };
+    });
+    expect(details.title).toBe(i18n.route);
+    expect(details.lines).toEqual([routeDetails.origin, routeDetails.destination, ...routeDetails.addressLines]);
+    expect(details.horizontalFit).toBe(true); expect(details.overflow).toBeLessThanOrEqual(1);
+    expect(details.pageScroll).toBeLessThanOrEqual(long.pageScroll + 1);
+    // Both names and the first address contain unbroken tokens: actual rendered
+    // multi-line heights prove wrapping, not merely an absence of ellipsis.
+    expect(details.wrapped.slice(0, 3)).toEqual([true, true, true]);
+    expect(details.untruncated).toBe(true); expect(details.injectedElements).toBe(0); expect(details.injected).toBe(false);
+    expect(details.icons).toBe(1); expect(details.unicodeArrow).toBe(false);
+    await expect(browser.locator(popover)).not.toContainText('Second row private address');
+    await browser.keyboard.press('Escape');
+    await expect(browser.locator(popover)).not.toBeVisible();
+    await expect.poll(() => browser.evaluate(() => document.activeElement === document.querySelector('[data-shipment-route] button'))).toBe(true);
+    await browser.evaluate(() => document.querySelectorAll<HTMLButtonElement>('[data-shipment-route] button')[1].focus());
+    await browser.keyboard.press('Enter');
+    await expect(browser.locator(popover)).toBeVisible();
+    await expect(browser.locator(popover)).toContainText('Second row private address');
+    await expect(browser.locator(popover)).not.toContainText(routeDetails.origin);
+    await browser.keyboard.press('Escape');
+    await expect(browser.locator(popover)).not.toBeVisible();
+    await expect.poll(() => browser.evaluate(() => document.activeElement === document.querySelectorAll('[data-shipment-route] button')[1])).toBe(true);
+    expect(state.requests).toHaveLength(2); expect(state.unexpected).toEqual([]);
+  });
+}

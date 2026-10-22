@@ -353,7 +353,7 @@ class Admin extends BaseInit{
         $step_urls = array(
             'account'            => admin_url( 'admin.php?page=kiriminaja-setting&section=account' ),
             'products'           => admin_url( 'edit.php?post_type=product' ),
-            'origin'             => admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ),
+            'origin'             => admin_url( 'admin.php?page=kiriminaja-setting&section=warehouses' ),
             'couriers'           => admin_url( 'admin.php?page=kiriminaja-setting&section=couriers' ),
             'shipping_option'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
             'tracking'           => admin_url( 'admin.php?page=kiriminaja-setting&section=tracking' ),

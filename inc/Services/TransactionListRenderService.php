@@ -205,7 +205,7 @@ class TransactionListRenderService
             ),
             "shipmentLocations" => $kiriof_shipment_locations,
             "locationsUrl" => admin_url(
-                "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
+                "admin.php?page=kiriminaja-setting&section=warehouses",
             ),
             "bulk" => [
                 "showPrint" => "express" === $filters["delivery_type"] && ("all" === $kiriof_status_filter || in_array("processed", explode(",", $kiriof_status_filter), true)),
@@ -350,6 +350,7 @@ class TransactionListRenderService
                     "kiriminaja-official",
                 ),
                 "route" => __("Shipment Route", "kiriminaja-official"),
+                "viewAddressDetails" => __("View address details", "kiriminaja-official"),
                 "packages" => __("Packages & Fee", "kiriminaja-official"),
                 "action" => __("Action", "kiriminaja-official"),
                 "notFound" => __(

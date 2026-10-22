@@ -1,7 +1,7 @@
 @reference 'tailwindcss';
 @reference './kiriof-var.css';
-.kiriof-workspace-shell {
-  @apply box-border w-full max-w-none m-0 [padding:0_20px_48px];
+.wrap.kj-wrap.kiriof-workspace-shell {
+  @apply box-border w-full max-w-none m-0! [padding:0_20px_48px];
 }
 
 .kiriof-tooltip-trigger {

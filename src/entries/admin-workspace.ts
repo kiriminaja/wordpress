@@ -4,6 +4,7 @@ import AccountSection from '../lib/settings/AccountSection.svelte';
 import CouriersSection from '../lib/settings/CouriersSection.svelte';
 import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
 import TrackingSection from '../lib/settings/TrackingSection.svelte';
+import WarehousesSection from '../lib/settings/WarehousesSection.svelte';
 import PaymentsList from '../lib/payments/PaymentsList.svelte';
 import PickupDetail from '../lib/pickup-detail/PickupDetail.svelte';
 import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
@@ -13,6 +14,7 @@ import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
 import type { TransactionsBootstrap } from '../lib/transactions/types';
 import type { TransactionDetailBootstrap } from '../lib/transaction-detail/types';
+import 'leaflet/dist/leaflet.css';
 import '../styles/toolbar.css';
 import '../styles/admin-list.css';
 import '../styles/payments-list.css';
@@ -156,10 +158,11 @@ function loadScript(script: HTMLScriptElement): Promise<void> {
   });
 }
 
-async function ensureRouteAssets(source: Document): Promise<void> {
+async function ensureRouteAssets(source: Document, isCurrent: () => boolean): Promise<void> {
   for (const style of source.querySelectorAll<HTMLLinkElement>(
     'link[rel="stylesheet"][id^="kiriof-"], link[rel="stylesheet"][id^="woocommerce"]',
   )) {
+    if (!isCurrent()) return;
     if (document.getElementById(style.id)) continue;
     const nextStyle = document.createElement('link');
     nextStyle.id = style.id;
@@ -169,6 +172,7 @@ async function ensureRouteAssets(source: Document): Promise<void> {
   }
 
   for (const script of source.querySelectorAll<HTMLScriptElement>('script')) {
+    if (!isCurrent()) return;
     if (!isRouteAsset(script) || document.getElementById(script.id)) continue;
     if (script.src) await loadScript(script);
     else if (script.id.endsWith('-js-extra')) {
@@ -194,6 +198,9 @@ function parsePayload<T>(source: ParentNode, route: RouteDefinition): T {
 }
 
 async function clearMounted(): Promise<void> {
+  // Claim this generation synchronously, before unmount can yield (or trigger
+  // another navigation). Never clear the shared list after awaiting: a newer
+  // route may already own it by then.
   const components = mounted;
   mounted = [];
   await Promise.all(components.map((component) => unmount(component)));
@@ -206,6 +213,8 @@ function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): voi
     mounted = [mount(CouriersSection, { target: host, props: { bootstrap } })];
   else if (bootstrap.view === 'tracking')
     mounted = [mount(TrackingSection, { target: host, props: { bootstrap } })];
+  else if (bootstrap.view === 'warehouses')
+    mounted = [mount(WarehousesSection, { target: host, props: { bootstrap } })];
   else if (bootstrap.view === 'technical')
     mounted = [mount(TechnicalSection, { target: host, props: { bootstrap } })];
   else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
@@ -323,6 +332,8 @@ async function navigate(value: string | URL, push = true): Promise<void> {
   controller?.abort();
   controller = new AbortController();
   const navigationController = controller;
+  const isCurrent = () =>
+    navigationId === navigationSequence && !navigationController.signal.aborted;
   startLoadingIndicator();
   activeShell?.setAttribute('aria-busy', 'true');
 
@@ -332,14 +343,21 @@ async function navigate(value: string | URL, push = true): Promise<void> {
       signal: navigationController.signal,
       headers: { 'X-KiriminAja-Workspace': 'admin' },
     });
-    const nextDocument = new DOMParser().parseFromString(await response.text(), 'text/html');
+    if (!isCurrent()) return;
+    const html = await response.text();
+    if (!isCurrent()) return;
+    const nextDocument = new DOMParser().parseFromString(html, 'text/html');
     const route = routeForUrl(url);
     const nextShell = route ? nextDocument.querySelector<HTMLElement>(route.shell) : null;
     if (!response.ok || !route || !nextShell || !nextDocument.querySelector(route.payload))
       throw new Error('Unable to load workspace page.');
 
-    await ensureRouteAssets(nextDocument);
+    await ensureRouteAssets(nextDocument, isCurrent);
+    if (!isCurrent()) return;
     await clearMounted();
+    if (!isCurrent()) return;
+    // No asynchronous work between the freshness check and this route's
+    // DOM/render/history commit. Detached unmounts only own the old components.
     const replacement = nextShell.cloneNode(true) as HTMLElement;
     activeShell?.replaceWith(replacement);
     activeShell = replacement;
@@ -352,7 +370,7 @@ async function navigate(value: string | URL, push = true): Promise<void> {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
-    if ((error as Error).name !== 'AbortError') window.location.assign(url);
+    if (isCurrent() && (error as Error).name !== 'AbortError') window.location.assign(url);
   } finally {
     if (navigationId === navigationSequence) {
       activeShell?.removeAttribute('aria-busy');

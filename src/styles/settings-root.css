@@ -1,10 +1,6 @@
 @reference 'tailwindcss';
 @reference './kiriof-var.css';
 
-.kiriof-callback-endpoints {
-  @apply grid gap-2;
-}
-
 .kiriof-couriers-toolbar .kiriof-app-toolbar {
   @apply !flex-wrap;
 }
@@ -15,10 +11,6 @@
   .kiriof-couriers-toolbar .kiriof-app-toolbar__actions {
     @apply !w-auto;
   }
-}
-
-.kiriof-callback-endpoints code {
-  @apply block [padding:9px_11px] [overflow-wrap:anywhere] border rounded-md bg-muted text-foreground text-xs [line-height:1.5];
 }
 
 .kiriof-product-alert {

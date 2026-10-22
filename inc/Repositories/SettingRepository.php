@@ -187,9 +187,12 @@ class SettingRepository{
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
             $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE `key` = %s", $key ) );
 
+            if ( ! empty( $wpdb->last_error ) ) {
+                return false;
+            }
             if ( empty( $existing ) ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-                $wpdb->insert(
+                $result = $wpdb->insert(
                     $this->table,
                     array(
                         'key'   => $key,
@@ -197,15 +200,59 @@ class SettingRepository{
                     ),
                     array( '%s', '%s' )
                 );
-                continue;
+            } else {
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                $result = $wpdb->update( $this->table, array( 'value' => $value ), array( 'key' => $key ) );
             }
-
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $wpdb->update( $this->table, array( 'value' => $value ), array( 'key' => $key ) );
+            unset( self::$setting_cache[ $this->table . '|' . $key ] );
+            if ( false === $result || ! empty( $wpdb->last_error ) ) {
+                return false;
+            }
         }
 
         return true;
     }
+    /** Exact origin snapshots include absent rows; never use request-local cached values. */
+    public function snapshotOriginMirrorData(): array {
+        global $wpdb;
+        $snapshot = array();
+        foreach ( array( 'origin_name', 'origin_phone', 'origin_address', 'origin_latitude', 'origin_longitude', 'origin_sub_district_id', 'origin_sub_district_name', 'origin_zip_code' ) as $key ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table} WHERE `key` = %s", $key ) );
+            if ( ! empty( $wpdb->last_error ) ) {
+                throw new \RuntimeException( 'Unable to read origin mirror.' );
+            }
+            $snapshot[ $key ] = $row ? array( 'value' => $row->value ) : null;
+        }
+        return $snapshot;
+    }
+
+    /** Best-effort compensation, including deleting keys absent before the save. */
+    public function restoreOriginMirrorData( array $snapshot ): bool {
+        global $wpdb;
+        $success = true;
+        foreach ( $snapshot as $key => $row ) {
+            try {
+                if ( null === $row ) {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                    $result = $wpdb->delete( $this->table, array( 'key' => $key ), array( '%s' ) );
+                } else {
+                    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+                    $result = $wpdb->update( $this->table, $row, array( 'key' => $key ) );
+                }
+                $success = false !== $result && empty( $wpdb->last_error ) && $success;
+            } catch ( \Throwable $exception ) {
+                $success = false;
+            }
+        }
+        $this->clearCache();
+        try {
+            return $this->snapshotOriginMirrorData() === $snapshot && $success;
+        } catch ( \Throwable $exception ) {
+            return false;
+        }
+    }
+
     public function getCallbackData(){
         global $wpdb;
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching

@@ -270,7 +270,7 @@
                 aria-label={i18n.senderRecipientDetails}
             >
                 <KiriofCard>
-                    <Card.Header class="p-3 border-b">
+                    <Card.Header class="flex items-center justify-between gap-3 p-3 border-b">
                         <Card.Title><IconMapPin />{i18n.sender}</Card.Title>
                         {#if transaction.actions.changeOrigin}
                             <Card.Action>
@@ -309,7 +309,7 @@
                 </KiriofCard>
 
                 <KiriofCard>
-                    <Card.Header class="p-3 border-b">
+                    <Card.Header class="flex items-center justify-between gap-3 p-3 border-b">
                         <Card.Title><IconUser />{i18n.recipient}</Card.Title>
                         {#if transaction.recipient.phone}
                             <Card.Action

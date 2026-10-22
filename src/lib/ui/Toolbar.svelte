@@ -22,7 +22,7 @@
   }
 </script>
 
-<header class="kiriof-app-toolbar">
+<header class="kiriof-shadcn kiriof-app-toolbar">
   <nav class="kiriof-app-toolbar__breadcrumbs" aria-label="Breadcrumb">
     <a class="kiriof-app-toolbar__home" href={toolbar.rootUrl} aria-label={toolbar.rootLabel} onclick={(event) => navigate(event, toolbar.rootUrl)}>
       <img src={toolbar.logoUrl} alt="" />

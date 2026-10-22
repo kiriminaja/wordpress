@@ -4,7 +4,9 @@
     IconExternalLink,
     IconLink,
   } from '@tabler/icons-svelte';
-  import { Button } from 'bits-ui';
+  import { Button } from '$lib/components/ui/button';
+  import * as Field from '$lib/components/ui/field';
+  import { Input } from '$lib/components/ui/input';
   import SettingsIcon from './settings/SettingsIcon.svelte';
   import Toolbar from './ui/Toolbar.svelte';
   import type { SettingsBootstrap } from './settings/types';
@@ -82,27 +84,29 @@
       <span class="kiriof-connect__brand">K</span>
     </div>
     <h2 id="kiriof-connect-title">KiriminAja</h2>
-    <label class="kiriof-connect__label" for="kiriof-setup-key">{bootstrap.i18n.setupKey}</label>
-    <input
-      id="kiriof-setup-key"
-      class="kiriof-connect__input"
-      type="text"
-      bind:value={setupKey}
-      placeholder={bootstrap.i18n.setupKeyPlaceholder}
-      autocomplete="off"
-      onkeydown={(event) => event.key === 'Enter' && connect()}
-    />
+    <Field.Field data-disabled={connecting}>
+      <Field.Label for="kiriof-setup-key">{bootstrap.i18n.setupKey}</Field.Label>
+      <Input
+        id="kiriof-setup-key"
+        type="text"
+        bind:value={setupKey}
+        placeholder={bootstrap.i18n.setupKeyPlaceholder}
+        autocomplete="off"
+        disabled={connecting}
+        onkeydown={(event) => event.key === 'Enter' && connect()}
+      />
+    </Field.Field>
     {#if error}
       <p class="kiriof-settings-root__message is-error" role="alert">{error}</p>
     {/if}
     <div class="kiriof-connect__actions">
-      <Button.Root class="button button-primary" disabled={connecting} onclick={connect}>
+      <Button disabled={connecting} onclick={connect}>
         {connecting ? bootstrap.i18n.connecting : bootstrap.i18n.connect}
-      </Button.Root>
-      <Button.Root class="button" href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer">
+      </Button>
+      <Button variant="outline" href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer">
         {bootstrap.i18n.howToConnect}
-        <IconExternalLink size={15} stroke={2} aria-hidden="true" />
-      </Button.Root>
+        <IconExternalLink data-icon="inline-end" aria-hidden="true" />
+      </Button>
     </div>
   </section>
 {:else}

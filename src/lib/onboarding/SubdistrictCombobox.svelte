@@ -1,13 +1,19 @@
 <script lang="ts">
   import { tick } from 'svelte';
+  import type { HTMLButtonAttributes } from 'svelte/elements';
+  import { cn } from '$lib/utils';
   import * as Command from '$lib/components/ui/command';
   import * as Popover from '$lib/components/ui/popover';
   import { Button } from '$lib/components/ui/button';
-  import { IconCheck, IconChevronDown, IconLoader2 } from '@tabler/icons-svelte';
+  import { IconChevronDown, IconLoader2 } from '@tabler/icons-svelte';
 
   type Area = { id: string | number; text?: string; label?: string };
 
   let {
+    id,
+    disabled = false,
+    'aria-invalid': ariaInvalid,
+    'aria-describedby': ariaDescribedby,
     value,
     areas,
     loading,
@@ -18,6 +24,10 @@
     onSearch,
     onSelect,
   }: {
+    id?: string;
+    disabled?: boolean;
+    'aria-invalid'?: HTMLButtonAttributes['aria-invalid'];
+    'aria-describedby'?: string;
     value: string;
     areas: Area[];
     loading: boolean;
@@ -47,39 +57,42 @@
 </script>
 
 <Popover.Root bind:open>
-  <Popover.Trigger bind:ref={triggerRef}>
+  <Popover.Trigger {id} {disabled} bind:ref={triggerRef}>
     {#snippet child({ props })}
       <Button
         {...props}
         variant="outline"
-        class="h-9 w-full justify-between px-3 text-left font-normal"
+        class="w-full justify-between font-normal"
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedby}
         role="combobox"
         aria-expanded={open}
       >
-        <span class="min-w-0 truncate {value ? 'text-foreground' : 'text-muted-foreground'}">
+        <span class={cn('min-w-0 flex-1 truncate text-left', !value && 'text-muted-foreground')}>
           {displayValue}
         </span>
-        <IconChevronDown class="size-4 shrink-0 opacity-50" />
+        <IconChevronDown data-icon="inline-end" class="text-muted-foreground" aria-hidden="true" />
       </Button>
     {/snippet}
   </Popover.Trigger>
   <Popover.Content
-    class="kiriof-shadcn kiriof-onboarding-subdistrict-popover z-[100001] w-[var(--bits-popover-anchor-width)] p-0"
+    class="kiriof-shadcn kiriof-onboarding-subdistrict-popover w-[var(--bits-popover-anchor-width)] p-0"
     align="start"
   >
     <Command.Root shouldFilter={false}>
       <Command.Input
         value={query}
         placeholder={placeholder}
+        aria-label={placeholder}
         oninput={(event: Event) => {
           query = (event.currentTarget as HTMLInputElement).value;
           onSearch(query);
         }}
       />
-      <Command.List class="max-h-56">
+      <Command.List class="max-h-56" aria-busy={loading}>
         {#if loading}
           <div class="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-            <IconLoader2 class="size-4 animate-spin" />
+            <IconLoader2 class="animate-spin" aria-hidden="true" />
             {loadingText}
           </div>
         {:else if query.trim().length < 3}
@@ -90,8 +103,11 @@
           <Command.Group>
             {#each areas as area (area.id)}
               {@const label = String(area.text ?? area.label ?? '')}
-              <Command.Item value={String(area.id)} onSelect={() => handleSelect(area)}>
-                <IconCheck class="size-4 {value === label ? 'opacity-100' : 'opacity-0'}" />
+              <Command.Item
+                value={String(area.id)}
+                data-checked={value === label}
+                onSelect={() => handleSelect(area)}
+              >
                 <span class="min-w-0 truncate">{label}</span>
               </Command.Item>
             {/each}

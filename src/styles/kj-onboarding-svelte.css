@@ -26,27 +26,9 @@ body.kiriof-onboarding-screen .kiriof-onboarding-subdistrict-popover input {
   @apply m-0 text-inherit;
 }
 
-/* WordPress admin ships global form controls. Keep the Svelte surface on shadcn geometry. */
-.kiriof-onboarding-app [data-slot='button'] {
-  @apply min-h-8 m-0 box-border rounded leading-none shadow-none no-underline!;
-}
-
-.kiriof-onboarding-app a[data-slot='button'],
-.kiriof-onboarding-app a[data-slot='button']:hover,
-.kiriof-onboarding-app a[data-slot='button']:focus,
-.kiriof-onboarding-app a[data-slot='button']:active,
-.kiriof-onboarding-app a[data-slot='button']:visited {
-  @apply text-primary-foreground no-underline!;
-}
-
-.kiriof-onboarding-app [data-slot='input'],
-.kiriof-onboarding-app [data-slot='input-group-control'],
-.kiriof-onboarding-app [data-slot='textarea'] {
-  @apply m-0 box-border border-border rounded bg-transparent text-foreground shadow-none;
-}
-
-.kiriof-onboarding-app [data-slot='textarea'] {
-  @apply h-auto [line-height:1.45];
+/* Reset native margins only; the installed controls own geometry and states. */
+.kiriof-onboarding-app :is([data-slot='button'], [data-slot='input'], [data-slot='textarea']) {
+  @apply m-0 box-border;
 }
 
 html:has(body.kiriof-onboarding-screen) {

@@ -26,6 +26,7 @@
     IconXboxX,
   } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
+  import ShipmentRoute from '$lib/ui/ShipmentRoute.svelte';
   import KiriofCheckbox from '$lib/ui/KiriofCheckbox.svelte';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as ButtonGroup from '$lib/components/ui/button-group';
@@ -499,10 +500,7 @@
                   <CopyableValue label={bootstrap.i18n.kaOrderId} value={row.kaOrderId} copyLabel={bootstrap.i18n.copyKaOrderId} copiedLabel={bootstrap.i18n.copied} />
                 </Table.Cell>
                 <Table.Cell>
-                  <strong class="kiriof-row-title">{row.route.origin}</strong>
-                  <span class="kiriof-route-arrow">↓ To</span>
-                  <strong class="kiriof-row-title">{row.route.destination}</strong>
-                  {#each row.route.addressLines as line}<span class="kiriof-row-muted">{line}</span>{/each}
+                  <ShipmentRoute origin={row.route.origin} recipient={row.route.destination} addressLines={row.route.addressLines} title={bootstrap.i18n.route} detailsLabel={bootstrap.i18n.viewAddressDetails} />
                 </Table.Cell>
                 <Table.Cell>
                   <div class="kiriof-package-fees">

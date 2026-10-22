@@ -12,7 +12,8 @@ final class MapProviderAssetsRuntimeTest extends TestCase {
 			'transactions' => array( 'context' => 'admin', 'page' => 'kiriminaja-transaction' ),
 			'transaction detail' => array( 'context' => 'admin', 'page' => 'kiriminaja-transaction-detail' ),
 			'onboarding' => array( 'context' => 'admin', 'page' => 'kiriminaja-onboarding' ),
-			'warehouses' => array( 'context' => 'admin', 'screen' => 'woocommerce_page_wc-settings', 'tab' => 'kiriminaja_warehouses' ),
+			'warehouses' => array( 'context' => 'admin', 'page' => 'kiriminaja-setting', 'section' => 'warehouses' ),
+			'legacy warehouses' => array( 'context' => 'admin', 'screen' => 'woocommerce_page_wc-settings', 'tab' => 'kiriminaja_warehouses' ),
 			'general' => array( 'context' => 'admin', 'screen' => 'woocommerce_page_wc-settings', 'tab' => 'general' ),
 		);
 		$expected = $actual = array();
@@ -32,11 +33,19 @@ final class MapProviderAssetsRuntimeTest extends TestCase {
 					}
 				}
 				$case = $provider . '/' . $name;
-				$expected[$case] = array( 'leaflet assets' => '' === $key ? 2 : 0, 'forbidden dependencies' => array() );
+				$expected[$case] = array( 'leaflet assets' => '' === $key && 'legacy warehouses' !== $name ? 2 : 0, 'forbidden dependencies' => array() );
 				$actual[$case] = array( 'leaflet assets' => count( $leaflet ), 'forbidden dependencies' => $forbiddenDependencies );
 				foreach ( array( 'map', 'detailMap' ) as $config ) {
 					$expected[$case][$config] = array( 'provider' => $provider, 'apiKey' => $key );
 					$actual[$case][$config] = array( 'provider' => $result[$config]['provider'], 'apiKey' => $result[$config]['apiKey'] );
+				}
+				if ( 'admin' === $context['context'] ) {
+					$expected[$case]['native origin bridge'] = 'general' === $name;
+					$actual[$case]['native origin bridge'] = in_array( 'kiriof-admin-maps', $result['enqueued_scripts'], true );
+					if ( 'legacy warehouses' === $name ) {
+						$expected[$case]['enqueued assets'] = array();
+						$actual[$case]['enqueued assets'] = array_merge( $result['enqueued_scripts'], $result['enqueued_styles'] );
+					}
 				}
 				if ( 'blocks' === $context['context'] ) {
 					$expected[$case]['blocks dependencies'] = array( 'kiriof-buyer-state', 'wp-element', 'wp-data', 'wp-plugins', 'wc-blocks-checkout', 'wc-settings', 'kiriof-map-provider' );

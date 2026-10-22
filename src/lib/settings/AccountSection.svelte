@@ -64,7 +64,7 @@
 </script>
 
 <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
-<div class="kiriof-account kiriof-settings-content">
+<div class="kiriof-shadcn kiriof-account kiriof-settings-content">
     <section class="kiriof-section-card kiriof-account-couriers">
         <h2>{bootstrap.i18n.enabledCouriers}</h2>
         {#if bootstrap.couriers.length}

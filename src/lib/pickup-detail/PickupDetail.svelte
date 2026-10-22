@@ -1,6 +1,7 @@
 <script lang="ts">
   import { IconCash, IconCircleCheck, IconClock, IconCreditCard, IconEye, IconMapPin, IconPackage, IconPrinter, IconTruck, IconXboxX } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
+  import ShipmentRoute from '$lib/ui/ShipmentRoute.svelte';
   import * as Card from '$lib/components/ui/card';
   import * as Table from '$lib/components/ui/table';
   import Toolbar from '$lib/ui/Toolbar.svelte';
@@ -110,9 +111,7 @@
                 <div class="kiriof-copy-field"><span class="kiriof-row-label">Order ID</span><span class="kiriof-copy-field__value"><code>{row.orderId}</code></span></div>
               </Table.Cell>
               <Table.Cell>
-                <strong class="kiriof-row-title">{row.route.recipient || '—'}</strong>
-                <span class="kiriof-row-muted">{row.route.origin} →</span>
-                {#each row.route.addressLines as line}<span class="kiriof-row-muted">{line}</span>{/each}
+                <ShipmentRoute origin={row.route.origin} recipient={row.route.recipient} addressLines={row.route.addressLines} title={bootstrap.i18n.route} detailsLabel={bootstrap.i18n.viewAddressDetails} />
               </Table.Cell>
               <Table.Cell>
                 <div class="kiriof-package-fees">

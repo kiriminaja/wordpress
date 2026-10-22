@@ -17,13 +17,7 @@
     CardHeader,
     CardTitle,
   } from '$lib/components/ui/card';
-  import {
-    Field,
-    FieldDescription,
-    FieldGroup,
-    FieldLabel,
-    FieldSet,
-  } from '$lib/components/ui/field';
+  import * as Field from '$lib/components/ui/field';
   import * as InputGroup from '$lib/components/ui/input-group';
   import { Input } from '$lib/components/ui/input';
   import { Separator } from '$lib/components/ui/separator';
@@ -97,6 +91,10 @@
   let courierLoaded = $state(false);
   let courierLoadGeneration = 0;
   let courierLoadController: AbortController | undefined;
+  let addressSubmitted = $state(false);
+  function addressInvalid(key: string): boolean {
+    return addressSubmitted && !String(address[key] ?? '').trim();
+  }
   let subdistrictQuery = $state('');
   let subdistricts = $state<Area[]>([]);
   let subdistrictLoading = $state(false);
@@ -346,6 +344,7 @@
 
   async function saveAddress(): Promise<void> {
     if (busy) return;
+    addressSubmitted = true;
     if (
       Object.values({
         ...address,
@@ -651,7 +650,7 @@
       <!-- Feedback Alerts -->
       {#if error && !(current === 'couriers' && courierLoadError)}
         <div class="shrink-0 px-6 pb-2">
-          <Alert variant="destructive">
+          <Alert variant="destructive" id={`${prefix}-error`}>
             <AlertTitle>Unable to continue</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -706,9 +705,9 @@
               </Button>
             </div>
           {:else}
-            <FieldGroup>
-              <Field>
-                <FieldLabel for="setup-key">{account.i18n.setupKey}</FieldLabel>
+            <Field.Group>
+              <Field.Field>
+                <Field.Label for="setup-key">{account.i18n.setupKey}</Field.Label>
                 <Input
                   id="setup-key"
                   bind:value={setupKey}
@@ -716,7 +715,7 @@
                   autocomplete="off"
                   spellcheck="false"
                 />
-                <FieldDescription class="text-xs">
+                <Field.Description class="text-xs">
                   {account.i18n.findKey}
                   <a
                     href={account.helpUrl}
@@ -727,42 +726,49 @@
                     {account.i18n.learnHow}
                     <IconExternalLink class="inline h-3 w-3" />
                   </a>
-                </FieldDescription>
-              </Field>
-            </FieldGroup>
+                </Field.Description>
+              </Field.Field>
+            </Field.Group>
           {/if}
         {:else if current === 'address'}
-          <FieldSet>
-            <FieldGroup class="space-y-2.5">
-              <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel for="origin-name">{bootstrap.address.i18n.senderName}</FieldLabel>
-                  <Input id="origin-name" bind:value={address.origin_name} />
-                </Field>
-                <Field>
-                  <FieldLabel for="origin-phone">{bootstrap.address.i18n.senderPhone}</FieldLabel>
-                  <Input id="origin-phone" bind:value={address.origin_phone} />
-                </Field>
-              </div>
+          <Field.Set>
+            <Field.Group>
+              <Field.Group class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field.Field data-invalid={addressInvalid('origin_name')} data-disabled={busy}>
+                  <Field.Label for="origin-name">{bootstrap.address.i18n.senderName}</Field.Label>
+                  <Input id="origin-name" disabled={busy} aria-invalid={addressInvalid('origin_name')} aria-describedby={addressInvalid('origin_name') ? `${prefix}-error` : undefined} bind:value={address.origin_name} />
+                </Field.Field>
+                <Field.Field data-invalid={addressInvalid('origin_phone')} data-disabled={busy}>
+                  <Field.Label for="origin-phone">{bootstrap.address.i18n.senderPhone}</Field.Label>
+                  <Input id="origin-phone" disabled={busy} aria-invalid={addressInvalid('origin_phone')} aria-describedby={addressInvalid('origin_phone') ? `${prefix}-error` : undefined} bind:value={address.origin_phone} />
+                </Field.Field>
+              </Field.Group>
 
-              <Field>
-                <FieldLabel for="origin-address">{bootstrap.address.i18n.address}</FieldLabel>
+              <Field.Field data-invalid={addressInvalid('origin_address')} data-disabled={busy}>
+                <Field.Label for="origin-address">{bootstrap.address.i18n.address}</Field.Label>
                 <Textarea
                   id="origin-address"
+                  disabled={busy}
+                  aria-invalid={addressInvalid('origin_address')}
+                  aria-describedby={addressInvalid('origin_address') ? `${prefix}-error` : undefined}
                   bind:value={address.origin_address}
                   rows={3}
                   class="min-h-20 resize-none"
                 />
-              </Field>
+              </Field.Field>
 
-              <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel for="origin-zip">{bootstrap.address.i18n.zipcode}</FieldLabel>
-                  <Input id="origin-zip" bind:value={address.origin_zip_code} />
-                </Field>
-                <Field>
-                  <FieldLabel>{bootstrap.address.i18n.subdistrict}</FieldLabel>
+              <Field.Group class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field.Field data-invalid={addressInvalid('origin_zip_code')} data-disabled={busy}>
+                  <Field.Label for="origin-zip">{bootstrap.address.i18n.zipcode}</Field.Label>
+                  <Input id="origin-zip" disabled={busy} aria-invalid={addressInvalid('origin_zip_code')} aria-describedby={addressInvalid('origin_zip_code') ? `${prefix}-error` : undefined} bind:value={address.origin_zip_code} />
+                </Field.Field>
+                <Field.Field data-invalid={addressInvalid('origin_sub_district_id')} data-disabled={busy}>
+                  <Field.Label for="origin-subdistrict">{bootstrap.address.i18n.subdistrict}</Field.Label>
                   <SubdistrictCombobox
+                    id="origin-subdistrict"
+                    disabled={busy}
+                    aria-invalid={addressInvalid('origin_sub_district_id')}
+                    aria-describedby={addressInvalid('origin_sub_district_id') ? `${prefix}-error` : undefined}
                     value={subdistrictQuery || address.origin_sub_district_name || ''}
                     areas={subdistricts}
                     loading={subdistrictLoading}
@@ -773,10 +779,10 @@
                     onSearch={searchSubdistrict}
                     onSelect={selectSubdistrict}
                   />
-                </Field>
-              </div>
-            </FieldGroup>
-          </FieldSet>
+                </Field.Field>
+              </Field.Group>
+            </Field.Group>
+          </Field.Set>
 
           <Separator class="my-3" />
 
@@ -789,7 +795,7 @@
               {/if}
               <button type="button" class="absolute right-2 top-2 z-10 flex size-9 items-center justify-center rounded-md border border-border bg-background text-xl text-foreground shadow-sm" aria-label={bootstrap.i18n.currentLocation} disabled={!mapReady} onclick={locate}><span aria-hidden="true">⌖</span></button>
             </div>
-            <FieldDescription
+            <Field.Description
               class="flex items-center justify-between text-xs text-muted-foreground"
             >
               <span>{bootstrap.address.i18n.mapHelp}</span>
@@ -798,12 +804,12 @@
                   ? `${Number(address.origin_latitude).toFixed(4)}, ${Number(address.origin_longitude).toFixed(4)}`
                   : ''}
               </span>
-            </FieldDescription>
+            </Field.Description>
           </div>
         {:else if current === 'couriers'}
           <div class="mb-4 flex min-w-0 flex-wrap items-center gap-2">
-            <InputGroup.Root class="!h-8 !w-full !min-w-0 !bg-background sm:!w-auto sm:!flex-1">
-              <InputGroup.Addon align="inline-start"><IconSearch class="size-4" aria-hidden="true" /></InputGroup.Addon>
+            <InputGroup.Root class="w-full min-w-0 sm:w-auto sm:flex-1">
+              <InputGroup.Addon align="inline-start"><IconSearch aria-hidden="true" /></InputGroup.Addon>
               <InputGroup.Input
                 id={`${prefix}-courier-search`}
                 type="search"
@@ -822,7 +828,7 @@
                 allCouriersEnabled}
               onclick={enableAllCouriers}
             >
-              <IconCheck class="mr-1.5 h-4 w-4" aria-hidden="true" />
+              <IconCheck data-icon="inline-start" aria-hidden="true" />
               {bootstrap.couriers.i18n.enableAll || 'Enable all'}
             </Button>
             <Button
@@ -834,7 +840,7 @@
                 !hasSelection(courierState.selection)}
               onclick={disableAllCouriers}
             >
-              <IconX class="mr-1.5 h-4 w-4" aria-hidden="true" />
+              <IconX data-icon="inline-start" aria-hidden="true" />
               {bootstrap.couriers.i18n.disableAll || 'Disable all'}
             </Button>
           </div>
@@ -859,7 +865,7 @@
                 onclick={loadCouriers}
                 disabled={busy}
               >
-                <IconRefresh class="mr-1.5 h-4 w-4" aria-hidden="true" />
+                <IconRefresh data-icon="inline-start" aria-hidden="true" />
                 {bootstrap.couriers.i18n.retry || 'Retry'}
               </Button>
             </Alert>
@@ -940,7 +946,7 @@
               class="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             >
               <span>{bootstrap.shipping.i18n.openSettings}</span>
-              <IconExternalLink class="h-3.5 w-3.5" />
+              <IconExternalLink data-icon="inline-end" />
             </a>
           </div>
         {:else}
@@ -966,7 +972,7 @@
         <div>
           {#if currentIndex > 0 && current !== 'complete'}
             <Button variant="outline" onclick={previous} disabled={busy}>
-              <IconChevronLeft class="mr-1 h-4 w-4" />
+              <IconChevronLeft data-icon="inline-start" />
               <span>{bootstrap.i18n.back || 'Back'}</span>
             </Button>
           {/if}
@@ -976,23 +982,23 @@
           {#if current === 'account'}
             <Button onclick={saveAccount} disabled={busy || !canSubmitAccount}>
               {#if busy}
-                <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                <IconLoader2 data-icon="inline-start" class="animate-spin" />
                 <span>Connecting…</span>
               {:else}
                 <span
                   >{accountReady ? bootstrap.i18n.continue || 'Continue' : 'Connect account'}</span
                 >
-                <IconChevronRight class="ml-1 h-4 w-4" />
+                <IconChevronRight data-icon="inline-end" />
               {/if}
             </Button>
           {:else if current === 'address'}
             <Button onclick={saveAddress} disabled={busy}>
               {#if busy}
-                <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                <IconLoader2 data-icon="inline-start" class="animate-spin" />
                 <span>Saving…</span>
               {:else}
                 <span>{bootstrap.i18n.continue || 'Continue'}</span>
-                <IconChevronRight class="ml-1 h-4 w-4" />
+                <IconChevronRight data-icon="inline-end" />
               {/if}
             </Button>
           {:else if current === 'couriers'}
@@ -1005,21 +1011,21 @@
                 !hasSelection(courierState.selection)}
             >
               {#if busy}
-                <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                <IconLoader2 data-icon="inline-start" class="animate-spin" />
                 <span>Saving…</span>
               {:else}
                 <span>{bootstrap.i18n.continue || 'Continue'}</span>
-                <IconChevronRight class="ml-1 h-4 w-4" />
+                <IconChevronRight data-icon="inline-end" />
               {/if}
             </Button>
           {:else if current === 'shipping'}
             <Button onclick={enableShipping} disabled={busy}>
               {#if busy}
-                <IconLoader2 class="mr-1.5 h-4 w-4 animate-spin" />
+                <IconLoader2 data-icon="inline-start" class="animate-spin" />
                 <span>Finishing…</span>
               {:else}
                 <span>{bootstrap.i18n.finish || 'Finish setup'}</span>
-                <IconChevronRight class="ml-1 h-4 w-4" />
+                <IconChevronRight data-icon="inline-end" />
               {/if}
             </Button>
           {:else}

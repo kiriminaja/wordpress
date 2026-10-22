@@ -642,11 +642,10 @@ class Enqueue extends BaseInit{
         $is_order_screen = in_array( $screen_id, array( 'shop_order', 'woocommerce_page_wc-orders' ), true );
 
         $tab = filter_input( INPUT_GET, 'tab', FILTER_SANITIZE_SPECIAL_CHARS );
-        $is_wc_warehouses_settings = 'woocommerce_page_wc-settings' === $screen_id && 'kiriminaja_warehouses' === $tab;
         $is_wc_general_settings    = 'woocommerce_page_wc-settings' === $screen_id
                                      && ( 'general' === $tab || '' === $tab || null === $tab );
 
-        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_warehouses_settings && ! $is_wc_general_settings ) {
+        if ( ! $is_plugin_page && ! $is_order_screen && ! $is_wc_general_settings ) {
             return;
         }
 
@@ -669,7 +668,7 @@ class Enqueue extends BaseInit{
 
 
         // Lists can navigate into detail through the workspace without a full reload.
-        $needs_leaflet = 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] && ( in_array( $page, array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) || $is_wc_warehouses_settings || $is_wc_general_settings );
+        $needs_leaflet = 'leaflet' === ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config()['provider'] && ( in_array( $page, array( 'kiriminaja-setting', 'kiriminaja-transaction', 'kiriminaja-transaction-detail' ), true ) || $is_wc_general_settings );
 
         if ( $needs_leaflet ) {
             wp_enqueue_style( 'kiriof-leaflet-style', $this->plugin_url . 'assets/lib/leaflet/leaflet.css', array(), '1.9.4' );
@@ -677,7 +676,7 @@ class Enqueue extends BaseInit{
         }
 
         $kiriof_script_dependencies = array( 'jquery', 'select2' );
-        if ( $is_wc_warehouses_settings || $is_wc_general_settings ) {
+        if ( $is_wc_general_settings ) {
             $map_bridge_path = 'assets/buyer/dist/kiriminaja-buyer-admin-maps.js';
             wp_enqueue_script( 'kiriof-admin-maps', $this->plugin_url . $map_bridge_path, array(), file_exists( KIRIOF_DIR . $map_bridge_path ) ? (string) filemtime( KIRIOF_DIR . $map_bridge_path ) : KIRIOF_VERSION, true );
             wp_localize_script( 'kiriof-admin-maps', 'kiriofAdminMapsConfig', ( new \KiriminAjaOfficial\Services\GoogleMapsSettings() )->config() );

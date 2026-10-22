@@ -1,5 +1,11 @@
 <script lang="ts">
   import { IconDownload, IconRefresh } from '@tabler/icons-svelte';
+  import * as Card from '$lib/components/ui/card';
+  import * as Field from '$lib/components/ui/field';
+  import * as Alert from '$lib/components/ui/alert';
+  import { Input } from '$lib/components/ui/input';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Spinner } from '$lib/components/ui/spinner';
   import { Button } from '$lib/components/ui/button';
   import { getWordPressAction, postWordPressRawAction } from '../wordpress/ajax';
   import type { TechnicalBootstrap } from './types';
@@ -105,68 +111,90 @@
 </script>
 
 <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings} />
-<div class="kiriof-technical kiriof-settings-content">
+<div class="kiriof-shadcn kiriof-technical kiriof-settings-content flex flex-col gap-4">
   {#if bootstrap.googleMaps}
     <GoogleMapsIntegration bootstrap={bootstrap.googleMaps} />
   {/if}
-  <section class="kiriof-section-card" aria-labelledby="kiriof-region-cache-title">
-    <h2 id="kiriof-region-cache-title">{bootstrap.i18n.regionTitle}</h2>
-    <p>{bootstrap.i18n.regionDescription}</p>
-    <dl class="kiriof-diagnostics">
-      <div><dt>{bootstrap.i18n.status}</dt><dd><span class:warning={region.state !== 'ready'} class:error={region.state === 'error'} class="kiriof-diagnostics__badge">{region.state}</span></dd></div>
-      <div><dt>{bootstrap.i18n.provinces}</dt><dd>{region.provinceCount}</dd></div>
-      <div><dt>{bootstrap.i18n.cities}</dt><dd>{region.cityCount}</dd></div>
-      <div><dt>{bootstrap.i18n.lastUpdated}</dt><dd>{region.updated}</dd></div>
-      <div><dt>{bootstrap.i18n.validUntil}</dt><dd>{region.validUntil}</dd></div>
-    </dl>
-    <div class="kiriof-section-actions">
-      <Button class="kiriof-settings-action-button" disabled={regionBusy} onclick={refreshRegion}>
-        <IconRefresh class={`kiriof-settings-action-button__icon${regionBusy ? ' kiriof-settings-action-button__spin' : ''}`} aria-hidden="true" />
-        <span>{regionBusy ? bootstrap.i18n.refreshing : bootstrap.i18n.refreshRegion}</span>
-      </Button>
-      {#if regionMessage}<span class:error={regionError} class="kiriof-section-message" role={regionError ? 'alert' : 'status'}>{regionMessage}</span>{/if}
-    </div>
-  </section>
-
-  <section class="kiriof-section-card" aria-labelledby="kiriof-courier-cache-title">
-    <h2 id="kiriof-courier-cache-title">{bootstrap.i18n.courierTitle}</h2>
-    <p>{bootstrap.i18n.courierDescription}</p>
-    <dl class="kiriof-diagnostics">
-      <div><dt>{bootstrap.i18n.status}</dt><dd><span class:warning={!couriers.cached} class="kiriof-diagnostics__badge">{couriers.cached ? bootstrap.i18n.cached : bootstrap.i18n.notCached}</span></dd></div>
-      <div><dt>{bootstrap.i18n.couriers}</dt><dd>{couriers.count}</dd></div>
-      <div><dt>{bootstrap.i18n.lastUpdated}</dt><dd>{couriers.updated}</dd></div>
-      <div><dt>{bootstrap.i18n.validUntil}</dt><dd>{couriers.validUntil}</dd></div>
-    </dl>
-    <div class="kiriof-section-actions">
-      <Button class="kiriof-settings-action-button" disabled={courierBusy} onclick={refreshCouriers}>
-        <IconRefresh class={`kiriof-settings-action-button__icon${courierBusy ? ' kiriof-settings-action-button__spin' : ''}`} aria-hidden="true" />
-        <span>{courierBusy ? bootstrap.i18n.flushing : bootstrap.i18n.flushCouriers}</span>
-      </Button>
-      {#if courierMessage}<span class:error={courierError} class="kiriof-section-message" role={courierError ? 'alert' : 'status'}>{courierMessage}</span>{/if}
-    </div>
-  </section>
-
-  <section class="kiriof-section-card" aria-labelledby="kiriof-callbacks-title">
-    <h2 id="kiriof-callbacks-title">{bootstrap.i18n.callbacksTitle}</h2>
-    <p>{bootstrap.i18n.callbacksDescription}</p>
-    {#if bootstrap.callbacks.length}
-      <div class="kiriof-callback-endpoints">
-        {#each bootstrap.callbacks as callback}
-          <code>{callback}</code>
-        {/each}
+  <Card.Root aria-labelledby="kiriof-region-cache-title">
+    <Card.Header>
+      <Card.Title><h2 id="kiriof-region-cache-title">{bootstrap.i18n.regionTitle}</h2></Card.Title>
+      <Card.Description>{bootstrap.i18n.regionDescription}</Card.Description>
+    </Card.Header>
+    <Card.Content class="flex flex-col gap-4">
+      <dl class="kiriof-diagnostics">
+        <div><dt>{bootstrap.i18n.status}</dt><dd><Badge tone={region.state === 'error' ? 'critical' : region.state === 'ready' ? 'success' : 'warning'}>{region.state}</Badge></dd></div>
+        <div><dt>{bootstrap.i18n.provinces}</dt><dd>{region.provinceCount}</dd></div>
+        <div><dt>{bootstrap.i18n.cities}</dt><dd>{region.cityCount}</dd></div>
+        <div><dt>{bootstrap.i18n.lastUpdated}</dt><dd>{region.updated}</dd></div>
+        <div><dt>{bootstrap.i18n.validUntil}</dt><dd>{region.validUntil}</dd></div>
+      </dl>
+      <div class="flex flex-col items-start gap-3">
+        <Button disabled={regionBusy} onclick={refreshRegion}>
+          {#if regionBusy}<Spinner data-icon="inline-start" aria-hidden="true" />{:else}<IconRefresh data-icon="inline-start" aria-hidden="true" />{/if}
+          <span>{regionBusy ? bootstrap.i18n.refreshing : bootstrap.i18n.refreshRegion}</span>
+        </Button>
+        {#if regionMessage}<Alert.Root variant={regionError ? 'destructive' : 'default'} role={regionError ? 'alert' : 'status'}><Alert.Description>{regionMessage}</Alert.Description></Alert.Root>{/if}
       </div>
-    {:else}
-      <p class="kiriof-section-message">{bootstrap.i18n.noCallbacks}</p>
-    {/if}
-  </section>
+    </Card.Content>
+  </Card.Root>
 
-  <section class="kiriof-section-card" aria-labelledby="kiriof-logs-title">
-    <h2 id="kiriof-logs-title">{bootstrap.i18n.logsTitle}</h2>
-    <p>{bootstrap.i18n.logsDescription}</p>
-    <p>{bootstrap.i18n.logsPrivacy}</p>
-    <Button class="kiriof-settings-action-button" href={bootstrap.downloadLogUrl}>
-      <IconDownload class="kiriof-settings-action-button__icon" aria-hidden="true" />
-      <span>{bootstrap.i18n.downloadLog}</span>
-    </Button>
-  </section>
+  <Card.Root aria-labelledby="kiriof-courier-cache-title">
+    <Card.Header>
+      <Card.Title><h2 id="kiriof-courier-cache-title">{bootstrap.i18n.courierTitle}</h2></Card.Title>
+      <Card.Description>{bootstrap.i18n.courierDescription}</Card.Description>
+    </Card.Header>
+    <Card.Content class="flex flex-col gap-4">
+      <dl class="kiriof-diagnostics">
+        <div><dt>{bootstrap.i18n.status}</dt><dd><Badge tone={couriers.cached ? 'success' : 'warning'}>{couriers.cached ? bootstrap.i18n.cached : bootstrap.i18n.notCached}</Badge></dd></div>
+        <div><dt>{bootstrap.i18n.couriers}</dt><dd>{couriers.count}</dd></div>
+        <div><dt>{bootstrap.i18n.lastUpdated}</dt><dd>{couriers.updated}</dd></div>
+        <div><dt>{bootstrap.i18n.validUntil}</dt><dd>{couriers.validUntil}</dd></div>
+      </dl>
+      <div class="flex flex-col items-start gap-3">
+        <Button disabled={courierBusy} onclick={refreshCouriers}>
+          {#if courierBusy}<Spinner data-icon="inline-start" aria-hidden="true" />{:else}<IconRefresh data-icon="inline-start" aria-hidden="true" />{/if}
+          <span>{courierBusy ? bootstrap.i18n.flushing : bootstrap.i18n.flushCouriers}</span>
+        </Button>
+        {#if courierMessage}<Alert.Root variant={courierError ? 'destructive' : 'default'} role={courierError ? 'alert' : 'status'}><Alert.Description>{courierMessage}</Alert.Description></Alert.Root>{/if}
+      </div>
+    </Card.Content>
+  </Card.Root>
+
+  <Card.Root aria-labelledby="kiriof-callbacks-title">
+    <Card.Header>
+      <Card.Title><h2 id="kiriof-callbacks-title">{bootstrap.i18n.callbacksTitle}</h2></Card.Title>
+      <Card.Description>{bootstrap.i18n.callbacksDescription}</Card.Description>
+    </Card.Header>
+    <Card.Content class="flex flex-col gap-4">
+      {#if bootstrap.callbacks.length}
+        <Field.Group>
+          {#each bootstrap.callbacks as callback, index}
+            <Field.Field>
+              <Field.Label for={`kiriof-callback-${index}`}>{bootstrap.i18n.callbacksTitle} {index + 1}</Field.Label>
+              <Input id={`kiriof-callback-${index}`} value={callback} readonly aria-describedby={`kiriof-callback-description-${index}`} />
+              <Field.Description id={`kiriof-callback-description-${index}`}>{bootstrap.i18n.callbacksDescription}</Field.Description>
+            </Field.Field>
+          {/each}
+        </Field.Group>
+      {:else}
+        <p class="kiriof-section-message">{bootstrap.i18n.noCallbacks}</p>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+
+  <Card.Root aria-labelledby="kiriof-logs-title">
+    <Card.Header>
+      <Card.Title><h2 id="kiriof-logs-title">{bootstrap.i18n.logsTitle}</h2></Card.Title>
+      <Card.Description>{bootstrap.i18n.logsDescription}</Card.Description>
+    </Card.Header>
+    <Card.Content>
+      <p class="text-sm text-muted-foreground">{bootstrap.i18n.logsPrivacy}</p>
+    </Card.Content>
+    <Card.Footer>
+      <Button href={bootstrap.downloadLogUrl}>
+        <IconDownload data-icon="inline-start" aria-hidden="true" />
+        <span>{bootstrap.i18n.downloadLog}</span>
+      </Button>
+    </Card.Footer>
+  </Card.Root>
 </div>

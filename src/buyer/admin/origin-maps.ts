@@ -13,7 +13,7 @@ export type AdminMapsWindow = GoogleMapsWindow & {
 export function createAdminOriginMaps(win: AdminMapsWindow) {
   const records = new Map<HTMLElement, { dispose(): void }>();
   let disposed = false;
-  const selector = '#kiriof-wc-origin-map, .kiriof-wc-location-card__body .kiriof-wc-origin-map';
+  const selector = '#kiriof-wc-origin-map';
 
   function initialize(root: Document | HTMLElement = win.document) {
     if (disposed || win.kiriofAdminMapsConfig?.provider !== 'google') return;
@@ -21,23 +21,15 @@ export function createAdminOriginMaps(win: AdminMapsWindow) {
     if ('matches' in root && root.matches(selector)) nodes.unshift(root);
     for (const node of nodes) {
       if (records.has(node)) continue;
-      const global = node.id === 'kiriof-wc-origin-map';
-      const scope = global ? win.document : node.closest('.kiriof-wc-location-card__body');
-      if (!scope) continue;
-      const latitude = scope.querySelector<HTMLInputElement>(
-        global ? '#kiriof_wc_origin_latitude' : '.kiriof-wc-location-latitude',
-      );
-      const longitude = scope.querySelector<HTMLInputElement>(
-        global ? '#kiriof_wc_origin_longitude' : '.kiriof-wc-location-longitude',
-      );
+      const scope = win.document;
+      const latitude = scope.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude');
+      const longitude = scope.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude');
       if (!latitude || !longitude) continue;
       // Snapshot before any asynchronous work; zero is a real coordinate, empty is not.
       const initial = normalizePoint(latitude.value, longitude.value);
-      const button = scope.querySelector<HTMLButtonElement>(
-        global ? '#kiriof-wc-use-my-location' : '.kiriof-wc-origin-my-location',
-      );
-      const coords = global ? scope.querySelector<HTMLElement>('#kiriof-wc-map-coords') : null;
-      let error = global ? scope.querySelector<HTMLElement>('#kiriof-wc-map-error') : null;
+      const button = scope.querySelector<HTMLButtonElement>('#kiriof-wc-use-my-location');
+      const coords = scope.querySelector<HTMLElement>('#kiriof-wc-map-coords');
+      let error = scope.querySelector<HTMLElement>('#kiriof-wc-map-error');
       const ownedError = !error;
       if (!error) {
         error = win.document.createElement('p');
@@ -49,27 +41,8 @@ export function createAdminOriginMaps(win: AdminMapsWindow) {
       let active = true,
         generation = 0;
       let session: MapSession | undefined;
-      let wrapper: HTMLElement | undefined;
-      let pin: HTMLElement | null = global ? (node.nextElementSibling as HTMLElement | null) : null;
+      const pin = node.nextElementSibling as HTMLElement | null;
       const originalPinHidden = pin?.hidden;
-      if (!global) {
-        wrapper = win.document.createElement('div');
-        wrapper.style.position = 'relative';
-        node.before(wrapper);
-        wrapper.append(node);
-        pin = win.document.createElement('span');
-        pin.textContent = '📍';
-        pin.setAttribute('aria-hidden', 'true');
-        Object.assign(pin.style, {
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -100%)',
-          pointerEvents: 'none',
-          fontSize: '30px',
-        });
-        wrapper.append(pin);
-      }
       if (pin) pin.hidden = !initial;
       if (initial) coords?.setAttribute('data-tip', `${initial.latitude}, ${initial.longitude}`);
       const live = () => active && !disposed && node.isConnected;
@@ -146,10 +119,7 @@ export function createAdminOriginMaps(win: AdminMapsWindow) {
           if (button) button.disabled = false;
           session?.dispose();
           if (ownedError) error?.remove();
-          if (wrapper) {
-            wrapper.before(node);
-            wrapper.remove();
-          } else if (pin) pin.hidden = originalPinHidden ?? false;
+          if (pin) pin.hidden = originalPinHidden ?? false;
         },
       });
       void loadGoogleMaps(win.kiriofAdminMapsConfig.apiKey || '', win.document, win)

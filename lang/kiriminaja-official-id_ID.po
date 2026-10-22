@@ -46,6 +46,7 @@ msgid "Could not verify your shipping district. Please try again."
 msgstr "Kelurahan pengiriman Anda tidak dapat diverifikasi. Silakan coba lagi."
 
 #: inc/Services/SettingsPageData.php
+#: inc/Services/WarehousesPageData.php
 msgid "Saving…"
 msgstr "Menyimpan…"
 
@@ -266,6 +267,7 @@ msgid "Network error. Please try again."
 msgstr "Terjadi kesalahan jaringan. Silakan coba lagi."
 
 #: inc/Base/Enqueue.php inc/Controllers/GeneralAjaxController.php
+#: inc/Services/WarehousesPageData.php
 msgid "Could not search subdistricts. Check the KiriminAja connection and try again."
 msgstr "Pencarian kecamatan gagal. Periksa koneksi KiriminAja lalu coba lagi."
 
@@ -498,6 +500,7 @@ msgid "Additional information"
 msgstr "Informasi tambahan"
 
 #: templates/setting/setuped/section-address.php:30
+#: inc/Services/WarehousesPageData.php
 msgid "Address"
 msgstr "Alamat"
 
@@ -553,6 +556,7 @@ msgid "Are you sure you want to cancel this transaction?"
 msgstr "Are you sure you want to cancel this transaction?"
 
 #: templates/setting/setuped/section-address.php:46
+#: inc/Services/WarehousesPageData.php
 msgid "Area"
 msgstr "Wilayah"
 
@@ -599,6 +603,7 @@ msgid "Callback URL"
 msgstr "URL Callback"
 
 #: templates/transaction-process/view/index.php:247
+#: inc/Services/WarehousesPageData.php
 msgid "Cancel"
 msgstr "Batalkan"
 
@@ -700,6 +705,7 @@ msgid "Choose which couriers are available at checkout."
 msgstr "Pilih kurir yang tersedia saat checkout."
 
 #: templates/woocommerce/cart/shipping-calculator.php:79
+#: inc/Services/WarehousesPageData.php
 msgid "City"
 msgstr "Kota"
 
@@ -1035,6 +1041,7 @@ msgstr "Masukkan setup key KiriminAja Anda"
 #: inc/Controllers/TransactionProcessController.php:46
 #: inc/Controllers/TransactionProcessController.php:80
 #: inc/Controllers/TransactionProcessController.php:106
+#: inc/Controllers/WarehouseSettingsController.php
 msgid "Insufficient permissions"
 msgstr "Izin tidak mencukupi"
 
@@ -1197,6 +1204,7 @@ msgstr "Maaf, produk ini tidak memiliki dimensi untuk pengiriman"
 
 #: templates/setting/setuped/index.php:234
 #: templates/setting/setuped/section-address.php:19
+#: inc/Services/WarehousesPageData.php
 msgid "Manage Locations"
 msgstr "Kelola Lokasi"
 
@@ -1217,6 +1225,7 @@ msgid "Minimum COD is %s"
 msgstr "Minimum COD adalah %s"
 
 #: templates/setting/setuped/section-address.php:40
+#: inc/Services/WarehousesPageData.php
 msgid "My Location"
 msgstr "Lokasi Saya"
 
@@ -1406,6 +1415,7 @@ msgid "Pickup: %s"
 msgstr "Pickup: %s"
 
 #: templates/setting/setuped/section-address.php:33
+#: inc/Services/WarehousesPageData.php
 msgid "Pin Location"
 msgstr "Pin Lokasi"
 
@@ -1638,6 +1648,7 @@ msgstr "Section tidak ditemukan."
 #: inc/Controllers/TransactionProcessController.php:51
 #: inc/Controllers/TransactionProcessController.php:85
 #: inc/Controllers/TransactionProcessController.php:111
+#: inc/Controllers/WarehouseSettingsController.php
 msgid "Security check failed"
 msgstr "Pemeriksaan keamanan gagal"
 
@@ -1670,10 +1681,12 @@ msgid "Select an option&hellip;"
 msgstr "Pilih opsi&hellip;"
 
 #: templates/setting/setuped/section-address.php:28
+#: inc/Services/WarehousesPageData.php
 msgid "Sender Name"
 msgstr "Nama Pengirim"
 
 #: templates/setting/setuped/section-address.php:29
+#: inc/Services/WarehousesPageData.php
 msgid "Sender Phone"
 msgstr "Nomor HP Pengirim"
 
@@ -1809,6 +1822,7 @@ msgstr "Provinsi / Kabupaten:"
 #: templates/front/tracking.php:57
 #: templates/order/metabox-shipping.php:44
 #: templates/request-pickup-detail/view/index.php:74
+#: inc/Services/WarehousesPageData.php
 msgid "Status"
 msgstr "Status"
 
@@ -2830,6 +2844,7 @@ msgid "Extension"
 msgstr "Ekstensi"
 
 #: inc/Controllers/ShippingDiscountCouponController.php
+#: inc/Services/WarehousesPageData.php
 msgid "Default"
 msgstr "Default"
 
@@ -3450,30 +3465,35 @@ msgstr "Tindakan"
 msgid "Activate"
 msgstr "Aktifkan"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Active"
 msgstr "Aktif"
 
 msgid "Add New"
 msgstr "Tambah Baru"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Add Shipment Location"
 msgstr "Tambah Lokasi Pengiriman"
 
 msgid "Deactivate"
 msgstr "Nonaktifkan"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Delete"
 msgstr "Hapus"
 
 msgid "Delete this shipment location?"
 msgstr "Hapus lokasi pengiriman ini?"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Edit Shipment Location"
 msgstr "Edit Lokasi Pengiriman"
 
 msgid "For example: Jakarta warehouse."
 msgstr "Contoh: gudang Jakarta."
 
+#: inc/Services/WarehousesPageData.php
 msgid "Inactive"
 msgstr "Tidak Aktif"
 
@@ -3555,6 +3575,7 @@ msgstr "Lokasi pengiriman default:"
 msgid "Products without an assigned shipment location use this origin."
 msgstr "Produk tanpa lokasi pengiriman yang ditetapkan menggunakan asal ini."
 
+#: inc/Services/WarehousesPageData.php
 msgid "Zip"
 msgstr "Kode Pos"
 
@@ -3573,9 +3594,11 @@ msgstr "Lokasi pengiriman dikelola di pengaturan Umum WooCommerce pada Alamat To
 msgid "Open Store Address settings"
 msgstr "Buka pengaturan Alamat Toko"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Address line 2"
 msgstr "Alamat baris 2"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Country / State"
 msgstr "Negara / Negara Bagian"
 
@@ -3588,9 +3611,11 @@ msgstr "Area / Kota"
 msgid "Shipment Location"
 msgstr "Lokasi Pengiriman"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Are you sure you want to delete this shipment location?"
 msgstr "Apakah Anda yakin ingin menghapus lokasi pengiriman ini?"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Save changes"
 msgstr "Simpan perubahan"
 
@@ -3606,6 +3631,7 @@ msgstr "Jadikan default"
 msgid "Warehouses"
 msgstr "Gudang"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Manage every pickup address used for shipping calculations. The default location is used when no other rule applies."
 msgstr "Kelola setiap alamat penjemputan yang digunakan untuk perhitungan pengiriman. Lokasi default digunakan jika tidak ada aturan lain yang berlaku."
 
@@ -3619,9 +3645,11 @@ msgstr "Ini adalah alamat default yang digunakan untuk perhitungan pengiriman. U
 msgid "Set Primary"
 msgstr "Tetapkan Utama"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Warehouse name"
 msgstr "Nama Gudang"
 
+#: inc/Services/WarehousesPageData.php
 msgid "Region(s)"
 msgstr "Wilayah"
 
@@ -3668,9 +3696,12 @@ msgid "Current origin"
 msgstr "Origin saat ini"
 
 #. translators: 1: current custom location count, 2: custom location limit.
+#: inc/Services/WarehousesPageData.php
 msgid "%1$d of %2$d custom shipment addresses used. The default origin is not counted."
 msgstr "%1$d dari %2$d alamat pengiriman custom telah digunakan. Origin default tidak dihitung."
 
+#: inc/Services/WarehousesPageData.php
+#: inc/Controllers/WarehouseSettingsController.php
 msgid "The custom shipment address limit has been reached. Edit or delete an existing custom address first."
 msgstr "Batas alamat pengiriman custom telah tercapai. Ubah atau hapus alamat custom yang ada terlebih dahulu."
 
@@ -3874,6 +3905,8 @@ msgstr "Detail lokasi pengiriman"
 msgid "Required fields"
 msgstr "Kolom wajib"
 
+#: inc/Services/WarehousesPageData.php
+#: inc/Controllers/WarehouseSettingsController.php
 msgid "Shipment location could not be saved. Check all required fields and try again."
 msgstr "Lokasi pengiriman tidak dapat disimpan. Periksa semua field wajib lalu coba lagi."
 
@@ -5685,6 +5718,7 @@ msgid "Enter at least 3 characters"
 msgstr "Masukkan minimal 3 karakter"
 
 #: templates/front/partials/form-billing-address-config.php
+#: inc/Services/WarehousesPageData.php
 msgid "Searching…"
 msgstr "Mencari…"
 
@@ -5976,3 +6010,43 @@ msgstr "Nama penerima dan nomor telepon Indonesia yang valid diperlukan untuk pe
 #: inc/Services/InstantCheckoutQuoteService.php
 msgid "The shipping recipient address must contain 20 to 250 characters for Instant delivery."
 msgstr "Alamat penerima harus terdiri dari 20 hingga 250 karakter untuk pengiriman Instant."
+
+#: inc/Services/WarehousesPageData.php
+msgid "No shipment locations yet."
+msgstr "Belum ada lokasi pengiriman."
+
+#: inc/Services/WarehousesPageData.php
+msgid "No areas found."
+msgstr "Wilayah tidak ditemukan."
+
+#: inc/Services/WarehousesPageData.php
+msgid "Type at least 3 characters to search."
+msgstr "Ketik minimal 3 karakter untuk mencari."
+
+#: inc/Services/WarehousesPageData.php
+msgid "Map or current location unavailable. Please try again."
+msgstr "Peta atau lokasi saat ini tidak tersedia. Silakan coba lagi."
+
+#: inc/Services/WarehousesPageData.php
+msgid "Click or move the map to select the pickup location."
+msgstr "Klik atau geser peta untuk memilih lokasi penjemputan."
+
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "Shipment location save failed and could not be fully restored. Review the default location and store address before retrying."
+msgstr "Lokasi pengiriman gagal disimpan dan tidak dapat dipulihkan sepenuhnya. Periksa lokasi default dan alamat toko sebelum mencoba lagi."
+
+#: inc/Services/WarehousesPageData.php
+msgid "Pickup location selected."
+msgstr "Lokasi penjemputan dipilih."
+
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "Shipment location not found."
+msgstr "Lokasi pengiriman tidak ditemukan."
+
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "The default location cannot be deleted or disabled."
+msgstr "Lokasi default tidak dapat dihapus atau dinonaktifkan."
+
+#: inc/Services/TransactionListRenderService.php inc/Services/PickupDetailPageData.php
+msgid "View address details"
+msgstr "Lihat detail alamat"

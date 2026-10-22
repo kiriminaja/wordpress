@@ -741,9 +741,6 @@ body:has(.kiriof-transaction-dialog-content) [data-slot='select-content'] {
 .kiriof-print-status.unprinted {
   @apply text-secondary-foreground;
 }
-.kiriof-route-arrow {
-  @apply block my-0.5 text-muted-foreground text-[10px];
-}
 .kiriof-data-table-footer {
   @apply flex items-center justify-between gap-3 [padding:10px_14px] border-t text-muted-foreground text-xs;
 }

@@ -141,7 +141,7 @@
   width: 100%;
 }
 
-.kj-wrap button {
+.kj-wrap button:not(.kiriof-button) {
   width: auto !important;
   cursor: pointer;
   display: inline-block;

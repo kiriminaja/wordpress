@@ -1,7 +1,15 @@
 @import 'tailwindcss/theme.css' layer(theme);
 
 .kiriof-shadcn,
-body.kiriof-admin {
+body.kiriof-admin,
+body.kiriof-admin
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='select-content'],
+    [data-slot='popover-content'],
+    [data-slot='tooltip-content']
+  ) {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -109,12 +117,28 @@ body.kiriof-admin {
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Shadcn's semantic border/outline defaults, restricted to plugin surfaces.
+ * Utilities remain globally available as on main; no all-element geometry reset. */
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground;
+  .kiriof-shadcn,
+  .kiriof-shadcn *,
+  body.kiriof-admin
+    :is(
+      [data-slot='dialog-content'],
+      [data-slot='alert-dialog-content'],
+      [data-slot='select-content'],
+      [data-slot='popover-content'],
+      [data-slot='tooltip-content']
+    ),
+  body.kiriof-admin
+    :is(
+      [data-slot='dialog-content'],
+      [data-slot='alert-dialog-content'],
+      [data-slot='select-content'],
+      [data-slot='popover-content'],
+      [data-slot='tooltip-content']
+    )
+    * {
+    @apply box-border border-0 border-solid border-border outline-ring/50;
   }
 }

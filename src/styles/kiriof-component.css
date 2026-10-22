@@ -108,3 +108,116 @@
     transform: scaleX(1);
   }
 }
+
+/* Bits portals live outside the managed page; keep their native shadcn stacking
+ * order above WordPress chrome without changing component geometry or colors. */
+body.kiriof-admin :is([data-slot='dialog-overlay'], [data-slot='alert-dialog-overlay']) {
+  @apply !z-[100000];
+}
+body.kiriof-admin :is([data-slot='dialog-content'], [data-slot='alert-dialog-content']) {
+  @apply !z-[100001];
+}
+body.kiriof-admin
+  :is([data-slot='select-content'], [data-slot='popover-content'], [data-slot='tooltip-content']) {
+  @apply !z-[100002];
+}
+/* Native controls need the preflight defaults that standalone shadcn normally
+ * receives. Only installed component slots participate; legacy markup does not. */
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  :is([data-slot='input'], [data-slot='textarea']),
+body.kiriof-admin [data-slot='popover-content'] [data-slot='input'] {
+  @apply box-border m-0 min-w-0 border border-solid border-border rounded-lg bg-transparent px-2.5 py-1 text-sm leading-normal;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  input[data-slot='input'] {
+  @apply h-8 min-h-8;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  textarea[data-slot='textarea'] {
+  @apply min-h-16 py-2;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  :is([data-slot='input'], [data-slot='textarea']):focus-visible,
+body.kiriof-admin [data-slot='popover-content'] [data-slot='input']:focus-visible {
+  @apply border-ring ring-3 ring-ring/50 outline-none;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  :is([data-slot='input'], [data-slot='textarea']):not(:focus-visible):not([aria-invalid='true']) {
+  @apply shadow-none;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  :is([data-slot='input'], [data-slot='textarea'])[aria-invalid='true'] {
+  @apply border-destructive ring-3 ring-destructive/20;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  :is([data-slot='input'], [data-slot='textarea']):disabled {
+  @apply bg-input/50 opacity-50 pointer-events-none;
+}
+/* Match component defaults without resetting semantic-class headings or lists. */
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  [data-slot='field-label'] {
+  @apply flex gap-2 m-0 text-sm font-medium;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  [data-slot='field-set'] {
+  @apply border-0 p-0 m-0;
+}
+.kiriof-shadcn
+  :is([data-slot='card-title'], [data-slot='card-description'], [data-slot='field-description']) {
+  @apply m-0;
+}
+:is(
+    .kiriof-shadcn,
+    body.kiriof-admin [data-slot='dialog-content'],
+    body.kiriof-admin [data-slot='alert-dialog-content'],
+    body.kiriof-admin [data-slot='popover-content']
+  )
+  [data-slot='card-title']
+  > :is(h1, h2, h3, h4) {
+  @apply m-0 text-inherit font-[inherit];
+}

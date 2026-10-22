@@ -1,4 +1,10 @@
 <script lang="ts">
+  import * as Card from '$lib/components/ui/card';
+  import * as Field from '$lib/components/ui/field';
+  import * as Alert from '$lib/components/ui/alert';
+  import { Input } from '$lib/components/ui/input';
+  import { Badge } from '$lib/components/ui/badge';
+  import { Spinner } from '$lib/components/ui/spinner';
   import { Button } from '$lib/components/ui/button';
   import { postWordPressAction } from '../wordpress/ajax';
   import type { GoogleMapsBootstrap, GoogleMapsSummary } from './types';
@@ -42,23 +48,38 @@
   }
 </script>
 
-<section class="kiriof-section-card" aria-labelledby="kiriof-google-maps-title">
-  <h2 id="kiriof-google-maps-title">{bootstrap.i18n.title}</h2>
-  <p>{bootstrap.i18n.guidance}</p>
-  {#if summary.configured}
-    <p>{bootstrap.i18n.configured}: <code>{safeMask(summary.maskedKey)}</code></p>
-  {:else}
-    <p>{bootstrap.i18n.notConfigured}</p>
-  {/if}
-  <form onsubmit={(event) => { event.preventDefault(); void update('save'); }}>
-    <label for="kiriof-google-maps-key">{bootstrap.i18n.keyLabel}</label>
-    <input id="kiriof-google-maps-key" type="password" bind:value={key} autocomplete="new-password" spellcheck="false" placeholder={bootstrap.i18n.placeholder} disabled={busy} />
-    <div class="kiriof-section-actions">
-      <Button type="submit" class="kiriof-settings-action-button" disabled={busy}>{busy ? bootstrap.i18n.busy : bootstrap.i18n.save}</Button>
-      {#if summary.configured}
-        <Button type="button" class="kiriof-settings-action-button" disabled={busy} onclick={() => update('remove')}>{bootstrap.i18n.remove}</Button>
-      {/if}
-      {#if message}<span class:error={failed} class="kiriof-section-message" role={failed ? 'alert' : 'status'}>{message}</span>{/if}
+<Card.Root aria-labelledby="kiriof-google-maps-title">
+  <Card.Header>
+    <Card.Title><h2 id="kiriof-google-maps-title">{bootstrap.i18n.title}</h2></Card.Title>
+    <Card.Description>{bootstrap.i18n.guidance}</Card.Description>
+  </Card.Header>
+  <Card.Content class="flex flex-col gap-4">
+    <div class="flex flex-wrap items-center gap-2">
+      <Badge tone={summary.configured ? 'success' : 'warning'}>{summary.configured ? bootstrap.i18n.configured : bootstrap.i18n.notConfigured}</Badge>
+      {#if summary.configured}<code>{safeMask(summary.maskedKey)}</code>{/if}
     </div>
-  </form>
-</section>
+    <form class="flex flex-col gap-4" aria-busy={busy} onsubmit={(event) => { event.preventDefault(); void update('save'); }}>
+      <Field.Group>
+        <Field.Field data-disabled={busy}>
+          <Field.Label for="kiriof-google-maps-key">{bootstrap.i18n.keyLabel}</Field.Label>
+          <Input id="kiriof-google-maps-key" type="password" bind:value={key} autocomplete="new-password" spellcheck="false" placeholder={bootstrap.i18n.placeholder} disabled={busy} aria-describedby="kiriof-google-maps-guidance" />
+          <Field.Description id="kiriof-google-maps-guidance">{bootstrap.i18n.guidance}</Field.Description>
+        </Field.Field>
+      </Field.Group>
+      <div class="flex flex-wrap gap-2">
+        <Button type="submit" disabled={busy}>
+          {#if busy}<Spinner data-icon="inline-start" aria-hidden="true" />{/if}
+          {busy ? bootstrap.i18n.busy : bootstrap.i18n.save}
+        </Button>
+        {#if summary.configured}
+          <Button type="button" variant="outline" disabled={busy} onclick={() => update('remove')}>{bootstrap.i18n.remove}</Button>
+        {/if}
+      </div>
+      {#if message}
+        <Alert.Root variant={failed ? 'destructive' : 'default'} role={failed ? 'alert' : 'status'}>
+          <Alert.Description>{message}</Alert.Description>
+        </Alert.Root>
+      {/if}
+    </form>
+  </Card.Content>
+</Card.Root>

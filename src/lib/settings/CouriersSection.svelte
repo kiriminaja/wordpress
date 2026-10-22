@@ -115,7 +115,7 @@
 
 <div class="kiriof-shadcn kiriof-couriers-toolbar contents">
   <Toolbar toolbar={bootstrap.toolbar} onNavigate={navigateSettings}>
-    <InputGroup.Root class="kiriof-couriers-search !h-[34px] !w-full !min-w-0 !bg-background sm:!w-64">
+    <InputGroup.Root class="kiriof-couriers-search w-full min-w-0 sm:w-64">
       <InputGroup.Addon align="inline-start"><IconSearch class="size-4" aria-hidden="true" /></InputGroup.Addon>
       <InputGroup.Input
         id={`${prefix}-search`}

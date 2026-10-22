@@ -175,7 +175,8 @@ export type SettingsAppBootstrap =
   | TechnicalBootstrap
   | TrackingBootstrap
   | AccountBootstrap
-  | CouriersBootstrap;
+  | CouriersBootstrap
+  | import('./warehouses-types').WarehousesBootstrap;
 
 export type SettingsGroup = {
   label: string;

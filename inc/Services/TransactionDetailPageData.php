@@ -174,7 +174,7 @@ class TransactionDetailPageData
             "toolbar" => $toolbar,
             "shipmentLocations" => $this->safe_shipment_locations( $transaction, $warnings ),
             "locationsUrl" => admin_url(
-                "admin.php?page=wc-settings&tab=kiriminaja_warehouses",
+                "admin.php?page=kiriminaja-setting&section=warehouses",
             ),
             "transaction" => [
                 "deliveryType" => $delivery_type,
@@ -371,7 +371,7 @@ class TransactionDetailPageData
                 "menu" => $this->toolbar_menu(),
             ],
             "shipmentLocations" => [],
-            "locationsUrl" => admin_url("admin.php?page=wc-settings&tab=kiriminaja_warehouses"),
+            "locationsUrl" => admin_url("admin.php?page=kiriminaja-setting&section=warehouses"),
             "bootstrapError" => $message,
             "transaction" => [
                 "deliveryType" => $delivery_type,

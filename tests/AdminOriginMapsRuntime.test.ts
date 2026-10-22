@@ -5,7 +5,7 @@ import { createAdminOriginMaps, type AdminMapsWindow } from '../src/buyer/admin/
 function fixture(preloaded = true, provider = 'google') {
   const window = new happy.Window({ url: 'https://fixture.test', settings: { disableJavaScriptFileLoading: true, enableJavaScriptEvaluation: false, handleDisabledFileLoadingAsSuccess: true } });
   const win = window as unknown as AdminMapsWindow;
-  window.document.body.innerHTML = `<form id="mainform"><input id="kiriof_wc_origin_latitude" value="0"><input id="kiriof_wc_origin_longitude" value="0"><div style="position:relative"><div id="kiriof-wc-origin-map"></div><div class="existing-pin"></div><button type="button" id="kiriof-wc-use-my-location">Locate</button></div><span id="kiriof-wc-map-coords"></span><p id="kiriof-wc-map-error" style="display:none"></p><div class="kiriof-wc-location-card__body"><div class="kiriof-wc-origin-map" data-lat="" data-lng=""></div><input class="kiriof-wc-location-latitude" name="kiriof_locations[one][latitude]" value=""><input class="kiriof-wc-location-longitude" name="kiriof_locations[one][longitude]" value=""><button type="button" class="kiriof-wc-origin-my-location">Locate</button></div><div class="kiriof-wc-origin-map unrelated"></div></form>`;
+  window.document.body.innerHTML = `<form id="mainform"><input id="kiriof_wc_origin_latitude" value="0"><input id="kiriof_wc_origin_longitude" value="0"><div style="position:relative"><div id="kiriof-wc-origin-map"></div><div class="existing-pin"></div><button type="button" id="kiriof-wc-use-my-location">Locate</button></div><span id="kiriof-wc-map-coords"></span><p id="kiriof-wc-map-error" style="display:none"></p><div class="kiriof-wc-origin-map unrelated"></div></form>`;
   const maps: MockMap[] = [];
   let success: PositionCallback | undefined, failure: PositionErrorCallback | undefined;
   let submissions = 0, changes = 0;
@@ -42,19 +42,17 @@ function fixture(preloaded = true, provider = 'google') {
   };
 }
 
-test('Google origin maps preserve zero/saved controls, do not publish a default pin, and update native controls without submitting', async () => {
+test('Woo General Google origin map preserves zero and updates native controls without submitting', async () => {
   const h = fixture();
   try {
     h.bridge.initialize(); h.bridge.initialize(); await h.settle();
-    expect(h.maps).toHaveLength(2);
+    expect(h.maps).toHaveLength(1);
     expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
     expect(h.window.document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value).toBe('0');
-    expect(h.window.document.querySelector<HTMLInputElement>('.kiriof-wc-location-latitude')!.value).toBe('');
-    expect(h.window.document.querySelector<HTMLElement>('.kiriof-wc-location-card__body [aria-hidden]')!.hidden).toBe(true);
     expect(h.changes()).toBe(0);
-    h.maps[1].events.click({ latLng: { lat: () => 0, lng: () => 120.12345678 } });
-    expect(h.window.document.querySelector<HTMLInputElement>('.kiriof-wc-location-latitude')!.value).toBe('0.0000000');
-    expect(h.window.document.querySelector<HTMLInputElement>('.kiriof-wc-location-longitude')!.value).toBe('120.1234568');
+    h.maps[0].events.click({ latLng: { lat: () => 0, lng: () => 120.12345678 } });
+    expect(h.window.document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value).toBe('0.0000000');
+    expect(h.window.document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!.value).toBe('120.1234568');
     expect(h.changes()).toBe(2);
     expect(h.submissions()).toBe(0);
     h.maps[0].events.idle({});
@@ -63,6 +61,26 @@ test('Google origin maps preserve zero/saved controls, do not publish a default 
     expect(h.window.document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!.value).toBe('-6.4000000');
     expect(h.submissions()).toBe(0);
   } finally { h.cleanup(); }
+});
+
+test('Woo General blank coordinates do not publish a default pin and saved coordinates remain unchanged', async () => {
+  for (const [latitude, longitude] of [['', ''], ['-6.2', '106.8']]) {
+    const h = fixture();
+    try {
+      const lat = h.window.document.querySelector<HTMLInputElement>('#kiriof_wc_origin_latitude')!;
+      const lng = h.window.document.querySelector<HTMLInputElement>('#kiriof_wc_origin_longitude')!;
+      lat.value = latitude; lng.value = longitude;
+      const node = h.window.document.querySelector<HTMLElement>('#kiriof-wc-origin-map')!;
+      h.bridge.initialize(node); h.bridge.initialize(); await h.settle();
+      expect(h.maps).toHaveLength(1);
+      expect(lat.value).toBe(latitude); expect(lng.value).toBe(longitude);
+      expect(h.window.document.querySelector<HTMLElement>('.existing-pin')!.hidden).toBe(!latitude);
+      if (latitude) expect(h.maps[0].center).toEqual({ lat: -6.2, lng: 106.8 });
+      expect(h.changes()).toBe(0); expect(h.submissions()).toBe(0);
+      h.bridge.dispose();
+      expect(h.window.document.querySelector<HTMLElement>('.existing-pin')!.hidden).toBe(false);
+    } finally { h.cleanup(); }
+  }
 });
 
 test('location buttons recover from localized errors and ignore callbacks after pagehide', async () => {

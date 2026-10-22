@@ -140,7 +140,7 @@ class SettingsPageData {
 	/**
 	 * @return array<string, string>
 	 */
-	private function settingsToolbar( string $title ): array {
+	public static function settingsToolbar( string $title ): array {
 		$logo_url = defined( 'KIRIOF_URL' )
 			? KIRIOF_URL . 'assets/admin/img/icon-128x128.png'
 			: 'assets/admin/img/icon-128x128.png';
@@ -280,7 +280,7 @@ class SettingsPageData {
 					$this->settingsRootItem( 'couriers', __( 'Courier List', 'kiriminaja-official' ), __( 'Choose which couriers are available at checkout.', 'kiriminaja-official' ), 'courier', $base_url . '&section=couriers', sprintf( __( '%d Enabled', 'kiriminaja-official' ), (int) ( $list_data['kiriof_enabled_courier_count'] ?? 0 ) ), (int) ( $list_data['kiriof_enabled_courier_count'] ?? 0 ) > 0 ? 'ready' : 'warning' ),
 					$this->settingsRootItem( 'insurance', __( 'Shipping Insurance', 'kiriminaja-official' ), __( 'Require shipping insurance on all orders.', 'kiriminaja-official' ), 'insurance', '', '', '', 'insurance' ),
 					$this->settingsRootItem( 'cod', __( 'Cash on Delivery', 'kiriminaja-official' ), __( 'Allow customers to pay when they receive their order.', 'kiriminaja-official' ), 'cod', '', '', '', 'cod' ),
-					$this->settingsRootItem( 'locations', __( 'Manage Locations', 'kiriminaja-official' ), __( 'Set your default and additional pickup addresses for accurate shipping rates.', 'kiriminaja-official' ), 'location', admin_url( 'admin.php?page=wc-settings&tab=kiriminaja_warehouses' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? __( 'Default address ready', 'kiriminaja-official' ) : __( 'Add default address', 'kiriminaja-official' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? 'ready' : 'warning' ),
+					$this->settingsRootItem( 'locations', __( 'Manage Locations', 'kiriminaja-official' ), __( 'Set your default and additional pickup addresses for accurate shipping rates.', 'kiriminaja-official' ), 'location', admin_url( 'admin.php?page=kiriminaja-setting&section=warehouses' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? __( 'Default address ready', 'kiriminaja-official' ) : __( 'Add default address', 'kiriminaja-official' ), ! empty( $list_data['kiriof_default_address_ready'] ) ? 'ready' : 'warning' ),
 				),
 			),
 			array(

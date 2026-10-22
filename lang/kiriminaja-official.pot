@@ -548,6 +548,7 @@ msgstr ""
 #: inc/Controllers/TransactionProcessController.php:51
 #: inc/Controllers/TransactionProcessController.php:85
 #: inc/Controllers/TransactionProcessController.php:111
+#: inc/Controllers/WarehouseSettingsController.php
 msgid "Security check failed"
 msgstr ""
 
@@ -632,6 +633,7 @@ msgstr ""
 #: inc/Controllers/TransactionProcessController.php:46
 #: inc/Controllers/TransactionProcessController.php:80
 #: inc/Controllers/TransactionProcessController.php:106
+#: inc/Controllers/WarehouseSettingsController.php
 msgid "Insufficient permissions"
 msgstr ""
 
@@ -820,6 +822,7 @@ msgstr ""
 #: templates/front/tracking.php:57
 #: templates/order/metabox-shipping.php:44
 #: templates/request-pickup-detail/view/index.php:74
+#: inc/Services/WarehousesPageData.php
 msgid "Status"
 msgstr ""
 
@@ -1268,6 +1271,7 @@ msgstr ""
 
 #: templates/setting/setuped/index.php:234
 #: templates/setting/setuped/section-address.php:19
+#: inc/Services/WarehousesPageData.php
 msgid "Manage Locations"
 msgstr ""
 
@@ -1410,22 +1414,27 @@ msgid "Disconnect failed."
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:28
+#: inc/Services/WarehousesPageData.php
 msgid "Sender Name"
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:29
+#: inc/Services/WarehousesPageData.php
 msgid "Sender Phone"
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:30
+#: inc/Services/WarehousesPageData.php
 msgid "Address"
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:33
+#: inc/Services/WarehousesPageData.php
 msgid "Pin Location"
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:40
+#: inc/Services/WarehousesPageData.php
 msgid "My Location"
 msgstr ""
 
@@ -1434,6 +1443,7 @@ msgid "Zipcode"
 msgstr ""
 
 #: templates/setting/setuped/section-address.php:46
+#: inc/Services/WarehousesPageData.php
 msgid "Area"
 msgstr ""
 
@@ -1629,6 +1639,7 @@ msgid "Order ID"
 msgstr ""
 
 #: templates/transaction-process/view/index.php:247
+#: inc/Services/WarehousesPageData.php
 msgid "Cancel"
 msgstr ""
 
@@ -1880,6 +1891,7 @@ msgid "City:"
 msgstr ""
 
 #: templates/woocommerce/cart/shipping-calculator.php:79
+#: inc/Services/WarehousesPageData.php
 msgid "City"
 msgstr ""
 
@@ -2802,4 +2814,128 @@ msgstr ""
 
 #: inc/Controllers/ShippingDiscountCouponController.php
 msgid "Select the couriers eligible for this coupon. Choose \"All Couriers\" to include every courier."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Manage every pickup address used for shipping calculations. The default location is used when no other rule applies."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Add Shipment Location"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Edit Shipment Location"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Warehouse name"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Region(s)"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Active"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Inactive"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Default"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "No shipment locations yet."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Address line 2"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Country / State"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Searching…"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "No areas found."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Type at least 3 characters to search."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Could not search subdistricts. Check the KiriminAja connection and try again."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Map or current location unavailable. Please try again."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Click or move the map to select the pickup location."
+msgstr ""
+
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "Shipment location save failed and could not be fully restored. Review the default location and store address before retrying."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Pickup location selected."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Zip"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Save changes"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Saving…"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Delete"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+msgid "Are you sure you want to delete this shipment location?"
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "Shipment location could not be saved. Check all required fields and try again."
+msgstr ""
+
+#: inc/Services/WarehousesPageData.php
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "The custom shipment address limit has been reached. Edit or delete an existing custom address first."
+msgstr ""
+
+#. translators: 1: current custom location count, 2: custom location limit.
+#, php-format
+#: inc/Services/WarehousesPageData.php
+msgid "%1$d of %2$d custom shipment addresses used. The default origin is not counted."
+msgstr ""
+
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "Shipment location not found."
+msgstr ""
+
+#: inc/Controllers/WarehouseSettingsController.php
+msgid "The default location cannot be deleted or disabled."
+msgstr ""
+
+#: inc/Services/TransactionListRenderService.php inc/Services/PickupDetailPageData.php
+msgid "View address details"
 msgstr ""
