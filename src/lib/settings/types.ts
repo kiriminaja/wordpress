@@ -26,6 +26,7 @@ export type GoogleMapsSummary = { configured: boolean; maskedKey: string };
 
 export type GoogleMapsBootstrap = GoogleMapsSummary & {
   nonce: string;
+  browserCheckUrl: string;
   i18n: {
     title: string;
     guidance: string;
@@ -38,6 +39,20 @@ export type GoogleMapsBootstrap = GoogleMapsSummary & {
     busy: string;
     saved: string;
     failed: string;
+    keyHint: string;
+    showKey: string;
+    hideKey: string;
+    browserCheckTitle: string;
+    browserCheckGuidance: string;
+    originLabel: string;
+    checking: string;
+    checkAgain: string;
+    browserReady: string;
+    browserFailed: string;
+    browserNetwork: string;
+    browserTimeout: string;
+    browserNotConfigured: string;
+    previewTitle: string;
   };
 };
 

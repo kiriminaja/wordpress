@@ -227,6 +227,13 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$this->assertSame( 'Cached', $technical['courierBadgeTxt'] );
 		$this->assertSame( 'Manual refresh only', $technical['regionValidUntil'] );
 		$this->assertSame( 'technical', $technical_bootstrap['view'] );
+		$maps = $technical_bootstrap['googleMaps'];
+		$this->assertSame( array( 'configured', 'maskedKey', 'nonce', 'browserCheckUrl', 'i18n' ), array_keys( $maps ) );
+		$check_url = parse_url( $maps['browserCheckUrl'] );
+		$this->assertSame( home_url( '/' ), strtok( $maps['browserCheckUrl'], '?' ) );
+		parse_str( $check_url['query'], $check_query );
+		$this->assertSame( array( 'kiriof_google_maps_browser_check' => '1', '_wpnonce' => 'nonce-kiriof_google_maps_settings' ), $check_query );
+		$this->assertStringNotContainsString( '&amp;', $maps['browserCheckUrl'] );
 		$this->assertSame( 38, $technical_bootstrap['region']['provinceCount'] );
 		$this->assertTrue( $technical_bootstrap['couriers']['cached'] );
 		$this->assertContains( 'https://example.test/?feed=kiriminaja-callback', $technical_bootstrap['callbacks'] );
