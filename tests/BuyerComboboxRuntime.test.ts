@@ -451,6 +451,30 @@ const postalRows = (rows: [string, string][]) => ({
 });
 
 describe('Classic checkout postcode recovery (opt-in)', () => {
+  test('closing an untouched dropdown does not cancel pending postcode recovery', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(postalAddress(), { isCheckout: '1' }, (w) => {
+      requests = postalRequests(w);
+    });
+    try {
+      await h.open();
+      const input = h.window.document.querySelector('[data-combobox-input]')!;
+      input.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+      input.dispatchEvent(new h.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await h.settle();
+      expect(requests[0].signal.aborted).toBe(false);
+      expect(h.bridge.districtPending()).toBe(true);
+      requests[0].resolve(postalRows([['202', 'Canonical']]));
+      await h.settle();
+      expect(h.window.document.querySelector('select')!.value).toBe('202');
+      expect(h.changes).toHaveLength(1);
+      expect(h.bridge.districtPending()).toBe(false);
+      expect(requests).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
   test('WordPress-localized checkout string enables verified recovery', async () => {
     let requests!: ReturnType<typeof postalRequests>;
     const h = await fixture(postalAddress(), { isCheckout: '1' }, (w) => {

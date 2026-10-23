@@ -411,6 +411,8 @@ export function startClassicSelectors(
       recover(record, true);
       return;
     }
+    // Closing the dropdown reports a blank term, not a new buyer choice.
+    if (!value.trim()) return;
     manualIntent(record);
     cancel(record);
     const term = value.trim();

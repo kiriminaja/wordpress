@@ -521,6 +521,30 @@ test('Classic autofill exposes a localized read failure and Retry recovers throu
   } finally { await fixture.cleanup(); }
 });
 
+test('Classic autofill continues when the buyer closes an untouched dropdown during lookup', async ({ app, browser }) => {
+  let releaseRead!: () => void;
+  const heldRead = new Promise<void>(resolve => { releaseRead = resolve; });
+  const fixture = await checkout(app, browser, true, async () => {
+    await heldRead;
+    return { success: true, data: [district] };
+  }, false, false, true, { shippingPostcode: '' });
+  try {
+    await expect.poll(() => fixture.searches().length).toBe(1);
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await browser.keyboard.press('Escape');
+    releaseRead();
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: district.id, label: district.text },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    await acknowledgeRecovery(fixture, browser, district.id, 'billing');
+    expect(fixture.searches()).toHaveLength(1);
+  } finally {
+    releaseRead();
+    await fixture.cleanup();
+  }
+});
+
 test('Classic autofill ignores a slow postcode response after the buyer manually chooses another district', async ({ app, browser, screen }) => {
   let releaseRead!: () => void;
   const heldRead = new Promise<void>(resolve => { releaseRead = resolve; });
