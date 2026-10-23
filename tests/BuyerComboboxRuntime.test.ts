@@ -219,6 +219,153 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
     }
   });
 
+  test('unselected district refresh stays native-owned; replacement change before mount wins', async () => {
+    const h = await fixture(district);
+    try {
+      const native = h.window.document.querySelector('select')!;
+      native.innerHTML =
+        '<option value="999" selected>Server default</option><option value="202">Native choice</option>';
+      h.bridge.refresh();
+      await h.settle();
+      expect(native.value).toBe('999');
+      expect(h.changes).toHaveLength(0);
+      await h.open();
+      await h.choose('202');
+      const replacement = native.cloneNode(false) as typeof native;
+      replacement.innerHTML = '<option value="303" selected>New native choice</option>';
+      native.replaceWith(replacement);
+      replacement.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+      h.bridge.refresh();
+      await h.settle();
+      expect(replacement.value).toBe('303');
+      expect(h.trigger().textContent).toContain('New native choice');
+      expect(h.changes).toHaveLength(2);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  for (const type of ['billing', 'shipping']) {
+    const name =
+      type === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+    const context = `<input id="${type}_country" value="ID"><input id="${type}_state" value="JB"><input id="${type}_postcode" value="12345">`;
+    const field = `<label for="district">Subdistrict</label><select id="district" name="${name}"><option value="">Select Option</option><option value="101" selected>Old district</option><option value="202">Chosen district</option></select><input type="hidden" name="${name}_name" value="Old district">`;
+
+    test(`${type} explicit district and canonical label survive select/options replacement without writes`, async () => {
+      const h = await fixture(context + field);
+      try {
+        await h.open();
+        await h.choose('202');
+        const hidden = h.window.document.querySelector<HTMLInputElement>(`[name="${name}_name"]`)!;
+        const labelReplacement = hidden.cloneNode() as typeof hidden;
+        labelReplacement.value = 'Stale hidden label';
+        hidden.replaceWith(labelReplacement);
+        h.bridge.refresh();
+        await h.settle();
+        expect(labelReplacement.value).toBe('Chosen district');
+        const old = h.window.document.querySelector('select')!;
+        const replacement = old.cloneNode(false) as typeof old;
+        replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+        old.replaceWith(replacement);
+        h.window.document.body.dispatchEvent(new h.window.Event('updated_checkout'));
+        h.bridge.refresh();
+        await h.settle();
+        expect(old.isConnected).toBe(false);
+        expect(replacement.value).toBe('202');
+        expect(h.trigger().textContent).toContain('Chosen district');
+        expect((h.window.document.querySelector(`[name="${name}_name"]`) as any).value).toBe(
+          'Chosen district',
+        );
+        replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('202');
+        replacement.innerHTML =
+          '<option value="202" selected>Theme placeholder</option><option value="999">Replacement default</option>';
+        h.bridge.refresh();
+        await h.settle();
+        expect(h.trigger().textContent).toContain('Chosen district');
+        expect((h.window.document.querySelector(`[name="${name}_name"]`) as any).value).toBe(
+          'Chosen district',
+        );
+        expect(h.changes).toHaveLength(1);
+        // A later native change is authoritative, including when it precedes refresh.
+        replacement.value = '999';
+        replacement.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('999');
+        expect(h.trigger().textContent).toContain('Replacement default');
+        expect(h.changes).toHaveLength(2);
+      } finally {
+        await h.cleanup();
+      }
+    });
+
+    test(`${type} explicit clear survives replacement defaults`, async () => {
+      const h = await fixture(context + field);
+      try {
+        (h.window.document.querySelector('.kiriof-buyer-combobox-clear') as any).click();
+        await h.settle();
+        const old = h.window.document.querySelector('select')!;
+        const replacement = old.cloneNode(false) as typeof old;
+        replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+        old.replaceWith(replacement);
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('');
+        expect((h.window.document.querySelector(`[name="${name}_name"]`) as any).value).toBe('');
+        expect(h.trigger().textContent).not.toContain('Replacement default');
+        expect(h.changes).toHaveLength(1);
+      } finally {
+        await h.cleanup();
+      }
+    });
+
+    for (const part of ['country', 'state', 'postcode']) {
+      test(`${type} ${part} context invalidates explicit choice and pending lookup`, async () => {
+        const h = await fixture(context + field, { ajaxUrl: '/ajax', nonce: 'nonce' });
+        try {
+          await h.open();
+          await h.choose('202');
+          let respond!: (value: unknown) => void;
+          let signal!: AbortSignal;
+          h.window.fetch = ((_url: unknown, init: any) => {
+            signal = init.signal;
+            return new Promise((resolve) => {
+              respond = resolve;
+            });
+          }) as any;
+          await h.open();
+          const input = h.window.document.querySelector('[data-combobox-input]') as any;
+          input.value = 'Search';
+          input.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+          await new Promise((resolve) => setTimeout(resolve, 270));
+          const address = h.window.document.getElementById(`${type}_${part}`) as any;
+          address.value = 'NEW';
+          address.dispatchEvent(
+            new h.window.Event(part === 'postcode' ? 'input' : 'change', { bubbles: true }),
+          );
+          expect(signal.aborted).toBe(true);
+          respond({
+            ok: true,
+            json: async () => ({ results: [{ id: 303, text: 'Stale district' }] }),
+          });
+          await h.settle();
+          expect(h.window.document.body.textContent).not.toContain('Stale district');
+          const native = h.window.document.querySelector('select')!;
+          native.innerHTML = '<option value="999" selected>New context default</option>';
+          h.bridge.refresh();
+          await h.settle();
+          expect(native.value).toBe('999');
+          expect(h.changes).toHaveLength(1 + (part === 'postcode' ? 0 : 1));
+        } finally {
+          await h.cleanup();
+        }
+      });
+    }
+  }
+
   test('read lookup has loading/error/retry and stale term cancellation; clear emits exactly once', async () => {
     const h = await fixture(district, { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'nonce' });
     try {

@@ -119,6 +119,36 @@ test('Google pin loads only after permission and rejects stale loading generatio
   } finally { await h.cleanup(); }
 });
 
+test('pin waits for the latest district commit, including checkout refresh and failed district writes', async () => {
+  const h = await fixture(undefined, true);
+  try {
+    h.location(); await h.settle();
+    h.trigger(h.window.document.body, 'updated_checkout'); await h.settle();
+    const before = h.requests.length;
+    const mutation = { active: true, pending: null, failed: false };
+    (h.window as any).kiriofClassicDistrictMutation = mutation;
+    const district = h.window.document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!;
+    const option = h.window.document.createElement('option');
+    option.value = '13'; option.text = 'Newest district'; district.append(option);
+    district.value = '13'; h.bridge.changed(); await h.settle();
+    h.trigger(h.window.document.body, 'updated_checkout'); await h.settle();
+    expect(h.requests).toHaveLength(before);
+    expect(h.bridge.controller.getState().queue.pending?.destination.district_id).toBe('13');
+    expect(h.bridge.controller.getState().queue.error).toBeNull();
+
+    mutation.active = false; mutation.failed = true;
+    h.trigger(h.window.document.body, 'updated_checkout'); await h.settle();
+    void h.bridge.controller.retry(); await h.settle();
+    expect(h.requests).toHaveLength(before);
+
+    mutation.failed = false;
+    h.trigger(h.window.document.body, 'kiriof:classic-district-synced'); await h.settle();
+    expect(h.requests).toHaveLength(before + 1);
+    expect(h.requests.at(-1).destination.district_id).toBe('13');
+    expect(h.bridge.controller.getState().queue.error).toBeNull();
+  } finally { await h.cleanup(); }
+});
+
 test('Google pending runtime is discarded on hidden/unmounted checkout without a late map', async () => {
   const h = await fixture(undefined, false, 'google');
   try {

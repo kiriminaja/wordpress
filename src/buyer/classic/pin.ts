@@ -11,6 +11,7 @@ import { saveClassicPin, type ClassicPinTransportConfig } from '../api/checkout'
 import { nativeAddress, placeNativePin } from './native-address';
 import type { Point } from '../map/types';
 import type { MapProviderInput } from '../types/pin';
+import type { SelectorBridge } from '../types/selector';
 import type * as Leaflet from 'leaflet';
 
 export interface ClassicPinConfig extends ClassicPinTransportConfig {
@@ -36,6 +37,8 @@ interface JQueryEvents {
 export type ClassicPinWindow = Window & {
   kiriofClassicCheckoutConfig?: ClassicPinConfig;
   kiriofBuyerPin?: ClassicPinBridge;
+  kiriofBuyerSelectors?: SelectorBridge;
+  kiriofClassicDistrictMutation?: { active: boolean; pending: unknown; failed?: boolean };
   jQuery?: (node: Element) => JQueryEvents;
   L?: typeof Leaflet;
 };
@@ -97,7 +100,14 @@ export function startClassicPin(
     address: native.address(),
     scope: native.scope(),
     savedDestination: config.savedDestination,
-    isBlocked: () => busy,
+    // The server accepts pins only after the district session writer commits.
+    isBlocked: () =>
+      busy ||
+      Boolean(
+        root.kiriofClassicDistrictMutation?.active ||
+        root.kiriofClassicDistrictMutation?.pending ||
+        root.kiriofClassicDistrictMutation?.failed,
+      ),
     send: async (snapshot) => {
       await saveClassicPin(
         snapshot,
@@ -116,6 +126,8 @@ export function startClassicPin(
   };
   function changed() {
     if (disposed) return;
+    // Woo can replace native fields before the selector's queued refresh runs.
+    root.kiriofBuyerSelectors?.refresh();
     if (controller.updateAddress(native.address(), native.scope())) {
       point = null;
       pointAddress = null;

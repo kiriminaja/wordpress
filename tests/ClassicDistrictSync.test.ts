@@ -61,10 +61,28 @@ function runtime() {
 }
 
 describe('legacy Classic district mutation queue', () => {
+	test('replaced district select still saves through delegated handling without rebinding', () => {
+		const h = runtime();
+		try {
+			const old = h.document.querySelector('#kiriof_destination_area')!;
+			const replacement = h.document.createElement('select');
+			replacement.id = 'kiriof_destination_area';
+			replacement.name = 'kiriof_destination_area';
+			replacement.innerHTML = '<option value="3" selected>Newest</option>';
+			old.replaceWith(replacement);
+			h.jq(replacement).trigger('change');
+			expect(h.requests).toHaveLength(1);
+			expect(h.requests[0].data).toMatchObject({ val: '3', text: 'Newest', postcode: '11111' });
+			h.finish(0);
+			expect(h.events.filter(name => name === 'update_checkout')).toHaveLength(1);
+		} finally { h.close(); }
+	});
+
 	test('checkbox toggles serialize writes and publish native update only after latest immutable intent commits', () => {
 		const h = runtime();
 		try {
 			h.jq('#kiriof_destination_area').trigger('change');
+			expect(h.context.kiriofClassicDistrictMutation.active).toBe(true);
 			h.jq('[name="ship_to_different_address"]').val('on');
 			const checkbox: any = h.document.querySelector('[name="ship_to_different_address"]');
 			checkbox.checked = true;
@@ -106,6 +124,7 @@ describe('legacy Classic district mutation queue', () => {
 			expect(h.requests[1].data.text).toBe('');
 			h.requests[1].error({ status: 503 }, 'error', 'unavailable');
 			h.requests[1].complete();
+			expect(h.context.kiriofClassicDistrictMutation.failed).toBe(true);
 			expect(h.jq('[name="kiriof_destination_area_name"]').val()).toBe('');
 			expect(h.jq('[name="kiriof_checkout_token"]').val()).toBe('');
 			expect(h.events).not.toContain('update_checkout');
@@ -113,6 +132,7 @@ describe('legacy Classic district mutation queue', () => {
 			expect(h.blocked).toBe(false);
 			h.jq('#kiriof_destination_area').val('3').data('kiriofSelectedDistrictText', '').trigger('change');
 			h.finish(2);
+			expect(h.context.kiriofClassicDistrictMutation.failed).toBe(false);
 			expect(h.jq('[name="kiriof_checkout_token"]').val()).toBe('1');
 		} finally { h.close(); }
 	});

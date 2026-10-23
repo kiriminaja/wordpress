@@ -11,6 +11,7 @@ type JQueryField = {
   on: (events: string, callback: () => void) => void;
   off: (events: string) => void;
 };
+type DistrictChoice = { scope: string; value: string; label: string };
 type ClassicWindow = Window & {
   kiriofBillingAddressConfig?: SelectorConfig;
   kiriofAccountShippingConfig?: SelectorConfig;
@@ -55,6 +56,7 @@ export function startClassicSelectors(
   const districtKey = config.fieldKey || 'kiriof_destination_area';
   const records = new Map<HTMLSelectElement, RecordEntry>();
   const displays = new WeakMap<HTMLSelectElement, Map<string, (string | null)[]>>();
+  const districtChoices = new Map<string, DistrictChoice>();
   let stopped = false;
   let queued = false;
   let observer: MutationObserver | undefined;
@@ -83,10 +85,12 @@ export function startClassicSelectors(
         : 'billing';
     const country = document.getElementById(`${type}_country`) as HTMLSelectElement | null;
     const state = document.getElementById(`${type}_state`) as HTMLSelectElement | null;
+    const postcode = document.getElementById(`${type}_postcode`) as HTMLInputElement | null;
     const separate = document.querySelector<HTMLInputElement>('[name="ship_to_different_address"]');
     return JSON.stringify([
       country?.value ?? config[`${type}Country`],
       state?.value ?? '',
+      postcode?.value ?? '',
       !!separate?.checked,
     ]);
   }
@@ -175,9 +179,43 @@ export function startClassicSelectors(
       options(select),
     ]);
   }
+  function choiceKey(select: HTMLSelectElement) {
+    if (!district(select) || accountForm(select)) return null;
+    return select.name === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
+  }
+  function rememberChoice(select: HTMLSelectElement) {
+    const key = choiceKey(select);
+    if (key)
+      districtChoices.set(key, {
+        scope: addressScope(select),
+        value: select.value,
+        label: select.value
+          ? Array.from(select.options).find((option) => option.value === select.value)?.text || ''
+          : '',
+      });
+  }
   function synchronize(record: RecordEntry) {
     const { select, state } = record;
+    const key = choiceKey(select);
+    if (key) {
+      // Checkout refreshes can replace both the field and its option list. Only
+      // an explicit choice is replayed; initial/server defaults remain native-owned.
+      const saved = districtChoices.get(key);
+      if (saved && saved.scope !== addressScope(select)) districtChoices.delete(key);
+      if (saved && saved.scope === addressScope(select)) {
+        let option = Array.from(select.options).find((entry) => entry.value === saved.value);
+        if (!option) {
+          option = document.createElement('option');
+          option.value = saved.value;
+          option.text = saved.label;
+          select.append(option);
+        }
+        if (saved.value && option.text !== saved.label) option.text = saved.label;
+        if (select.value !== saved.value) select.value = saved.value;
+      }
+    }
     preserve(select);
+    if (key && districtChoices.has(key)) syncLabel(record);
     const next = signature(select);
     if (next === record.signature) return;
     state.value = select.value;
@@ -198,15 +236,26 @@ export function startClassicSelectors(
   }
   function syncLabel(record: RecordEntry) {
     if (!district(record.select)) return;
-    const label = record.select.value ? record.select.selectedOptions[0]?.text || '' : '';
+    const label = record.select.value
+      ? Array.from(record.select.options).find((option) => option.value === record.select.value)
+          ?.text || ''
+      : '';
     const field = root.jQuery?.(record.select);
+    const name =
+      record.select.name === 'kiriof_shipping_destination_area'
+        ? 'kiriof_shipping_destination_area_name'
+        : 'kiriof_destination_area_name';
+    const hidden = document.querySelector<HTMLInputElement>(`[name="${name}"]`);
+    const labelChanged = !hidden || hidden.value !== label;
+    if (hidden && labelChanged) hidden.value = label;
     if (field) {
       field.data('kiriofSelectedDistrictText', label);
-      root.kiriofSetClassicDistrictLabel?.(
-        field,
-        label,
-        document.querySelectorAll('[name="ship_to_different_address"]:checked').length,
-      );
+      if (labelChanged)
+        root.kiriofSetClassicDistrictLabel?.(
+          field,
+          label,
+          document.querySelectorAll('[name="ship_to_different_address"]:checked').length,
+        );
     }
   }
   function search(record: RecordEntry, value: string) {
@@ -300,6 +349,7 @@ export function startClassicSelectors(
     record.state.status = '';
     record.state.error = false;
     syncLabel(record);
+    rememberChoice(select);
     record.signature = '';
     synchronize(record);
     // Exactly one explicit native change: neither bind:value nor refresh emits writes.
@@ -350,6 +400,7 @@ export function startClassicSelectors(
         state.status = '';
         state.error = false;
         syncLabel(record);
+        rememberChoice(select);
         record.signature = '';
         synchronize(record);
         queueRefresh();
@@ -438,14 +489,27 @@ export function startClassicSelectors(
     });
   }
   function addressChange(event: Event) {
+    const select = event.target;
+    // Capture native changes even if Woo has just inserted an unmounted field.
+    if (select instanceof HTMLSelectElement && eligible(select)) rememberChoice(select);
     if (
       (event.target as Element)?.matches?.(
-        '#billing_country, #shipping_country, #billing_state, #shipping_state, [name="ship_to_different_address"]',
+        '#billing_country, #shipping_country, #billing_state, #shipping_state, #billing_postcode, #shipping_postcode, [name="ship_to_different_address"]',
       )
     ) {
-      for (const record of records.values()) if (district(record.select)) cancel(record);
+      for (const record of records.values()) {
+        if (!district(record.select)) continue;
+        cancel(record);
+        const key = choiceKey(record.select);
+        if (key && districtChoices.get(key)?.scope !== addressScope(record.select))
+          districtChoices.delete(key);
+      }
     }
     queueRefresh();
+  }
+  function addressInput(event: Event) {
+    if ((event.target as Element)?.matches?.('#billing_postcode, #shipping_postcode'))
+      addressChange(event);
   }
   function start() {
     if (stopped) return;
@@ -482,6 +546,7 @@ export function startClassicSelectors(
       ],
     });
     document.addEventListener('change', addressChange, true);
+    document.addEventListener('input', addressInput, true);
     document.body.addEventListener('updated_checkout', queueRefresh);
     document.body.addEventListener('country_to_state_changed', queueRefresh);
     root
@@ -502,6 +567,7 @@ export function startClassicSelectors(
       observer?.disconnect();
       document.removeEventListener('DOMContentLoaded', start);
       document.removeEventListener('change', addressChange, true);
+      document.removeEventListener('input', addressInput, true);
       document.body.removeEventListener('updated_checkout', queueRefresh);
       document.body.removeEventListener('country_to_state_changed', queueRefresh);
       root.jQuery?.(document.body).off('.kiriofBuyerSelectors');
