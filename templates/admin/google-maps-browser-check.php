@@ -25,6 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON in a non-executable script; HEX flags prevent HTML/script breakout without corrupting JSON.
 		echo wp_json_encode( $config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT );
 	?></script>
-	<script src="<?php echo esc_url( $script_url ); ?>" defer></script>
+	<?php wp_print_scripts( 'kiriof-google-maps-browser-check' ); ?>
 </body>
 </html>

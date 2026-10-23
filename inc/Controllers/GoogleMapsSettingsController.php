@@ -23,8 +23,9 @@ class GoogleMapsSettingsController {
 
 	/** Intercept only the protected storefront diagnostic, before canonical redirects. */
 	public function maybeBrowserCheck(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Route selection only; browserCheck verifies authorization and nonce before reading the key.
-		if ( '1' === ( $_GET['kiriof_google_maps_browser_check'] ?? null ) ) {
+		$query = is_array( $_GET ) ? wp_unslash( $_GET ) : array();
+		$browser_check = isset( $query['kiriof_google_maps_browser_check'] ) && is_string( $query['kiriof_google_maps_browser_check'] ) ? sanitize_text_field( $query['kiriof_google_maps_browser_check'] ) : '';
+		if ( '1' === $browser_check && $browser_check === $query['kiriof_google_maps_browser_check'] ) {
 			$this->browserCheck();
 		}
 	}
@@ -40,15 +41,16 @@ class GoogleMapsSettingsController {
 			$this->browserCheckError( 403 );
 			return;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Verified explicitly below with the dedicated settings nonce.
-		$nonce = $_GET['_wpnonce'] ?? $_GET['nonce'] ?? '';
-		if ( ! is_string( $nonce ) || ! wp_verify_nonce( wp_unslash( $nonce ), GoogleMapsSettings::NONCE_ACTION ) ) {
+		$query = is_array( $_GET ) ? wp_unslash( $_GET ) : array();
+		$nonce_value = $query['_wpnonce'] ?? $query['nonce'] ?? '';
+		$nonce = is_string( $nonce_value ) ? sanitize_text_field( $nonce_value ) : '';
+		if ( ! is_string( $nonce_value ) || $nonce !== $nonce_value || ! wp_verify_nonce( $nonce, GoogleMapsSettings::NONCE_ACTION ) ) {
 			$this->browserCheckError( 403 );
 			return;
 		}
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Dedicated nonce was verified above; strict token allowlist below.
-		$channel = isset( $_GET['channel'] ) && is_string( $_GET['channel'] ) ? wp_unslash( $_GET['channel'] ) : '';
-		if ( 1 !== preg_match( '/\A[A-Za-z0-9_-]{16,80}\z/D', $channel ) ) {
+		$channel_value = $query['channel'] ?? '';
+		$channel = is_string( $channel_value ) ? sanitize_text_field( $channel_value ) : '';
+		if ( ! is_string( $channel_value ) || $channel !== $channel_value || 1 !== preg_match( '/\A[A-Za-z0-9_-]{16,80}\z/D', $channel ) ) {
 			$this->browserCheckError( 400 );
 			return;
 		}
@@ -72,7 +74,7 @@ class GoogleMapsSettingsController {
 				'error'   => __( 'Google Maps could not be verified. Check the saved key, allowed website referrers, Maps JavaScript API, billing, and quota in Google Cloud.', 'kiriminaja-official' ),
 			),
 		);
-		$script_url = KIRIOF_URL . 'assets/admin/js/google-maps-browser-check.js?ver=' . rawurlencode( KIRIOF_VERSION );
+		wp_enqueue_script( 'kiriof-google-maps-browser-check', KIRIOF_URL . 'assets/admin/js/google-maps-browser-check.js', array(), KIRIOF_VERSION, array( 'strategy' => 'defer' ) );
 		nocache_headers();
 		status_header( 200 );
 		header( 'Content-Type: text/html; charset=UTF-8' );
@@ -86,7 +88,7 @@ class GoogleMapsSettingsController {
 
 	private function browserCheckError( int $status ): void {
 		nocache_headers();
-		wp_die( esc_html__( 'Unable to check Google Maps in this browser.', 'kiriminaja-official' ), '', array( 'response' => $status ) );
+		wp_die( esc_html__( 'Unable to check Google Maps in this browser.', 'kiriminaja-official' ), '', array( 'response' => absint( $status ) ) );
 	}
 
 	private function configuredOrigin( string $url ): string {

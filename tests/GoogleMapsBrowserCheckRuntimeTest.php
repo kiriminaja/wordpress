@@ -33,11 +33,13 @@ final class GoogleMapsBrowserCheckRuntimeTest extends TestCase {
 	}
 
 	public function testStorefrontRouteIgnoresUnrelatedRequestsAndRequiresAuthorization(): void {
-		foreach ( array( array(), array( 'kiriof_google_maps_browser_check' => array( '1' ) ), array( 'kiriof_google_maps_browser_check' => 'other' ) ) as $query ) {
+		foreach ( array( array(), array( 'kiriof_google_maps_browser_check' => array( '1' ) ), array( 'kiriof_google_maps_browser_check' => 'other' ), array( 'kiriof_google_maps_browser_check' => '<b>1</b>' ), array( 'kiriof_google_maps_browser_check' => "1\n" ) ) as $query ) {
 			$result = $this->runScenario( array( 'dispatch' => true, 'query' => $query ) );
 			self::assertSame( 0, $result['key_reads'] );
 			self::assertSame( '', $result['html'] );
+			self::assertSame( array(), $result['scripts'] );
 			self::assertFalse( $result['nocache'] );
+			self::assertSame( array(), $result['scripts'] );
 		}
 		$query = array( 'kiriof_google_maps_browser_check' => '1', '_wpnonce' => 'dedicated', 'channel' => 'random_channel_123456' );
 		$result = $this->runScenario( array( 'dispatch' => true, 'query' => $query ) );
@@ -64,10 +66,12 @@ final class GoogleMapsBrowserCheckRuntimeTest extends TestCase {
 			array( array( 'authorized' => false ), 403 ),
 			array( array( 'query' => array( '_wpnonce' => 'submitted-secret', 'channel' => 'random_channel_123456' ) ), 403 ),
 			array( array( 'query' => array( '_wpnonce' => array( 'dedicated' ), 'channel' => 'random_channel_123456' ) ), 403 ),
+			array( array( 'query' => array( '_wpnonce' => '<b>dedicated</b>', 'channel' => 'random_channel_123456' ) ), 403 ),
+			array( array( 'query' => array( '_wpnonce' => "dedicated\n", 'channel' => 'random_channel_123456' ) ), 403 ),
 			array( array( 'query' => array( '_wpnonce' => 'dedicated' ) ), 400 ),
 			array( array( 'query' => array( '_wpnonce' => 'dedicated', 'channel' => array( 'submitted-secret' ) ) ), 400 ),
 		);
-		foreach ( array( 'short', str_repeat( 'a', 81 ), "random_channel_123456\n", '<submitted-secret>' ) as $token ) {
+		foreach ( array( 'short', str_repeat( 'a', 81 ), "random_channel_123456\n", '<submitted-secret>', '<b>random_channel_123456</b>', 'random_channel_123456%0A' ) as $token ) {
 			$cases[] = array( array( 'query' => array( '_wpnonce' => 'dedicated', 'channel' => $token ) ), 400 );
 		}
 		foreach ( $cases as list( $scenario, $status ) ) {
@@ -101,6 +105,9 @@ final class GoogleMapsBrowserCheckRuntimeTest extends TestCase {
 		self::assertStringNotContainsString( 'evil.example', $result['html'] );
 		self::assertStringNotContainsString( 'maps.googleapis.com', $result['html'] );
 		self::assertStringContainsString( 'assets/admin/js/google-maps-browser-check.js?ver=test', $result['html'] );
+		self::assertSame( array( 'kiriof-google-maps-browser-check' => array( 'src' => 'https://shop.example/wp-content/plugins/kiriminaja/assets/admin/js/google-maps-browser-check.js', 'ver' => 'test', 'args' => array( 'strategy' => 'defer' ) ) ), $result['scripts'] );
+		self::assertStringContainsString( 'defer></script>', $result['html'] );
+		self::assertSame( 1, substr_count( $result['html'], 'assets/admin/js/google-maps-browser-check.js' ) );
 		self::assertTrue( $result['summary']['configured'] );
 		self::assertStringNotContainsString( $config['apiKey'], json_encode( $result['summary'] ) );
 	}
