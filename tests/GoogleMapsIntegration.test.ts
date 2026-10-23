@@ -1,4 +1,4 @@
-import { afterAll, expect, test } from 'bun:test';
+import { afterAll, expect, spyOn, test } from 'bun:test';
 import { existsSync, statSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { compile, compileModule } from 'svelte/compiler';
@@ -84,7 +84,7 @@ async function fixture(response: (body: URLSearchParams) => unknown, options: Pa
 test('production DOM saves with dedicated nested nonce, renders only mask, clears replacement, and removes without a key', async () => {
   const h = await fixture(body => ({ success: true, data: { status: 200, data: body.get('data[mode]') === 'remove' ? { configured: false, maskedKey: '' } : { configured: true, maskedKey: mask(raw) } } }));
   try {
-    expect(h.target.querySelector('[role="heading"]')?.textContent).toBe('Google Maps');
+    expect(h.target.querySelector('h2')?.textContent).toBe('Google Maps');
     expect(h.target.querySelector('code')?.textContent).toBe(bootstrap.maskedKey);
     expect(h.input.type).toBe('password'); expect(h.input.value).toBe(''); expect(h.input.getAttribute('value')).toBeNull();
     const hint = h.target.querySelector<HTMLElement>('#kiriof-google-maps-key-hint')!;
@@ -133,27 +133,56 @@ test('settings bundle compiles at most once per suite', () => {
 
 const savedResponse = (body: URLSearchParams) => ({ success: true, data: { status: 200, data: body.get('data[mode]') === 'remove' ? { configured: false, maskedKey: '' } : { configured: true, maskedKey: mask(raw) } } });
 
-test('compact card collapses help and map without remounting the automatic probe', async () => {
+test('Google Maps uses the shared technical section card and compact control sizes', async () => {
+  const h = await fixture(savedResponse);
+  try {
+    const section = h.target.querySelector('section')!;
+    expect(section.classList.contains('kiriof-section-card')).toBe(true);
+    expect(section.querySelector(':scope > h2')?.id).toBe('kiriof-google-maps-title');
+    expect(section.querySelector('[data-slot="card"]')).toBeNull();
+    for (const control of section.querySelectorAll('button,[data-slot="input-group"]')) {
+      expect(control.classList.contains('min-h-11')).toBe(false);
+      expect(control.classList.contains('h-11')).toBe(false);
+      expect(control.classList.contains('size-11')).toBe(false);
+    }
+  } finally { await h.cleanup(); }
+});
+
+test('parent timeout preserves the diagnostic frame and accepts its eventual verified result', async () => {
+  await compiledBundle();
+  const callbacks: Array<() => void> = [];
+  const originalTimeout = globalThis.setTimeout;
+  const timeout = spyOn(globalThis, 'setTimeout').mockImplementation(((callback: () => void, delay: number, ...args: unknown[]) => {
+    if (delay === 20000) { callbacks.push(callback); return originalTimeout(() => {}, 0); }
+    return originalTimeout(callback, delay, ...args);
+  }) as typeof setTimeout);
+  try {
+    const h = await fixture(savedResponse);
+    try {
+      const frame = h.frame()!;
+      expect(callbacks).toHaveLength(1);
+      callbacks[0]!(); await h.settle();
+      expect(h.check().textContent).toContain(bootstrap.i18n.browserTimeout);
+      expect(h.check().getAttribute('aria-busy')).toBe('false');
+      expect(h.frame()).toBe(frame);
+      await h.message(h.result());
+      expect(h.check().textContent).toContain(bootstrap.i18n.browserReady);
+    } finally { await h.cleanup(); }
+  } finally { timeout.mockRestore(); }
+});
+
+test('map and guidance are available immediately without a Details disclosure', async () => {
   const h = await fixture(savedResponse);
   try {
     const frame = h.frame()!, channel = h.result().channel;
-    const details = h.target.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
-    const toggle = h.button(bootstrap.i18n.details);
-    expect(toggle.getAttribute('aria-controls')).toBe(details.id);
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(details.getAttribute('aria-hidden')).toBe('true');
-    expect(details.hasAttribute('inert')).toBe(true);
-    expect(frame.closest('[inert]')).toBe(details);
+    expect(Array.from(h.target.querySelectorAll('button')).some(button => button.textContent?.includes(bootstrap.i18n.details))).toBe(false);
+    expect(h.target.textContent).toContain(bootstrap.i18n.guidance);
+    expect(h.target.textContent).toContain(bootstrap.i18n.browserCheckGuidance);
+    expect(frame.closest('[inert],[hidden],[aria-hidden="true"],.h-0')).toBeNull();
+    expect(frame.classList.contains('h-52')).toBe(true);
     await h.message(h.result()); expect(h.check().textContent).toContain(bootstrap.i18n.browserReady);
-    toggle.click(); await h.settle();
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(details.getAttribute('aria-hidden')).toBe('false');
-    expect(details.hasAttribute('inert')).toBe(false);
     expect(frame.getAttribute('tabindex')).toBeNull();
     expect(h.frame()).toBe(frame); expect(h.result().channel).toBe(channel);
-    toggle.click(); await h.settle();
-    expect(details.hasAttribute('inert')).toBe(true);
-    expect(h.frame()).toBe(frame);
     await h.message(h.result('auth_failed', 'error'));
     expect(h.check().getAttribute('role')).toBe('alert');
     expect(h.check().textContent).toContain(bootstrap.i18n.browserFailed);

@@ -99,3 +99,14 @@ test('pagehide disposes pending timers, SDK hooks, script and map listeners', ()
   expect(h.window.gm_authFailure).toBeUndefined(); expect(h.window['kiriofGoogleMapsCheck_' + channel]).toBeUndefined();
   h.tick(20000); auth(); expect(h.messages).toHaveLength(0);
 });
+
+test('tiles arriving just before the deadline retain the full authentication grace', () => {
+  for (const reject of [false, true]) {
+    const h = probe(); h.sdk(); h.tick(14999); h.tiles();
+    h.tick(799); expect(h.messages).toHaveLength(0);
+    if (reject) h.window.gm_authFailure();
+    h.tick(1);
+    expectResult(h, reject ? 'error' : 'ready', reject ? 'auth_failed' : 'tiles_loaded');
+    h.tick(20000); expect(h.messages).toHaveLength(1); h.dispose();
+  }
+});

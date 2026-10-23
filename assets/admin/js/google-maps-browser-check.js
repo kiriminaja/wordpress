@@ -93,6 +93,7 @@
 				tileListener.remove();
 				// Tiles, not just SDK callback, are required; allow asynchronous auth rejection first.
 				if ( ! disposed && ! state ) {
+					window.clearTimeout( deadline );
 					readyTimer = window.setTimeout( function () {
 						report( 'ready', 'tiles_loaded' );
 					}, 800 );

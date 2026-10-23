@@ -30,7 +30,7 @@ type ProbeMode = 'tiles' | 'auth' | 'callback-only' | 'network';
 // are production code. The subprocess harness supplies WP doubles, not real auth.
 function mockProbeSdk(callback: string, mode: ProbeMode) {
   if (mode === 'auth') return 'window.gm_authFailure();';
-  return `(()=>{class FixtureMap{constructor(node){this.listeners={};window.__probeMap=this;node.innerHTML='<div role="img" aria-label="Synthetic Google map tiles" style="height:260px;background:#dce8d6">Synthetic map tiles</div>';${mode === 'tiles' ? "setTimeout(()=>this.fire('tilesloaded'),0);" : ''}}addListener(name,cb){(this.listeners[name]??=[]).push(cb);return{remove:()=>this.listeners[name]=this.listeners[name].filter(x=>x!==cb)}}fire(name){for(const cb of [...(this.listeners[name]||[])])cb()}}window.google={maps:{Map:FixtureMap,event:{clearInstanceListeners:map=>map.listeners={}}}};window[${json(callback)}]();})();`;
+  return `(()=>{class FixtureMap{constructor(node){this.listeners={};window.__probeMap=this;node.innerHTML='<div role="img" aria-label="Synthetic Google map tiles" style="height:260px;background:#dce8d6">Synthetic map tiles</div>';${mode === 'tiles' ? "const paint=()=>{let frame=window.frameElement,visible=frame?frame.getBoundingClientRect().height>0:window.innerWidth>0&&window.innerHeight>0;for(let ancestor=frame?.parentElement;ancestor;ancestor=ancestor.parentElement){const style=getComputedStyle(ancestor);if(ancestor.hidden||ancestor.inert||style.display==='none'||style.visibility==='hidden'||(style.overflowY==='hidden'&&ancestor.getBoundingClientRect().height===0))visible=false;}if(visible)this.fire('tilesloaded');else setTimeout(paint,50);};setTimeout(paint,0);" : ''}}addListener(name,cb){(this.listeners[name]??=[]).push(cb);return{remove:()=>this.listeners[name]=this.listeners[name].filter(x=>x!==cb)}}fire(name){for(const cb of [...(this.listeners[name]||[])])cb()}}window.google={maps:{Map:FixtureMap,event:{clearInstanceListeners:map=>map.listeners={}}}};window[${json(callback)}]();})();`;
 }
 async function settingsFixture(browser: any, options: { configured?: boolean; mode?: ProbeMode; homeUrl?: string; redirect?: boolean } = {}) {
   let key = options.configured === false ? '' : savedKey;
@@ -146,10 +146,13 @@ for (const width of [320, 390, 768, 1280]) {
     })).toEqual({ hidden: true, display: 'none', text: `${googleMaps.i18n.placeholder} ${googleMaps.i18n.keyHint}` });
     expect(await browser.evaluate(() => {
       const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
-      const details = card.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
-      const toggle = card.querySelector('[aria-controls="kiriof-google-maps-details"]')!;
-      return { compact: card.getBoundingClientRect().height < 360, collapsed: details.getBoundingClientRect().height === 0, inert: details.inert, expanded: toggle.getAttribute('aria-expanded'), touchTargets: [...card.querySelectorAll('button')].every(node => { const rect = node.getBoundingClientRect(); return rect.height >= 44 && rect.width >= 44; }) };
-    })).toEqual({ compact: true, collapsed: true, inert: true, expanded: 'false', touchTargets: true });
+      const frame = card.querySelector<HTMLIFrameElement>('iframe')!;
+      const reference = document.querySelector('section[aria-labelledby="kiriof-region-cache-title"]')!;
+      const cardStyle = getComputedStyle(card), referenceStyle = getComputedStyle(reference);
+      const title = getComputedStyle(card.querySelector('h2')!), referenceTitle = getComputedStyle(reference.querySelector('h2')!);
+      const referenceButton = reference.querySelector('button')!.getBoundingClientRect();
+      return { visiblePreview: frame.getBoundingClientRect().height > 0 && !frame.closest('[inert],[hidden],[aria-hidden="true"]'), noDetails: !card.querySelector('[aria-controls="kiriof-google-maps-details"]'), matchingCard: cardStyle.padding === referenceStyle.padding && cardStyle.borderRadius === referenceStyle.borderRadius && card.getBoundingClientRect().width === reference.getBoundingClientRect().width, matchingTitle: title.fontSize === referenceTitle.fontSize && title.fontWeight === referenceTitle.fontWeight && title.lineHeight === referenceTitle.lineHeight, compactControls: [...card.querySelectorAll('button')].every(node => { const rect = node.getBoundingClientRect(); return rect.height >= 24 && rect.width >= 24 && rect.height <= referenceButton.height; }) };
+    })).toEqual({ visiblePreview: true, noDetails: true, matchingCard: true, matchingTitle: true, compactControls: true });
     expect(await browser.evaluate(() => {
       const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
       const input = card.querySelector<HTMLInputElement>('input')!;
@@ -162,7 +165,7 @@ for (const width of [320, 390, 768, 1280]) {
       const group = input.closest('[data-slot="input-group"]')!;
       const style = getComputedStyle(input);
       const groupStyle = getComputedStyle(group);
-      const cardStyle = getComputedStyle(card.querySelector('[data-slot="card"]')!);
+      const cardStyle = getComputedStyle(card);
       const bounds = card.getBoundingClientRect();
       return { scope: !!input.closest('.kiriof-shadcn'), inputBorder: style.borderTopWidth, inputBackground: style.backgroundColor, groupBorder: groupStyle.borderTopWidth, cardBackground: cardStyle.backgroundColor, withinCard: [...card.querySelectorAll('[data-slot="alert"],iframe')].every(node => { const r = node.getBoundingClientRect(); return r.left >= bounds.left && r.right <= bounds.right + 1; }) };
     })).toEqual({ scope: true, inputBorder: '0px', inputBackground: 'rgba(0, 0, 0, 0)', groupBorder: '1px', cardBackground: 'oklch(1 0 0)', withinCard: true });
@@ -176,21 +179,15 @@ for (const width of [320, 390, 768, 1280]) {
         return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
       }
       const foreground = luminance(getComputedStyle(document.querySelector('[data-kiriof-google-maps-check] p')!).color);
-      const background = luminance(getComputedStyle(document.querySelector('section[aria-labelledby="kiriof-google-maps-title"] [data-slot="card"]')!).backgroundColor);
+      const background = luminance(getComputedStyle(document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!).backgroundColor);
       return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05) >= 4.5;
     })).toBe(true);
     await app.screenshot(`google-maps-browser-check-${width}`);
-    await browser.locator('[aria-controls="kiriof-google-maps-details"]').click();
-    await expect(browser.locator('#kiriof-google-maps-details')).toContainText(googleMaps.i18n.browserCheckGuidance);
+    await expect(browser.locator(cardSelector)).toContainText(googleMaps.i18n.browserCheckGuidance);
     expect(await browser.evaluate(() => {
-      const details = document.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
-      const frame = details.querySelector<HTMLIFrameElement>('iframe')!;
-      return { inert: details.inert, tabIndex: frame.getAttribute('tabindex'), frameHeight: frame.getBoundingClientRect().height, statusVisible: frame.contentDocument!.querySelector('#kiriof-google-maps-check-status')!.getBoundingClientRect().height > 1 };
-    })).toEqual({ inert: false, tabIndex: null, frameHeight: 208, statusVisible: false });
-    await app.screenshot(`google-maps-details-${width}`);
-    // Keyboard activation closes the disclosure without restarting the check.
-    await browser.keyboard.press('Enter');
-    expect(await browser.evaluate(() => document.querySelector('[aria-controls="kiriof-google-maps-details"]')!.getAttribute('aria-expanded'))).toBe('false');
+      const frame = document.querySelector<HTMLIFrameElement>('[data-kiriof-google-maps-probe]')!;
+      return { tabIndex: frame.getAttribute('tabindex'), frameHeight: frame.getBoundingClientRect().height, statusVisible: frame.contentDocument!.querySelector('#kiriof-google-maps-check-status')!.getBoundingClientRect().height > 1 };
+    })).toEqual({ tabIndex: null, frameHeight: 208, statusVisible: false });
     await browser.locator('#kiriof-google-maps-key').fill(replacement);
     // Native keyboard traversal must reach the reveal control, not submit/save.
     await browser.keyboard.press('Tab'); await browser.keyboard.press('Enter');
@@ -201,8 +198,9 @@ for (const width of [320, 390, 768, 1280]) {
     expect(await browser.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
       const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
-      return { overflow: document.documentElement.scrollWidth > innerWidth, controlsFit: [...card.querySelectorAll('input,button')].every(node => { const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1; }), overflowing: [...document.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().right > innerWidth + 1).map(node => ({ tag: node.tagName, class: node.className, right: node.getBoundingClientRect().right })) };
-    })).toEqual({ overflow: false, controlsFit: true, overflowing: [] });
+      const bounds = card.getBoundingClientRect();
+      return { overflow: card.scrollWidth > card.clientWidth, controlsFit: [...card.querySelectorAll('input,button,iframe')].every(node => { const rect = node.getBoundingClientRect(); return rect.left >= bounds.left && rect.right <= bounds.right; }) };
+    })).toEqual({ overflow: false, controlsFit: true });
     expect(fixture.bodies).toEqual([]); expect(fixture.frames).toHaveLength(1); expect(fixture.googleRequests).toHaveLength(1); expect(fixture.unexpected).toEqual([]);
   });
 }

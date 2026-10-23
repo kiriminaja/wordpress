@@ -1,16 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { IconEye, IconEyeOff, IconRefresh, IconChevronDown, IconCheck } from '@tabler/icons-svelte';
+  import { IconEye, IconEyeOff, IconRefresh, IconCheck } from '@tabler/icons-svelte';
   import { Button } from '$lib/components/ui/button';
   import { Spinner } from '$lib/components/ui/spinner';
-  import * as Card from '$lib/components/ui/card';
   import * as Field from '$lib/components/ui/field';
   import * as InputGroup from '$lib/components/ui/input-group';
   import * as Alert from '$lib/components/ui/alert';
   import { postWordPressAction } from '../wordpress/ajax';
   import { mapsCheckResult, mapsCheckUrl, type MapsCheckCode } from './google-maps-check';
   import type { GoogleMapsBootstrap, GoogleMapsSummary } from './types';
-  import { cn } from '$lib/utils';
 
   let { bootstrap }: { bootstrap: GoogleMapsBootstrap } = $props();
   function initialSummary(): GoogleMapsSummary {
@@ -22,7 +20,6 @@
   let message = $state('');
   let failed = $state(false);
   let reveal = $state(false);
-  let detailsOpen = $state(false);
   let preview = $state<HTMLIFrameElement>();
   let probe = $state<{ url: string; channel: string; origin: string } | null>(null);
   let checkState = $state<'idle' | 'checking' | 'ready' | 'error'>('idle');
@@ -66,7 +63,6 @@
       if (mounted && probe?.channel === channel && checkState === 'checking') {
         checkState = 'error';
         checkCode = 'timeout';
-        stopCheck();
       }
     }, 20000);
   }
@@ -121,12 +117,9 @@
   }
 </script>
 
-<section class="kiriof-shadcn" aria-labelledby="kiriof-google-maps-title">
-  <Card.Root size="sm">
-    <Card.Header>
-      <Card.Title id="kiriof-google-maps-title" role="heading" aria-level={2}>{bootstrap.i18n.title}</Card.Title>
-    </Card.Header>
-    <Card.Content class="flex min-w-0 flex-col gap-3">
+<section class="kiriof-section-card kiriof-shadcn min-w-0" aria-labelledby="kiriof-google-maps-title">
+  <h2 id="kiriof-google-maps-title">{bootstrap.i18n.title}</h2>
+  <div class="flex min-w-0 flex-col gap-3">
       {#if summary.configured}
         <p class="m-0! flex flex-wrap items-center gap-x-2 gap-y-1">{bootstrap.i18n.configured}: <code class="break-all">{safeMask(summary.maskedKey)}</code></p>
       {:else}
@@ -137,16 +130,16 @@
           <Field.Field data-disabled={busy} data-invalid={failed}>
             <Field.FieldLabel for="kiriof-google-maps-key">{bootstrap.i18n.keyLabel}</Field.FieldLabel>
             <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <InputGroup.Root class="h-11 min-w-0 basis-full sm:basis-64 sm:flex-1">
+            <InputGroup.Root class="min-w-0 basis-full sm:basis-64 sm:flex-1">
               <InputGroup.Input id="kiriof-google-maps-key" type={reveal ? 'text' : 'password'} bind:value={key} autocomplete="new-password" spellcheck="false" autocapitalize="none" placeholder={bootstrap.i18n.placeholder} disabled={busy} aria-invalid={failed} aria-describedby="kiriof-google-maps-key-hint" />
               <InputGroup.Addon align="inline-end">
-                <InputGroup.Button type="button" size="icon-sm" class="size-11" disabled={busy} aria-label={reveal ? bootstrap.i18n.hideKey : bootstrap.i18n.showKey} aria-pressed={reveal} onclick={() => { reveal = !reveal; }}>
+                <InputGroup.Button type="button" size="icon-sm" disabled={busy} aria-label={reveal ? bootstrap.i18n.hideKey : bootstrap.i18n.showKey} aria-pressed={reveal} onclick={() => { reveal = !reveal; }}>
                   {#if reveal}<IconEyeOff />{:else}<IconEye />{/if}
                 </InputGroup.Button>
               </InputGroup.Addon>
             </InputGroup.Root>
-            <Button type="submit" class="min-h-11" disabled={busy}>{#if busy}<Spinner data-icon="inline-start" />{/if}{busy ? bootstrap.i18n.busy : bootstrap.i18n.save}</Button>
-            {#if summary.configured}<Button type="button" variant="ghost" class="min-h-11" disabled={busy} onclick={() => update('remove')}>{bootstrap.i18n.remove}</Button>{/if}
+            <Button type="submit" class="kiriof-settings-action-button" disabled={busy}>{#if busy}<Spinner data-icon="inline-start" />{/if}{busy ? bootstrap.i18n.busy : bootstrap.i18n.save}</Button>
+            {#if summary.configured}<Button type="button" variant="ghost" class="kiriof-settings-action-button" disabled={busy} onclick={() => update('remove')}>{bootstrap.i18n.remove}</Button>{/if}
             </div>
             <span id="kiriof-google-maps-key-hint" hidden>{bootstrap.i18n.placeholder} {bootstrap.i18n.keyHint}</span>
           </Field.Field>
@@ -172,28 +165,19 @@
             </p>
           {/if}
         </div>
-        <div class="flex flex-wrap items-center gap-1">
-          <Button type="button" variant="ghost" class="min-h-11" disabled={busy || !summary.configured} onclick={checkBrowser}>
-            <IconRefresh data-icon="inline-start" />{bootstrap.i18n.checkAgain}
-          </Button>
-          <Button type="button" variant="ghost" class="min-h-11" aria-expanded={detailsOpen} aria-controls="kiriof-google-maps-details" onclick={() => { detailsOpen = !detailsOpen; }}>
-            {bootstrap.i18n.details}<IconChevronDown data-icon="inline-end" class={cn(detailsOpen && 'rotate-180')} />
-          </Button>
-        </div>
+        <Button type="button" variant="ghost" class="kiriof-settings-action-button" disabled={busy || !summary.configured} onclick={checkBrowser}>
+          <IconRefresh data-icon="inline-start" />{bootstrap.i18n.checkAgain}
+        </Button>
       </div>
-      <!-- Keep a real map viewport mounted while collapsed so automatic checks still receive tiles. -->
-      <div id="kiriof-google-maps-details" aria-hidden={!detailsOpen} inert={!detailsOpen} class={cn('min-w-0', !detailsOpen && 'h-0 overflow-hidden')}>
-        <div class="flex min-w-0 flex-col gap-3">
-        <Card.Description class="m-0!">{bootstrap.i18n.guidance}</Card.Description>
-        <Card.Description class="m-0!">{bootstrap.i18n.browserCheckGuidance}</Card.Description>
+      <div class="flex min-w-0 flex-col gap-3">
+        <p class="m-0! text-muted-foreground">{bootstrap.i18n.guidance}</p>
+        <p class="m-0! text-muted-foreground">{bootstrap.i18n.browserCheckGuidance}</p>
         {#if testedOrigin}<p class="m-0!">{bootstrap.i18n.originLabel}: <span class="break-all">{testedOrigin}</span></p>{/if}
         {#if probe}
           {#key probe.channel}
             <iframe bind:this={preview} src={probe.url} title={bootstrap.i18n.previewTitle} data-kiriof-google-maps-probe class="box-border block h-52 w-full rounded-md border" referrerpolicy="strict-origin-when-cross-origin"></iframe>
           {/key}
         {/if}
-        </div>
       </div>
-    </Card.Content>
-  </Card.Root>
+  </div>
 </section>
