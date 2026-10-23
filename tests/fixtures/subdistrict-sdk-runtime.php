@@ -63,6 +63,8 @@ $results['transport'] = $run( 'PRIVATE token', 'sari harjo', 0.0, false, false )
 $results['exception'] = $run( null, 'sari harjo', 0.0, true );
 $results['late'] = $run( $body( array( $address ) ), 'sari harjo', 26.0 );
 $results['short'] = $run( $body( array() ), 'ab' );
+$results['numeric_input'] = $run( $body( array() ), 55222 );
+$results['long_input'] = $run( $body( array() ), str_repeat( 'PRIVATE', 30 ) );
 $results['boundary'] = $run( $body( array_fill( 0, 500, $address ) ) );
 $results['limit'] = $run( $body( array_fill( 0, 501, $address ) ) );
 echo json_encode( $results, JSON_THROW_ON_ERROR );

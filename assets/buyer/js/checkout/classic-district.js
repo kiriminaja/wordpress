@@ -187,7 +187,7 @@ function kiriofRestoreClassicDistrictSelection($select, district, $nameField) {
 
 // One server mutation at a time. Never abort a request that may already have
 // written the session; replace only the not-yet-sent snapshot with latest intent.
-var kiriofClassicDistrictMutation = { active: false, pending: null, failed: false };
+var kiriofClassicDistrictMutation = { active: false, pending: null, failed: false, ready: false };
 
 function kiriofSendClassicDistrictMutation(snapshot) {
     var state = kiriofClassicDistrictMutation;
@@ -295,6 +295,12 @@ function changeDistrict(){
             kiriofSendClassicDistrictMutation(snapshot);
         }
     });
+    if (!kiriofClassicDistrictMutation.ready) {
+        kiriofClassicDistrictMutation.ready = true;
+        var ready = document.createEvent('Event');
+        ready.initEvent('kiriof:classic-district-ready', true, false);
+        document.body.dispatchEvent(ready);
+    }
 }
 
 /**

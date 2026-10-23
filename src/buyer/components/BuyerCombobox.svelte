@@ -24,7 +24,7 @@
   // Bits 2.x has no Item onSelect. Same-value activation closes without
   // onValueChange, so supplement only that case (changed values use Bits).
   function reselected(value: string, disabled = false) {
-    if (shipping && open && !model.disabled && !disabled && value === model.value)
+    if ((shipping || district) && open && !model.disabled && !disabled && value === model.value)
       onChoose(value, true);
   }
   function keyboardReselected(event: KeyboardEvent) {

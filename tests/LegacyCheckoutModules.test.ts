@@ -7,6 +7,7 @@ function harness(ownsDistrict = false) {
 	const handlers: { event: string; callback: (...args: any[]) => any }[] = [];
 	const ready: (() => void)[] = [];
 	const timers: { callback: () => void; delay: number }[] = [];
+	const domEvents: string[] = [];
 	const chain: any = {
 		length: 0,
 		on(event: string, ...args: any[]) { handlers.push({ event, callback: args.at(-1) }); return chain; },
@@ -33,10 +34,10 @@ function harness(ownsDistrict = false) {
 	const setTimeout = (callback: () => void, delay: number) => { timers.push({ callback, delay }); return timers.length; };
 	const root: any = { kiriofBillingAddressConfig: config, kiriofClassicCheckoutConfig: { enabled: true, ownsDistrict }, setTimeout };
 	const context: any = createContext({
-		window: root, document: { body: {}, querySelector: () => ({}) }, jQuery: jquery,
+		window: root, document: { body: { dispatchEvent(event: any) { domEvents.push(event.type); } }, createEvent() { return { type: '', initEvent(type: string) { this.type = type; } }; }, querySelector: () => ({}) }, jQuery: jquery,
 		setTimeout, clearTimeout() {}, localStorage: { getItem: () => null, removeItem() {} },
 	});
-	return { context, handlers, ready, timers, config };
+	return { context, handlers, ready, timers, config, domEvents };
 }
 
 function load(h: ReturnType<typeof harness>) {
@@ -117,6 +118,8 @@ describe('separate legacy checkout browser modules', () => {
 			'change.kiriofClassicShippingMethodSelect',
 		]);
 		expect(() => h.ready[0]()).not.toThrow();
+		expect(h.domEvents).toEqual(['kiriof:classic-district-ready']);
+		expect(h.context.kiriofClassicDistrictMutation.ready).toBe(true);
 		expect(h.timers.map(timer => timer.delay)).toEqual([50, 250, 750, 300, 1500]);
 		expect(h.handlers.some(handler => handler.event === 'change.kiriofClassicDistrict')).toBe(true);
 		expect(h.handlers.some(handler => handler.event === 'change.kiriofPaymentRefresh')).toBe(true);

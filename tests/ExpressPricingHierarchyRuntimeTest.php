@@ -19,6 +19,14 @@ final class ExpressPricingHierarchyRuntimeTest extends TestCase {
         $this->assertCount( 4, $result['posts'] );
         $this->assertTrue( $result['warm']['status'] );
         $this->assertSame( 0, $result['warm_additional_searches'] );
+		$this->assertCount( 4, $result['logs'] );
+		$this->assertSame( array( 'destination_hierarchy_unavailable', 'origin_hierarchy_unavailable', 'origin_hierarchy_unavailable', 'destination_hierarchy_unavailable' ), array_column( array_column( $result['logs'], 2 ), 'code' ) );
+		foreach ( $result['logs'] as $log ) {
+			$this->assertSame( array( 'warning', 'Express shipping address verification failed.', array( 'operation' => 'get_pricing', 'code' => $log[2]['code'], 'backtrace' => false ), 'kiriminaja_shipping' ), $log );
+		}
+		foreach ( array( '61475', '55791', 'Sidokerto', '31483', '46310' ) as $private ) {
+			$this->assertStringNotContainsString( $private, json_encode( $result['logs'] ) );
+		}
         foreach ( $result['cached_identities'] as $key => $identity ) {
             $this->assertMatchesRegularExpression( '/\A[a-f0-9]{64}\z/', $key );
             $this->assertSame( array( 'district_id', 'city_id', 'province_id', 'postcode', 'expires' ), array_keys( $identity ) );

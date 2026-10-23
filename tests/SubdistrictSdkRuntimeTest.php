@@ -112,4 +112,16 @@ final class SubdistrictSdkRuntimeTest extends TestCase {
         	)
         );
     }
+
+	public function test_invalid_search_reports_input_contract_without_retaining_query(): void {
+		$results = $this->scenarios();
+		foreach ( array( 'short' => array( 'string', 2, 'too_short' ), 'numeric_input' => array( 'integer', null, 'non_string' ), 'long_input' => array( 'string', 201, 'too_long' ) ) as $name => $expected ) {
+			$context = $results[ $name ]['logs'][0][2];
+			$this->assertSame( array(), $results[ $name ]['calls'] );
+			$this->assertSame( 'invalid_search', $context['reason'] );
+			$this->assertSame( $expected, array( $context['input_type'], $context['input_length'], $context['input_error'] ) );
+			$this->assertStringNotContainsString( 'PRIVATE', json_encode( $context ) );
+			$this->assertStringNotContainsString( '55222', json_encode( $context ) );
+		}
+	}
 }

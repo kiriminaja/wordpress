@@ -21,6 +21,11 @@ class KiriminajaApiRepository extends KiriminAjaApi {
         $this->address_transport_metadata = array();
         $deadline = $this->address_lookup_clock() + 25.0;
         if ( ! is_string( $search ) || strlen( trim( $search ) ) < 3 || strlen( $search ) > 200 ) {
+            $this->address_transport_metadata = array(
+                'input_type' => gettype( $search ),
+                'input_length' => is_string( $search ) ? min( 201, strlen( trim( $search ) ) ) : null,
+                'input_error' => ! is_string( $search ) ? 'non_string' : ( strlen( trim( $search ) ) < 3 ? 'too_short' : 'too_long' ),
+            );
             return $this->address_failure( 'invalid_search' );
         }
         $search = trim( $search );
@@ -222,10 +227,12 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     public function getPricing( $payload ) {
         $origin = AddressHierarchyResolver::resolve( $payload['subdistrict_origin'] ?? null, $payload['origin_postcode'] ?? '', array( $this, 'sub_district_search' ) );
         if ( null === $origin ) {
+            $this->log_pricing_hierarchy_failure( 'origin_hierarchy_unavailable' );
             return array( 'status' => false, 'data' => 'Could not resolve shipping address hierarchy.' );
         }
         $destination = AddressHierarchyResolver::resolve( $payload['subdistrict_destination'] ?? null, $payload['destination_postcode'] ?? '', array( $this, 'sub_district_search' ) );
         if ( null === $destination ) {
+            $this->log_pricing_hierarchy_failure( 'destination_hierarchy_unavailable' );
             return array( 'status' => false, 'data' => 'Could not resolve shipping address hierarchy.' );
         }
         return $this->post(
@@ -250,6 +257,13 @@ class KiriminajaApiRepository extends KiriminAjaApi {
             )
         );
     }
+
+	/** Log failed mapping verification without retaining customer or warehouse data. */
+	private function log_pricing_hierarchy_failure( string $code ): void {
+		if ( function_exists( 'kiriof_log' ) ) {
+			kiriof_log( 'warning', 'Express shipping address verification failed.', array( 'operation' => 'get_pricing', 'code' => $code, 'backtrace' => false ), 'kiriminaja_shipping' );
+		}
+	}
 
     public function getRequestPickupSchedule() {
 		return $this->fetch_utility( 'POST', 'api/mitra/v2/schedules', array(), array( 'schedules' => 'list' ) );

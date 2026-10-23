@@ -103,6 +103,7 @@ export function startClassicPin(
     // The server accepts pins only after the district session writer commits.
     isBlocked: () =>
       busy ||
+      Boolean(root.kiriofBuyerSelectors?.districtPending?.()) ||
       Boolean(
         root.kiriofClassicDistrictMutation?.active ||
         root.kiriofClassicDistrictMutation?.pending ||

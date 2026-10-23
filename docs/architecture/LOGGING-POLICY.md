@@ -21,6 +21,8 @@ These events are removed at their producers, not merely downgraded to debug or h
 - Compact merchant pickup audit, with no raw request/payment/credential payload.
 - Authentication failures, malformed callbacks, unmatched transactions and unverified persistence failures.
 - Actual pricing/API/transport/region-cache failures, using fixed reason codes rather than raw response or exception dumps.
+- Rejected Classic pin-save requests use `kiriminaja_checkout` with a fixed code, allowlisted address scope, and HTTP status; successful pin saves stay silent. This source is included in the Technical log download.
+- Locally rejected address searches use `kiriminaja_api` with `invalid_search`, input type, bounded length (201 means over the 200-byte limit), and a fixed `non_string`, `too_short`, or `too_long` input error. The search text and postcode are never retained.
 - Explicit settings/COD changes and substantive merchant-action audit events.
 - Existing database-failure paths and explicit opt-in development diagnostics where needed; no routine success metadata dump is required.
 
