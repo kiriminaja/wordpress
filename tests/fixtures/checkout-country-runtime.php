@@ -74,7 +74,7 @@ function WC() { return $GLOBALS['country_wc']; }
 function did_action( $hook ) { return $GLOBALS['country_wp_loaded'] ? 1 : 0; }
 function is_cart() { return false; }
 function is_checkout() { return true; }
-function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+function sanitize_text_field( $value ) { return is_array( $value ) || is_object( $value ) ? '' : trim( strip_tags( (string) $value ) ); }
 function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : stripslashes( $value ); }
 function __( $value, $domain = '' ) { return $value; }
 function esc_html__( $value, $domain = '' ) { return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ); }

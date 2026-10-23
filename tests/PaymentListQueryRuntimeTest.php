@@ -17,6 +17,26 @@ require_once PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php';
 final class PaymentListQueryRuntimeTest extends TestCase
 {
     #[Test]
+    public function composed_group_sql_exceptions_target_the_outer_database_call_lines(): void
+    {
+        $source = file_get_contents( PLUGIN_DIR . '/inc/Queries/WordPressPaymentListQuery.php' );
+
+        // Plugin Check reports the outer call, while WordPressCS reports its SQL argument.
+        foreach ( array(
+            '$total = (int) $wpdb->get_var( $wpdb->prepare(',
+            '$results = $wpdb->get_results( $wpdb->prepare(',
+            '$counts[ $status ] = (int) $wpdb->get_var( $wpdb->prepare(',
+        ) as $call ) {
+            $this->assertMatchesRegularExpression(
+                '/\/\/ phpcs:ignore PluginCheck\.Security\.DirectDB\.UnescapedDBParameter -- [^\r\n]+\R\h*' . preg_quote( $call, '/' ) . '/',
+                $source,
+                'The justified Plugin Check exception must apply to the outer database call, not only the SQL argument.'
+            );
+        }
+        $this->assertStringNotContainsString( 'phpcs:disable PluginCheck.Security.DirectDB', $source );
+    }
+
+    #[Test]
     public function filtered_page_clamps_pagination_and_returns_query_results(): void
     {
         $wpdb  = new PaymentListQueryWpdbFake();

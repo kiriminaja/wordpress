@@ -115,7 +115,7 @@ class CheckoutController
 
     private function kiriof_is_local_pickup_selected(): bool {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only field configuration; WooCommerce verifies checkout requests.
-        $methods = isset( $_POST['shipping_method'] ) ? wp_unslash( $_POST['shipping_method'] ) : WC()->session->get( 'chosen_shipping_methods', array() );
+        $methods = isset( $_POST['shipping_method'] ) ? array_map( 'sanitize_text_field', wp_unslash( is_array( $_POST['shipping_method'] ) ? $_POST['shipping_method'] : array() ) ) : WC()->session->get( 'chosen_shipping_methods', array() );
         if ( ! is_array( $methods ) || empty( $methods ) ) {
             return false;
         }
