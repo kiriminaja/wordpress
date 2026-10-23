@@ -87,6 +87,10 @@ test('production DOM saves with dedicated nested nonce, renders only mask, clear
     expect(h.target.querySelector('[role="heading"]')?.textContent).toBe('Google Maps');
     expect(h.target.querySelector('code')?.textContent).toBe(bootstrap.maskedKey);
     expect(h.input.type).toBe('password'); expect(h.input.value).toBe(''); expect(h.input.getAttribute('value')).toBeNull();
+    const hint = h.target.querySelector<HTMLElement>('#kiriof-google-maps-key-hint')!;
+    expect(h.input.getAttribute('aria-describedby')).toBe(hint.id);
+    expect(hint.hidden).toBe(true);
+    expect(hint.textContent).toBe(`${bootstrap.i18n.placeholder} ${bootstrap.i18n.keyHint}`);
     await h.submit();
     expect(Object.fromEntries(h.requests[0]!)).toEqual({ action: 'kiriof_save_google_maps_settings', 'data[mode]': 'save', 'data[key]': raw, 'data[nonce]': bootstrap.nonce });
     expect(h.target.querySelector('code')?.textContent).toBe(mask(raw)); expect(h.target.innerHTML).not.toContain(raw); expect(h.input.value).toBe('');

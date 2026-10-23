@@ -148,7 +148,7 @@
             <Button type="submit" class="min-h-11" disabled={busy}>{#if busy}<Spinner data-icon="inline-start" />{/if}{busy ? bootstrap.i18n.busy : bootstrap.i18n.save}</Button>
             {#if summary.configured}<Button type="button" variant="ghost" class="min-h-11" disabled={busy} onclick={() => update('remove')}>{bootstrap.i18n.remove}</Button>{/if}
             </div>
-            <span id="kiriof-google-maps-key-hint" class="sr-only">{bootstrap.i18n.placeholder} {bootstrap.i18n.keyHint}</span>
+            <span id="kiriof-google-maps-key-hint" hidden>{bootstrap.i18n.placeholder} {bootstrap.i18n.keyHint}</span>
           </Field.Field>
           {#if message}
             {#if failed}

@@ -140,6 +140,11 @@ for (const width of [320, 390, 768, 1280]) {
     await app.open('/wp-admin/admin.php?page=kiriminaja-setting&section=technical');
     await expect(browser.locator(checkSelector)).toHaveText(googleMaps.i18n.browserReady);
     expect(await browser.evaluate(() => {
+      const input = document.querySelector<HTMLInputElement>('#kiriof-google-maps-key')!;
+      const hint = document.getElementById(input.getAttribute('aria-describedby')!)!;
+      return { hidden: hint.hidden, display: getComputedStyle(hint).display, text: hint.textContent };
+    })).toEqual({ hidden: true, display: 'none', text: `${googleMaps.i18n.placeholder} ${googleMaps.i18n.keyHint}` });
+    expect(await browser.evaluate(() => {
       const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
       const details = card.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
       const toggle = card.querySelector('[aria-controls="kiriof-google-maps-details"]')!;
@@ -196,8 +201,8 @@ for (const width of [320, 390, 768, 1280]) {
     expect(await browser.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
       const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
-      return { overflow: document.documentElement.scrollWidth > innerWidth, controlsFit: [...card.querySelectorAll('input,button')].every(node => { const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1; }) };
-    })).toEqual({ overflow: false, controlsFit: true });
+      return { overflow: document.documentElement.scrollWidth > innerWidth, controlsFit: [...card.querySelectorAll('input,button')].every(node => { const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1; }), overflowing: [...document.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().right > innerWidth + 1).map(node => ({ tag: node.tagName, class: node.className, right: node.getBoundingClientRect().right })) };
+    })).toEqual({ overflow: false, controlsFit: true, overflowing: [] });
     expect(fixture.bodies).toEqual([]); expect(fixture.frames).toHaveLength(1); expect(fixture.googleRequests).toHaveLength(1); expect(fixture.unexpected).toEqual([]);
   });
 }
