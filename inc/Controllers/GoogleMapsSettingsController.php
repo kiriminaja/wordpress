@@ -23,6 +23,7 @@ class GoogleMapsSettingsController {
 
 	/** Intercept only the protected storefront diagnostic, before canonical redirects. */
 	public function maybeBrowserCheck(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Route selection only; browserCheck verifies authorization and nonce before reading the key.
 		$query = is_array( $_GET ) ? wp_unslash( $_GET ) : array();
 		$browser_check = isset( $query['kiriof_google_maps_browser_check'] ) && is_string( $query['kiriof_google_maps_browser_check'] ) ? sanitize_text_field( $query['kiriof_google_maps_browser_check'] ) : '';
 		if ( '1' === $browser_check && $browser_check === $query['kiriof_google_maps_browser_check'] ) {
