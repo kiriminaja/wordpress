@@ -10,6 +10,7 @@ class Deactivate {
     public function deactivate(){
         try {
             flush_rewrite_rules();
+            wp_clear_scheduled_hook( \KiriminAjaOfficial\Services\OriginAddressMigrationService::HOOK );
         }catch (\Throwable $th){}
     }
 }

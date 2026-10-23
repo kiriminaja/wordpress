@@ -432,7 +432,7 @@ class SetupMigration {
             PRIMARY KEY  (`id`),
             KEY `is_default` (`is_default`),
             KEY `is_active` (`is_active`)
-        ) " . $charset_collate . ";";
+        ) ENGINE=InnoDB " . $charset_collate . ";";
 
         dbDelta($sql);
     }
