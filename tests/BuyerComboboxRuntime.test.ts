@@ -50,7 +50,11 @@ async function bundle() {
   if (!build.success) throw new Error(build.logs.join('\n'));
   return readFileSync(join(directory, 'runtime.js'));
 }
-async function fixture(html: string, config: Record<string, unknown> = {}) {
+async function fixture(
+  html: string,
+  config: Record<string, unknown> = {},
+  setup?: (window: InstanceType<typeof happy.Window>) => void,
+) {
   const temporary = mkdtempSync(join(root, 'node_modules', '.buyer-combobox-runtime-'));
   const window = new happy.Window({ url: 'https://fixture.test' });
   window.document.body.innerHTML = `<form class="checkout">${html}</form>`;
@@ -86,6 +90,7 @@ async function fixture(html: string, config: Record<string, unknown> = {}) {
   const changes: Event[] = [];
   window.document.body.addEventListener('change', (event) => changes.push(event));
   (window as any).kiriofBillingAddressConfig = config;
+  setup?.(window);
   async function settle() {
     for (let i = 0; i < 20; i++) {
       await Promise.resolve();
@@ -219,6 +224,153 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
     }
   });
 
+  test('unselected district refresh stays native-owned; replacement change before mount wins', async () => {
+    const h = await fixture(district);
+    try {
+      const native = h.window.document.querySelector('select')!;
+      native.innerHTML =
+        '<option value="999" selected>Server default</option><option value="202">Native choice</option>';
+      h.bridge.refresh();
+      await h.settle();
+      expect(native.value).toBe('999');
+      expect(h.changes).toHaveLength(0);
+      await h.open();
+      await h.choose('202');
+      const replacement = native.cloneNode(false) as typeof native;
+      replacement.innerHTML = '<option value="303" selected>New native choice</option>';
+      native.replaceWith(replacement);
+      replacement.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+      h.bridge.refresh();
+      await h.settle();
+      expect(replacement.value).toBe('303');
+      expect(h.trigger().textContent).toContain('New native choice');
+      expect(h.changes).toHaveLength(2);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  for (const type of ['billing', 'shipping']) {
+    const name =
+      type === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+    const context = `<input id="${type}_country" value="ID"><input id="${type}_state" value="JB"><input id="${type}_postcode" value="12345">`;
+    const field = `<label for="district">Subdistrict</label><select id="district" name="${name}"><option value="">Select Option</option><option value="101" selected>Old district</option><option value="202">Chosen district</option></select><input type="hidden" name="${name}_name" value="Old district">`;
+
+    test(`${type} explicit district and canonical label survive select/options replacement without writes`, async () => {
+      const h = await fixture(context + field);
+      try {
+        await h.open();
+        await h.choose('202');
+        const hidden = h.window.document.querySelector<HTMLInputElement>(`[name="${name}_name"]`)!;
+        const labelReplacement = hidden.cloneNode() as typeof hidden;
+        labelReplacement.value = 'Stale hidden label';
+        hidden.replaceWith(labelReplacement);
+        h.bridge.refresh();
+        await h.settle();
+        expect(labelReplacement.value).toBe('Chosen district');
+        const old = h.window.document.querySelector('select')!;
+        const replacement = old.cloneNode(false) as typeof old;
+        replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+        old.replaceWith(replacement);
+        h.window.document.body.dispatchEvent(new h.window.Event('updated_checkout'));
+        h.bridge.refresh();
+        await h.settle();
+        expect(old.isConnected).toBe(false);
+        expect(replacement.value).toBe('202');
+        expect(h.trigger().textContent).toContain('Chosen district');
+        expect((h.window.document.querySelector(`[name="${name}_name"]`) as any).value).toBe(
+          'Chosen district',
+        );
+        replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('202');
+        replacement.innerHTML =
+          '<option value="202" selected>Theme placeholder</option><option value="999">Replacement default</option>';
+        h.bridge.refresh();
+        await h.settle();
+        expect(h.trigger().textContent).toContain('Chosen district');
+        expect((h.window.document.querySelector(`[name="${name}_name"]`) as any).value).toBe(
+          'Chosen district',
+        );
+        expect(h.changes).toHaveLength(1);
+        // A later native change is authoritative, including when it precedes refresh.
+        replacement.value = '999';
+        replacement.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('999');
+        expect(h.trigger().textContent).toContain('Replacement default');
+        expect(h.changes).toHaveLength(2);
+      } finally {
+        await h.cleanup();
+      }
+    });
+
+    test(`${type} explicit clear survives replacement defaults`, async () => {
+      const h = await fixture(context + field);
+      try {
+        (h.window.document.querySelector('.kiriof-buyer-combobox-clear') as any).click();
+        await h.settle();
+        const old = h.window.document.querySelector('select')!;
+        const replacement = old.cloneNode(false) as typeof old;
+        replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+        old.replaceWith(replacement);
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('');
+        expect((h.window.document.querySelector(`[name="${name}_name"]`) as any).value).toBe('');
+        expect(h.trigger().textContent).not.toContain('Replacement default');
+        expect(h.changes).toHaveLength(1);
+      } finally {
+        await h.cleanup();
+      }
+    });
+
+    for (const part of ['country', 'state', 'postcode']) {
+      test(`${type} ${part} context invalidates explicit choice and pending lookup`, async () => {
+        const h = await fixture(context + field, { ajaxUrl: '/ajax', nonce: 'nonce' });
+        try {
+          await h.open();
+          await h.choose('202');
+          let respond!: (value: unknown) => void;
+          let signal!: AbortSignal;
+          h.window.fetch = ((_url: unknown, init: any) => {
+            signal = init.signal;
+            return new Promise((resolve) => {
+              respond = resolve;
+            });
+          }) as any;
+          await h.open();
+          const input = h.window.document.querySelector('[data-combobox-input]') as any;
+          input.value = 'Search';
+          input.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+          await new Promise((resolve) => setTimeout(resolve, 270));
+          const address = h.window.document.getElementById(`${type}_${part}`) as any;
+          address.value = 'NEW';
+          address.dispatchEvent(
+            new h.window.Event(part === 'postcode' ? 'input' : 'change', { bubbles: true }),
+          );
+          expect(signal.aborted).toBe(true);
+          respond({
+            ok: true,
+            json: async () => ({ results: [{ id: 303, text: 'Stale district' }] }),
+          });
+          await h.settle();
+          expect(h.window.document.body.textContent).not.toContain('Stale district');
+          const native = h.window.document.querySelector('select')!;
+          native.innerHTML = '<option value="999" selected>New context default</option>';
+          h.bridge.refresh();
+          await h.settle();
+          expect(native.value).toBe('999');
+          expect(h.changes).toHaveLength(1 + (part === 'postcode' ? 0 : 1));
+        } finally {
+          await h.cleanup();
+        }
+      });
+    }
+  }
+
   test('read lookup has loading/error/retry and stale term cancellation; clear emits exactly once', async () => {
     const h = await fixture(district, { ajaxUrl: '/wp-admin/admin-ajax.php', nonce: 'nonce' });
     try {
@@ -276,4 +428,388 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
       await h.cleanup();
     }
   });
+});
+
+const postalAddress = (type = 'billing', postcode = '12345', value = '') =>
+  `<input id="${type}_country" value="ID"><input id="${type}_state" value="JB"><input id="${type}_postcode" value="${postcode}"><select id="${type}_district" name="${type === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'}"><option value="">Select Option</option>${value ? `<option value="${value}" selected>Existing</option>` : ''}</select>`;
+function postalRequests(window: InstanceType<typeof happy.Window>) {
+  const requests: {
+    term: string;
+    signal: AbortSignal;
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+  }[] = [];
+  window.fetch = ((_url: unknown, init: any) =>
+    new Promise((resolve, reject) => {
+      requests.push({ term: init.body.get('term'), signal: init.signal, resolve, reject });
+    })) as any;
+  return requests;
+}
+const postalRows = (rows: [string, string][]) => ({
+  ok: true,
+  json: async () => ({ results: rows.map(([id, text]) => ({ id, text })) }),
+});
+
+describe('Classic checkout postcode recovery (opt-in)', () => {
+  test('closing an untouched dropdown does not cancel pending postcode recovery', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(postalAddress(), { isCheckout: '1' }, (w) => {
+      requests = postalRequests(w);
+    });
+    try {
+      await h.open();
+      const input = h.window.document.querySelector('[data-combobox-input]')!;
+      input.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+      input.dispatchEvent(new h.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await h.settle();
+      expect(requests[0].signal.aborted).toBe(false);
+      expect(h.bridge.districtPending()).toBe(true);
+      requests[0].resolve(postalRows([['202', 'Canonical']]));
+      await h.settle();
+      expect(h.window.document.querySelector('select')!.value).toBe('202');
+      expect(h.changes).toHaveLength(1);
+      expect(h.bridge.districtPending()).toBe(false);
+      expect(requests).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  test('WordPress-localized checkout string enables verified recovery', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(postalAddress(), { isCheckout: '1' }, (w) => {
+      requests = postalRequests(w);
+    });
+    try {
+      expect(requests.map((request) => request.term)).toEqual(['12345']);
+      requests[0].resolve(postalRows([['202', 'Canonical']]));
+      await h.settle();
+      expect(h.window.document.querySelector('select')!.value).toBe('202');
+      expect(h.changes).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  test('reselecting the current district after recovery failure explicitly retries its save', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(postalAddress('billing', '12345', '202'), { isCheckout: true }, (w) => {
+      requests = postalRequests(w);
+    });
+    try {
+      requests[0].reject(new Error('Read failed'));
+      await h.settle();
+      expect(h.bridge.districtPending()).toBe(true);
+      await h.open();
+      await h.choose('202');
+      expect(h.window.document.querySelector('select')!.value).toBe('202');
+      expect(h.changes).toHaveLength(1);
+      expect(h.bridge.districtPending()).toBe(false);
+      expect(h.window.document.querySelector('[role="status"]')?.textContent).toBe('');
+      h.bridge.refresh();
+      await h.settle();
+      expect(h.changes).toHaveLength(1);
+      expect(requests).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  test('fast recovery waits for the district writer and repairs hidden labels without duplicate writes', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(
+      postalAddress() + '<input type="hidden" name="kiriof_destination_area_name" value="Old label">',
+      { isCheckout: true },
+      (w) => {
+        (w as any).kiriofClassicDistrictMutation = { ready: false };
+        requests = postalRequests(w);
+      },
+    );
+    try {
+      expect(h.bridge.districtPending()).toBe(true);
+      requests[0].resolve(postalRows([['202', 'Canonical']]));
+      await h.settle();
+      expect(h.window.document.querySelector('select')!.value).toBe('202');
+      expect(h.changes).toHaveLength(0);
+      expect(h.bridge.districtPending()).toBe(true);
+      (h.window as any).kiriofClassicDistrictMutation.ready = true;
+      h.window.document.body.dispatchEvent(new h.window.Event('kiriof:classic-district-ready'));
+      await h.settle();
+      expect(h.changes).toHaveLength(1);
+      expect(h.bridge.districtPending()).toBe(false);
+      const old = h.window.document.querySelector<HTMLInputElement>('[name="kiriof_destination_area_name"]')!;
+      const next = old.cloneNode() as typeof old;
+      next.value = 'Stale replacement';
+      old.replaceWith(next);
+      h.bridge.refresh();
+      await h.settle();
+      expect(next.value).toBe('Canonical');
+      expect(h.changes).toHaveLength(1);
+      expect(requests).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+
+  for (const source of ['saved', 'unique', 'current', 'configured']) {
+    test(`${source} boot recovery verifies rows and publishes exactly once across refresh/replacement`, async () => {
+      let requests!: ReturnType<typeof postalRequests>;
+      const config = {
+        isCheckout: true,
+        savedDistrictByPostcode:
+          source === 'saved'
+            ? { '12345': { destination_id: '202', destination_name: 'Saved' } }
+            : {},
+        billingDistrict: source === 'configured' ? { id: '202', name: 'Configured' } : {},
+      };
+      const h = await fixture(
+        postalAddress('billing', '12345', source === 'current' ? '202' : ''),
+        config,
+        (w) => {
+          requests = postalRequests(w);
+        },
+      );
+      try {
+        expect(requests.map((r) => r.term)).toEqual(['12345']);
+        requests[0].resolve(
+          postalRows(
+            source === 'unique'
+              ? [['202', 'Canonical']]
+              : [
+                  ['101', 'Other'],
+                  ['202', 'Canonical'],
+                ],
+          ),
+        );
+        await h.settle();
+        let native = h.window.document.querySelector('select')!;
+        expect(native.value).toBe('202');
+        expect(h.trigger().textContent).toContain('Canonical');
+        expect(h.changes).toHaveLength(1);
+        const replacement = native.cloneNode(false) as typeof native;
+        replacement.innerHTML = '<option value="">Select Option</option>';
+        native.replaceWith(replacement);
+        h.bridge.refresh();
+        h.window.document.body.dispatchEvent(new h.window.Event('updated_checkout'));
+        await h.settle();
+        expect(replacement.value).toBe('202');
+        expect(h.changes).toHaveLength(1);
+        expect(requests).toHaveLength(1);
+        replacement.innerHTML = '<option value="999" selected>Refresh default</option>';
+        h.bridge.refresh();
+        await h.settle();
+        expect(replacement.value).toBe('202');
+        expect(h.changes).toHaveLength(1);
+      } finally {
+        await h.cleanup();
+      }
+    });
+  }
+  test('ambiguous postcode populates native options without choosing first; unmatched current is cleared', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(postalAddress('billing', '12345', '999'), { isCheckout: true }, (w) => {
+      requests = postalRequests(w);
+    });
+    try {
+      requests[0].resolve(
+        postalRows([
+          ['101', 'One'],
+          ['202', 'Two'],
+        ]),
+      );
+      await h.settle();
+      const native = h.window.document.querySelector('select')!;
+      expect(native.value).toBe('');
+      expect([...native.options].map((o) => o.value)).toEqual(['', '101', '202']);
+      expect(h.changes).toHaveLength(0);
+    } finally {
+      await h.cleanup();
+    }
+  });
+  for (const action of ['choose', 'clear', 'search']) {
+    test(`manual ${action} wins delayed automatic read`, async () => {
+      let requests!: ReturnType<typeof postalRequests>;
+      const h = await fixture(
+        postalAddress('billing', '12345', '101'),
+        { isCheckout: true },
+        (w) => {
+          requests = postalRequests(w);
+        },
+      );
+      try {
+        if (action === 'clear')
+          (h.window.document.querySelector('.kiriof-buyer-combobox-clear') as any).click();
+        else if (action === 'choose') {
+          const native = h.window.document.querySelector('select')!;
+          const option = h.window.document.createElement('option');
+          option.value = '303';
+          option.text = 'Manual';
+          native.append(option);
+          native.value = '303';
+          native.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+        } else {
+          await h.open();
+          const input = h.window.document.querySelector('[data-combobox-input]') as any;
+          input.value = 'Manual';
+          input.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+        }
+        await h.settle();
+        expect(requests[0].signal.aborted).toBe(true);
+        requests[0].resolve(postalRows([['202', 'Automatic']]));
+        await h.settle();
+        expect(h.window.document.querySelector('select')!.value).toBe(
+          action === 'clear' ? '' : action === 'choose' ? '303' : '101',
+        );
+        if (action === 'clear') {
+          const old = h.window.document.querySelector('select')!;
+          const replacement = old.cloneNode(false) as typeof old;
+          replacement.innerHTML = '<option value="999" selected>Replacement default</option>';
+          old.replaceWith(replacement);
+        }
+        h.bridge.refresh();
+        await h.settle();
+        expect(requests).toHaveLength(1);
+        if (action === 'clear') expect(h.window.document.querySelector('select')!.value).toBe('');
+      } finally {
+        await h.cleanup();
+      }
+    });
+  }
+  test('failure surfaces existing retry using empty display term', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(postalAddress(), { isCheckout: true }, (w) => {
+      requests = postalRequests(w);
+    });
+    try {
+      requests[0].reject(new Error('offline'));
+      await h.settle();
+      expect(h.window.document.querySelector('[role="status"]')?.textContent).toContain(
+        'Could not',
+      );
+      await h.open();
+      (h.window.document.querySelector('.kiriof-buyer-combobox-retry') as any).click();
+      await h.settle();
+      expect(requests.map((r) => r.term)).toEqual(['12345', '12345']);
+      requests[1].resolve(postalRows([['202', 'Recovered']]));
+      await h.settle();
+      expect(h.window.document.querySelector('select')!.value).toBe('202');
+      expect(h.changes).toHaveLength(1);
+    } finally {
+      await h.cleanup();
+    }
+  });
+  test('postcode change cancels stale read; inactive shipping only publishes when effective', async () => {
+    let requests!: ReturnType<typeof postalRequests>;
+    const h = await fixture(
+      postalAddress() +
+        postalAddress('shipping', '54321') +
+        '<input type="checkbox" name="ship_to_different_address">',
+      { isCheckout: true },
+      (w) => {
+        requests = postalRequests(w);
+      },
+    );
+    try {
+      expect(requests.map((r) => r.term)).toEqual(['12345', '54321']);
+      const postcode = h.window.document.getElementById('billing_postcode') as any;
+      postcode.value = '67890';
+      postcode.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+      await h.settle();
+      expect(requests[0].signal.aborted).toBe(true);
+      // The unrelated shipping lookup must remain independently usable.
+      requests.find((r) => r.term === '54321')!.resolve(postalRows([['303', 'Shipping']]));
+      requests.find((r) => r.term === '67890')!.resolve(postalRows([['202', 'Billing']]));
+      requests[0].resolve(postalRows([['999', 'Stale']]));
+      await h.settle();
+      expect(h.window.document.getElementById('billing_district')!.getAttribute('name')).toBe(
+        'kiriof_destination_area',
+      );
+      expect((h.window.document.getElementById('billing_district') as any).value).toBe('202');
+      expect((h.window.document.getElementById('shipping_district') as any).value).toBe('303');
+      expect(h.changes.filter((e) => (e.target as any).tagName === 'SELECT')).toHaveLength(1);
+      const separate = h.window.document.querySelector('[name="ship_to_different_address"]') as any;
+      separate.checked = true;
+      separate.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+      await h.settle();
+      for (const request of requests.slice(3))
+        request.resolve(
+          postalRows(request.term === '54321' ? [['303', 'Shipping']] : [['202', 'Billing']]),
+        );
+      await h.settle();
+      expect(h.changes.filter((e) => (e.target as any).tagName === 'SELECT')).toHaveLength(2);
+      expect(
+        (h.changes.filter((e) => (e.target as any).tagName === 'SELECT')[1].target as any).name,
+      ).toBe('kiriof_shipping_destination_area');
+    } finally {
+      await h.cleanup();
+    }
+  });
+  for (const postcode of ['', '1234', '123456', '12a45']) {
+    test(`invalid postcode ${JSON.stringify(postcode)} does not query`, async () => {
+      let requests!: ReturnType<typeof postalRequests>;
+      const h = await fixture(postalAddress('billing', postcode), { isCheckout: true }, (w) => {
+        requests = postalRequests(w);
+      });
+      try {
+        expect(requests).toHaveLength(0);
+      } finally {
+        await h.cleanup();
+      }
+    });
+  }
+});
+
+describe('Classic recovery boundaries', () => {
+  for (const boundary of ['not-opted-in', 'account', 'blocks', 'foreign-country']) {
+    test(`${boundary} never queries`, async () => {
+      let requests!: ReturnType<typeof postalRequests>;
+      const html =
+        postalAddress() +
+        (boundary === 'account'
+          ? '<div class="kiriof-account-shipping"></div>'
+          : boundary === 'blocks'
+            ? '<div class="wc-block-checkout"></div>'
+            : '');
+      const h = await fixture(html, { isCheckout: boundary !== 'not-opted-in' }, (w) => {
+        requests = postalRequests(w);
+        if (boundary === 'foreign-country')
+          (w.document.getElementById('billing_country') as any).value = 'SG';
+      });
+      try {
+        expect(requests).toHaveLength(0);
+      } finally {
+        await h.cleanup();
+      }
+    });
+  }
+  for (const part of ['country', 'state', 'separate']) {
+    test(`${part} cancels delayed recovery before it can publish`, async () => {
+      let requests!: ReturnType<typeof postalRequests>;
+      const h = await fixture(
+        postalAddress() + '<input type="checkbox" name="ship_to_different_address">',
+        { isCheckout: true },
+        (w) => {
+          requests = postalRequests(w);
+        },
+      );
+      try {
+        const field = (
+          part === 'separate'
+            ? h.window.document.querySelector('[name="ship_to_different_address"]')
+            : h.window.document.getElementById(`billing_${part}`)
+        ) as any;
+        if (part === 'separate') field.checked = true;
+        else field.value = part === 'country' ? 'SG' : 'JK';
+        field.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+        await h.settle();
+        expect(requests[0].signal.aborted).toBe(true);
+        requests[0].resolve(postalRows([['999', 'Stale']]));
+        await h.settle();
+        expect((h.window.document.querySelector('select') as any).value).toBe('');
+        expect(h.changes.filter((e) => (e.target as any).tagName === 'SELECT')).toHaveLength(0);
+      } finally {
+        await h.cleanup();
+      }
+    });
+  }
 });

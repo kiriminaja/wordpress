@@ -1630,6 +1630,7 @@ class SettingController{
         return array(
             'kiriminaja',
             'kiriminaja_api',
+            'kiriminaja_checkout',
             'kiriminaja_debug',
             'kiriminaja_import',
             'kiriminaja_instant',

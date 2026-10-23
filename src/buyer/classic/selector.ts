@@ -11,12 +11,14 @@ type JQueryField = {
   on: (events: string, callback: () => void) => void;
   off: (events: string) => void;
 };
+type DistrictChoice = { scope: string; value: string; label: string };
 type ClassicWindow = Window & {
   kiriofBillingAddressConfig?: SelectorConfig;
   kiriofAccountShippingConfig?: SelectorConfig;
   kiriofAjax?: { nonce?: string; ajaxurl?: string };
   kiriofBuyerSelectors?: SelectorBridge;
   kiriofClassicChoices?: SelectorBridge;
+  kiriofClassicDistrictMutation?: { ready?: boolean };
   jQuery?: (node: Element) => JQueryField;
   kiriofSetClassicDistrictLabel?: (field: JQueryField, label: string, separate: number) => void;
 };
@@ -28,6 +30,8 @@ type RecordEntry = {
   signature: string;
   scope: string;
   generation: number;
+  recoveryAttempt?: string;
+  recoveryFailed?: boolean;
   debounce?: ReturnType<typeof setTimeout>;
   deadline?: ReturnType<typeof setTimeout>;
   controller?: AbortController;
@@ -51,10 +55,17 @@ export function startClassicSelectors(
   if (root.kiriofBuyerSelectors) return root.kiriofBuyerSelectors;
   const document = root.document;
   const config = root.kiriofAccountShippingConfig || root.kiriofBillingAddressConfig || {};
+  // wp_localize_script serializes top-level true as "1".
+  const checkoutRecovery = config.isCheckout === true || config.isCheckout === '1';
   const strings = config.i18n || {};
   const districtKey = config.fieldKey || 'kiriof_destination_area';
   const records = new Map<HTMLSelectElement, RecordEntry>();
   const displays = new WeakMap<HTMLSelectElement, Map<string, (string | null)[]>>();
+  const districtChoices = new Map<string, DistrictChoice>();
+  const recovered = new Map<string, { rows: SelectorOption[]; value: string }>();
+  const manualContexts = new Set<string>();
+  const published = new Set<string>();
+  let publishing = false;
   let stopped = false;
   let queued = false;
   let observer: MutationObserver | undefined;
@@ -83,10 +94,12 @@ export function startClassicSelectors(
         : 'billing';
     const country = document.getElementById(`${type}_country`) as HTMLSelectElement | null;
     const state = document.getElementById(`${type}_state`) as HTMLSelectElement | null;
+    const postcode = document.getElementById(`${type}_postcode`) as HTMLInputElement | null;
     const separate = document.querySelector<HTMLInputElement>('[name="ship_to_different_address"]');
     return JSON.stringify([
       country?.value ?? config[`${type}Country`],
       state?.value ?? '',
+      postcode?.value ?? '',
       !!separate?.checked,
     ]);
   }
@@ -175,9 +188,43 @@ export function startClassicSelectors(
       options(select),
     ]);
   }
+  function choiceKey(select: HTMLSelectElement) {
+    if (!district(select) || accountForm(select)) return null;
+    return select.name === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
+  }
+  function rememberChoice(select: HTMLSelectElement) {
+    const key = choiceKey(select);
+    if (key)
+      districtChoices.set(key, {
+        scope: addressScope(select),
+        value: select.value,
+        label: select.value
+          ? Array.from(select.options).find((option) => option.value === select.value)?.text || ''
+          : '',
+      });
+  }
   function synchronize(record: RecordEntry) {
     const { select, state } = record;
+    const key = choiceKey(select);
+    if (key) {
+      // Checkout refreshes can replace both the field and its option list. Only
+      // an explicit choice is replayed; initial/server defaults remain native-owned.
+      const saved = districtChoices.get(key);
+      if (saved && saved.scope !== addressScope(select)) districtChoices.delete(key);
+      if (saved && saved.scope === addressScope(select)) {
+        let option = Array.from(select.options).find((entry) => entry.value === saved.value);
+        if (!option) {
+          option = document.createElement('option');
+          option.value = saved.value;
+          option.text = saved.label;
+          select.append(option);
+        }
+        if (saved.value && option.text !== saved.label) option.text = saved.label;
+        if (select.value !== saved.value) select.value = saved.value;
+      }
+    }
     preserve(select);
+    if (key && districtChoices.has(key)) syncLabel(record);
     const next = signature(select);
     if (next === record.signature) return;
     state.value = select.value;
@@ -198,19 +245,175 @@ export function startClassicSelectors(
   }
   function syncLabel(record: RecordEntry) {
     if (!district(record.select)) return;
-    const label = record.select.value ? record.select.selectedOptions[0]?.text || '' : '';
+    const label = record.select.value
+      ? Array.from(record.select.options).find((option) => option.value === record.select.value)
+          ?.text || ''
+      : '';
     const field = root.jQuery?.(record.select);
+    const name =
+      record.select.name === 'kiriof_shipping_destination_area'
+        ? 'kiriof_shipping_destination_area_name'
+        : 'kiriof_destination_area_name';
+    const hidden = document.querySelector<HTMLInputElement>(`[name="${name}"]`);
+    const labelChanged = !hidden || hidden.value !== label;
+    if (hidden && labelChanged) hidden.value = label;
     if (field) {
       field.data('kiriofSelectedDistrictText', label);
-      root.kiriofSetClassicDistrictLabel?.(
-        field,
-        label,
-        document.querySelectorAll('[name="ship_to_different_address"]:checked').length,
-      );
+      if (labelChanged)
+        root.kiriofSetClassicDistrictLabel?.(
+          field,
+          label,
+          document.querySelectorAll('[name="ship_to_different_address"]:checked').length,
+        );
     }
+  }
+  function recoveryKey(record: RecordEntry) {
+    return `${choiceKey(record.select)}:${addressScope(record.select)}`;
+  }
+  function manualIntent(record: RecordEntry) {
+    manualContexts.add(recoveryKey(record));
+    record.recoveryFailed = false;
+  }
+  function recover(record: RecordEntry, retry = false) {
+    const type = choiceKey(record.select);
+    if (!checkoutRecovery || !type || accountForm(record.select) || !active()) return;
+    const scope = addressScope(record.select);
+    const key = recoveryKey(record);
+    const [country, , postcode] = JSON.parse(scope) as [string, string, string, boolean];
+    if (country?.toUpperCase() !== 'ID' || !/^[0-9]{5}$/.test(postcode)) return;
+    if (manualContexts.has(key) || districtChoices.get(type)?.scope === scope) return;
+    const publish = (value: string) => {
+      const separate = !!document.querySelector<HTMLInputElement>(
+        '[name="ship_to_different_address"]',
+      )?.checked;
+      if (
+        !value ||
+        type !== (separate ? 'shipping' : 'billing') ||
+        published.has(key) ||
+        (root.kiriofClassicDistrictMutation && root.kiriofClassicDistrictMutation.ready !== true)
+      )
+        return;
+      published.add(key);
+      publishing = true;
+      try {
+        record.select.dispatchEvent(
+          new CustomEvent('change', { bubbles: true, detail: { value } }),
+        );
+      } finally {
+        publishing = false;
+      }
+    };
+    const apply = (result: { rows: SelectorOption[]; value: string }) => {
+      if (manualContexts.has(key)) return;
+      const { select, state } = record;
+      select.replaceChildren();
+      const blank = document.createElement('option');
+      blank.value = '';
+      blank.text = strings.selectOption || 'Select Option';
+      select.append(blank);
+      for (const row of result.rows) {
+        const option = document.createElement('option');
+        option.value = row.value;
+        option.text = row.label;
+        select.append(option);
+      }
+      select.value = result.value;
+      state.loading = false;
+      state.error = false;
+      state.status = result.rows.length ? '' : strings.noResults || 'No results found';
+      record.signature = '';
+      synchronize(record);
+      syncLabel(record);
+      publish(result.value);
+    };
+    const cached = recovered.get(key);
+    if (cached) {
+      // Only repair replacement fields, not every observer/checkout refresh.
+      if (
+        record.recoveryAttempt !== key ||
+        record.select.value !== cached.value ||
+        JSON.stringify(
+          options(record.select)
+            .filter((option) => option.value)
+            .map((option) => [option.value, option.label]),
+        ) !== JSON.stringify(cached.rows.map((option) => [option.value, option.label]))
+      ) {
+        record.recoveryAttempt = key;
+        apply(cached);
+      }
+      syncLabel(record);
+      publish(cached.value);
+      return;
+    }
+    if (!retry && record.recoveryAttempt === key) return;
+    cancel(record);
+    record.recoveryAttempt = key;
+    record.recoveryFailed = false;
+    const generation = record.generation;
+    const current = () =>
+      active() &&
+      record.select.isConnected &&
+      generation === record.generation &&
+      scope === addressScope(record.select) &&
+      !manualContexts.has(key);
+    const nativeValue = record.select.value;
+    const configured = config[type === 'shipping' ? 'shippingDistrict' : 'billingDistrict'];
+    const saved = config.savedDistrictByPostcode?.[postcode];
+    const controller = new AbortController();
+    record.controller = controller;
+    record.state.error = false;
+    record.state.loading = true;
+    record.state.status = strings.searching || 'Searching…';
+    const failed = () => {
+      record.recoveryFailed = true;
+      record.state.loading = false;
+      record.state.error = true;
+      record.state.status =
+        strings.searchError ||
+        strings.lookupError ||
+        'Could not search subdistricts. Please try again.';
+    };
+    record.deadline = setTimeout(() => {
+      if (!current()) return;
+      cancel(record);
+      failed();
+    }, 10000);
+    const ajax = root.kiriofAjax || {};
+    void searchSubdistrict(
+      ajax.ajaxurl || config.ajaxUrl || '',
+      ajax.nonce || config.nonce || '',
+      postcode,
+      controller.signal,
+    )
+      .then((rows) => {
+        if (!current()) return;
+        const candidates = [nativeValue, configured?.id, saved?.destination_id];
+        const matched = candidates
+          .map((id) => rows.find((row) => row.value === String(id || '')))
+          .find(Boolean);
+        const result = { rows, value: matched?.value || (rows.length === 1 ? rows[0].value : '') };
+        recovered.set(key, result);
+        apply(result);
+      })
+      .catch(() => {
+        if (current()) failed();
+      })
+      .finally(() => {
+        if (generation !== record.generation) return;
+        clearTimeout(record.deadline);
+        record.controller = undefined;
+        record.state.loading = false;
+      });
   }
   function search(record: RecordEntry, value: string) {
     if (!district(record.select)) return;
+    if (record.recoveryFailed && !value.trim()) {
+      recover(record, true);
+      return;
+    }
+    // Closing the dropdown reports a blank term, not a new buyer choice.
+    if (!value.trim()) return;
+    manualIntent(record);
     cancel(record);
     const term = value.trim();
     const state = record.state;
@@ -281,7 +484,14 @@ export function startClassicSelectors(
   function choose(record: RecordEntry, value: string, activated = false) {
     const select = record.select;
     if (!active() || !select.isConnected || select.disabled) return;
-    if (select.value === value && !(activated && shipping(select))) return;
+    if (select.value === value && !(activated && (shipping(select) || district(select)))) {
+      if (district(select)) {
+        manualIntent(record);
+        cancel(record);
+        rememberChoice(select);
+      }
+      return;
+    }
     const option = record.state.options.find((entry) => entry.value === value);
     if (value && (!option || option.disabled)) {
       synchronize(record);
@@ -293,6 +503,7 @@ export function startClassicSelectors(
       native.text = option?.label || strings.selectOption || 'Select Option';
       select.append(native);
     }
+    manualIntent(record);
     cancel(record);
     select.value = value;
     record.state.value = value;
@@ -300,6 +511,7 @@ export function startClassicSelectors(
     record.state.status = '';
     record.state.error = false;
     syncLabel(record);
+    rememberChoice(select);
     record.signature = '';
     synchronize(record);
     // Exactly one explicit native change: neither bind:value nor refresh emits writes.
@@ -345,11 +557,14 @@ export function startClassicSelectors(
       tabindex: select.getAttribute('tabindex'),
       ariaHidden: select.getAttribute('aria-hidden'),
       change: () => {
+        if (publishing) return;
+        manualIntent(record);
         cancel(record);
         state.term = '';
         state.status = '';
         state.error = false;
         syncLabel(record);
+        rememberChoice(select);
         record.signature = '';
         synchronize(record);
         queueRefresh();
@@ -379,6 +594,7 @@ export function startClassicSelectors(
         .closest('.kiriof-classic-shipping-package, td')
         ?.classList.add('kiriof-shipping-methods-ready');
     }
+    recover(record);
     return state;
   }
   function destroy(record: RecordEntry) {
@@ -424,8 +640,11 @@ export function startClassicSelectors(
         record.state.error = false;
         record.signature = '';
         record.scope = scope;
+        record.recoveryAttempt = undefined;
+        record.recoveryFailed = false;
       }
       synchronize(record);
+      recover(record);
     }
     if (active()) document.querySelectorAll<HTMLSelectElement>('form select').forEach(init);
   }
@@ -438,14 +657,31 @@ export function startClassicSelectors(
     });
   }
   function addressChange(event: Event) {
+    if (publishing) return;
+    const select = event.target;
+    // Capture native changes even if Woo has just inserted an unmounted field.
+    if (select instanceof HTMLSelectElement && eligible(select)) {
+      rememberChoice(select);
+      if (district(select)) manualContexts.add(`${choiceKey(select)}:${addressScope(select)}`);
+    }
     if (
       (event.target as Element)?.matches?.(
-        '#billing_country, #shipping_country, #billing_state, #shipping_state, [name="ship_to_different_address"]',
+        '#billing_country, #shipping_country, #billing_state, #shipping_state, #billing_postcode, #shipping_postcode, [name="ship_to_different_address"]',
       )
     ) {
-      for (const record of records.values()) if (district(record.select)) cancel(record);
+      for (const record of records.values()) {
+        if (!district(record.select)) continue;
+        if (record.scope !== addressScope(record.select)) cancel(record);
+        const key = choiceKey(record.select);
+        if (key && districtChoices.get(key)?.scope !== addressScope(record.select))
+          districtChoices.delete(key);
+      }
     }
     queueRefresh();
+  }
+  function addressInput(event: Event) {
+    if ((event.target as Element)?.matches?.('#billing_postcode, #shipping_postcode'))
+      addressChange(event);
   }
   function start() {
     if (stopped) return;
@@ -482,7 +718,9 @@ export function startClassicSelectors(
       ],
     });
     document.addEventListener('change', addressChange, true);
+    document.addEventListener('input', addressInput, true);
     document.body.addEventListener('updated_checkout', queueRefresh);
+    document.body.addEventListener('kiriof:classic-district-ready', queueRefresh);
     document.body.addEventListener('country_to_state_changed', queueRefresh);
     root
       .jQuery?.(document.body)
@@ -493,6 +731,24 @@ export function startClassicSelectors(
   }
   const bridge: SelectorBridge = {
     active,
+    districtPending: () => {
+      if (!checkoutRecovery) return false;
+      const separate = !!document.querySelector<HTMLInputElement>(
+        '[name="ship_to_different_address"]',
+      )?.checked;
+      for (const record of records.values()) {
+        if (choiceKey(record.select) !== (separate ? 'shipping' : 'billing')) continue;
+        const key = recoveryKey(record);
+        if (manualContexts.has(key)) continue;
+        if (
+          record.state.loading ||
+          record.recoveryFailed ||
+          (recovered.get(key)?.value && !published.has(key))
+        )
+          return true;
+      }
+      return false;
+    },
     refresh,
     initDistrict: (select) => (district(select) ? init(select) : null),
     initShipping: (select) => (shipping(select) ? init(select) : null),
@@ -502,7 +758,9 @@ export function startClassicSelectors(
       observer?.disconnect();
       document.removeEventListener('DOMContentLoaded', start);
       document.removeEventListener('change', addressChange, true);
+      document.removeEventListener('input', addressInput, true);
       document.body.removeEventListener('updated_checkout', queueRefresh);
+      document.body.removeEventListener('kiriof:classic-district-ready', queueRefresh);
       document.body.removeEventListener('country_to_state_changed', queueRefresh);
       root.jQuery?.(document.body).off('.kiriofBuyerSelectors');
       root.removeEventListener('pagehide', bridge.dispose!);

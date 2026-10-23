@@ -3,6 +3,8 @@
 define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
 function get_transient( $key ) { return $GLOBALS['identity_transients'][ $key ] ?? false; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['identity_transients'][ $key ] = $value; return true; }
+function kiriof_log( $level, $message, $context, $channel = null ) { $GLOBALS['logs'][] = array( $level, $message, $context, $channel ); }
+$GLOBALS['logs'] = array();
 require ABSPATH . 'vendor/autoload.php';
 $repository = new class() extends \KiriminAjaOfficial\Repositories\KiriminajaApiRepository {
     public array $searches = array();
@@ -36,4 +38,5 @@ $result['warm'] = $repository->getPricing( $payload );
 $result['warm_additional_searches'] = count( $repository->searches ) - $warm_searches;
 $result['searches'] = $repository->searches;
 $result['posts'] = $repository->posts;
+$result['logs'] = $GLOBALS['logs'];
 echo json_encode( $result, JSON_THROW_ON_ERROR );

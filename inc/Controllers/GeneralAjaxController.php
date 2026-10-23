@@ -170,6 +170,7 @@ class GeneralAjaxController
             );
             WC()->session->set( 'kiriof_destination_postcode_map', $saved_map );
         }
+        \KiriminAjaOfficial\Services\ClassicShippingRateCache::invalidate();
         wp_send_json_success(['code' => '200', 'msg' => __( 'Success', 'kiriminaja-official' )]);
     }
     public function kiriof_getDataAfterUpdateCheckout()

@@ -187,11 +187,12 @@ function kiriofRestoreClassicDistrictSelection($select, district, $nameField) {
 
 // One server mutation at a time. Never abort a request that may already have
 // written the session; replace only the not-yet-sent snapshot with latest intent.
-var kiriofClassicDistrictMutation = { active: false, pending: null };
+var kiriofClassicDistrictMutation = { active: false, pending: null, failed: false, ready: false };
 
 function kiriofSendClassicDistrictMutation(snapshot) {
     var state = kiriofClassicDistrictMutation;
     state.active = true;
+    state.failed = false;
     var result = null;
     var failure = null;
     jQuery.ajax({
@@ -225,6 +226,7 @@ function kiriofSendClassicDistrictMutation(snapshot) {
             // Labels were updated by the input event, not this stale root element.
             var responseData = result && result.data ? result.data : {};
             var succeeded = !failure && result && result.success !== false && responseData.code == 200;
+            state.failed = !succeeded;
             jQuery('[name="kiriof_checkout_token"]').val(succeeded ? '1' : '');
             if (failure) {
                 if (window.console) {
@@ -259,7 +261,7 @@ function changeDistrict(){
         return;
     }
     var kelurahanArea = 'select#' + (kiriofBillingAddressConfig.fieldKey || 'kiriof_destination_area') + ',select#kiriof_shipping_destination_area';
-    jQuery(kelurahanArea).off('change.kiriofClassicDistrict').on('change.kiriofClassicDistrict', function() {
+    jQuery(document).off('change.kiriofClassicDistrict', kelurahanArea).on('change.kiriofClassicDistrict', kelurahanArea, function() {
         var root = jQuery(this);
         var differentAddress = jQuery('[name="ship_to_different_address"]:checked').length;
         var addressType = root.attr('id') === 'kiriof_shipping_destination_area' ? 'shipping' : 'billing';
@@ -293,6 +295,12 @@ function changeDistrict(){
             kiriofSendClassicDistrictMutation(snapshot);
         }
     });
+    if (!kiriofClassicDistrictMutation.ready) {
+        kiriofClassicDistrictMutation.ready = true;
+        var ready = document.createEvent('Event');
+        ready.initEvent('kiriof:classic-district-ready', true, false);
+        document.body.dispatchEvent(ready);
+    }
 }
 
 /**

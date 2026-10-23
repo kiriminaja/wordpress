@@ -13,6 +13,13 @@ export type SelectorOption = {
 
 export type SelectorConfig = {
   map?: MapProviderInput;
+  isCheckout?: boolean | '1' | '';
+  billingDistrict?: { id?: string | number; name?: string };
+  shippingDistrict?: { id?: string | number; name?: string };
+  savedDistrictByPostcode?: Record<
+    string,
+    { destination_id?: string | number; destination_name?: string }
+  >;
   fieldKey?: string;
   nonce?: string;
   ajaxUrl?: string;
@@ -24,6 +31,7 @@ export type SelectorConfig = {
 
 export type SelectorBridge = {
   active: () => boolean;
+  districtPending?: () => boolean;
   refresh: () => void;
   initDistrict: (select: HTMLSelectElement) => unknown;
   initShipping: (select: HTMLSelectElement) => unknown;

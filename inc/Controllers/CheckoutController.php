@@ -115,7 +115,7 @@ class CheckoutController
 
     private function kiriof_is_local_pickup_selected(): bool {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Read-only field configuration; WooCommerce verifies checkout requests.
-        $methods = isset( $_POST['shipping_method'] ) ? wp_unslash( $_POST['shipping_method'] ) : WC()->session->get( 'chosen_shipping_methods', array() );
+        $methods = isset( $_POST['shipping_method'] ) ? array_map( 'sanitize_text_field', wp_unslash( is_array( $_POST['shipping_method'] ) ? $_POST['shipping_method'] : array() ) ) : WC()->session->get( 'chosen_shipping_methods', array() );
         if ( ! is_array( $methods ) || empty( $methods ) ) {
             return false;
         }
@@ -2618,6 +2618,7 @@ class CheckoutController
         WC()->session->set( 'kiriof_buyer_destination_coordinates', '' === $destination['district_id'] ? null : $this->kiriof_buyer_coordinates( $destination ) );
         WC()->session->set( 'kiriof_instant_checkout_quotes', array() );
         WC()->session->set( 'kiriof_instant_checkout_status', array() );
+        \KiriminAjaOfficial\Services\ClassicShippingRateCache::invalidate();
     }
 
     /** Legacy fee payloads lack street fields; retain only a valid matching pin. */
@@ -2916,6 +2917,15 @@ class CheckoutController
                     $this->kiriof_sync_classic_pin( $data );
                 } catch ( \Throwable $error ) {
                     $details = $this->kiriof_classic_pin_error_details( $error instanceof \InvalidArgumentException ? $error->getCode() : 7 );
+                    if ( function_exists( 'kiriof_log' ) ) {
+                        kiriof_log( 'warning', 'Classic checkout pin save rejected.', array(
+                            'operation' => 'sync_classic_pin',
+                            'code' => $details[0],
+                            'scope' => in_array( $data['address_scope'] ?? null, array( 'billing', 'shipping' ), true ) ? $data['address_scope'] : 'invalid',
+                            'http_status' => $details[2],
+                            'backtrace' => false,
+                        ), 'kiriminaja_checkout' );
+                    }
                     wp_send_json_error( array( 'code' => $details[0], 'msg' => esc_html( $details[1] ), 'message' => esc_html( $details[1] ) ), $details[2] );
                     return;
                 }

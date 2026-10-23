@@ -129,6 +129,34 @@ final class CheckoutLogisticsSessionRuntimeTest extends TestCase {
 		return array(
 			'classic' => array( 'local_pickup:7' ),
 			'blocks'  => array( 'pickup_location:0' ),
+			'sanitized classic' => array( ' <b>local_pickup</b>:7 ' ),
+			'sanitized blocks'  => array( ' <b>pickup_location</b>:0 ' ),
+			'unslashed classic' => array( 'local_pickup\\:7' ),
+		);
+	}
+
+	#[Test]
+	#[DataProvider( 'malformedPickupMethods' )]
+	public function malformed_posted_methods_do_not_trust_stale_pickup( $methods ): void {
+		$result = $this->runFixture( array(
+			'action'  => 'fields',
+			'post'    => array( 'billing_country' => 'ID', 'shipping_method' => $methods ),
+			'session' => array( 'chosen_shipping_methods' => array( 'local_pickup:7' ) ),
+		) );
+		$this->assertTrue( $result['fields']['billing']['kiriof_destination_area']['required'] );
+		$this->assertTrue( $result['fields']['shipping']['kiriof_shipping_destination_area']['required'] );
+	}
+
+	public static function malformedPickupMethods(): array {
+		return array(
+			'scalar pickup'         => array( 'local_pickup:7' ),
+			'empty selection'       => array( array() ),
+			'nested pickup'         => array( array( array( 'local_pickup:7' ) ) ),
+			'pickup plus nested'    => array( array( 'local_pickup:7', array( 'pickup_location:0' ) ) ),
+			'non-string selection'  => array( array( false ) ),
+			'empty method'          => array( array( '' ) ),
+			'sanitized empty'       => array( array( '<b></b>' ) ),
+			'sanitized mixed rates' => array( array( ' <b>local_pickup</b>:7 ', ' <b>flat_rate</b>:2 ' ) ),
 		);
 	}
 

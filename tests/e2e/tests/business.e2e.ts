@@ -23,6 +23,60 @@ const binding = {
   postcode: '55581',
   country: 'ID',
 };
+
+test('Classic explicit district survives theme replacement and its pin waits for session acknowledgment', async ({ app, browser, screen }) => {
+  const fixture = await checkout(app, browser, true, { success: true, data: [district] }, false, false, true);
+  await expect.poll(() => fixture.saves().length).toBeGreaterThan(0);
+  await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.pending && !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
+  await browser.evaluate(() => {
+    const old = document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!;
+    const replacement = old.cloneNode(true) as HTMLSelectElement;
+    old.replaceWith(replacement);
+    jQuery(document.body).trigger('updated_checkout');
+  });
+  await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox').tap();
+  await browser.locator('.kiriof-buyer-combobox-input').fill('Sleman');
+  await expect(screen.getByRole('option', district.text)).toBeVisible();
+  const saves = fixture.saves().length;
+  await screen.getByRole('option', district.text).tap();
+  await expect.poll(() => fixture.districts().length).toBe(1);
+  await browser.evaluate(() => {
+    const old = document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!;
+    const replacement = old.cloneNode(false) as HTMLSelectElement;
+    replacement.innerHTML = '<option value="123" selected>Stale server default</option>';
+    old.replaceWith(replacement);
+    jQuery(document.body).trigger('updated_checkout');
+  });
+  await expect.poll(() => browser.evaluate(() => ({
+    id: document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!.value,
+    label: document.querySelector<HTMLInputElement>('#kiriof_destination_area_name')!.value,
+    queued: window.kiriofBuyerPin.controller.getState().queue.pending?.destination.district_id,
+  }))).toEqual({ id: district.id, label: district.text, queued: district.id });
+  expect(fixture.saves().length).toBe(saves);
+  expect(fixture.districts()[0].body.val).toBe(district.id);
+  fixture.releaseDistrict();
+  await expect.poll(() => fixture.saves().some(request => JSON.parse(request.body.data).destination.district_id === district.id)).toBe(true);
+  await expect.poll(() => browser.evaluate(() => ({
+    error: window.kiriofBuyerPin.controller.getState().queue.error,
+    pending: window.kiriofBuyerPin.controller.getState().queue.pending,
+    inFlight: window.kiriofBuyerPin.controller.getState().queue.inFlight,
+    id: document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!.value,
+  }))).toEqual({ error: null, pending: null, inFlight: null, id: district.id });
+  const preserved = await browser.evaluate(() => {
+    const before = window.kiriofBuyerPin.controller.getState().point;
+    const old = document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!;
+    const replacement = old.cloneNode(false) as HTMLSelectElement;
+    replacement.innerHTML = '<option value="123" selected>Stale refreshed district</option>';
+    old.replaceWith(replacement);
+    jQuery(document.body).trigger('updated_checkout');
+    const after = window.kiriofBuyerPin.controller.getState();
+    return { before, after: after.point, district: after.selection?.id };
+  });
+  expect(preserved.before).not.toBeNull();
+  expect(preserved.after).toEqual(preserved.before);
+  expect(preserved.district).toBe(district.id);
+  expect(fixture.unexpected).toEqual([]);
+});
 const district = { id: '4567', text: 'Sleman, Sleman, DI Yogyakarta, 55581' };
 
 function php(name: string, input: unknown) {
@@ -76,7 +130,16 @@ const fixtureRates = [
   { id: 'kiriminaja-official:1:jne:reg', label: 'Fixture Regular courier', cost: 15000 },
 ];
 
-function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' | 'native' | 'no-select2' = false) {
+type RecoverySettings = {
+  billingDistrict?: { id: string; name: string };
+  shippingDistrict?: { id: string; name: string };
+  savedDistrictByPostcode?: Record<string, { destination_id: string; destination_name: string }>;
+  billingPostcode?: string;
+  shippingPostcode?: string;
+  separate?: boolean;
+};
+
+function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' | 'native' | 'no-select2' = false, districtWrites = false, recovery?: RecoverySettings) {
   const src = script;
   const dependency = (file: string) =>
     readFileSync(new URL('../node_modules/' + file, import.meta.url), 'utf8');
@@ -86,16 +149,20 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
         ([key, value], index) => `
 		<p class="form-row form-row-wide" id="${scope}_${key}_field" data-priority="${70 + index * 10}">
 			<label for="${scope}_${key}">${scope} ${key}</label>
-			${key === 'country' ? `<select class="country_to_state country_select" id="${scope}_${key}" name="${scope}_${key}"><option value="ID" selected>Indonesia</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="AQ">Antarctica</option></select>` : key === 'state' ? `<select class="state_select" required aria-required="true" id="${scope}_${key}" name="${scope}_${key}"><option value="">Select a state</option><option value="YO" selected>DI Yogyakarta</option><option value="JT">Jawa Tengah</option></select>` : `<input id="${scope}_${key}" name="${scope}_${key}" value="${value}">`}
+			${key === 'country' ? `<select class="country_to_state country_select" id="${scope}_${key}" name="${scope}_${key}"><option value="ID" selected>Indonesia</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="AQ">Antarctica</option></select>` : key === 'state' ? `<select class="state_select" required aria-required="true" id="${scope}_${key}" name="${scope}_${key}"><option value="">Select a state</option><option value="YO" selected>DI Yogyakarta</option><option value="JT">Jawa Tengah</option></select>` : `<input id="${scope}_${key}" name="${scope}_${key}" value="${key === 'postcode' ? recovery?.[`${scope}Postcode` as 'billingPostcode' | 'shippingPostcode'] ?? value : value}">`}
 		</p>`,
       )
       .join('');
   const districtFields = (scope: string) => {
     const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
+    const saved = recovery?.[scope === 'billing' ? 'billingDistrict' : 'shippingDistrict'];
+    const options = recovery
+      ? `<option value="" selected></option>${saved ? `<option value="${saved.id}">${saved.name}</option>` : ''}`
+      : '<option value=""></option><option value="123" selected>Fixture district</option>';
     return `<p class="form-row form-row-wide" id="${id}_field" data-priority="60">
 			<label for="${id}">${scope === 'billing' ? 'Subdistrict' : 'Shipping subdistrict'}</label>
-			<select id="${id}" name="${id}"><option value=""></option><option value="123" selected>Fixture district</option></select>
-			<input type="hidden" id="${id}_name" name="${id}_name" value="Fixture district">
+			<select id="${id}" name="${id}">${options}</select>
+			<input type="hidden" id="${id}_name" name="${id}_name" value="${recovery ? '' : 'Fixture district'}">
 		</p>`;
   };
   const scripts = [
@@ -120,10 +187,11 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
       },
     })};
 		window.kiriofBillingAddressConfig = {
-			isCheckout: true, isCart: false, fieldKey: 'kiriof_destination_area',
+			...${JSON.stringify(recovery ? { isCheckout: '1', ...recovery } : {})},
+			isCart: false, fieldKey: 'kiriof_destination_area',
 			ajaxUrl: '/admin-ajax.php', nonce: 'fixture-search-nonce',
 			courierLogos: { jne: '/assets/buyer/img/couriers/jne.png', gosend: '/assets/buyer/img/couriers/gosend.png', lion: '/assets/buyer/img/couriers/lion.png' },
-			i18n: { selectOption: 'Select Option' }
+			i18n: { selectOption: 'Select Option'${recovery ? ", searchError: 'Gagal mencari kecamatan. Silakan coba lagi.', retry: 'Coba lagi'" : ''} }
 		};
 		// Only the production district module is bootstrapped, not the legacy
 		// entry/ready hooks (which also initialize shipping/payment side effects).
@@ -160,6 +228,12 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     'getSearchAreaKelurahan();',
 
     src('kiriof-classic-checkout.js'),
+    ...(districtWrites ? [
+      `jQuery.fn.block = jQuery.fn.unblock = function() { return this; };
+      kiriofGetClassicInsuranceValue = function() { return 0; };
+      kiriofCodInsurance = function() {};
+      changeDistrict();`,
+    ] : []),
     ...(shipping ? [
       src('checkout/shipping-payment.js'),
       `// Woo's delegated native shipping change boundary; never run COD/network ready hooks.
@@ -216,8 +290,8 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
 		</div>
 		<div class="woocommerce-shipping-fields">
 			<h3><label for="ship-to-different-address-checkbox">Ship to a different address?</label></h3>
-			<input id="ship-to-different-address-checkbox" type="checkbox" name="ship_to_different_address">
-			<div class="shipping_address" hidden>
+			<input id="ship-to-different-address-checkbox" type="checkbox" name="ship_to_different_address"${recovery?.separate ? ' checked' : ''}>
+			<div class="shipping_address"${recovery?.separate ? '' : ' hidden'}>
 				<div class="woocommerce-shipping-fields__field-wrapper">
 					${districtFields('shipping')}${addressFields('shipping')}
 				</div>
@@ -241,9 +315,15 @@ async function checkout(
   searchResponse: unknown = { success: true, data: [district] },
   geometry = false,
   shipping: false | 'enhanced' | 'native' | 'no-select2' = false,
+  districtWrites = false,
+  recovery?: RecoverySettings,
 ) {
   const requests: { url: string; method: string; body: Record<string, string> }[] = [];
   const unexpected: string[] = [];
+  let committedDistrict = '123';
+  const events: string[] = [];
+  const districtReleases = new Set<() => void>();
+  let closing = false;
   await browser.route('**/*', async (route: any) => {
     const url = new URL(route.request.url);
     if (
@@ -251,7 +331,7 @@ async function checkout(
       url.pathname === '/checkout' &&
       route.request.method === 'GET'
     ) {
-      await route.fulfill({ contentType: 'text/html', body: html(enabled, geometry, shipping) });
+      await route.fulfill({ contentType: 'text/html', body: html(enabled, geometry, shipping, districtWrites, recovery) });
       return;
     }
     if (url.origin === 'https://fixture.test' && /^\/assets\/buyer\/img\/couriers\/(jne|gosend|lion)\.png$/.test(url.pathname)) {
@@ -272,14 +352,23 @@ async function checkout(
     ) {
       const body = Object.fromEntries(new URLSearchParams(route.request.postData));
       requests.push({ url: route.request.url, method: route.request.method, body });
+      if (districtWrites && body.action === 'kiriof_get_destination_area') {
+        events.push('district-save');
+        if (!closing) await new Promise<void>(resolve => { districtReleases.add(resolve); });
+        committedDistrict = body.val;
+        events.push('district-ack');
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: { code: 200 } }) });
+        return;
+      }
       if (
         body.action === 'kiriminaja_subdistrict_search' ||
         body.action === 'kiriof-session-save'
       ) {
+        if (body.action === 'kiriof-session-save') events.push('pin-save');
         await route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify(
-            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : { success: true, data: { pin_saved: true } },
+            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : districtWrites && JSON.parse(body.data).destination.district_id !== committedDistrict ? { success: false, data: { code: 'kiriof_pin_district_mismatch' } } : { success: true, data: { pin_saved: true } },
           ),
         });
         return;
@@ -295,8 +384,199 @@ async function checkout(
     searches: () =>
       requests.filter((request) => request.body.action === 'kiriminaja_subdistrict_search'),
     saves: () => requests.filter((request) => request.body.action === 'kiriof-session-save'),
+    districts: () => requests.filter((request) => request.body.action === 'kiriof_get_destination_area'),
+    events,
+    releaseDistrict: () => {
+      districtReleases.forEach(release => release());
+      districtReleases.clear();
+    },
+    cleanup: async () => {
+      closing = true;
+      districtReleases.forEach(release => release());
+      districtReleases.clear();
+      await browser.evaluate(() => {
+        window.kiriofBuyerSelectors?.dispose?.();
+        window.kiriofBuyerPin?.dispose();
+      });
+    },
   };
 }
+
+// Recovery starts from genuinely blank native fields, not a selected saved
+// option. Only the authoritative postcode response may select/canonicalize it.
+async function recoverySelection(browser: any) {
+  return browser.evaluate(() => Object.fromEntries(
+    ['kiriof_destination_area', 'kiriof_shipping_destination_area'].map(id => [id, {
+      value: document.querySelector<HTMLSelectElement>('#' + id)!.value,
+      label: document.querySelector<HTMLInputElement>('#' + id + '_name')!.value,
+    }]),
+  ));
+}
+
+async function acknowledgeRecovery(fixture: Awaited<ReturnType<typeof checkout>>, browser: any, id: string, scope: string) {
+  await expect.poll(() => fixture.districts().length).toBe(1);
+  expect(fixture.districts()[0].body.val).toBe(id);
+  expect(fixture.districts()[0].body.different_address).toBe(scope === 'shipping' ? '1' : '0');
+  // In particular, never wait for a bootstrap '123' pin save: this field
+  // started blank and the production writer must commit before a pin can save.
+  expect(fixture.saves()).toHaveLength(0);
+  expect(await browser.evaluate(() => window.__checkoutUpdates)).toBe(0);
+  fixture.releaseDistrict();
+  await expect.poll(() => fixture.saves().length).toBe(1);
+  await expect.poll(() => browser.evaluate(() => ({
+    pending: window.kiriofBuyerPin.controller.getState().queue.pending,
+    inFlight: window.kiriofBuyerPin.controller.getState().queue.inFlight,
+    error: window.kiriofBuyerPin.controller.getState().queue.error,
+    updates: window.__checkoutUpdates,
+  }))).toEqual({ pending: null, inFlight: null, error: null, updates: 2 });
+  const pin = JSON.parse(fixture.saves()[0].body.data);
+  expect(pin.destination.district_id).toBe(id);
+  expect(pin.address_scope).toBe(scope);
+  expect(fixture.events).toEqual(['district-save', 'district-ack', 'pin-save']);
+  expect(fixture.unexpected).toEqual([]);
+}
+
+const otherDistrict = { id: '8910', text: 'Mlati, Sleman, DI Yogyakarta, 55284' };
+
+test('Classic autofill recovers a saved config ID from postcode rows and waits for district acknowledgment before pin save', async ({ app, browser }) => {
+  const fixture = await checkout(app, browser, true, { success: true, data: [otherDistrict, district] }, false, false, true, {
+    billingDistrict: { id: district.id, name: 'Outdated saved billing label' },
+    shippingPostcode: '',
+  });
+  try {
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: district.id, label: district.text },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    expect(fixture.searches().map(request => request.body.term)).toEqual(['55581']);
+    expect(fixture.districts()[0].body.text).toBe(district.text);
+    await acknowledgeRecovery(fixture, browser, district.id, 'billing');
+    // Repeated Woo refreshes must not publish the recovered district again.
+    await browser.evaluate(() => { jQuery(document.body).trigger('updated_checkout'); return true; });
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: district.id, label: district.text },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    expect(fixture.districts()).toHaveLength(1);
+    expect(fixture.saves()).toHaveLength(1);
+  } finally { await fixture.cleanup(); }
+});
+
+test('Classic autofill recovers distinct billing and saved-postcode shipping fields but writes only the active shipping scope', async ({ app, browser }) => {
+  const fixture = await checkout(app, browser, true, (body: Record<string, string>) => ({
+    success: true, data: body.term === '55284' ? [district, otherDistrict] : [otherDistrict, district],
+  }), false, false, true, {
+    billingDistrict: { id: district.id, name: 'Old billing label' },
+    savedDistrictByPostcode: { '55284': { destination_id: otherDistrict.id, destination_name: 'Old shipping label' } },
+    shippingPostcode: '55284', separate: true,
+  });
+  try {
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: district.id, label: district.text },
+      kiriof_shipping_destination_area: { value: otherDistrict.id, label: otherDistrict.text },
+    });
+    expect(fixture.searches().map(request => request.body.term).sort()).toEqual(['55284', '55581']);
+    expect(fixture.districts()[0].body.text).toBe(otherDistrict.text);
+    expect(fixture.districts()[0].body.postcode).toBe('55284');
+    await acknowledgeRecovery(fixture, browser, otherDistrict.id, 'shipping');
+  } finally { await fixture.cleanup(); }
+});
+
+test('Classic autofill leaves ambiguous postcode rows unselected rather than choosing the first result', async ({ app, browser, screen }) => {
+  const fixture = await checkout(app, browser, true, { success: true, data: [district, otherDistrict] }, false, false, true, {
+    billingDistrict: { id: '99999', name: 'Saved district absent from authoritative rows' }, shippingPostcode: '',
+  });
+  try {
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await expect(screen.getByRole('option', district.text)).toBeVisible();
+    await expect(screen.getByRole('option', otherDistrict.text)).toBeVisible();
+    expect(await recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: '', label: '' },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    expect(fixture.districts()).toHaveLength(0);
+    expect(fixture.saves()).toHaveLength(0);
+    expect(fixture.unexpected).toEqual([]);
+  } finally { await fixture.cleanup(); }
+});
+
+test('Classic autofill exposes a localized read failure and Retry recovers through the real district writer', async ({ app, browser, screen }) => {
+  let reads = 0;
+  const fixture = await checkout(app, browser, true, () => ++reads === 1
+    ? { success: false, data: { message: 'Lookup unavailable' } }
+    : { success: true, data: [district] }, false, false, true, { shippingPostcode: '' });
+  try {
+    await expect(browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-status')).toContainText('Gagal mencari kecamatan. Silakan coba lagi.');
+    expect(fixture.districts()).toHaveLength(0);
+    expect(fixture.saves()).toHaveLength(0);
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await expect(screen.getByRole('button', 'Coba lagi')).toBeVisible();
+    await screen.getByRole('button', 'Coba lagi').tap();
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: district.id, label: district.text },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    expect(fixture.searches().map(request => request.body.term)).toEqual(['55581', '55581']);
+    await acknowledgeRecovery(fixture, browser, district.id, 'billing');
+  } finally { await fixture.cleanup(); }
+});
+
+test('Classic autofill continues when the buyer closes an untouched dropdown during lookup', async ({ app, browser }) => {
+  let releaseRead!: () => void;
+  const heldRead = new Promise<void>(resolve => { releaseRead = resolve; });
+  const fixture = await checkout(app, browser, true, async () => {
+    await heldRead;
+    return { success: true, data: [district] };
+  }, false, false, true, { shippingPostcode: '' });
+  try {
+    await expect.poll(() => fixture.searches().length).toBe(1);
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await browser.keyboard.press('Escape');
+    releaseRead();
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: district.id, label: district.text },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    await acknowledgeRecovery(fixture, browser, district.id, 'billing');
+    expect(fixture.searches()).toHaveLength(1);
+  } finally {
+    releaseRead();
+    await fixture.cleanup();
+  }
+});
+
+test('Classic autofill ignores a slow postcode response after the buyer manually chooses another district', async ({ app, browser, screen }) => {
+  let releaseRead!: () => void;
+  const heldRead = new Promise<void>(resolve => { releaseRead = resolve; });
+  const fixture = await checkout(app, browser, true, async (body: Record<string, string>) => {
+    if (body.term === '55581') {
+      await heldRead;
+      return { success: true, data: [district] };
+    }
+    return { success: true, data: [otherDistrict] };
+  }, false, false, true, {
+    billingDistrict: { id: district.id, name: 'Saved district' }, shippingPostcode: '',
+  });
+  try {
+    await expect.poll(() => fixture.searches().length).toBe(1);
+    await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await browser.locator('.kiriof-buyer-combobox-input').fill('Mlati');
+    await expect(screen.getByRole('option', otherDistrict.text)).toBeVisible();
+    await screen.getByRole('option', otherDistrict.text).tap();
+    await expect.poll(() => fixture.districts().length).toBe(1);
+    releaseRead();
+    await acknowledgeRecovery(fixture, browser, otherDistrict.id, 'billing');
+    await expect.poll(() => recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: otherDistrict.id, label: otherDistrict.text },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    expect(fixture.districts()).toHaveLength(1);
+    expect(fixture.searches().map(request => request.body.term)).toEqual(['55581', 'Mlati']);
+  } finally {
+    releaseRead();
+    await fixture.cleanup();
+  }
+});
 
 async function placement(browser: any) {
   return browser.evaluate(() => {

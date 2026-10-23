@@ -146,4 +146,42 @@ final class ClassicPinBackendRuntimeTest extends TestCase {
             __FUNCTION__
         );
     }
+
+	public function test_pin_rejections_have_fixed_private_diagnostics_but_success_is_silent(): void {
+		foreach ( array( 'mismatch' => 'kiriof_pin_district_mismatch', 'shipping-mismatch' => 'kiriof_pin_district_mismatch', 'lookup-fails' => 'kiriof_pin_lookup_unavailable' ) as $mode => $code ) {
+			$result = $this->runCase( $mode );
+			$this->assertSame( array( array(
+				'level' => 'warning',
+				'message' => 'Classic checkout pin save rejected.',
+				'context' => array( 'operation' => 'sync_classic_pin', 'code' => $code, 'scope' => 'shipping-mismatch' === $mode ? 'shipping' : 'billing', 'http_status' => 'lookup-fails' === $mode ? 503 : 409, 'backtrace' => false ),
+				'channel' => 'kiriminaja_checkout',
+			) ), $result['logs'] );
+			foreach ( array( 'Private', '12345', 'Main street', '106.8', 'credentials' ) as $secret ) {
+				$this->assertStringNotContainsString( $secret, json_encode( $result['logs'] ) );
+			}
+		}
+		$this->assertSame( array(), $this->runCase( 'valid' )['logs'] );
+	}
+
+	public function test_technical_log_download_includes_checkout_and_shipping_diagnostics(): void {
+		$class = new ReflectionClass( \KiriminAjaOfficial\Controllers\SettingController::class );
+		$controller = $class->newInstanceWithoutConstructor();
+		$sources = $class->getMethod( 'getPluginLogSources' )->invoke( $controller );
+		$this->assertContains( 'kiriminaja_checkout', $sources );
+		$this->assertContains( 'kiriminaja_shipping', $sources );
+		$this->assertContains( 'kiriminaja_api', $sources );
+	}
+
+	public function test_saved_classic_district_and_pin_invalidate_cached_rates_without_resetting_method(): void {
+		foreach ( array( 'cached-rates', 'district-cached-rates' ) as $mode ) {
+			$result = $this->runCase( $mode );
+			foreach ( array( 0, 2, 7 ) as $package ) {
+				$this->assertFalse( $result['session'][ 'shipping_for_package_' . $package ], $mode );
+			}
+			$this->assertSame( array( 'legacy' ), $result['session']['chosen_shipping_methods'] );
+		}
+		$result = $this->runCase( 'mismatch-cached-rates' );
+		$this->assertSame( array(), $result['writes'] );
+		$this->assertSame( array( 'rates' => array() ), $result['session']['shipping_for_package_0'] );
+	}
 }

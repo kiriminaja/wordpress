@@ -40,8 +40,9 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $status = in_array( $filters['status'], array( 'unpaid', 'paid', 'pending', 'refunded' ), true ) ? $filters['status'] : '';
         // Filter after aggregation so payment group membership and totals stay intact.
         $date_sql = ListDateRangeFilter::sql( $wpdb, 'created_at', $filters );
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups are fixed SQL with %i-prepared identifiers; date bounds are separately prepared and filter values are prepared below.
         $total = (int) $wpdb->get_var( $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups use fixed SQL with prepared identifiers; date SQL contains only validated, separately prepared bounds.
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Groups use fixed SQL with prepared identifiers; date SQL contains only validated, separately prepared bounds.
             "SELECT COUNT(*) FROM ({$groups}) payment_groups WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )" . "{$date_sql}",
             '' !== $filters['key'] ? 1 : 0,
             '%' . $wpdb->esc_like( $filters['key'] ) . '%',
@@ -54,8 +55,9 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         if ( $total_pages > 0 ) {
             $page = min( $page, $total_pages );
         }
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Same fixed aggregate and separately prepared date bounds as the count; filter and pagination values are prepared below.
         $results = $wpdb->get_results( $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Same fixed aggregate and separately prepared date bounds as the count; filter and pagination values are prepared here.
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Same fixed aggregate and separately prepared date bounds as the count; filter and pagination values are prepared here.
             "SELECT * FROM ({$groups}) payment_groups WHERE ( %d = 0 OR payment_identity LIKE %s ) AND ( %d = 0 OR created_at LIKE %s ) AND ( %d = 0 OR status = %s )" . "{$date_sql}" . ' ORDER BY created_at DESC, row_key ASC LIMIT %d, %d',
             '' !== $filters['key'] ? 1 : 0,
             '%' . $wpdb->esc_like( $filters['key'] ) . '%',
@@ -93,8 +95,9 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         $counts = array();
         $groups = $this->getPaymentGroupsSql();
         foreach ( array( 'all', 'unpaid', 'paid', 'pending', 'refunded' ) as $status ) {
+            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups are fixed SQL with %i-prepared table identifiers, not request SQL; status values are prepared below.
             $counts[ $status ] = (int) $wpdb->get_var( $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fixed aggregate with %i-prepared table identifiers, not request SQL; status values are prepared here.
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed aggregate with %i-prepared table identifiers, not request SQL; status values are prepared here.
                 "SELECT COUNT(*) FROM ({$groups}) payment_groups WHERE ( %s = 'all' OR status = %s )",
                 $status,
                 $status

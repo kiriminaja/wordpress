@@ -21,6 +21,7 @@ final class Init {
             Services\PluginUpdateNoticeService::class,
             Services\RevampAnnouncementService::class,
             Services\ShipmentLocationService::class,
+            Services\OriginAddressMigrationService::class,
             Controllers\ProductController::class,
             Controllers\SettingController::class,
             Controllers\GoogleMapsSettingsController::class,

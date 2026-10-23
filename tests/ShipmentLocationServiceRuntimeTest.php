@@ -120,6 +120,23 @@ final class ShipmentLocationServiceRuntimeTest extends TestCase {
         $this->assertSame( array(), $service->locationToOrigin( array( 'id' => 1 ) ) );
     }
 
+	#[Test]
+	public function legacy_default_seed_preserves_the_full_label_for_automatic_identity_repair(): void {
+		$label = 'Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581';
+		$settings = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\SettingRepository::class )->disableOriginalConstructor()->getMock();
+		$settings->expects( $this->once() )->method( 'getSettingByArray' )->with( $this->callback( static fn( $keys ) => in_array( 'origin_sub_district_name', $keys, true ) ) )->willReturn( array(
+			(object) array( 'key' => 'origin_name', 'value' => 'Warehouse' ),
+			(object) array( 'key' => 'origin_address', 'value' => 'Saved street address' ),
+			(object) array( 'key' => 'origin_sub_district_id', 'value' => '99' ),
+			(object) array( 'key' => 'origin_sub_district_name', 'value' => $label ),
+			(object) array( 'key' => 'origin_zip_code', 'value' => '55581' ),
+		) );
+		$locations = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\ShipmentLocationRepository::class )->disableOriginalConstructor()->getMock();
+		$locations->method( 'count' )->willReturn( 0 );
+		$locations->expects( $this->once() )->method( 'insert' )->with( $this->callback( static fn( $row ) => $row['sub_district_name'] === $label && $row['sub_district_id'] === 99 && $row['zip_code'] === '55581' ) )->willReturn( 1 );
+		$this->assertSame( 1, ( new ShipmentLocationService( $locations, $settings ) )->seedDefaultFromGlobalOrigin() );
+	}
+
     private function location( int $id, string $name, int $default, int $active ): array {
         return array(
             'id'                => $id,
