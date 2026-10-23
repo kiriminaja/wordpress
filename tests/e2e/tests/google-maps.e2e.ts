@@ -13,8 +13,8 @@ const runtimeKey = 'AIza-synthetic_runtime_browser_key789';
 const mask = (key: string) => key.slice(0, 4) + '*'.repeat(key.length - 7) + key.slice(-3);
 const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 const googleMaps: GoogleMapsBootstrap = { configured: true, maskedKey: mask(savedKey), nonce: 'dedicated', browserCheckUrl: 'https://fixture.test/?kiriof_google_maps_browser_check=1&_wpnonce=dedicated', i18n: {
-  title: 'Google Maps integration', guidance: 'Bring your own browser key', configured: 'Configured', notConfigured: 'Not configured', keyLabel: 'Replacement browser key', placeholder: 'Enter replacement key', save: 'Save key', remove: 'Remove key', busy: 'Saving', saved: 'Settings saved', failed: 'Settings could not be saved',
-  keyHint: 'Browser key is public when a map loads.', showKey: 'Show key', hideKey: 'Hide key', browserCheckTitle: 'Browser origin check', browserCheckGuidance: 'Tests the configured WordPress website origin, including WP_HOME from wp-config.php. The preview requires the same WordPress login session; separate-site cookies may block it. Checkout path restrictions may differ. Requests may count toward Google Maps usage.', originLabel: 'Tested origin', checking: 'Checking Google Maps in this browser…', checkAgain: 'Check again', browserReady: 'Google Maps tiles loaded in this browser.', browserFailed: 'Google Maps could not be verified. Review allowed HTTP referrers, API restrictions, billing, and quota in Google Cloud.', browserNetwork: 'Google Maps could not load. Check your network, content security policy, and browser blockers.', browserTimeout: 'The preview did not finish loading. Check the configured website URL, WordPress login session, iframe and cookie restrictions, network, and Google Cloud settings, then try again.', browserNotConfigured: 'Save a browser key to run this check.', previewTitle: 'Google Maps browser-origin preview',
+  title: 'Google Maps', guidance: 'Enable the Maps JavaScript API and billing in Google Cloud. Restrict this browser key to your website HTTP referrers and the Maps JavaScript API. Browser keys are public when maps load.', configured: 'Saved browser key', notConfigured: 'No browser key saved. Maps use OpenStreetMap.', keyLabel: 'Browser API key', placeholder: 'Leave blank to keep the saved key', save: 'Save key', remove: 'Remove key', busy: 'Updating…', saved: 'Google Maps settings updated.', failed: 'Unable to update Google Maps settings.',
+  keyHint: 'Browser key is public when a map loads.', showKey: 'Show key', hideKey: 'Hide key', browserCheckTitle: 'Browser origin check', browserCheckGuidance: 'Tests the configured WordPress website origin, including WP_HOME from wp-config.php. The preview requires the same WordPress login session; separate-site cookies may block it. Checkout path restrictions may differ. Requests may count toward Google Maps usage.', originLabel: 'Tested origin', checking: 'Checking Google Maps in this browser…', checkAgain: 'Recheck', browserReady: 'Map loaded successfully.', browserFailed: 'Google Maps could not be verified. Review allowed HTTP referrers, API restrictions, billing, and quota in Google Cloud.', browserNetwork: 'Google Maps could not load. Check your network, content security policy, and browser blockers.', browserTimeout: 'The preview did not finish loading. Check the configured website URL, WordPress login session, iframe and cookie restrictions, network, and Google Cloud settings, then try again.', browserNotConfigured: 'Save a browser key to run this check.', previewTitle: 'Google Maps browser-origin preview', details: 'Details',
 } };
 const technical: TechnicalBootstrap = { view: 'technical', toolbar: { logoUrl: '', rootUrl: '/wp-admin/admin.php?page=kiriminaja-setting', rootLabel: 'Settings', title: 'Technical settings' }, downloadLogUrl: '', callbacks: [], googleMaps,
   region: { state: 'ready', lastError: '', provinceCount: 1, cityCount: 1, updated: '', validUntil: '' }, couriers: { cached: true, count: 1, updated: '', validUntil: '' },
@@ -133,14 +133,18 @@ test('actual admin workspace saves and removes a BYOK credential using masked su
   expect(fixture.unexpected).toEqual([]);
 });
 
-for (const width of [390, 768, 1280]) {
+for (const width of [320, 390, 768, 1280]) {
   test(`browser origin preview automatically loads tiles with masked key and usable controls at ${width}px`, async ({ app, browser, screen }) => {
     await browser.setViewport({ width, height: 1000 });
     const fixture = await settingsFixture(browser);
     await app.open('/wp-admin/admin.php?page=kiriminaja-setting&section=technical');
     await expect(browser.locator(checkSelector)).toHaveText(googleMaps.i18n.browserReady);
-    await expect(browser.locator(cardSelector)).toContainText(googleMaps.i18n.browserCheckGuidance);
-    await expect(browser.locator(cardSelector)).toContainText('https://fixture.test');
+    expect(await browser.evaluate(() => {
+      const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
+      const details = card.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
+      const toggle = card.querySelector('[aria-controls="kiriof-google-maps-details"]')!;
+      return { compact: card.getBoundingClientRect().height < 360, collapsed: details.getBoundingClientRect().height === 0, inert: details.inert, expanded: toggle.getAttribute('aria-expanded'), touchTargets: [...card.querySelectorAll('button')].every(node => { const rect = node.getBoundingClientRect(); return rect.height >= 44 && rect.width >= 44; }) };
+    })).toEqual({ compact: true, collapsed: true, inert: true, expanded: 'false', touchTargets: true });
     expect(await browser.evaluate(() => {
       const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
       const input = card.querySelector<HTMLInputElement>('input')!;
@@ -158,7 +162,30 @@ for (const width of [390, 768, 1280]) {
       return { scope: !!input.closest('.kiriof-shadcn'), inputBorder: style.borderTopWidth, inputBackground: style.backgroundColor, groupBorder: groupStyle.borderTopWidth, cardBackground: cardStyle.backgroundColor, withinCard: [...card.querySelectorAll('[data-slot="alert"],iframe')].every(node => { const r = node.getBoundingClientRect(); return r.left >= bounds.left && r.right <= bounds.right + 1; }) };
     })).toEqual({ scope: true, inputBorder: '0px', inputBackground: 'rgba(0, 0, 0, 0)', groupBorder: '1px', cardBackground: 'oklch(1 0 0)', withinCard: true });
     expect(await browser.evaluate(() => document.body.innerHTML)).not.toContain(savedKey);
+    expect(await browser.evaluate(() => {
+      const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+      const context = canvas.getContext('2d')!;
+      function luminance(color: string) {
+        context.fillStyle = color; context.fillRect(0, 0, 1, 1);
+        const channels = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(value => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4; });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      }
+      const foreground = luminance(getComputedStyle(document.querySelector('[data-kiriof-google-maps-check] p')!).color);
+      const background = luminance(getComputedStyle(document.querySelector('section[aria-labelledby="kiriof-google-maps-title"] [data-slot="card"]')!).backgroundColor);
+      return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05) >= 4.5;
+    })).toBe(true);
     await app.screenshot(`google-maps-browser-check-${width}`);
+    await browser.locator('[aria-controls="kiriof-google-maps-details"]').click();
+    await expect(browser.locator('#kiriof-google-maps-details')).toContainText(googleMaps.i18n.browserCheckGuidance);
+    expect(await browser.evaluate(() => {
+      const details = document.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
+      const frame = details.querySelector<HTMLIFrameElement>('iframe')!;
+      return { inert: details.inert, tabIndex: frame.getAttribute('tabindex'), frameHeight: frame.getBoundingClientRect().height, statusVisible: frame.contentDocument!.querySelector('#kiriof-google-maps-check-status')!.getBoundingClientRect().height > 1 };
+    })).toEqual({ inert: false, tabIndex: null, frameHeight: 208, statusVisible: false });
+    await app.screenshot(`google-maps-details-${width}`);
+    // Keyboard activation closes the disclosure without restarting the check.
+    await browser.keyboard.press('Enter');
+    expect(await browser.evaluate(() => document.querySelector('[aria-controls="kiriof-google-maps-details"]')!.getAttribute('aria-expanded'))).toBe('false');
     await browser.locator('#kiriof-google-maps-key').fill(replacement);
     // Native keyboard traversal must reach the reveal control, not submit/save.
     await browser.keyboard.press('Tab'); await browser.keyboard.press('Enter');
@@ -166,18 +193,29 @@ for (const width of [390, 768, 1280]) {
     expect(await browser.evaluate(() => document.querySelector<HTMLInputElement>('#kiriof-google-maps-key')!.type)).toBe('text');
     await browser.keyboard.press('Enter');
     await expect(screen.getByRole('button', { name: 'Show key', exact: true })).toBeVisible();
+    expect(await browser.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+      const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
+      return { overflow: document.documentElement.scrollWidth > innerWidth, controlsFit: [...card.querySelectorAll('input,button')].every(node => { const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1; }) };
+    })).toEqual({ overflow: false, controlsFit: true });
     expect(fixture.bodies).toEqual([]); expect(fixture.frames).toHaveLength(1); expect(fixture.googleRequests).toHaveLength(1); expect(fixture.unexpected).toEqual([]);
   });
 }
 
 for (const mode of ['auth', 'network'] as const) {
   test(`browser origin ${mode} failure maps to a fixed accessible error and retry uses a fresh frame`, async ({ app, browser, screen }) => {
+    await browser.setViewport({ width: 320, height: 900 });
     const fixture = await settingsFixture(browser, { mode });
     await app.open('/wp-admin/admin.php?page=kiriminaja-setting&section=technical');
     const text = mode === 'auth' ? googleMaps.i18n.browserFailed : googleMaps.i18n.browserNetwork;
     await expect(browser.locator(checkSelector)).toHaveText(text);
     expect(await browser.evaluate(() => document.querySelector('[data-kiriof-google-maps-check]')!.getAttribute('role'))).toBe('alert');
-    await screen.getByRole('button', { name: 'Check again', exact: true }).click();
+    expect(await browser.evaluate(() => {
+      const status = document.querySelector('[data-kiriof-google-maps-check]')!;
+      const card = document.querySelector('section[aria-labelledby="kiriof-google-maps-title"]')!;
+      return { statusWidth: status.getBoundingClientRect().width > card.getBoundingClientRect().width * 0.8, overflow: document.documentElement.scrollWidth > innerWidth, overflowing: [...document.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().right > innerWidth + 1).slice(0, 12).map(node => ({ tag: node.tagName, class: node.className, width: node.getBoundingClientRect().width, right: node.getBoundingClientRect().right })) };
+    })).toEqual({ statusWidth: true, overflow: false, overflowing: [] });
+    await screen.getByRole('button', { name: googleMaps.i18n.checkAgain, exact: true }).click();
     await expect(browser.locator(checkSelector)).toHaveText(text);
     expect(fixture.frames).toHaveLength(2); expect(fixture.googleRequests).toHaveLength(2);
     expect(new URL(fixture.frames[0]).searchParams.get('channel')).not.toBe(new URL(fixture.frames[1]).searchParams.get('channel'));
@@ -208,7 +246,7 @@ test('SDK callback alone and forged or stale probe messages cannot mark the brow
     return true;
   });
   await expect(browser.locator(checkSelector)).toHaveText(googleMaps.i18n.checking);
-  await screen.getByRole('button', { name: 'Check again', exact: true }).click();
+  await screen.getByRole('button', { name: googleMaps.i18n.checkAgain, exact: true }).click();
   await browser.evaluate(async () => { for (let i = 0; i < 100; i++) { const f = document.querySelector<HTMLIFrameElement>('iframe[data-kiriof-google-maps-probe]')!; if ((f.contentWindow as any)?.__probeMap) return true; await new Promise(resolve => setTimeout(resolve, 20)); } throw new Error('Retry SDK missing'); });
   await browser.evaluate(() => { const old = (window as any).__staleProbe; const frame = document.querySelector<HTMLIFrameElement>('iframe[data-kiriof-google-maps-probe]')!; window.dispatchEvent(new MessageEvent('message', { origin: location.origin, source: old.source, data: { ...old.data, channel: new URL(frame.src).searchParams.get('channel') } })); window.dispatchEvent(new MessageEvent('message', { origin: location.origin, source: frame.contentWindow, data: old.data })); return true; });
   // Longer than the real 800ms readiness grace: callback/no tiles is not success.

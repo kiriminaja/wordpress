@@ -9,7 +9,7 @@ const root = resolve(import.meta.dir, '..');
 const raw = 'AIza-synthetic_replacement_key123';
 const mask = (key: string) => key.slice(0, 4) + '*'.repeat(key.length - 7) + key.slice(-3);
 const bootstrap: GoogleMapsBootstrap = { configured: true, maskedKey: mask('AIza-synthetic_saved_key456'), nonce: 'google-dedicated-nonce', browserCheckUrl: '/?kiriof_google_maps_browser_check=1&_wpnonce=probe-nonce', i18n: {
-  title: 'Google Maps', guidance: 'Use your own browser key', configured: 'Configured', notConfigured: 'Not configured', keyLabel: 'Replacement key', placeholder: 'Enter a replacement', save: 'Save key', remove: 'Remove key', busy: 'Saving', saved: 'Settings saved', failed: 'Unable to save settings', keyHint: 'Saved browser key', showKey: 'Show key', hideKey: 'Hide key', browserCheckTitle: 'Browser check', browserCheckGuidance: 'Check this origin', originLabel: 'Tested origin', checking: 'Checking browser', checkAgain: 'Check again', browserReady: 'Map ready', browserFailed: 'Browser check failed', browserNetwork: 'Network failed', browserTimeout: 'Check timed out', browserNotConfigured: 'No saved key', previewTitle: 'Google Maps preview',
+  title: 'Google Maps', guidance: 'Use your own browser key', configured: 'Configured', notConfigured: 'Not configured', keyLabel: 'Replacement key', placeholder: 'Enter a replacement', save: 'Save key', remove: 'Remove key', busy: 'Saving', saved: 'Settings saved', failed: 'Unable to save settings', keyHint: 'Saved browser key', showKey: 'Show key', hideKey: 'Hide key', browserCheckTitle: 'Browser check', browserCheckGuidance: 'Check this origin', originLabel: 'Tested origin', checking: 'Checking browser', checkAgain: 'Check again', browserReady: 'Map ready', browserFailed: 'Browser check failed', browserNetwork: 'Network failed', browserTimeout: 'Check timed out', browserNotConfigured: 'No saved key', previewTitle: 'Google Maps preview', details: 'Details',
 } };
 
 let buildDirectory: string | undefined;
@@ -128,6 +128,36 @@ test('settings bundle compiles at most once per suite', () => {
 });
 
 const savedResponse = (body: URLSearchParams) => ({ success: true, data: { status: 200, data: body.get('data[mode]') === 'remove' ? { configured: false, maskedKey: '' } : { configured: true, maskedKey: mask(raw) } } });
+
+test('compact card collapses help and map without remounting the automatic probe', async () => {
+  const h = await fixture(savedResponse);
+  try {
+    const frame = h.frame()!, channel = h.result().channel;
+    const details = h.target.querySelector<HTMLElement>('#kiriof-google-maps-details')!;
+    const toggle = h.button(bootstrap.i18n.details);
+    expect(toggle.getAttribute('aria-controls')).toBe(details.id);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(details.getAttribute('aria-hidden')).toBe('true');
+    expect(details.hasAttribute('inert')).toBe(true);
+    expect(frame.closest('[inert]')).toBe(details);
+    await h.message(h.result()); expect(h.check().textContent).toContain(bootstrap.i18n.browserReady);
+    toggle.click(); await h.settle();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(details.getAttribute('aria-hidden')).toBe('false');
+    expect(details.hasAttribute('inert')).toBe(false);
+    expect(frame.getAttribute('tabindex')).toBeNull();
+    expect(h.frame()).toBe(frame); expect(h.result().channel).toBe(channel);
+    toggle.click(); await h.settle();
+    expect(details.hasAttribute('inert')).toBe(true);
+    expect(h.frame()).toBe(frame);
+    await h.message(h.result('auth_failed', 'error'));
+    expect(h.check().getAttribute('role')).toBe('alert');
+    expect(h.check().textContent).toContain(bootstrap.i18n.browserFailed);
+    await h.submit();
+    expect(h.target.querySelector('#kiriof-google-maps-save-message')?.getAttribute('data-slot')).toBeNull();
+    expect(h.target.querySelector('[data-slot="card-footer"]')).toBeNull();
+  } finally { await h.cleanup(); }
+});
 
 test('configured settings automatically mount exactly one credential-free, same-origin browser probe', async () => {
   const h = await fixture(savedResponse);

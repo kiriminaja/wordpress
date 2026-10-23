@@ -53,6 +53,7 @@ export type GoogleMapsBootstrap = GoogleMapsSummary & {
     browserTimeout: string;
     browserNotConfigured: string;
     previewTitle: string;
+    details: string;
   };
 };
 
