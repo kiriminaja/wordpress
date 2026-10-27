@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import { legacyCheckoutModules } from './helpers/legacy-checkout-source';
+import { happy } from './helpers/ui-runtime';
 
 function harness(ownsDistrict = false) {
 	const handlers: { event: string; callback: (...args: any[]) => any }[] = [];
@@ -45,6 +46,47 @@ function load(h: ReturnType<typeof harness>) {
 }
 
 describe('separate legacy checkout browser modules', () => {
+	for (const root of ['.wp-block-woocommerce-checkout', '.wc-block-checkout', null]) {
+		test(`Blocks compatibility requires a Blocks checkout root (${root})`, () => {
+			const h = harness();
+			h.context.document.querySelector = (selector: string) => root && selector.split(', ').includes(root) ? {} : null;
+			h.context.document.addEventListener = () => {};
+			let subscriptions = 0;
+			h.context.wp = { data: { subscribe() { subscriptions++; } } };
+			load(h);
+			h.context.kiriofInitBlockCheckoutCompatibility();
+			expect(subscriptions).toBe(root ? 3 : 0);
+			expect(!!h.context.window.kiriofBlockCheckoutCompatibilityInitialized).toBe(!!root);
+		});
+	}
+	for (const formClass of ['checkout', 'woocommerce-checkout']) {
+		for (const config of [undefined, { enabled: true, ownsDistrict: false }, { enabled: false, ownsDistrict: false }]) {
+			test(`Blocks compatibility ignores classic ${formClass} with wp.data available (${JSON.stringify(config)})`, () => {
+				const h = harness();
+				const window = new happy.Window();
+				try {
+					window.document.body.innerHTML = `<form class="${formClass}"><input type="checkbox" name="ship_to_different_address"><select name="kiriof_destination_area"><option value="">Select Option</option><option value="31554">Sari Harjo</option></select><div id="kiriof_destination_area_group"><div hidden></div></div><select name="kiriof_shipping_destination_area"><option value="">Select Option</option></select></form>`;
+					h.context.document = window.document;
+					h.context.window.kiriofClassicCheckoutConfig = config;
+					let subscriptions = 0;
+					h.context.wp = { data: { subscribe() { subscriptions++; } } };
+					load(h);
+					const timerCount = h.timers.length;
+					const handlerCount = h.handlers.length;
+					h.context.kiriofInitBlockCheckoutCompatibility();
+					const select = window.document.querySelector('select')!;
+					select.value = '31554';
+					const values = new window.FormData(window.document.querySelector('form')!).getAll('kiriof_destination_area');
+					expect(values).toEqual(['31554']);
+					expect(window.document.querySelector('#kiriof-block-district-mirror')).toBeNull();
+					expect(subscriptions).toBe(0);
+					expect(h.context.window.kiriofBlockCheckoutCompatibilityInitialized).toBeUndefined();
+					expect(h.timers).toHaveLength(timerCount);
+					expect(h.handlers).toHaveLength(handlerCount);
+				} finally { window.happyDOM.abort(); }
+			});
+		}
+	}
 	test('Choices/native labels never call Select2 data without a field instance', () => {
 		const h=harness();load(h);let calls=0;
 		const field:any={val:()=> '123',data:()=>null,find:()=>({text:()=> 'Sari Harjo, Ngaglik'}),attr:()=> 'kiriof_destination_area',selectWoo:()=>{calls++;throw new Error('Select2 data on uninitialized field');}};

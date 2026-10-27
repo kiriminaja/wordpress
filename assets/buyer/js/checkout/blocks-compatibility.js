@@ -1,7 +1,10 @@
 // Legacy checkout blocks compatibility; globals retained for theme compatibility.
 function kiriofInitBlockCheckoutCompatibility() {
-    // The cart belongs to Woo/theme totals. District editing is checkout-only.
-    if (document.querySelector('.wp-block-woocommerce-cart, .wc-block-cart') && !document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout')) {
+    // wp.data may also be loaded by payment plugins on classic checkout.
+    if (
+        document.querySelector('form.checkout, form.woocommerce-checkout') ||
+        !document.querySelector('.wp-block-woocommerce-checkout, .wc-block-checkout')
+    ) {
         return;
     }
     if (kiriofUsesClassicCheckout()) {
