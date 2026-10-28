@@ -1606,11 +1606,13 @@ class SettingController{
         // Discard buffered admin notices before sending the attachment.
         while ( ob_get_level() > 0 ) {
             if ( ! ob_end_clean() ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the temporary download stream; WP_Filesystem has no stream-resource API.
                 fclose( $export );
                 wp_die( esc_html__( 'Unable to download logs because the server output buffer could not be cleared.', 'kiriminaja-official' ), '', array( 'response' => 500 ) );
             }
         }
         if ( headers_sent() ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Release the prepared stream before reporting a response error.
             fclose( $export );
             wp_die( esc_html__( 'Unable to download logs because the server has already sent output.', 'kiriminaja-official' ), '', array( 'response' => 500 ) );
         }
@@ -1628,18 +1630,21 @@ class SettingController{
 
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Prepared text/plain attachment; every written segment is escaped before entering the stream.
         fpassthru( $export );
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the streamed attachment resource.
         fclose( $export );
         exit;
     }
 
     /** Spill to disk after 1 MiB; never load an entire log into PHP memory. */
     private function preparePluginLogExport( array $files ) {
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://temp provides bounded memory and disk spill; WP_Filesystem only supports whole-file buffers.
         $export = fopen( 'php://temp/maxmemory:1048576', 'w+b' );
         if ( false === $export ) {
             return false;
         }
         $write = static function ( string $text ) use ( $export ): bool {
             $text = esc_html( $text );
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Write one bounded escaped segment to the temporary stream.
             return strlen( $text ) === fwrite( $export, $text );
         };
         $success = $write( "KiriminAja Plugin Logs\nGenerated at: " . current_time( 'mysql' ) . "\nPeriod: today and the previous two days (UTC).\nSources: " . implode( ', ', $this->getPluginLogSources() ) . "\n\n" );
@@ -1653,6 +1658,7 @@ class SettingController{
                 break;
             }
             $success = $write( "\n===== " . basename( $file ) . " =====\n" );
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read only allowlisted, contained log files through bounded streams instead of loading entire logs.
             $input = fopen( $file, 'rb' );
             if ( false === $input ) {
                 $success = $success && $write( "Unable to read log file.\n" );
@@ -1663,12 +1669,14 @@ class SettingController{
             $size = min( (int) $stat['size'], $remaining );
             $offset = (int) $stat['size'] - $size;
             if ( $offset > 0 && 0 !== fseek( $input, $offset - 1 ) ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Release the log stream after a failed seek.
                 fclose( $input );
                 $success = $write( "Unable to seek log file.\n" );
                 continue;
             }
             $read = 0;
             // A partial first line may begin inside a credential: omit it in full.
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Read one boundary byte; WP_Filesystem cannot perform bounded stream reads.
             $oversized = $offset > 0 && "\n" !== fread( $input, 1 );
             while ( $success && $read < $size ) {
                 $line = fgets( $input, min( 1048577, $size - $read + 1 ) );
@@ -1689,6 +1697,7 @@ class SettingController{
                 }
                 $success = $write( $this->redactLogContent( $line ) );
             }
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close each bounded log input before opening the next file.
             fclose( $input );
             $remaining -= $read;
             $success = $success && $write( "\n" );
@@ -1697,6 +1706,7 @@ class SettingController{
             $success = $success && $write( "\n[Export limited to the newest 64 MiB of plugin logs.]\n" );
         }
         if ( ! $success || ! rewind( $export ) ) {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Release the failed temporary export stream.
             fclose( $export );
             return false;
         }

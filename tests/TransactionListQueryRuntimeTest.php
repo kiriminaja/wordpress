@@ -32,7 +32,8 @@ final class TransactionListQueryRuntimeTest extends TestCase
             $repository = new \KiriminAjaOfficial\Repositories\TransactionRepository();
             $counts = ( new WordPressTransactionListQuery( $wpdb ) )->getDeliveryCounts();
             $this->assertSame( array_sum( $counts ), $repository->getCountTransactionProcessNew() );
-            $this->assertSame( $wpdb->queries[0], $wpdb->queries[1] );
+            $this->assertCount( 2, $wpdb->badge_queries );
+            $this->assertSame( $wpdb->badge_queries[0], $wpdb->badge_queries[1] );
         } finally {
             $GLOBALS['wpdb'] = $previous_wpdb;
         }
@@ -55,14 +56,15 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $wpdb = new TransactionListQueryWpdbFake();
         $query = new WordPressTransactionListQuery( $wpdb );
         $query->getPage( $this->filters('all') + array( 'delivery_type' => 'instant' ), 1, 25 );
-        $before = count( $wpdb->queries );
+        $before = count( $wpdb->badge_queries );
         $this->assertSame( array( 'regular' => 3, 'instant' => 2, 'issue' => 1 ), $query->getDeliveryCounts() );
-        $sql = array_slice( $wpdb->queries, $before );
+        $sql = array_slice( $wpdb->badge_queries, $before );
         $this->assertCount( 1, $sql );
         // Executed database tests pin pending scope and partition predicates.
         // This fake checks that requesting badges does not mutate instance scope.
+        $before_status = count( $wpdb->queries );
         $query->getStatusCounts();
-        $this->assertStringContainsString( "delivery_type = 'instant'", $wpdb->queries[$before + 1] );
+        $this->assertStringContainsString( "delivery_type = 'instant'", $wpdb->queries[$before_status] );
     }
 
 
@@ -78,10 +80,10 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertSame(55, $page['total']);
         $this->assertSame(3, $page['total_pages']);
         $this->assertSame($wpdb->list_results, $page['results']);
-        $this->assertCount(4, $wpdb->queries, 'An out-of-range page must rerun count and rows at the clamped page.');
+        $this->assertCount(4, $wpdb->list_queries, 'An out-of-range page must rerun count and rows at the clamped page.');
 
         // Real SQL tests cover filters, physical products and storage selection.
-        $this->assertStringContainsString('LIMIT 25 OFFSET 50', $wpdb->queries[3]);
+        $this->assertStringContainsString('LIMIT 25 OFFSET 50', $wpdb->list_queries[3]);
     }
 
 
@@ -130,6 +132,9 @@ final class TransactionListQueryWpdbFake
     public string $postmeta = 'wp_postmeta';
     public string $last_error = '';
     public array $queries = array();
+    public array $badge_queries = array();
+    public array $list_queries = array();
+    public array $phone_queries = array();
     public array $list_results;
     public ?object $badge_result;
 
@@ -161,6 +166,7 @@ final class TransactionListQueryWpdbFake
     public function get_var($sql)
     {
         $this->queries[] = $sql;
+        $this->list_queries[] = $sql;
         if (false !== strpos($sql, 'ORDER BY created_at ASC')) {
             return '2024-03-12 08:00:00';
         }
@@ -170,12 +176,18 @@ final class TransactionListQueryWpdbFake
     public function get_row($sql)
     {
         $this->queries[] = $sql;
+        $this->badge_queries[] = $sql;
         return $this->badge_result;
     }
 
     public function get_results($sql): array
     {
         $this->queries[] = $sql;
+        if ( str_starts_with( $sql, 'SELECT t.* FROM ' ) ) {
+            $this->phone_queries[] = $sql;
+            return array();
+        }
+        $this->list_queries[] = $sql;
         return $this->list_results;
     }
 }
