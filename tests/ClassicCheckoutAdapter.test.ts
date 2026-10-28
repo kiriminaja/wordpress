@@ -86,7 +86,7 @@ function adapter(options: any = {}) {
 	const geo: any[] = []; Object.defineProperty(window.navigator, 'geolocation', { value: { getCurrentPosition(success: any, failure: any) { geo.push({ success, failure }); } }, configurable: true });
 	Object.defineProperty(window.navigator, 'permissions', { value: { query: async () => ({ state: options.permissionState || 'prompt' }) }, configurable: true });
 	const maps: any[] = [];
-	window.L = { map() { const listeners: any = {}; const map: any = { listeners, removed: false, views: [] as any[], setView(center: any) { map.views.push(center); return map; }, on(name: string, callback: any) { listeners[name] = callback; return map; }, invalidateSize() {}, getCenter() { return { lat: -6.2, lng: 106.8 }; }, remove() { map.removed = true; } }; maps.push(map); return map; }, tileLayer() { return { addTo() { return this; }, on() {} }; } };
+	window.L = { map() { const listeners: any = {}; const map: any = { listeners, removed: false, views: [] as any[], center: { lat: -6.2, lng: 106.8 }, setView(center: any) { map.views.push(center); map.center = { lat: center[0], lng: center[1] }; return map; }, on(name: string, callback: any) { listeners[name] = callback; return map; }, invalidateSize() {}, getCenter() { return { ...map.center }; }, remove() { map.removed = true; } }; maps.push(map); return map; }, tileLayer() { return { addTo() { return this; }, on() {} }; } };
 	window.HTMLElement.prototype.scrollIntoView = () => {};
 	window.kiriofClassicCheckoutConfig = { enabled: true, ownsDistrict: false, ajaxUrl: '/admin-ajax.php', nonce: 'nonce', needsShipping: true, map: { enabled: true, tiles: 'https://tiles.example/{z}/{x}/{y}.png', i18n: { mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapLocating: 'Locating' } }, ...options };
 	if (options.emptyAddress) {
@@ -155,6 +155,49 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+	test('typing invalidates a saved pin immediately, retains its camera and debounces backend sync', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
+		h.maps.at(-1).listeners.click({ latlng: { lat: -7.2, lng: 110.1 } }); h.flush(); await h.acknowledge();
+		const before = h.mutations().length;
+		h.change('billing_address_1', 'Jalan Baru', 'input'); h.flush();
+		expect(h.hidden().version).toBe(1);
+		expect(h.maps.at(-1).views[0]).toEqual([-7.2, 110.1]);
+		expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+		await h.advance(300);
+		expect(h.mutations()).toHaveLength(before);
+		h.change('billing_address_1', 'Jalan Baru 15', 'input'); h.flush(); await h.advance(300);
+		expect(h.mutations()).toHaveLength(before);
+		expect(h.maps.at(-1).views[0]).toEqual([-7.2, 110.1]);
+		await h.advance(400);
+		expect(h.mutations()).toHaveLength(before + 1);
+		expect(h.payload(h.mutations().at(-1)).destination.version).toBe(1);
+		await h.acknowledge();
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
+	});
+	test('contact edits trigger one debounced native rate refresh without changing pin address', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
+		const before = h.events.filter(event => event === 'update_checkout').length;
+		h.change('billing_first_name', 'Fresh', 'input'); h.change('billing_last_name', 'Buyer', 'input');
+		await h.advance(700);
+		expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(before + 1);
+		expect(h.hidden().version).toBe(2);
+		h.emit(h.window.document.body, 'updated_checkout'); await h.advance(700);
+		expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(before + 1);
+	});
+	test('missing postcode names the field without sending a district snapshot the server cannot accept', async () => {
+		const h = adapter(); await h.acknowledge();
+		h.change('billing_postcode', '', 'input'); h.flush();
+		h.choose('456', 'Sari Harjo'); await h.advance(700);
+		expect(h.query('.kiriof-classic-pin-feedback').textContent).toContain('Enter a 5-digit postcode');
+		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(true);
+		expect(h.query('.kiriof-classic-map').hidden).toBe(false);
+		for (const request of h.mutations()) {
+			const destination = h.payload(request).destination;
+			if (!destination.postcode) expect(destination.district_id).toBe('');
+		}
+		h.maps.at(-1).listeners.click({ latlng: { lat: -6.2, lng: 106.8 } }); h.flush();
+		expect(h.hidden().version).toBe(1);
+	});
 	test('empty checkout renders a regional map before street, postcode or district are entered', () => {
 		const h = adapter({ emptyAddress: true, map: { enabled: true, coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 } } });
 		expect(h.maps).toHaveLength(1);
@@ -305,10 +348,10 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('failed pin saves retry without permitting Instant or aborting server mutations', async () => {
 		const h = adapter({ savedDestination: saved() }); await h.advance();
 		await h.respond(h.mutations()[0], null, false);
-		expect(h.query('.kiriof-classic-pin > button').hidden).toBe(false);
+		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(false);
 		h.query('[value="kiriminaja-instant:gosend"]').checked = true;
 		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
-		h.query('.kiriof-classic-pin > button').click(); await h.advance();
+		h.query('.kiriof-classic-pin-retry').click(); await h.advance();
 		expect(h.mutations()).toHaveLength(2); await h.respond(h.mutations()[1]); h.emit(h.window.document.body, 'updated_checkout'); await h.advance();
 		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
 	});

@@ -19,18 +19,26 @@
   let mapError = $state('');
   let restart = $state(0);
   let session: MapSession | undefined;
+  let camera: Point | null = null;
+  let cameraScope = '';
   let locate = () => { if (session) session.locate(); else restart++; };
   const view = $derived(controller.view);
   const key = $derived(view.scope + JSON.stringify(view.address));
   const complete = $derived(Boolean(view.point && !view.queue.pending && !view.queue.inFlight && !view.queue.error));
   const hasCoverage = $derived(Boolean(coverageStatus(config.map?.coverage, config.map?.coverage?.origin)));
-  const status = $derived(requirement || (view.queue.error ? (view.queue.error instanceof Error ? view.queue.error.message : strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.') : view.queue.pending || view.queue.inFlight ? strings.pinSaving || 'Saving delivery pin…' : mapError));
+  const incomplete = $derived(!/^[0-9]{5}$/.test(view.address.postcode)
+    ? strings.pinPostcodeRequired || 'Enter a 5-digit postcode to save the delivery pin.'
+    : !view.selection ? strings.pinDistrictRequired || 'Select a subdistrict to save the delivery pin.'
+    : !view.address.address_1 || !view.address.city || !view.address.state
+      ? strings.pinAddressRequired || 'Complete the street, city and province to save the delivery pin.' : '');
+  const status = $derived(incomplete || requirement || (view.queue.error ? (view.queue.error instanceof Error ? view.queue.error.message : strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.') : view.queue.pending || view.queue.inFlight ? strings.pinSaving || 'Saving delivery pin…' : mapError));
 
   $effect(() => {
     void key; void restart;
     const state = untrack(() => controller.getState());
     if (!visible || !canvas || !config.map?.enabled) return;
     const expected = state.address;
+    const initialView = cameraScope === state.scope ? camera : null;
     let disposed = false;
     let map: MapSession | undefined;
     moving = false; mapError = ''; canvasHidden = true;
@@ -47,7 +55,7 @@
           ...provider, google, document: root.document, window: root as GoogleMapsWindow,
           node: canvas, leaflet: root.L, coverage: config.map?.coverage,
           defaultCenter: config.map?.defaultCenter, permissions: root.navigator?.permissions,
-          initial: state.point, geolocation: root.navigator?.geolocation,
+          initial: state.point, initialView, geolocation: root.navigator?.geolocation,
           onMove: next => { if (current()) moving = next; },
           onSelect: next => current() && select(next, expected),
           onError: code => { if (current()) mapError = (code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || 'Map unavailable'; },
@@ -69,7 +77,11 @@
       } catch { unavailable(); }
     }
     untrack(show);
-    return () => { disposed = true; map?.dispose(); if (session === map) session = undefined; };
+    return () => {
+      camera = map?.getCenter?.() || map?.getPoint() || state.point || initialView;
+      cameraScope = state.scope;
+      disposed = true; map?.dispose(); if (session === map) session = undefined;
+    };
   });
 </script>
 
@@ -83,5 +95,7 @@
   <button type="button" class="button kiriof-classic-map-locate" aria-label={strings.mapLocate || 'Current location'} title={strings.mapLocate || 'Current location'} onclick={locate}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8" /></svg></button>
   {#if hasCoverage}<span class="kiriof-classic-map-coverage" role="note" title={strings.mapCoverage || config.map?.i18n?.mapCoverage} hidden={moving}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z" /><path d="M12 9v4m0 3h.01" /></svg>{strings.mapCoverageBadge || config.map?.i18n?.mapCoverageBadge || 'Instant ≤ 40 km'}</span>{/if}
 </div>
-<p role="status" hidden={moving || !status}>{status}</p>
-<button type="button" class="button" hidden={!view.queue.error} onclick={() => controller.retry()}>{strings.retry || 'Retry'}</button>
+<p class="kiriof-classic-pin-feedback" role="status" hidden={moving || !status}>
+  <span>{status}</span>
+  <button type="button" class="kiriof-classic-pin-retry" hidden={!!incomplete || !view.queue.error} onclick={() => controller.retry()}>{strings.retry || 'Retry'}</button>
+</p>

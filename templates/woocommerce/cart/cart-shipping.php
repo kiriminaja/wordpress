@@ -137,7 +137,7 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 
 				return wp_kses_post( $kiriof_method_label_html );
 			};
-			$kiriof_use_classic_shipping_select = 1 < count( $available_methods );
+			$kiriof_use_classic_shipping_select = ! empty( $available_methods );
 		?>
 			<?php if ( $kiriof_use_classic_shipping_select ) : ?>
 				<div class="kiriof-classic-shipping-method-select-wrap">
