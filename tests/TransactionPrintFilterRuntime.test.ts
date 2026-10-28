@@ -29,7 +29,7 @@ async function buildBundle(): Promise<Buffer> {
   put('entry.ts', `export {mount, unmount, flushSync} from 'svelte'; export {default as App} from '${join(root, 'src/lib/transactions/TransactionsApp.svelte')}';`);
   const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'transaction-print-production-runtime', setup(builder) {
     builder.onResolve({ filter: /(?:PrintPreviewDialog|InstantProcessDialog|RequestPickupDialog|TransactionActionDialogs|InstantOperationDialog)\.svelte$/ }, () => ({ path: join(directory, 'Empty.svelte') }));
-    builder.onResolve({ filter: /(?:Toolbar|ActionTooltip)\.svelte$/ }, () => ({ path: join(directory, 'Boundary.svelte') }));
+    builder.onResolve({ filter: /Toolbar\.svelte$/ }, () => ({ path: join(directory, 'Boundary.svelte') }));
     builder.onResolve({ filter: /^@tabler\/icons-svelte$/ }, () => ({ path: join(directory, 'icons.ts') }));
     builder.onResolve({ filter: /^\$lib\// }, ({ path }) => {
       const base = join(root, 'src/lib', path.slice(5));
@@ -206,6 +206,50 @@ describe('TransactionsApp print filters (compiled production Svelte and bits-ui)
     selection: { disabled: true, canPickup: false, canPrint: false, title: '' },
     actions: { preview: true, paymentUrl, print: true, cancel: false, process: false, track: false, reconcile: false },
     actionData: {}, awb: 'AWB-1', createdAt: '2026-01-02',
+  });
+  test('Order issue shows the original invalid phone in red without a dial link or pickup selection', async () => {
+    const reason = 'The recipient phone number is invalid. Correct the shipping or billing phone in the WooCommerce order before requesting pickup.';
+    const row = {
+      ...transactionRow('express', ''),
+      customer: { name: 'Fixture buyer', phone: '+6285451111000000', phoneInvalid: true },
+      status: { code: 'new', label: 'Invalid recipient phone', tone: 'warning', issue: reason, deficit: false },
+      printStatus: 'unprinted', awb: '',
+    };
+    const h = await fixture('express', '', [row], { status: 'order-issue', key: '', courier: '', cod: '' });
+    try {
+      const phone = h.target.querySelector<HTMLElement>('.kiriof-customer-phone')!;
+      expect(phone.textContent).toBe(row.customer.phone);
+      expect(phone.classList.contains('!text-destructive')).toBe(true);
+      expect(phone.tagName).toBe('SPAN');
+      expect(phone.parentElement?.tagName).toBe('BUTTON');
+      expect(phone.parentElement?.getAttribute('type')).toBe('button');
+      expect(h.target.querySelector('a[href^="tel:"]')).toBeNull();
+      expect(h.target.querySelector('[name="transaction_id[]"]')).toBeNull();
+      expect(h.target.querySelector('tbody')?.textContent).toContain('Order issue');
+      expect(h.target.querySelector('a[aria-label="Detail"]')).not.toBeNull();
+      expect(h.target.textContent).not.toContain('Invalid recipient phone');
+      expect(h.target.textContent).not.toContain(reason);
+      const trigger = phone.parentElement!;
+      trigger.focus(); await h.settle();
+      for (let attempt = 0; attempt < 20 && !h.window.document.querySelector('[data-slot="tooltip-content"]'); attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 10)); await h.settle();
+      }
+      expect(h.window.document.querySelector('[data-slot="tooltip-content"]')?.textContent).toContain(reason);
+      trigger.blur(); await h.settle();
+      await new Promise((resolve) => setTimeout(resolve, 20)); await h.settle();
+    } finally { await h.cleanup(); }
+  });
+  test('a genuinely missing phone shows a placeholder rather than warning text', async () => {
+    const row = {
+      ...transactionRow('express', ''),
+      customer: { name: 'Fixture buyer', phone: '', phoneInvalid: true },
+      status: { label: 'Invalid recipient phone', tone: 'warning', issue: 'Correct the phone in the order.', deficit: false },
+    };
+    const h = await fixture('express', '', [row], { status: 'order-issue' });
+    try {
+      expect(h.target.querySelector('.kiriof-customer-phone')?.textContent).toBe('—');
+      expect(h.target.textContent).not.toContain('Invalid recipient phone');
+    } finally { await h.cleanup(); }
   });
   test('eligible Instant Scan to Pay is a grouped row action, never courier content', async () => {
     const paymentUrl = '/wp-admin/admin.php?page=kiriminaja-request-pickup&instant_payment_id=PAY-1&open_payment=1';

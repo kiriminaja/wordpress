@@ -59,10 +59,31 @@ function runtime() {
       center = next;
     },
     counts: () => ({ cleanup, path }),
+    getCenter: () => center,
   };
 }
 
 describe('shared Google runtime provider', () => {
+  for (const geolocation of [undefined, { getCurrentPosition() { throw new Error('blocked'); } }, { getCurrentPosition(_success: any, failure: any) { failure({ code: 1 }); } }]) {
+    test('optional location failure preserves the Jogja view and manual Google selection', () => {
+      const f = runtime(), selections: any[] = [], errors: string[] = [];
+      const session = createGoogleMapSession({ google: f.api, node: new Window().document.createElement('div') as unknown as HTMLElement, geolocation, onSelect: point => { selections.push(point); }, onError: code => errors.push(code) });
+      expect(f.getCenter()).toEqual({ lat: -7.801389, lng: 110.364722 });
+      f.handlers.get('idle')!({});
+      expect(session.getPoint()).toBeNull();
+      expect(selections).toEqual([]);
+      expect(errors).toEqual([]);
+      session.locate();
+      expect(errors).toEqual(['permission']);
+      expect(session.isAvailable()).toBe(true);
+      expect(selections).toEqual([]);
+      f.handlers.get('click')!({ latLng: { lat: () => 0, lng: () => 0 } });
+      expect(session.getPoint()).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
+      expect(selections).toHaveLength(1);
+      session.dispose();
+    });
+  }
+
   test('deduplicates loader per window/key with only the HTTPS weekly API URL and cleans callback', async () => {
     const win = new Window({
       settings: {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { createLocationGate, coverageStatus } from '../map/leaflet';
+  import { coverageStatus } from '../map/leaflet';
   import { mapProviderRegistry } from '../map/providers';
   import { loadGoogleMaps } from '../map/google-loader';
   import { resolveMapConfig } from '../map/config';
@@ -30,20 +30,16 @@
     function current() { return !disposed && addressKey(expected) === addressKey(readAddress(form)); }
     function error(code: MapError) {
       if (!current()) return;
-      if (code !== 'invalid') { hidden = true; available = false; }
+      if (code === 'unavailable') { hidden = true; available = false; }
       status = (code === 'invalid' ? strings.mapInvalid : code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || (code === 'unavailable' ? 'Map unavailable' : '');
     }
-    const gate = createLocationGate({
-      geolocation: root.navigator?.geolocation,
-      onError: error,
-      onSuccess(device) {
+    function show() {
         if (!current()) return;
         function instantiate(provider: ReturnType<typeof resolveMapConfig>, google?: GoogleMapsAPI) {
           if (!current()) return;
           hidden = false;
           map = mapProviderRegistry[provider.provider].createSession({
             ...provider, google, document: root.document, window: root as unknown as GoogleMapsWindow, node: canvas, leaflet: root.L, initial, coverage: config.map?.coverage,
-            defaultCenter: [Number(device.latitude), Number(device.longitude)],
             geolocation: root.navigator?.geolocation,
             schedule: (callback, delay) => root.setTimeout(callback, delay),
             cancel: handle => root.clearTimeout(handle as number),
@@ -61,7 +57,6 @@
           });
           session = map;
           if (!map.isAvailable()) return;
-          if (!initial) map.pick(device.latitude, device.longitude, true);
           status = view.pin ? strings.mapPlaced || '' : '';
           available = true;
         }
@@ -77,11 +72,9 @@
             })();
           } else instantiate(provider);
         } catch { error('unavailable'); }
-      },
-    });
-    // Synchronous geolocation implementations must not subscribe the lifecycle to pin writes.
-    untrack(() => gate.start());
-    return () => { disposed = true; gate.dispose(); map?.dispose(); if (session === map) session = undefined; };
+    }
+    untrack(show);
+    return () => { disposed = true; map?.dispose(); if (session === map) session = undefined; };
   });
   function locate(event: MouseEvent) {
     event.preventDefault();
@@ -98,7 +91,7 @@
   <div class="kiriof-buyer-map__viewport" class:is-moving={moving} {hidden}>
     <div bind:this={canvas} class="kiriof-buyer-map__canvas" aria-label={strings.mapHelp || ''} {...{ 'aria-description': strings.mapKeyboard || '' }}></div>
     <span class="kiriof-buyer-map__indicator" aria-hidden="true" hidden={!moving && !view.pin}><svg viewBox="0 0 32 44" focusable="false"><path fill="currentColor" stroke="white" stroke-width="2" d="M16 1C7.7 1 1 7.7 1 16c0 11 15 26 15 26s15-15 15-26C31 7.7 24.3 1 16 1Z"/><circle cx="16" cy="16" r="5" fill="white"/></svg></span>
-    <button type="button" class="kiriof-buyer-map__locate" title={strings.mapPermission || ''} disabled={!available} onclick={locate}>{strings.mapLocate || ''}</button>
+    <button type="button" class="kiriof-buyer-map__locate" title={strings.mapLocate || ''} disabled={!available} onclick={locate}>{strings.mapLocate || ''}</button>
   </div>
   <p class="kiriof-buyer-map__status" role="status" aria-live="polite">{status}</p>
 </section>

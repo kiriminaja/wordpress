@@ -85,7 +85,7 @@ if ( ! function_exists( 'admin_url' ) ) {
 }
 if ( ! function_exists( 'wp_nonce_url' ) ) {
 	function wp_nonce_url( $url, $action ) {
-		return $url . '&_wpnonce=' . $action;
+		return htmlspecialchars( $url . '&_wpnonce=' . wp_create_nonce( $action ), ENT_QUOTES, 'UTF-8' );
 	}
 }
 if ( ! function_exists( 'wp_date' ) ) {
@@ -216,6 +216,10 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		$list      = $provider->prepareList();
 		$technical = $provider->prepareTechnical();
 		$technical_bootstrap = $provider->prepareTechnicalBootstrap( $technical );
+		parse_str( parse_url( $technical['downloadLogUrl'], PHP_URL_QUERY ), $download_query );
+		$this->assertSame( array( 'action' => 'kiriof_download_plugin_logs', '_wpnonce' => wp_create_nonce( 'kiriof_download_plugin_logs' ) ), $download_query );
+		$this->assertStringNotContainsString( '&amp;', $technical['downloadLogUrl'] );
+		$this->assertSame( $technical['downloadLogUrl'], $technical_bootstrap['downloadLogUrl'] );
 
 		$this->assertSame( 'no', $list['kiriof_cod_enabled'] );
 		$this->assertSame( 'yes', $list['kiriof_insurance_enabled'] );

@@ -5,6 +5,9 @@ namespace KiriminAjaOfficial\Queries;
 use KiriminAjaOfficial\Contracts\TransactionListQueryInterface;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
 use KiriminAjaOfficial\Services\ListDateRangeFilter;
+use KiriminAjaOfficial\Services\CheckoutPhoneValidation;
+use KiriminAjaOfficial\Services\TransactionPhoneIssueCache;
+use KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver;
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,6 +24,8 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     private $wpdb;
     /** @var string Current list partition, also used by interface-less counts. */
     private $delivery_type = 'express';
+    /** @var int[]|null Invalid unbooked order IDs, reused by list and counts in this request. */
+    private $phone_issue_ids;
 
     public function __construct( $wpdb = null ) {
         if ( null === $wpdb ) {
@@ -43,6 +48,13 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         if ( $page > $total_pages && $total_pages > 0 ) {
             $page      = $total_pages;
             $page_data = $this->queryPage( $filters, $items_per_page, $page );
+        }
+
+        $phone_issue_ids = 'express' === $this->delivery_type ? $this->getPhoneIssueIds() : array();
+        foreach ( (array) $page_data['results'] as $row ) {
+            $row->kiriof_phone_issue = 'new' === (string) ( $row->status ?? '' ) && '' === trim( (string) ( $row->awb ?? '' ) )
+                && '' === trim( (string) ( $row->pickup_number ?? '' ) )
+                && in_array( (int) $row->wp_wc_order_stat_order_id, $phone_issue_ids, true );
         }
 
         return array(
@@ -81,7 +93,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $delivery_clause = $this->getDeliveryTypeClause( 'kiriminaja_transactions' );
         $regular_issue_clause = $delivery_clause;
         if ( 'express' === $this->delivery_type ) {
-            $regular_issue_clause .= ' AND kiriminaja_transactions.is_deficit = 0';
+            $regular_issue_clause .= ' AND kiriminaja_transactions.is_deficit = 0' . $this->getPhoneIssueClause( 'kiriminaja_transactions', false );
         }
 
         if ( $isProcessedFilter && 'instant' === $this->delivery_type ) {
@@ -206,7 +218,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                        AND kiriminaja_transactions.is_deficit = 1
+                        AND (kiriminaja_transactions.is_deficit = 1 {$this->getPhoneIssueClause( 'kiriminaja_transactions', true )})
                         {$delivery_clause}
                         {$cod_clause}
                         {$courier_clause}
@@ -230,7 +242,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
                     INNER JOIN {$wpdb->prefix}kiriminaja_transactions as kiriminaja_transactions
                         ON orders_tbl.{$o['id']} = kiriminaja_transactions.wp_wc_order_stat_order_id
                     WHERE orders_tbl.{$o['trash_field']} NOT IN ('trash','auto-draft')
-                        AND kiriminaja_transactions.is_deficit = 1
+                        AND (kiriminaja_transactions.is_deficit = 1 {$this->getPhoneIssueClause( 'kiriminaja_transactions', true )})
                         {$delivery_clause}
                         {$cod_clause}
                         {$courier_clause}
@@ -498,7 +510,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
 
     /** Global pending delivery badges, independent of active list filters. */
     public function getDeliveryCounts(): array {
-        $counts = ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts();
+        $counts = ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts( $this->getPhoneIssueIds() );
         return array( 'regular' => $counts['regular'], 'instant' => $counts['instant'], 'issue' => $counts['issue'] );
     }
 
@@ -586,7 +598,7 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         $o = $this->getOrdersTable();
         $table = $this->wpdb->prefix . 'kiriminaja_transactions';
         $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND t.is_deficit = 1 {$this->getDeliveryTypeClause( 't', 'express' )} {$clause}" );
+        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND (t.is_deficit = 1 {$this->getPhoneIssueClause( 't', true )}) {$this->getDeliveryTypeClause( 't', 'express' )} {$clause}" );
         $this->logDatabaseError();
         return (int) $count;
     }
@@ -618,7 +630,77 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     }
 
     private function getRegularIssueClause(): string {
-        return 'express' === $this->delivery_type ? 'AND t.is_deficit = 0' : '';
+        return 'express' === $this->delivery_type ? 'AND t.is_deficit = 0' . $this->getPhoneIssueClause( 't', false ) : '';
+    }
+
+    private function getPhoneIssueClause( string $alias, bool $include ): string {
+        $ids = $this->getPhoneIssueIds();
+        if ( ! $ids ) {
+            return '';
+        }
+        // Only internal aliases and integer IDs enter these prepared fragments.
+        $prefix   = $include ? ' OR ' : ' AND ';
+        $negation = $include ? '' : 'NOT ';
+        // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Integer placeholders and arguments derive from the same candidate ID list.
+        return $prefix . $negation . $this->wpdb->prepare(
+            "({$alias}.status = 'new' AND TRIM(COALESCE({$alias}.awb, '')) = '' AND TRIM(COALESCE({$alias}.pickup_number, '')) = '' AND {$alias}.wp_wc_order_stat_order_id IN (" . implode( ', ', array_fill( 0, count( $ids ), '%d' ) ) . '))',
+            ...$ids
+        );
+    }
+
+    public function getPhoneIssueIds(): array {
+        $cache_available = class_exists( TransactionPhoneIssueCache::class ) && TransactionPhoneIssueCache::available();
+        $revision = $cache_available ? TransactionPhoneIssueCache::revision() : null;
+        if ( ! $cache_available && null !== $this->phone_issue_ids ) {
+            return $this->phone_issue_ids;
+        }
+        if ( $cache_available ) {
+            $cached = TransactionPhoneIssueCache::get( $revision );
+            if ( null !== $cached ) {
+                $this->phone_issue_ids = $cached;
+                return $cached;
+            }
+        }
+        $this->phone_issue_ids = array();
+        if ( ! function_exists( 'wc_get_order' ) ) {
+            return $this->phone_issue_ids;
+        }
+
+        $o        = $this->getOrdersTable();
+        $table    = $this->wpdb->prefix . 'kiriminaja_transactions';
+        $clause   = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
+        $cursor   = 0;
+        $resolver = new RecipientDataResolver();
+        do {
+            // Keyset batches bound memory; only new Express rows without booking evidence hydrate orders.
+            $rows = $this->wpdb->get_results( $this->wpdb->prepare(
+                "SELECT t.id, t.wp_wc_order_stat_order_id, t.shipping_info FROM {$table} t INNER JOIN {$o['table']} p ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE t.id > %d AND t.delivery_type = %s AND t.status = %s AND TRIM(COALESCE(t.awb, '')) = '' AND TRIM(COALESCE(t.pickup_number, '')) = '' AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') {$clause} ORDER BY t.id ASC LIMIT 200",
+                $cursor,
+                'express',
+                'new'
+            ) );
+            $this->logDatabaseError();
+            if ( ! empty( $this->wpdb->last_error ) ) {
+                $ids = $this->phone_issue_ids;
+                $this->phone_issue_ids = null;
+                return $ids;
+            }
+            foreach ( (array) $rows as $row ) {
+                $cursor = (int) $row->id;
+                $order  = wc_get_order( (int) $row->wp_wc_order_stat_order_id );
+                $snapshot  = json_decode( (string) ( $row->shipping_info ?? '' ) );
+                $recipient = $resolver->resolve( $order, $snapshot, $row );
+                if ( ! CheckoutPhoneValidation::valid( $recipient['phone'] ) ) {
+                    $this->phone_issue_ids[] = (int) $row->wp_wc_order_stat_order_id;
+                }
+            }
+        } while ( count( (array) $rows ) === 200 );
+
+        $this->phone_issue_ids = array_values( array_unique( $this->phone_issue_ids ) );
+        if ( $cache_available ) {
+            TransactionPhoneIssueCache::put( $revision, $this->phone_issue_ids );
+        }
+        return $this->phone_issue_ids;
     }
 
     private function getDeliveryTypeClause( string $alias, ?string $delivery_type = null ): string {

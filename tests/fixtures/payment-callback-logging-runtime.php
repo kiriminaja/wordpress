@@ -3,6 +3,7 @@ namespace KiriminAjaOfficial\Repositories {
     class KiriminajaApiRepository {
         public function getPayment($payload) { return ['status' => true, 'data' => (object) ['data' => (object) ['pay_time' => '2026-01-01 10:00:00', 'payment_status' => $GLOBALS['remote_status'], 'qr_content' => 'private-qr']]]; }
         public function sendPickupRequest($payload) { $GLOBALS['payload'] = $payload; return ['status' => !$GLOBALS['fail'], 'data' => (object) ['status' => !$GLOBALS['fail'], 'pickup_number' => 'PICKUP-1', 'text' => 'private-api-response', 'results' => (object) ['error' => 'PIN_INVALID']]]; }
+        public function pickupRequestPayloadJson(): string { return '{}'; }
     }
     class PaymentRepository {
         public $payment;
@@ -42,6 +43,8 @@ namespace {
     require ABSPATH . 'inc/Utils/ServiceResponse.php';
     require ABSPATH . 'inc/Base/BaseService.php';
     require ABSPATH . 'inc/Services/TransactionDeliveryType.php';
+    require ABSPATH . 'inc/Services/CheckoutPhoneValidation.php';
+    require ABSPATH . 'inc/Services/TransactionPhoneIssue.php';
     require ABSPATH . 'inc/Services/PackageTypeService.php';
     require ABSPATH . 'inc/Services/ShippingProcessServices/GetShippingProcessPayment.php';
     require ABSPATH . 'inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php';

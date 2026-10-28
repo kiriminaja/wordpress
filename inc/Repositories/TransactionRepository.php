@@ -4,6 +4,7 @@ namespace KiriminAjaOfficial\Repositories;
 use KiriminAjaOfficial\Contracts\TransactionPrintRepositoryInterface;
 use KiriminAjaOfficial\Queries\WordPressTransactionBadgeQuery;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
+use KiriminAjaOfficial\Services\TransactionPhoneIssueCache;
 
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) {
@@ -335,6 +336,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
             return false;
         }
         if ( $updated > 0 ) {
+            $this->invalidatePhoneIssueCache();
             return true;
         }
 
@@ -551,6 +553,9 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         }
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $updated = $this->wpdb->update($this->table, $payloads['changes'], $payloads['condition']);
+        if ( false !== $updated && empty( $this->wpdb->last_error ) ) {
+            $this->invalidatePhoneIssueCache();
+        }
         
         return false !== $updated && !$this->hasError();
     }
@@ -574,6 +579,7 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         }
 
         if ( $updated > 0 ) {
+            $this->invalidatePhoneIssueCache();
             return true;
         }
 
@@ -745,7 +751,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->getTransactionByOrderIds($orderIds);
     }
     public function getCountTransactionProcessNew(){
-        return ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts()['total'];
+        // Phone issues change the badge partition, never the total pending order count.
+        return ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts( array() )['total'];
     }
 
     /**
@@ -890,9 +897,16 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
     }
 
     public function invalidateCouriersCache() {
+        $this->invalidatePhoneIssueCache();
         delete_transient('kiriof_distinct_couriers');
         delete_transient('kiriof_distinct_couriers_express');
         delete_transient('kiriof_distinct_couriers_instant');
+    }
+
+    private function invalidatePhoneIssueCache(): void {
+        if ( class_exists( TransactionPhoneIssueCache::class ) ) {
+            TransactionPhoneIssueCache::invalidate();
+        }
     }
 
     /**

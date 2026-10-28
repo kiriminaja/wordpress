@@ -171,7 +171,7 @@ describe('map provider configuration and typed core', () => {
     expect(f.session.isAvailable()).toBe(true);
     expect(f.session.getPoint()).toBeNull();
     expect(f.selections).toEqual([]);
-    expect(f.views).toEqual([[[-6.2088, 106.8456], 13]]);
+    expect(f.views).toEqual([[[-7.801389, 110.364722], 13]]);
     f.fire('click', { latlng: { lat: 0, lng: 1 } });
     expect(f.session.getPoint()).toEqual({ latitude: '0.0000000', longitude: '1.0000000' });
     f.fire('movestart');

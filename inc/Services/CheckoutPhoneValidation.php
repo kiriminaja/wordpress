@@ -22,7 +22,16 @@ final class CheckoutPhoneValidation {
 			return false;
 		}
 		$digits = preg_replace( '/[^0-9]/', '', $value );
-		return strlen( $digits ) >= 8 && strlen( $digits ) <= 15;
+		$international_digits = $digits;
+		// Match the international representation displayed in the transaction list.
+		if ( ! str_starts_with( $value, '+' ) ) {
+			if ( str_starts_with( $digits, '08' ) ) {
+				$international_digits = '62' . substr( $digits, 1 );
+			} elseif ( str_starts_with( $digits, '8' ) ) {
+				$international_digits = '62' . $digits;
+			}
+		}
+		return strlen( $digits ) >= 8 && strlen( $international_digits ) <= 15;
 	}
 
 	public static function message(): string {

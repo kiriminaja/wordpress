@@ -194,7 +194,8 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(panel.getAttribute('data-priority')).toBe('61.5');
 		expect(panel.querySelectorAll('select')).toHaveLength(0);
 		expect(h.query('#kiriof-classic-district')).toBeNull();
-		expect(h.geo).toHaveLength(1);
+		expect(h.geo).toHaveLength(0);
+		h.query('.kiriof-classic-map-locate').click(); h.flush();
 		h.geo[0].success({ coords: { latitude: -6.2, longitude: 106.8 } });
 		await h.acknowledge();
 		expect(ids.map(id => h.query(`#${id}`).outerHTML)).toEqual(before);
@@ -224,6 +225,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('existing district-synced event observes matching label and retains device suggestion until district exists', async () => {
 		const h = adapter(); h.query('#kiriof_destination_area').value = ''; h.query('#kiriof_destination_area_name').value = '';
 		h.emit(h.window.document.body, 'kiriof:classic-district-synced');
+		h.query('.kiriof-classic-map-locate').click(); h.flush();
 		h.geo[0].success({ coords: { latitude: 0, longitude: 0 } });
 		expect(h.hidden().version).toBe(1);
 		h.choose('456', 'Existing legacy label');
@@ -248,14 +250,15 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		const foreign = adapter(); foreign.change('billing_country', 'US'); await foreign.advance(200);
 		expect(foreign.query('.kiriof-classic-pin').hidden).toBe(true);
 	});
-	test('auto geolocation failure can retry and stale callbacks cannot overwrite changed address', async () => {
-		const h = adapter(); await h.acknowledge(); h.geo[0].failure({ code: 1 }); h.flush();
-		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(0);
+	test('explicit geolocation failure keeps map usable and stale callbacks cannot overwrite changed address', async () => {
+		const h = adapter(); await h.acknowledge(); expect(h.geo).toHaveLength(0); h.query('.kiriof-classic-map-locate').click(); h.flush(); h.geo[0].failure({ code: 1 }); h.flush();
+		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(1);
 		h.query('.kiriof-classic-map-locate').click(); h.flush(); const stale = h.geo[1];
 		h.change('billing_address_1', 'New street'); await h.advance(200);
 		const status = h.query('.kiriof-classic-pin [role="status"]').textContent;
 		stale.success({ coords: { latitude: -7, longitude: 107 } }); stale.failure({ code: 1 });
-		expect(h.maps).toHaveLength(0); expect(h.query('.kiriof-classic-pin [role="status"]').textContent).toBe(status);
+		expect(h.maps).toHaveLength(2); expect(h.maps[0].removed).toBe(true); expect(h.query('.kiriof-classic-pin [role="status"]').textContent).toBe(status);
+		h.query('.kiriof-classic-map-locate').click(); h.flush();
 		h.geo.at(-1).success({ coords: { latitude: -6.2, longitude: 106.8 } });
 		expect(h.hidden().destination_latitude).toBe('-6.2000000');
 	});

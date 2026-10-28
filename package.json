@@ -6,7 +6,7 @@
     "build": "bun run build:admin && bun run build:buyer",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "dev": "vite --host 127.0.0.1",
-    "test:frontend-cache": "bun test tests/FrontendBuildCache.test.ts tests/JavaScriptTestCache.test.ts",
+    "test:frontend-cache": "bun test tests/FrontendBuildCache.test.ts tests/JavaScriptTestCache.test.ts tests/ExplicitTestingAutomation.test.ts",
     "format": "oxfmt src vite.config.ts vite.buyer.config.ts svelte.config.js package.json components.json scripts/build-buyer.mjs scripts/frontend-cache.mjs scripts/test-cache.mjs tests/FrontendBuildCache.test.ts tests/JavaScriptTestCache.test.ts scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
     "format:check": "oxfmt --check src vite.config.ts vite.buyer.config.ts svelte.config.js package.json components.json scripts/build-buyer.mjs scripts/frontend-cache.mjs scripts/test-cache.mjs tests/FrontendBuildCache.test.ts tests/JavaScriptTestCache.test.ts scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
     "frontend:check": "node scripts/test-cache.mjs -- bun run frontend:check:all",
@@ -58,6 +58,6 @@
     "vite": "^8.3.0"
   },
   "simple-git-hooks": {
-    "pre-commit": "./scripts/frontend-pre-commit.sh"
+    "preserveUnused": true
   }
 }

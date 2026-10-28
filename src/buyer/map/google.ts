@@ -1,4 +1,4 @@
-import { normalizePoint, coverageStatus } from './leaflet';
+import { normalizePoint, coverageStatus, BUYER_MAP_CENTER } from './leaflet';
 import type {
   GoogleMapsAPI,
   GoogleMapsWindow,
@@ -21,7 +21,7 @@ function defaultCenter(value: MapSessionOptions['defaultCenter']): GoogleLatLngL
     : value && 'lat' in value
       ? normalizePoint(value.lat, value.lng)
       : null;
-  return point ? literal(point) : { lat: -6.2088, lng: 106.8456 };
+  return point ? literal(point) : { lat: BUYER_MAP_CENTER[0], lng: BUYER_MAP_CENTER[1] };
 }
 /** 64 geodesic destinations; no routing/geometry library or filled coverage polygon. */
 function ring(center: GoogleLatLngLiteral, radius: number): GoogleLatLngLiteral[] {
@@ -255,7 +255,7 @@ export function createGoogleMapSession(options: MapSessionOptions): MapSession {
     locate() {
       if (disposed || !map) return;
       const sequence = ++locationSequence;
-      if (!options.geolocation) {
+      if (!options.geolocation || typeof options.geolocation.getCurrentPosition !== 'function') {
         report('permission');
         return;
       }
@@ -272,7 +272,7 @@ export function createGoogleMapSession(options: MapSessionOptions): MapSession {
           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
         );
       } catch {
-        if (!disposed && sequence === locationSequence) report('unavailable');
+        if (!disposed && sequence === locationSequence) report('permission');
       }
     },
     getPoint: () => (selected ? { ...selected } : null),

@@ -15,6 +15,12 @@ const DEFAULT_PICKUP_OPTION = array( 'PICKUP' );
 
 class KiriminajaApiRepository extends KiriminAjaApi {
     private array $address_transport_metadata = array();
+    private string $pickup_request_payload_json = '';
+
+    /** Failed booking diagnostics only; authorization is not part of the payload. */
+    public function pickupRequestPayloadJson(): string {
+        return $this->pickup_request_payload_json;
+    }
 
     /** The unified mapping is authoritative for names and postal codes. */
     public function sub_district_search( $search ) {
@@ -270,6 +276,7 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     public function sendPickupRequest( $payload ) {
+        $this->pickup_request_payload_json = '';
         $method = is_array( $payload ) && array_key_exists( 'payment_method', $payload ) ? $payload['payment_method'] : '';
         if ( ! is_array( $payload ) || ! is_string( $method ) || ! in_array( $method, array( '', 'credit', 'qris', 'cash' ), true ) ) {
             return array( 'status' => false, 'data' => 'Invalid Express payment method.' );
@@ -286,6 +293,7 @@ class KiriminajaApiRepository extends KiriminAjaApi {
             if ( true === $transport && is_array( $body ) && true === ( $body['status'] ?? null ) ) {
                 return array( 'status' => true, 'data' => json_decode( wp_json_encode( $body ) ) );
             }
+            $this->captureFailedPickupPayload( $payload );
             $code = is_array( $body ) ? ( $body['results']['error'] ?? null ) : null;
             $messages = array(
                 'PIN_INVALID' => 'KA Credit PIN is invalid.',
@@ -297,8 +305,28 @@ class KiriminajaApiRepository extends KiriminAjaApi {
             }
         } catch ( \Throwable $error ) {
             // An uncertain submission must not retry or fall back to the legacy API.
+            $this->captureFailedPickupPayload( $payload );
         }
         return array( 'status' => false, 'data' => 'Unable to request Express pickup.' );
+    }
+
+    private function captureFailedPickupPayload( array $payload ): void {
+        $payload = $this->redactPickupDiagnostic( $payload );
+        $json = wp_json_encode( $payload );
+        $this->pickup_request_payload_json = is_string( $json ) ? $json : '';
+    }
+
+    /** Keep operational values/types, not customer identities or arbitrary descriptive text. */
+    private function redactPickupDiagnostic( array $payload ): array {
+        $operational = array( 'order_id', 'platform_name', 'schedule', 'payment_method', 'service', 'service_type', 'package_type_id', 'qty', 'weight', 'width', 'height', 'length', 'price', 'item_value', 'insurance_amount', 'shipping_cost', 'cod', 'drop', 'dropoff', 'is_with_insurance', 'discount_amount', 'discount_percentage', 'woocommerce_discount_amount', 'kelurahan_id', 'kecamatan_id', 'destination_kelurahan_id', 'destination_kecamatan_id' );
+        foreach ( $payload as $key => $value ) {
+            if ( is_array( $value ) ) {
+                $payload[ $key ] = $this->redactPickupDiagnostic( $value );
+            } elseif ( ! in_array( $key, $operational, true ) ) {
+                $payload[ $key ] = '[redacted]';
+            }
+        }
+        return $payload;
     }
 
     public function get_couriers() {

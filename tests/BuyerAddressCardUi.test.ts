@@ -267,20 +267,19 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 			expect(h.document.querySelector('select').value).toBe('7'); expect(h.sends).toHaveLength(1);
 		} finally { await h.cleanup(); }
 	});
-	uiTest('native edit opens permission status only; saved pin survives denial and map awaits an explicit grant on reentry', async () => {
+	uiTest('native edit opens saved map without permission; denial and reentry preserve saved pin', async () => {
 		const h = await fixture({ savedDestination: saved(), autoLocation: false });
 		try {
 			await h.flush(250); await h.reply(); await h.flush(0);
 			expect(h.locations).toHaveLength(0);
 			await h.editing(true);
-			expect(h.locations).toHaveLength(1); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0);
-			expect(h.document.querySelector('.kiriof-buyer-map__canvas')).toBeNull(); expect(h.document.querySelector('.kiriof-buyer-map [role="status"]').textContent).toContain('Requesting location permission');
+			expect(h.locations).toHaveLength(0); expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1);
+			expect(h.document.querySelector('.kiriof-buyer-map__canvas')).not.toBeNull(); await h.act(async () => h.document.querySelector<HTMLButtonElement>('.kiriof-buyer-map__locate')!.click());
 			await h.act(async () => h.locations[0].failure({ code: 1 }));
-			expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.window.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress)).toMatchObject({ latitude: '0.0000000', longitude: '0.0000000' });
-			await h.editing(false); await h.editing(true); expect(h.locations).toHaveLength(2); expect(h.maps).toHaveLength(0);
-			await h.act(async () => h.locations[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(0);
-			await h.act(async () => h.locations[1].success({ coords: { latitude: -6, longitude: 106 } }));
-			expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
+			expect(h.maps).toHaveLength(1); expect(h.document.querySelector('.kiriof-buyer-map__status')!.textContent).toBe('Permission denied'); expect(h.window.kiriofBuyerCheckout.getCoordinates(h.model.cart.shippingAddress)).toMatchObject({ latitude: '0.0000000', longitude: '0.0000000' });
+			await h.editing(false); await h.editing(true); expect(h.locations).toHaveLength(1); expect(h.maps).toHaveLength(2);
+			await h.act(async () => h.locations[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(2);
+			expect(h.maps[1].center).toEqual({ lat: 0, lng: 0 });
 		} finally { await h.cleanup(); }
 	});
 	uiTest('collapsed card does not briefly create a map when Map mounts before District', async () => {
@@ -332,8 +331,8 @@ describe('combined native address-card UI (real React/DOM, unchanged production 
 		const h = await fixture({ guest: true });
 		try {
 			const badge = h.document.querySelector('.kiriof-buyer-map__pin-status');
-			expect(badge.textContent).toBe('Pin location');
-			expect(badge.classList.contains('is-complete')).toBe(true);
+			expect(badge.textContent).toBe('Need pin location');
+			expect(badge.classList.contains('is-warning')).toBe(true);
 			expect(h.document.querySelector('.kiriof-buyer-map__device-notice')).toBeNull();
 			expect(h.document.querySelector('.kiriof-buyer-map__status')).toBeNull();
 			const locate = h.document.querySelector('.kiriof-buyer-map__locate');

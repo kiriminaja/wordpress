@@ -27,7 +27,7 @@ class WordPressTransactionBadgeQuery {
     }
 
     /** No list filters or transient cache: these badges always describe pending work. */
-    public function getCounts(): array {
+    public function getCounts( ?array $phone_issue_ids = null ): array {
         $wpdb   = $this->wpdb;
         $prefix = $wpdb->prefix;
         $orders = array( 'table' => "{$prefix}posts", 'id' => 'ID', 'status' => 'post_status', 'type' => 'post_type' );
@@ -35,6 +35,12 @@ class WordPressTransactionBadgeQuery {
             $orders = array( 'table' => "{$prefix}wc_orders", 'id' => 'id', 'status' => 'status', 'type' => 'type' );
         }
         $postmeta = $wpdb->postmeta;
+        $phone_issue_ids = $phone_issue_ids ?? ( new WordPressTransactionListQuery( $wpdb ) )->getPhoneIssueIds();
+        $phone_issue_clause = '';
+        if ( $phone_issue_ids ) {
+            // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- IDs and placeholders derive from the same internal integer list.
+            $phone_issue_clause = $wpdb->prepare( ' OR t.wp_wc_order_stat_order_id IN (' . implode( ', ', array_fill( 0, count( $phone_issue_ids ), '%d' ) ) . ')', ...$phone_issue_ids );
+        }
 
         // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Fresh global badges use fixed internal storage identifiers and prepared criteria.
         $row = $wpdb->get_row(
@@ -46,7 +52,7 @@ class WordPressTransactionBadgeQuery {
                     COUNT(*) AS total
                 FROM (
                     SELECT p.{$orders['id']} AS order_id,
-                        MAX(CASE WHEN t.delivery_type = 'express' AND t.is_deficit = 1 THEN 1 ELSE 0 END) AS has_issue,
+                        MAX(CASE WHEN t.delivery_type = 'express' AND (t.is_deficit = 1 {$phone_issue_clause}) THEN 1 ELSE 0 END) AS has_issue,
                         MAX(CASE WHEN t.delivery_type = 'instant' THEN 1 ELSE 0 END) AS has_instant
                     FROM {$orders['table']} p
                     INNER JOIN {$prefix}kiriminaja_transactions t ON p.{$orders['id']} = t.wp_wc_order_stat_order_id

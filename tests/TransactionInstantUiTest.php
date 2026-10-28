@@ -117,6 +117,26 @@ PHP;
         return json_decode($output, true, 512, JSON_THROW_ON_ERROR);
     }
 
+    public function test_unbooked_express_invalid_phone_is_an_unselectable_order_issue(): void {
+        foreach ( array( '', '0812bad12345', '+628123456789012345', '+6285451111000000', '085451111000000' ) as $phone ) {
+            $row = $this->runFixture( 'transaction-instant-ui-runtime.php', array( 'awb' => '', 'shipping_info' => json_encode( array( '_billing_phone' => $phone ) ) ) );
+            $this->assertFalse( $row['selection']['canPickup'] );
+            $this->assertTrue( $row['selection']['disabled'] );
+            $this->assertTrue( $row['customer']['phoneInvalid'] );
+            $this->assertSame( $phone, $row['customer']['phone'] );
+            $this->assertSame( 'Invalid recipient phone', $row['status']['label'] );
+            $this->assertStringContainsString( 'Correct the shipping or billing phone', $row['status']['issue'] );
+            $this->assertTrue( $row['actions']['preview'] );
+        }
+        $row = $this->runFixture( 'transaction-instant-ui-runtime.php', array( 'awb' => '', 'wc_order' => array( 'address' => array( 'phone' => '+6285234534567' ) ), 'shipping_info' => '{"_billing_phone":"bad"}' ) );
+        $this->assertTrue( $row['selection']['canPickup'] );
+        $this->assertFalse( $row['customer']['phoneInvalid'] );
+        $this->assertFalse( $row['status']['issue'] );
+        $booked = $this->runFixture( 'transaction-instant-ui-runtime.php', array( 'status' => 'request_pickup', 'shipping_info' => '{"_billing_phone":"bad"}' ) );
+        $this->assertTrue( $booked['selection']['canPrint'] );
+        $this->assertFalse( $booked['status']['issue'] );
+    }
+
     public function test_instant_filters_persist_print_status_and_ignore_express_only_cod(): void {
         $expectedCases = $actualCases = [];
         $filters = $this->runFixture('transaction-multi-filter-runtime.php', ['mode' => 'renderer', 'get' => ['delivery_type' => 'instant', 'cod' => '1', 'print_status' => '1', 'status' => 'processed']]);

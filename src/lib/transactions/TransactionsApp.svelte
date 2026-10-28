@@ -455,7 +455,13 @@
                 <Table.Cell>
                   <a class="kiriof-order-link" href={row.wcOrderUrl} target="_blank">#{row.wcOrderId}</a>
                   <strong class="kiriof-row-title">{row.customer.name}</strong>
-                  {#if row.customer.phone}<a class="kiriof-customer-phone" href={`tel:${formatPhone(row.customer.phone)}`}>{formatPhone(row.customer.phone)}</a>{/if}
+                  {#if row.customer.phoneInvalid}
+                    <ActionTooltip label={String(row.status.issue || '')} focusable>
+                      <span class="kiriof-customer-phone !text-destructive">{row.customer.phone || '—'}</span>
+                    </ActionTooltip>
+                  {:else if row.customer.phone}
+                    <a class="kiriof-customer-phone" href={`tel:${formatPhone(row.customer.phone)}`}>{formatPhone(row.customer.phone)}</a>
+                  {/if}
                   <span class="kiriof-row-muted">{row.createdAt}</span>
                 </Table.Cell>
                 <Table.Cell>
@@ -480,6 +486,8 @@
                         <span class="kiriof-transaction-status {toneClass(row.status.tone)}"><InstantIcon />{row.status.label}</span>
                       </ActionTooltip>
                       {#if row.status.issue}<ActionTooltip label={String(row.status.issue)}><span class="kiriof-transaction-status is-warning"><IconAlertTriangle />{bootstrap.i18n.instantIssue}</span></ActionTooltip>{/if}
+                    {:else if row.status.issue}
+                      <ActionTooltip label={String(row.status.issue)}><span class="kiriof-transaction-status is-warning"><IconAlertTriangle />{bootstrap.i18n.orderIssue}</span></ActionTooltip>
                     {:else if row.status.deficit}
                       {@const DeficitIcon = statusIcon(row.status.tone, true, row.status)}
                       <ActionTooltip label="COD settlement requires action"><span class="kiriof-transaction-status {toneClass(row.status.tone)} kiriof-badge--strong"><DeficitIcon />{row.status.label}</span></ActionTooltip>

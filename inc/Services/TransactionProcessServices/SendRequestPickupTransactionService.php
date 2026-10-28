@@ -16,6 +16,8 @@ use KiriminAjaOfficial\Services\PackageTypeService;
 use KiriminAjaOfficial\Services\SettingService;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
+use KiriminAjaOfficial\Services\CheckoutPhoneValidation;
+use KiriminAjaOfficial\Services\TransactionPhoneIssue;
 class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
@@ -317,6 +319,8 @@ class SendRequestPickupTransactionService extends BaseService
             kiriof_log('warning', 'Request pickup API request failed.', [
                 'order_ids' => $this->orderIds,
                 'package_count' => count($apiPackages),
+                'endpoint' => 'api/mitra/v6.2/request_pickup',
+                'request_payload_json' => $this->apiRepository->pickupRequestPayloadJson(),
                 'error_code' => in_array($errorCode, ['PIN_INVALID', 'PIN_MAX_ATTEMPT_REACHED', 'BALANCE_NOT_ENOUGH'], true) ? $errorCode : 'UNKNOWN',
                 'backtrace' => false,
             ], 'kiriminaja_request_pickup');
@@ -403,6 +407,16 @@ class SendRequestPickupTransactionService extends BaseService
         foreach ( (array) $transactions as $transaction ) {
             if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
                 return self::error( array(), __( 'Instant shipment processing is not available yet.', 'kiriminaja-official' ) );
+            }
+        }
+        foreach ( (array) $transactions as $transaction ) {
+            $order = wc_get_order( (int) ( $transaction->wp_wc_order_stat_order_id ?? 0 ) );
+            if ( $order ) {
+                $snapshot = json_decode( (string) ( $transaction->shipping_info ?? '' ) );
+                $recipient = $this->recipientDataResolver->resolve( $order, $snapshot, $transaction );
+                if ( ! CheckoutPhoneValidation::valid( $recipient['phone'] ) ) {
+                    return self::error( array( 'error_code' => 'invalid_recipient_phone' ), TransactionPhoneIssue::message() );
+                }
             }
         }
 
@@ -540,7 +554,7 @@ class SendRequestPickupTransactionService extends BaseService
                 "width"                     => (int) $helper->minAmount($transaction->width),
                 "height"                    => (int) $helper->minAmount($transaction->height),
                 "length"                    => (int) $helper->minAmount($transaction->length),
-                'qty'                       => $quantity,
+                'qty'                       => (int) $quantity,
                 "item_value"                => (int) round((float) ($transaction->transaction_value ?? 0)),
                 "insurance_amount"          => (int) round((float) ($transaction->insurance_cost ?? 0)),
                 "shipping_cost"             => (int) round((float) ($transaction->shipping_cost ?? 0)),

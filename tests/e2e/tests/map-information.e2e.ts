@@ -37,12 +37,12 @@ function html(provider: 'leaflet' | 'google', coverage: boolean) {
     </style></head><body><div id="map"></div>${scripts([
     reactSource(),
     `window.__runtimeErrors=[];window.addEventListener('error',e=>window.__runtimeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>window.__runtimeErrors.push(String(e.reason)));
-    window.__geoCalls=0;Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(ok){window.__geoCalls++;ok({coords:{latitude:-7.7,longitude:110.3}})}}});
+    window.__geoCalls=0;window.__denyGeo=false;Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(ok,fail){window.__geoCalls++;if(window.__denyGeo){fail({code:1});return;}ok({coords:{latitude:-7.7,longitude:110.3}})}}});
     const R=window.__React;const cart={needsShipping:true,shippingAddress:{country:'ID',address_1:'Fixture address'}};
     window.wp={element:R,data:{useSelect:fn=>fn(name=>name==='wc/store/cart'?{getCartData:()=>cart}:{prefersCollection:()=>false})}};
     window.wc={blocksCheckout:{registerCheckoutBlock:registration=>{if(registration.metadata.name==='kiriminaja-official/map-checkout')window.__MapControl=registration.component;}}};
     window.kiriofBuyerCheckout={getCoordinates:()=>null,setCoordinates:(address,point)=>{window.__selected=point;return true;}};
-    window.kiriofMapCheckoutConfig=${JSON.stringify({ enabled: true, provider, apiKey: provider === 'google' ? 'AIza-synthetic_map_information_key123' : '', tiles: 'https://tiles.fixture.test/{z}/{x}/{y}.png', attribution: 'Fixture tiles', coverage: coverage ? { origin: { latitude: -7.7, longitude: 110.3 }, radiusMeters: 40000 } : null, i18n: { mapTitle: 'Delivery pin', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrows to move', mapLocate: 'Current location', mapLocating: 'Locating', mapCoverage: description, mapCoverageBadge: 'Instant ≤ 40 km', mapOptional: 'Optional. A delivery pin helps the courier find your address.', pinLocation: 'Pin Location', needPinLocation: 'Need Pin Location', mapUnavailable: 'Map unavailable' } })};`,
+    window.kiriofMapCheckoutConfig=${JSON.stringify({ enabled: true, provider, apiKey: provider === 'google' ? 'AIza-synthetic_map_information_key123' : '', tiles: 'https://tiles.fixture.test/{z}/{x}/{y}.png', attribution: 'Fixture tiles', coverage: coverage ? { origin: { latitude: -7.7, longitude: 110.3 }, radiusMeters: 40000 } : null, i18n: { mapTitle: 'Delivery pin', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrows to move', mapLocate: 'Current location', mapLocating: 'Locating', mapPermission: 'Location permission denied. Select the location manually.', mapCoverage: description, mapCoverageBadge: 'Instant ≤ 40 km', mapOptional: 'Optional. A delivery pin helps the courier find your address.', pinLocation: 'Pin Location', needPinLocation: 'Need Pin Location', mapUnavailable: 'Map unavailable' } })};`,
     ...(provider === 'leaflet' ? [read('assets/lib/leaflet/leaflet.js'), `const nativeMap=L.map;L.map=(...args)=>window.__map=nativeMap(...args);`] : []),
     read('assets/buyer/dist/kiriminaja-buyer-blocks.js'),
     `window.__createRoot(document.querySelector('#map')).render(R.createElement(window.__MapControl));`,
@@ -77,6 +77,26 @@ for (const { provider, width, coverage } of [
     });
     await app.open('/map');
     const status = browser.locator('.kiriof-buyer-map__pin-status');
+    await expect(browser.locator('.kiriof-buyer-map__canvas')).toBeVisible();
+    await expect(status).toContainText('Need Pin Location');
+    expect(await browser.evaluate(() => ({ geoCalls: (window as any).__geoCalls, selected: (window as any).__selected ?? null }))).toEqual({ geoCalls: 0, selected: null });
+    expect(await browser.evaluate(() => {
+      const center=(window as any).__map.getCenter();
+      const latitude=typeof center.lat==='function'?center.lat():center.lat;
+      const longitude=typeof center.lng==='function'?center.lng():center.lng;
+      return Math.abs(latitude-(-7.801389))<0.001&&Math.abs(longitude-110.364722)<0.001;
+    })).toBe(true);
+    await browser.evaluate(() => { (window as any).__denyGeo=true; });
+    await browser.locator('.kiriof-buyer-map__locate').tap();
+    await expect.poll(() => browser.evaluate(() => (window as any).__geoCalls)).toBe(1);
+    await expect(browser.locator('.kiriof-buyer-map__canvas')).toBeVisible();
+    expect(await browser.evaluate(() => ({ selected: (window as any).__selected ?? null, complete: document.querySelector('.kiriof-buyer-map__pin-status')!.classList.contains('is-complete') }))).toEqual({ selected: null, complete: false });
+    // Explicit keyboard selection remains available even when GPS is denied.
+    await browser.evaluate(() => { (document.querySelector('.kiriof-buyer-map__canvas') as HTMLElement).focus(); });
+    await browser.keyboard.press('Enter');
+    await expect.poll(() => browser.evaluate(() => document.querySelector('.kiriof-buyer-map__pin-status')!.classList.contains('is-complete'))).toBe(true);
+    await browser.evaluate(() => { (window as any).__denyGeo=false; });
+    await browser.locator('.kiriof-buyer-map__locate').tap();
     await expect(status).toContainText('Pin Location');
     await expect.poll(() => browser.evaluate(() => document.querySelector('.kiriof-buyer-map__pin-status')?.classList.contains('is-complete'))).toBe(true);
     expect(await browser.evaluate(() => ({ optional: document.querySelectorAll('.kiriof-buyer-map__optional').length, optionalText: document.querySelector('.kiriof-buyer-map')!.textContent!.includes('Optional. A delivery pin'), paragraphs: document.querySelectorAll('.kiriof-buyer-map__information p').length, information: document.querySelectorAll('.kiriof-buyer-map__information').length }))).toEqual({ optional: 0, optionalText: false, paragraphs: 0, information: coverage ? 1 : 0 });
@@ -108,8 +128,12 @@ for (const { provider, width, coverage } of [
     await expect(status).toBeVisible();
     if (coverage) await expect(browser.locator('.kiriof-buyer-map__information')).toBeVisible();
     const before=await browser.evaluate(() => (window as any).__geoCalls);
+    await browser.evaluate(() => { (window as any).__denyGeo=true; });
     await browser.locator('.kiriof-buyer-map__locate').tap();
     await expect.poll(() => browser.evaluate(() => (window as any).__geoCalls)).toBeGreaterThan(before);
+    await expect(browser.locator('.kiriof-buyer-map__canvas')).toBeVisible();
+    await expect(status).toBeVisible();
+    await expect.poll(() => browser.evaluate(() => document.querySelector('.kiriof-buyer-map')!.textContent!.includes('Location permission denied. Select the location manually.'))).toBe(true);
     expect(googleRequests).toHaveLength(provider==='google'?1:0);
     if (provider==='google') expect(await browser.evaluate(() => typeof (window as any).L)).toBe('undefined');
     expect(unexpected).toEqual([]);

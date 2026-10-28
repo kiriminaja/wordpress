@@ -77,13 +77,17 @@ vendor/bin/paratest --configuration paratest.xml --filter SettingServiceDependen
 
 The required unit/runtime suites run from the plugin root without a WordPress server or network API. PHP needs the curl, SQLite3 and PDO SQLite extensions for runtime fixtures. Frontend checks require Bun 1.4.2 and Node 20.19+ or 22.12+ (Vite 8); CI uses Node 22. Locked React, React DOM and Happy DOM development dependencies are required: DOM suites fail rather than skip when dependencies are missing. These VM/DOM and compiled Svelte tests execute production code with fixture transport/UI boundaries; they are not live-browser E2E coverage.
 
-`make zip` includes `bun run frontend:check` (formatting, lint, Svelte checking, style checks and frontend runtime suites) and the frontend build. Successful frontend checks and buyer builds are reused only when content-matched inputs and generated output hashes agree. Changed source, tests, configs, locks, dependencies, runtime, or environment invalidates the receipt. Run `KIRIOF_TEST_FORCE=1 bun run frontend:check` to rerun validation, or set `KIRIOF_BUILD_FORCE=1` to bypass both test and build receipts. Buyer-build receipts track installed dependency manifests rather than every dependency source file; reinstall with `bun install --frozen-lockfile` after manual dependency edits and force a rebuild. Test/validation receipts check dependency file contents.
+`make zip` builds admin and buyer assets and packages the plugin; it does not run tests, formatting, lint, Svelte checks, style checks or PHP literal validation. Run `bun run frontend:check` explicitly for frontend validation, and `php scripts/check-php-literal-escapes.php` for PHP literal validation. PR CI runs both checks explicitly before packaging, then runs PHP tests and WordPress smoke/Plugin Check jobs.
 
-The pre-commit hook runs frontend checks for staged frontend assets, blocks, tests, scripts, locks, translations and PHP integration changes. PR CI tests PHP 8.1, 8.2, 8.3 and 8.5; WP-CLI smoke checks cover the declared WordPress 6.8 / WooCommerce 8.5 minimum and WordPress 6.8 / WooCommerce 10.6, without starting a browser server.
+Successful frontend checks and buyer builds are reused only when content-matched inputs and generated output hashes agree. Run `KIRIOF_TEST_FORCE=1 bun run frontend:check` to rerun frontend validation, or set `KIRIOF_BUILD_FORCE=1` to bypass build and validation receipts. Buyer-build receipts track installed dependency manifests rather than every dependency source file; reinstall with `bun install --frozen-lockfile` after manual dependency edits and force a rebuild. Test/validation receipts check dependency file contents.
+
+Commits do not run repository-managed tests. `bun install` retains the hook setup command but installs no hooks and preserves unrelated hooks. The legacy `scripts/frontend-pre-commit.sh` is a no-op for existing installations that still reference it. Tests remain available through the manual commands above and PR CI.
 
 ### Logging
 
 The plugin uses WooCommerce's native logger through `kiriof_log()` and `KiriminAjaOfficial\Utils\Logger`.
+
+Technical settings exports plugin-only file logs for today and the previous two UTC dates, including rotations. Exports use bounded memory, include at most 64 MiB of recent log input, and omit individual lines over 1 MiB rather than emit partially redacted records. Failed Express pickup requests include a privacy-redacted copy of their post-mapping JSON under `request_payload_json`: operational fields and numeric types remain, while contact details, addresses, coordinates, descriptive text and PINs are redacted. Authorization headers are never included. Historical logs can still contain personal details, so share exports only with the merchant's consent. No diagnostic export is sent automatically.
 
 Current source identifiers:
 
@@ -91,6 +95,7 @@ Current source identifiers:
 - `kiriminaja_import` for region cache warmups and bundled-data refresh fallbacks
 - `kiriminaja_shipping` for shipping-rate, courier, tracking, and pickup API requests
 - `kiriminaja_payment` for COD fee and COD adjustment flows
+- `kiriminaja_request_pickup` for failed Express booking payload diagnostics
 - `kiriminaja_settings` for setup key, callback, COD, and insurance configuration changes
 - `kiriminaja_webhook` for inbound webhook validation and transaction sync events
 - `kiriminaja_debug` for legacy local-only debug instrumentation
@@ -110,7 +115,7 @@ make zip
 
 Produces `kiriminaja-official.zip` ready for distribution (`make zip dev` and `make zip stg` use versioned environment-specific names).
 
-Packaging does not copy the development `vendor/` tree. It caches a separate production-only Composer install under `build/composer-vendor-cache`, keyed by the manifests, PHP/platform/Composer identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading. The SDK retains its required source install; other packages use dist archives. `make clean` removes this cache as well as the staged build. The first build still installs dependencies and runs all checks; unchanged subsequent builds avoid those costs.
+Packaging does not copy the development `vendor/` tree. It caches a separate production-only Composer install under `build/composer-vendor-cache`, keyed by the manifests, PHP/platform/Composer identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading. The SDK retains its required source install; other packages use dist archives. `make clean` removes this cache as well as the staged build. The first build installs production dependencies; unchanged subsequent builds reuse them. Packaging verifies its files but does not run test or validation suites.
 
 On a test cache miss, deterministic fixture results are reused inside a worker and heavy UI matrices are batched with fresh case state. Forced test runs skip fingerprinting and receipt publication entirely; they invalidate any old success and execute immediately. Compiled Svelte suites build once per test process, then evaluate those bytes at a unique module path for each fresh DOM Window; production module state and native DOM caches are never shared between fixtures. Fixture teardown is also checked after failed setup.
 
@@ -140,7 +145,7 @@ make tag                      # create local git tag v$(VERSION)
 
 Changelogs use GitHub's generated release notes, with one entry per pull request rather than individual commits. Install the GitHub CLI, run `gh auth login`, and push the release branch before running `make changelog` or `make release`. `FROM` selects the previous release tag, for example `make changelog FROM=v2.4.2`.
 
-Tag publishing first builds the official zip, then runs `make test` against that exact source/staged artifact before GitHub release or SVN deployment. No artifact is rebuilt after verification.
+Tag publishing first requires a successful, completed `Tests` workflow run for the exact tagged commit SHA, from PR CI or a manual workflow run. If that SHA has no matching successful validation (or its latest eligible run failed or is still running), publication stops. Run `Tests` manually for that exact commit and rerun `Publish` after it succeeds. The release workflow then builds the official ZIP and publishes it; it does not start tests on a tag push.
 
 The publish workflow reads the version's saved changelog from `readme.txt` and uses the same notes for the GitHub release. You can edit that entry before tagging without having GitHub generate a different change list. No version bump or release is created by opening a pull request.
 

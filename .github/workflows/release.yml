@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   build:
@@ -23,6 +24,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Require existing validation for tagged commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_SHA="$(git rev-parse HEAD^{commit})" node scripts/check-release-validation.mjs
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -30,13 +42,8 @@ jobs:
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           tools: composer
 
-      - name: Install PHP test dependencies
+      - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
-
-      - name: Setup Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -74,10 +81,8 @@ jobs:
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
 
-      - name: Verify exact release source and artifact
-        run: |
-          test -f kiriminaja-official.zip
-          make test
+      - name: Verify release artifact exists
+        run: test -f kiriminaja-official.zip
 
       - name: Read release notes from readme changelog
         env:

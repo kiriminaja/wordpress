@@ -13,6 +13,7 @@ namespace {
     function kiriof_helper() { return new class { function dateConvertGMT( $value ) { return $value; } }; }
     function wp_send_json_error( $data, $status = null ) { throw new \RuntimeException( $data['message'] ); }
     function kiriof_log( ...$args ) {}
+    function wc_get_order( $id ) { return false; }
 }
 namespace KiriminAjaOfficial\Repositories {
     class TransactionRepository {

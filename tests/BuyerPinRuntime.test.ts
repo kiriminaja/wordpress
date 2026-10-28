@@ -57,9 +57,9 @@ async function fixture(savedDestination?: any, selectedDistrict = false, provide
   return { window, maps, requests, bridge, settle, trigger, loadGoogle, fail:()=>{failSave=true;}, location:()=>location({coords:{latitude:-6.2,longitude:106.8}}), async cleanup() {bridge.dispose();await settle();window.happyDOM.abort();for(const [key,value] of saved) {if(value) Object.defineProperty(globalThis,key,value);else delete (globalThis as any)[key];}rmSync(directory,{recursive:true,force:true});} };
 }
 
-test('compiled pin gates geolocation, accepts suggestions before district, saves localized failures, retains map on queue changes and cleans up', async () => {
+test('compiled pin mounts without geolocation, accepts suggestions before district, saves localized failures, retains map on queue changes and cleans up', async () => {
   const h = await fixture(); try {
-    expect(h.maps).toHaveLength(0); h.location(); await h.settle(); expect(h.maps).toHaveLength(1);
+    expect(h.maps).toHaveLength(1); expect(h.requests.every(request => !request.destination.destination_latitude)).toBe(true); h.window.document.querySelector<HTMLButtonElement>('.kiriof-classic-map-locate')!.click(); h.location(); await h.settle(); expect(h.maps).toHaveLength(1);
     expect(h.bridge.controller.getState().point).toBeNull();
     h.trigger(h.window.document.body,'updated_checkout'); await h.settle();
     const district = h.window.document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!; district.value='12'; h.bridge.changed(); await h.settle();
@@ -77,7 +77,6 @@ test('compiled pin gates geolocation, accepts suggestions before district, saves
 
 test('country and pickup hide and dispose the map without mutating native controls', async()=> {
   const h=await fixture();try {
-    h.location();await h.settle();
     const method=h.window.document.querySelector<HTMLInputElement>('.shipping_method')!;method.value='local_pickup:1';h.bridge.changed();await h.settle();
     expect(h.window.document.querySelector<HTMLElement>('.kiriof-classic-pin')?.hidden).toBe(true);expect(h.maps[0].removed).toBe(true);
     method.value='kiriminaja-instant:1';const country=h.window.document.querySelector<HTMLInputElement>('#billing_country')!;country.value='US';h.bridge.changed();await h.settle();
@@ -86,35 +85,31 @@ test('country and pickup hide and dispose the map without mutating native contro
 });
 
 
-test('saved version-two pin bypasses geolocation only when all six native address fields match', async () => {
+test('saved version-two pin is restored only when all six native address fields match', async () => {
   const saved = {version:2,district_id:'12',district_label:'District',country:'ID',postcode:'12345',address_type:'shipping',destination_latitude:'-6.2',destination_longitude:'106.8',shipping_address:{address_1:'Street',address_2:'',city:'City',state:'JK',postcode:'12345',country:'ID'}};
   const h = await fixture(saved, true); try {
-    expect(h.bridge.controller.getState().point).not.toBeNull();
+    expect(h.bridge.controller.getState().point).toEqual({latitude:'-6.2000000',longitude:'106.8000000'});
     expect(h.maps).toHaveLength(1);
   } finally { await h.cleanup(); }
   const mismatch = await fixture({...saved, shipping_address:{...saved.shipping_address, address_2:'Other'}}, true); try {
     expect(mismatch.bridge.controller.getState().point).toBeNull();
-    expect(mismatch.maps).toHaveLength(0);
+    expect(mismatch.maps).toHaveLength(1);
   } finally { await mismatch.cleanup(); }
 });
 
 
-test('Google pin loads only after permission and rejects stale loading generations before constructing a map', async () => {
+test('Google pin loads without permission and rejects stale loading generations before constructing a map', async () => {
   const h = await fixture(undefined, true, 'google');
   try {
-    expect(h.window.document.querySelector('script[data-kiriminaja-google-maps]')).toBeNull();
-    expect(h.maps).toHaveLength(0);
-    h.location(); await h.settle();
+    expect(h.window.document.querySelector('script[data-kiriminaja-google-maps]')).not.toBeNull();
     expect(h.maps).toHaveLength(0);
     const address = h.window.document.querySelector<HTMLInputElement>('#billing_address_1')!;
     address.value = 'Changed street'; h.bridge.changed(); await h.settle();
     h.loadGoogle(); await h.settle();
-    expect(h.maps).toHaveLength(0);
     expect(h.bridge.controller.getState().point).toBeNull();
-    h.location(); await h.settle();
     expect(h.maps).toHaveLength(1);
     expect(h.bridge.controller.getState().address.address_1).toBe('Changed street');
-    expect(h.bridge.controller.getState().point).not.toBeNull();
+    expect(h.bridge.controller.getState().point).toBeNull();
     expect(JSON.stringify(h.requests)).not.toContain('fixture-google-key');
   } finally { await h.cleanup(); }
 });
@@ -122,7 +117,7 @@ test('Google pin loads only after permission and rejects stale loading generatio
 test('pin waits for the latest district commit, including checkout refresh and failed district writes', async () => {
   const h = await fixture(undefined, true);
   try {
-    h.location(); await h.settle();
+    h.maps[0].events.click({latlng:{lat:0,lng:0}}); await h.settle();
     h.trigger(h.window.document.body, 'updated_checkout'); await h.settle();
     const before = h.requests.length;
     const mutation = { active: true, pending: null, failed: false };
@@ -152,7 +147,6 @@ test('pin waits for the latest district commit, including checkout refresh and f
 test('Google pending runtime is discarded on hidden/unmounted checkout without a late map', async () => {
   const h = await fixture(undefined, false, 'google');
   try {
-    h.location(); await h.settle();
     h.window.document.querySelector<HTMLInputElement>('.shipping_method')!.value = 'local_pickup:1';
     h.bridge.changed(); await h.settle();
     h.loadGoogle(); await h.settle();

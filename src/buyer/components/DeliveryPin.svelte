@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { createLocationGate, coverageStatus } from '../map/leaflet';
+  import { coverageStatus } from '../map/leaflet';
   import { mapProviderRegistry } from '../map/providers';
   import { loadGoogleMaps } from '../map/google-loader';
   import { resolveMapConfig } from '../map/config';
@@ -32,14 +32,13 @@
     if (!visible || !canvas || !config.map?.enabled || !state.address.address_1 || !state.address.postcode) return;
     const expected = state.address;
     let disposed = false;
-    let gate: ReturnType<typeof createLocationGate> | undefined;
     let map: MapSession | undefined;
     moving = false; mapError = ''; canvasHidden = true;
     function current() {
       const latest = controller.getState();
       return !disposed && latest.scope === state.scope && JSON.stringify(latest.address) === JSON.stringify(expected);
     }
-    function show(device: typeof state.point) {
+    function show() {
       if (!current()) return;
       function instantiate(provider: ReturnType<typeof resolveMapConfig>, google?: GoogleMapsAPI) {
         if (!current()) return;
@@ -47,13 +46,12 @@
         map = mapProviderRegistry[provider.provider].createSession({
           ...provider, google, document: root.document, window: root as GoogleMapsWindow,
           node: canvas, leaflet: root.L, coverage: config.map?.coverage,
-          initial: state.point, geolocation: root.navigator.geolocation,
+          initial: state.point, geolocation: root.navigator?.geolocation,
           onMove: next => { if (current()) moving = next; },
           onSelect: next => current() && select(next, expected),
           onError: code => { if (current()) mapError = (code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || 'Map unavailable'; },
         });
         session = map;
-        if (device && !state.point && map.isAvailable()) map.pick(device.latitude, device.longitude, true);
       }
       function unavailable() { if (current()) mapError = strings.mapUnavailable || 'Map unavailable'; }
       try {
@@ -69,12 +67,8 @@
         } else instantiate(provider);
       } catch { unavailable(); }
     }
-    if (state.point) show(null);
-    else {
-      gate = createLocationGate({ geolocation: root.navigator.geolocation, onSuccess: show, onError: error => { if (current()) mapError = error === 'permission' ? strings.mapPermission : strings.mapLocationFailed; } });
-      gate.start();
-    }
-    return () => { disposed = true; gate?.dispose(); map?.dispose(); if (session === map) session = undefined; };
+    untrack(show);
+    return () => { disposed = true; map?.dispose(); if (session === map) session = undefined; };
   });
 </script>
 

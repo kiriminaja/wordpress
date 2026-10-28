@@ -5415,12 +5415,12 @@ msgid "Requesting location permission…"
 msgstr "Meminta izin lokasi…"
 
 #: inc/Base/Enqueue.php
-msgid "Location permission was denied. The map picker is hidden. You can allow location access in your browser settings and reopen this editor."
-msgstr "Izin lokasi ditolak. Pemilih peta disembunyikan. Anda dapat mengizinkan akses lokasi di pengaturan peramban dan membuka kembali formulir ini."
+msgid "Location permission was denied. You can still choose a delivery pin on the map."
+msgstr "Izin lokasi ditolak. Anda tetap dapat memilih titik pengiriman di peta."
 
 #: inc/Base/Enqueue.php
-msgid "Your location is unavailable or the request timed out. The map picker is hidden."
-msgstr "Lokasi Anda tidak tersedia atau permintaan kehabisan waktu. Pemilih peta disembunyikan."
+msgid "Your location is unavailable or the request timed out. You can still choose a delivery pin on the map."
+msgstr "Lokasi Anda tidak tersedia atau permintaan kehabisan waktu. Anda tetap dapat memilih titik pengiriman di peta."
 
 #: inc/Base/Enqueue.php
 msgid "Instant coverage: 40 km straight-line from the pickup origin. Express addresses may be outside this area."
@@ -5976,3 +5976,11 @@ msgstr "Nama penerima dan nomor telepon Indonesia yang valid diperlukan untuk pe
 #: inc/Services/InstantCheckoutQuoteService.php
 msgid "The shipping recipient address must contain 20 to 250 characters for Instant delivery."
 msgstr "Alamat penerima harus terdiri dari 20 hingga 250 karakter untuk pengiriman Instant."
+
+#: inc/Services/TransactionListViewModelFactory.php
+msgid "Invalid recipient phone"
+msgstr "Nomor telepon penerima tidak valid"
+
+#: inc/Services/TransactionPhoneIssue.php
+msgid "The recipient phone number is invalid. Correct the shipping or billing phone in the WooCommerce order before requesting pickup."
+msgstr "Nomor telepon penerima tidak valid. Perbaiki nomor telepon pengiriman atau penagihan pada pesanan WooCommerce sebelum meminta pickup."

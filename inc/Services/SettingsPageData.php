@@ -601,7 +601,7 @@ class SettingsPageData {
 			'stateColors'       => array( 'ready' => '#00a32a', 'error' => '#d63638' ),
 			'stateColor'        => ( array( 'ready' => '#00a32a', 'error' => '#d63638' ) )[ $state ] ?? '#dba617',
 			'regionValidUntil'  => 'ready' === $state ? __( 'Manual refresh only', 'kiriminaja-official' ) : '—',
-			'downloadLogUrl'    => wp_nonce_url( admin_url( 'admin-post.php?action=kiriof_download_plugin_logs' ), 'kiriof_download_plugin_logs' ),
+			'downloadLogUrl'    => add_query_arg( '_wpnonce', wp_create_nonce( 'kiriof_download_plugin_logs' ), admin_url( 'admin-post.php?action=kiriof_download_plugin_logs' ) ),
 			'courierResult'     => $courier_result,
 			'courierCount'      => ( 200 === $courier_result->status && is_array( $courier_result->data ) ) ? count( $courier_result->data ) : 0,
 			'courierCached'     => $courier_cached,

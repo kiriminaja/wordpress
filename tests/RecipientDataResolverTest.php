@@ -10,6 +10,37 @@ require_once PLUGIN_DIR . '/inc/Services/TransactionProcessServices/RecipientDat
 
 final class RecipientDataResolverTest extends TestCase
 {
+	public function test_legacy_phone_metadata_is_preserved_for_issue_display(): void {
+		$order = new class() {
+			public function get_address( $type ): array { return array(); }
+			public function get_meta( $key, $single ): string { return '_billing_phone' === $key ? '+6285451111000000' : ''; }
+		};
+		$recipient = ( new \KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver() )->resolve( $order, (object) array(), (object) array() );
+		$this->assertSame( '+6285451111000000', $recipient['phone'] );
+	}
+
+	public function test_empty_phone_getters_never_read_internal_phone_metadata(): void {
+		foreach ( array( '', '+6285234534567' ) as $billing_phone ) {
+			$order = new class( $billing_phone ) {
+				public array $phone_getter_reads = array();
+				public function __construct( private string $billing_phone ) {}
+				public function get_address( $type ): array { return array(); }
+				public function get_shipping_phone(): string { $this->phone_getter_reads[] = 'shipping'; return ''; }
+				public function get_billing_phone(): string { $this->phone_getter_reads[] = 'billing'; return $this->billing_phone; }
+				public function get_meta( $key, $single ): string {
+					if ( in_array( $key, array( '_shipping_phone', '_billing_phone' ), true ) ) {
+						throw new RuntimeException( 'Internal phone metadata must use its getter.' );
+					}
+					return '';
+				}
+			};
+			$snapshot = (object) array( '_billing_phone' => '081234567890' );
+			$recipient = ( new \KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver() )->resolve( $order, $snapshot, (object) array() );
+			$this->assertSame( '' === $billing_phone ? '081234567890' : $billing_phone, $recipient['phone'] );
+			$this->assertSame( array( 'shipping', 'billing' ), $order->phone_getter_reads );
+		}
+	}
+
     #[Test]
     public function current_shipping_data_replaces_the_checkout_snapshot(): void
     {
