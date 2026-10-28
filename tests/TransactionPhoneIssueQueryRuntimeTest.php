@@ -6,6 +6,13 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class TransactionPhoneIssueQueryRuntimeTest extends TestCase {
+	public function test_database_fixture_keeps_parent_ini_and_sqlite_extensions(): void {
+		$result = $this->scenario( 'legacy', '' );
+		$this->assertSame( php_ini_loaded_file(), $result['runtime']['ini_file'] );
+		$this->assertTrue( $result['runtime']['pdo'] );
+		$this->assertTrue( $result['runtime']['pdo_sqlite'] );
+	}
+
 	public function test_unavailable_order_uses_the_same_snapshot_as_row_display(): void {
 		foreach ( array( 'legacy', 'hpos' ) as $storage ) {
 			$result = $this->scenario( $storage, 'order-unavailable' );
@@ -26,7 +33,8 @@ final class TransactionPhoneIssueQueryRuntimeTest extends TestCase {
 		}
 	}
 	private function scenario( string $storage, string $scenario ): array {
-		$command = kiriof_test_fixture_php_shell( array( PLUGIN_DIR . '/tests/fixtures/transaction-phone-issue-query.php', $storage, $scenario ) );
+		// SQLite fixtures need the normal INI profile: PDO may be a shared CI module.
+		$command = implode( ' ', array_map( 'escapeshellarg', array( PHP_BINARY, PLUGIN_DIR . '/tests/fixtures/transaction-phone-issue-query.php', $storage, $scenario ) ) );
 		exec( $command . ' 2>&1', $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
@@ -61,8 +69,7 @@ final class TransactionPhoneIssueQueryRuntimeTest extends TestCase {
 			$this->markTestSkipped( 'Requires PDO SQLite.' );
 		}
 		foreach ( array( 'legacy', 'hpos' ) as $storage ) {
-			$command = escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/transaction-phone-issue-query.php' ) . ' ' . escapeshellarg( $storage );
-			$result = json_decode( (string) shell_exec( $command ), true, 512, JSON_THROW_ON_ERROR );
+			$result = $this->scenario( $storage, '' );
 			$this->assertSame( 3, $result['page']['total'], $storage );
 			$this->assertSame( 2, $result['page']['page'] );
 			$this->assertSame( array( 1 ), array_column( $result['page']['results'], 'wc_order_id' ) );

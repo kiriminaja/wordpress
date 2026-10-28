@@ -132,5 +132,6 @@ namespace {
 	$corrected_badges = $corrected_query->getDeliveryCounts();
 	$filters['status'] = 'wc-processing';
 	$corrected_regular = $corrected_query->getPage( $filters, 1, 100 );
-	echo json_encode( compact( 'page', 'counts', 'badges', 'regular', 'regular_all', 'processed', 'corrected', 'corrected_badges', 'corrected_regular', 'reads', 'scans' ), JSON_THROW_ON_ERROR );
+	$runtime = array( 'ini_file' => php_ini_loaded_file(), 'pdo' => extension_loaded( 'PDO' ), 'pdo_sqlite' => extension_loaded( 'pdo_sqlite' ) );
+	echo json_encode( compact( 'page', 'counts', 'badges', 'regular', 'regular_all', 'processed', 'corrected', 'corrected_badges', 'corrected_regular', 'reads', 'scans', 'runtime' ), JSON_THROW_ON_ERROR );
 }
