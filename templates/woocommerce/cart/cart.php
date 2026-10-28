@@ -147,8 +147,8 @@ do_action( 'woocommerce_before_cart' ); ?>
                                 false
                             );
 
-                            echo wp_kses_post( apply_filters( 'woocommerce_cart_item_quantity', $kiriof_product_quantity, $cart_item_key, $cart_item ) );
-                            // PHPCS: XSS ok.
+                            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WooCommerce escapes the quantity markup; wp_kses_post() strips its input controls.
+                            echo apply_filters( 'woocommerce_cart_item_quantity', $kiriof_product_quantity, $cart_item_key, $cart_item );
                             ?>
                             </td>
 
