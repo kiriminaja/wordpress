@@ -119,7 +119,7 @@ final class CheckoutPhoneValidation {
 		}
 		$message = self::message();
 		if ( $store_api ) {
-			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'kiriof_invalid_phone', esc_html( $message ), 400, array( 'invalid_fields' => $invalid ) );
+			throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException( 'kiriof_invalid_phone', esc_html( $message ), 400, array( 'invalid_fields' => array_map( 'esc_html', $invalid ) ) );
 		}
 		throw new \InvalidArgumentException( esc_html( $message ) );
 	}
