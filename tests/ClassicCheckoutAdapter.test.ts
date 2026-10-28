@@ -222,7 +222,8 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('pin postcode rejection explains validation instead of lookup failure and regular pricing remains independent', async()=>{
 		const h=adapter({savedDestination:saved(),pinErrors:{kiriof_pin_district_not_mapped:'Selected subdistrict does not match your postcode.'}});await h.advance();
 		await h.respond(h.mutations()[0],{code:'kiriof_pin_district_not_mapped',message:'private remote details'},false);
-		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Selected subdistrict does not match your postcode.');
+		expect(h.query('.kiriof-classic-pin-feedback > span').textContent).toBe('Selected subdistrict does not match your postcode.');
+		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(false);
 		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
 		expect(h.emit(h.form,'checkout_place_order')).not.toBe(false);
 		h.query('input.shipping_method').checked=false;h.query('[value="kiriminaja-instant:gosend"]').checked=true;
@@ -313,7 +314,8 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	});
 	test('explicit geolocation failure keeps map usable and stale callbacks cannot overwrite changed address', async () => {
 		const h = adapter(); await h.acknowledge(); expect(h.geo).toHaveLength(0); h.query('.kiriof-classic-map-locate').click(); h.flush(); h.geo[0].failure({ code: 1 }); h.flush();
-		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toBe('Permission denied'); expect(h.maps).toHaveLength(1);
+		expect(h.query('.kiriof-classic-pin-feedback > span').textContent).toBe('Permission denied');
+		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(true); expect(h.maps).toHaveLength(1);
 		h.query('.kiriof-classic-map-locate').click(); h.flush(); const stale = h.geo[1];
 		h.change('billing_address_1', 'New street'); await h.advance(200);
 		const status = h.query('.kiriof-classic-pin [role="status"]').textContent;
