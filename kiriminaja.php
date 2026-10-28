@@ -3,7 +3,7 @@
  * Plugin Name:     KiriminAja Official
  * Plugin URI:      https://wordpress.org/plugins/kiriminaja-official/
  * Description:     Ship smarter with KiriminAja — real-time rates from multiple couriers, COD support, one-click pickup scheduling, label printing, and package tracking, all from your WooCommerce dashboard. Built for online sellers across Indonesia.
- * Version:         3.0.4
+ * Version:         3.0.5
  * Author:          KiriminAja
  * Author URI:      https://kiriminaja.com
  * License:         GPL-2.0-or-later
@@ -92,7 +92,7 @@ define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
 
 // Enable KA Credit and PIN for the SDK-backed pickup flow.
 define( 'KIRIOF_ENABLE_KA_CREDIT', true );
-define( 'KIRIOF_VERSION', '3.0.4' );
+define( 'KIRIOF_VERSION', '3.0.5' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
 define( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS', 5 );
