@@ -1,13 +1,4 @@
 import { mount, unmount } from 'svelte';
-import SettingsRoot from '../lib/SettingsRoot.svelte';
-import AccountSection from '../lib/settings/AccountSection.svelte';
-import CouriersSection from '../lib/settings/CouriersSection.svelte';
-import TechnicalSection from '../lib/settings/TechnicalSection.svelte';
-import TrackingSection from '../lib/settings/TrackingSection.svelte';
-import PaymentsList from '../lib/payments/PaymentsList.svelte';
-import PickupDetail from '../lib/pickup-detail/PickupDetail.svelte';
-import TransactionsApp from '../lib/transactions/TransactionsApp.svelte';
-import TransactionDetail from '../lib/transaction-detail/TransactionDetail.svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
@@ -22,6 +13,7 @@ const workspacePages = new Set([
   'kiriminaja-transaction',
   'kiriminaja-transaction-detail',
   'kiriminaja-request-pickup',
+  'kiriminaja-request-pickup-detail',
   'kiriminaja-setting',
 ]);
 
@@ -62,6 +54,13 @@ const routes: RouteDefinition[] = [
     root: '[data-kiriof-payments-root]',
     payload: '[data-kiriof-payments-payload]',
     route: 'payments',
+  },
+  {
+    page: 'kiriminaja-request-pickup-detail',
+    shell: '[data-kiriof-pickup-detail-page]',
+    root: '[data-kiriof-pickup-detail-root]',
+    payload: '[data-kiriof-pickup-detail-payload]',
+    route: 'pickup-detail',
   },
   {
     page: 'kiriminaja-setting',
@@ -199,23 +198,51 @@ async function clearMounted(): Promise<void> {
   await Promise.all(components.map((component) => unmount(component)));
 }
 
-function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): void {
+async function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): Promise<void> {
   if (bootstrap.view === 'account')
-    mounted = [mount(AccountSection, { target: host, props: { bootstrap } })];
+    mounted = [
+      mount((await import('../lib/settings/AccountSection.svelte')).default, {
+        target: host,
+        props: { bootstrap },
+      }),
+    ];
   else if (bootstrap.view === 'couriers')
-    mounted = [mount(CouriersSection, { target: host, props: { bootstrap } })];
+    mounted = [
+      mount((await import('../lib/settings/CouriersSection.svelte')).default, {
+        target: host,
+        props: { bootstrap },
+      }),
+    ];
   else if (bootstrap.view === 'tracking')
-    mounted = [mount(TrackingSection, { target: host, props: { bootstrap } })];
+    mounted = [
+      mount((await import('../lib/settings/TrackingSection.svelte')).default, {
+        target: host,
+        props: { bootstrap },
+      }),
+    ];
   else if (bootstrap.view === 'technical')
-    mounted = [mount(TechnicalSection, { target: host, props: { bootstrap } })];
-  else mounted = [mount(SettingsRoot, { target: host, props: { bootstrap } })];
+    mounted = [
+      mount((await import('../lib/settings/TechnicalSection.svelte')).default, {
+        target: host,
+        props: { bootstrap },
+      }),
+    ];
+  else
+    mounted = [
+      mount((await import('../lib/SettingsRoot.svelte')).default, {
+        target: host,
+        props: { bootstrap },
+      }),
+    ];
 }
 
-function renderTransactionDetail(
+async function renderTransactionDetail(
   host: HTMLElement,
   bootstrap: TransactionDetailBootstrap,
   url: URL,
-): void {
+): Promise<void> {
+  const { default: TransactionDetail } =
+    await import('../lib/transaction-detail/TransactionDetail.svelte');
   mounted = [
     mount(TransactionDetail, {
       target: host,
@@ -230,8 +257,7 @@ function renderTransactionDetail(
 
 function clearBootSkeleton(host: HTMLElement): void {
   // Server-rendered placeholder (templates/_workspace-boot.php) keeps the WP
-  // content area from flashing blank. Svelte appends into the host, so remove
-  // it explicitly before mounting.
+  // content area from flashing blank. Remove it only after mounting succeeds.
   host.querySelector('[data-kiriof-workspace-boot]')?.remove();
 }
 
@@ -253,21 +279,22 @@ function showWorkspaceError(host: HTMLElement): void {
   host.removeAttribute('aria-busy');
 }
 
-function render(
+async function render(
   source: ParentNode,
   route: RouteDefinition,
   url = new URL(window.location.href),
-): void {
+): Promise<void> {
   const host = source.querySelector<HTMLElement>(route.root);
   if (!host) throw new Error(`Missing ${route.route} workspace root.`);
-  clearBootSkeleton(host);
 
   if (route.route === 'transactions') {
+    const { default: TransactionsApp } = await import('../lib/transactions/TransactionsApp.svelte');
     const bootstrap = parsePayload<TransactionsBootstrap>(source, route);
     mounted = [
       mount(TransactionsApp, { target: host, props: { bootstrap, onNavigate: navigate } }),
     ];
   } else if (route.route === 'payments') {
+    const { default: PaymentsList } = await import('../lib/payments/PaymentsList.svelte');
     const bootstrap = parsePayload<PaymentsBootstrap>(source, route);
     mounted = [
       mount(PaymentsList, {
@@ -279,14 +306,20 @@ function render(
       .closest<HTMLElement>('[data-kiriof-payments-page]')
       ?.classList.add('kiriof-payments-page--enhanced');
   } else if (route.route === 'transaction-detail') {
-    renderTransactionDetail(host, parsePayload<TransactionDetailBootstrap>(source, route), url);
+    await renderTransactionDetail(
+      host,
+      parsePayload<TransactionDetailBootstrap>(source, route),
+      url,
+    );
   } else if (route.route === 'pickup-detail') {
+    const { default: PickupDetail } = await import('../lib/pickup-detail/PickupDetail.svelte');
     const bootstrap = parsePayload<PickupDetailBootstrap>(source, route);
     mounted = [mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } })];
   } else {
-    renderSettings(host, parsePayload<SettingsAppBootstrap>(source, route));
+    await renderSettings(host, parsePayload<SettingsAppBootstrap>(source, route));
   }
 
+  clearBootSkeleton(host);
   host.removeAttribute('aria-busy');
   host.classList.add('is-mounted');
 }
@@ -339,11 +372,15 @@ async function navigate(value: string | URL, push = true): Promise<void> {
       throw new Error('Unable to load workspace page.');
 
     await ensureRouteAssets(nextDocument);
+    await preloadRoute(url);
+    if (navigationId !== navigationSequence || navigationController.signal.aborted) return;
     await clearMounted();
+    if (navigationId !== navigationSequence || navigationController.signal.aborted) return;
     const replacement = nextShell.cloneNode(true) as HTMLElement;
     activeShell?.replaceWith(replacement);
     activeShell = replacement;
-    render(document, route, url);
+    await render(document, route, url);
+    if (navigationId !== navigationSequence || navigationController.signal.aborted) return;
     syncPluginMenu(nextDocument);
     document.title = nextDocument.title || document.title;
     if (push) {
@@ -352,7 +389,8 @@ async function navigate(value: string | URL, push = true): Promise<void> {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (error) {
-    if ((error as Error).name !== 'AbortError') window.location.assign(url);
+    if (navigationId === navigationSequence && (error as Error).name !== 'AbortError')
+      window.location.assign(url);
   } finally {
     if (navigationId === navigationSequence) {
       activeShell?.removeAttribute('aria-busy');
@@ -381,14 +419,49 @@ function handleClick(event: MouseEvent): void {
   void navigate(anchor.href);
 }
 
-function start(): void {
+function preloadRoute(url: URL): Promise<unknown> {
+  const route = routeForUrl(url);
+  if (route?.route === 'transactions') return import('../lib/transactions/TransactionsApp.svelte');
+  if (route?.route === 'payments') return import('../lib/payments/PaymentsList.svelte');
+  if (route?.route === 'transaction-detail')
+    return import('../lib/transaction-detail/TransactionDetail.svelte');
+  if (route?.route === 'pickup-detail') return import('../lib/pickup-detail/PickupDetail.svelte');
+  if (route?.route === 'settings') {
+    switch (url.searchParams.get('section')) {
+      case 'account':
+        return import('../lib/settings/AccountSection.svelte');
+      case 'couriers':
+        return import('../lib/settings/CouriersSection.svelte');
+      case 'tracking':
+        return import('../lib/settings/TrackingSection.svelte');
+      case 'technical':
+        return import('../lib/settings/TechnicalSection.svelte');
+      default:
+        return import('../lib/SettingsRoot.svelte');
+    }
+  }
+  return Promise.resolve();
+}
+
+function handlePreload(event: Event): void {
+  const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>('a[href]');
+  if (!anchor || anchor.target || anchor.hasAttribute('download') || !isWorkspaceUrl(anchor.href))
+    return;
+  const connection = (
+    navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
+  ).connection;
+  if (connection?.saveData || /(^|-)2g$/.test(connection?.effectiveType ?? '')) return;
+  void preloadRoute(new URL(anchor.href)).catch(() => {});
+}
+
+async function start(): Promise<void> {
   const route = routeForDocument(document);
   if (!route) return;
   activeShell = document.querySelector<HTMLElement>(route.shell);
   if (!activeShell) return;
 
   try {
-    render(document, route);
+    await render(document, route);
     if (
       route.route === 'transaction-detail' &&
       window.location.search.includes('adjust_deficit=')
@@ -403,6 +476,8 @@ function start(): void {
   }
 
   document.addEventListener('click', handleClick);
+  document.addEventListener('pointerover', handlePreload);
+  document.addEventListener('focusin', handlePreload);
   window.addEventListener('popstate', () => void navigate(window.location.href, false));
   window.addEventListener('kiriof:settings-navigate', (event) => {
     const href = (event as CustomEvent<{ href: string }>).detail?.href;
@@ -410,4 +485,4 @@ function start(): void {
   });
 }
 
-start();
+void start();

@@ -9,7 +9,7 @@ if ( ! current_user_can( 'manage_woocommerce' ) ) {
 class Kiriof_SettingIndex {
     function __construct(){
 		$settingsPageData = new \KiriminAjaOfficial\Services\SettingsPageData();
-		extract( $settingsPageData->prepare(), EXTR_SKIP );
+		extract( $settingsPageData->prepare( false ), EXTR_SKIP );
     
         /** Return vars and view*/
         if ( ! empty( $approvedSetupKey->value ?? null ) ){

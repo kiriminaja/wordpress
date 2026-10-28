@@ -414,9 +414,10 @@ class SettingsPageData {
 	/**
 	 * Prepare data shared by the setup and connected settings views.
 	 *
+	 * @param bool $include_product_readiness Whether to load catalog readiness eagerly.
 	 * @return array<string, mixed>
 	 */
-	public function prepare(): array {
+	public function prepare( bool $include_product_readiness = true ): array {
 		$shipping_settings = $this->setting_repository->getSettingByArray(
 			array(
 				'origin_name',
@@ -456,7 +457,7 @@ class SettingsPageData {
 			'advancedRepo'                     => $advanced_settings,
 			'inputValueArr'                    => $input_values,
 			'isOriginShippingDataReady'        => $origin_ready,
-			'productVolumetricReadiness'       => $this->product_readiness_service->getReadiness(),
+			'productVolumetricReadiness'       => $include_product_readiness ? $this->product_readiness_service->getReadiness() : array(),
 		);
 	}
 

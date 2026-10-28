@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import path from 'node:path';
 
 export default defineConfig({
+  base: './',
   plugins: [tailwindcss(), svelte()],
   resolve: {
     alias: {
@@ -12,7 +13,7 @@ export default defineConfig({
   },
   build: {
     emptyOutDir: true,
-    manifest: false,
+    manifest: 'workspace-manifest.json',
     outDir: 'assets/admin/dist',
     rollupOptions: {
       input: {

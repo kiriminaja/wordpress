@@ -25,7 +25,6 @@ final class PaymentListQueryRuntimeTest extends TestCase
         foreach ( array(
             '$total = (int) $wpdb->get_var( $wpdb->prepare(',
             '$results = $wpdb->get_results( $wpdb->prepare(',
-            '$counts[ $status ] = (int) $wpdb->get_var( $wpdb->prepare(',
         ) as $call ) {
             $this->assertMatchesRegularExpression(
                 '/\/\/ phpcs:ignore PluginCheck\.Security\.DirectDB\.UnescapedDBParameter -- [^\r\n]+\R\h*' . preg_quote( $call, '/' ) . '/',
@@ -33,6 +32,15 @@ final class PaymentListQueryRuntimeTest extends TestCase
                 'The justified Plugin Check exception must apply to the outer database call, not only the SQL argument.'
             );
         }
+        $this->assertMatchesRegularExpression(
+            '/\/\/ phpcs:ignore [^\r\n]*PluginCheck\.Security\.DirectDB\.UnescapedDBParameter -- [^\r\n]+\R\h*\$rows = \$wpdb->get_results\(/',
+            $source
+        );
+        $this->assertStringContainsString( '$members = $wpdb->get_results( $wpdb->prepare(', $source );
+        $this->assertStringContainsString( 'SELECT selected.instant_payment_id, t.order_id FROM %i AS t INNER JOIN (', $source );
+        $this->assertStringContainsString( 'ON t.instant_payment_id = selected.instant_payment_id', $source );
+        $this->assertStringNotContainsString( 'instant_payment_id IN (', $source );
+        $this->assertStringNotContainsString( 'GROUP_CONCAT(', $source );
         $this->assertStringNotContainsString( 'phpcs:disable PluginCheck.Security.DirectDB', $source );
     }
 
@@ -102,8 +110,50 @@ final class PaymentListQueryRuntimeTest extends TestCase
             $query->getStatusCounts()
         );
         $this->assertSame( '2024-03-12 08:00:00', $query->getOldestCreatedAt() );
+        $this->assertCount( 1, $wpdb->result_queries );
+        $this->assertCount( 1, $wpdb->var_queries );
     }
 
+    #[Test]
+    public function empty_page_and_empty_aggregate_keep_zero_defaults_without_membership_queries(): void
+    {
+        $wpdb = new PaymentListQueryWpdbFake();
+        $wpdb->list_results = array();
+        $wpdb->total = 0;
+        $wpdb->count_results = array();
+        $query = new WordPressPaymentListQuery( $wpdb );
+        $page = $query->getPage( array( 'key' => '', 'month' => '', 'status' => '' ), 1, 20 );
+        $this->assertSame( array(), $page['results'] );
+        $this->assertSame( 0, $page['total'] );
+        $this->assertSame( 0, $page['total_pages'] );
+        $this->assertSame( array( 'all' => 0, 'unpaid' => 0, 'paid' => 0, 'pending' => 0, 'refunded' => 0 ), $query->getStatusCounts() );
+        $this->assertCount( 2, $wpdb->result_queries );
+        $this->assertCount( 1, $wpdb->var_queries );
+    }
+
+    #[Test]
+    public function displayed_instant_memberships_use_one_prepared_query_for_literal_identities(): void
+    {
+        $wpdb = new PaymentListQueryWpdbFake();
+        $identities = array( "quote'_%\\", '0', '001', '1', 'x) OR 1=1 --' );
+        $wpdb->list_results = array();
+        foreach ( $identities as $identity ) {
+            $wpdb->list_results[] = (object) array( 'delivery_type' => 'instant', 'instant_payment_id' => $identity );
+            $wpdb->members[] = (object) array( 'instant_payment_id' => $identity, 'order_id' => '0007' );
+        }
+        $wpdb->list_results[] = (object) array( 'delivery_type' => 'express' );
+        $query = new WordPressPaymentListQuery( $wpdb );
+        $page = $query->getPage( array( 'key' => '', 'month' => '', 'status' => '' ), 1, 20 );
+        $this->assertCount( 2, $wpdb->result_queries );
+        $this->assertCount( 1, $wpdb->var_queries );
+        $sql = $wpdb->result_queries[1];
+        $this->assertStringContainsString( "INNER JOIN (SELECT 'quote''_%\\' AS instant_payment_id UNION ALL SELECT '0' AS instant_payment_id UNION ALL SELECT '001' AS instant_payment_id UNION ALL SELECT '1' AS instant_payment_id UNION ALL SELECT 'x) OR 1=1 --' AS instant_payment_id) AS selected", $sql );
+        $this->assertStringContainsString( "ON t.instant_payment_id = selected.instant_payment_id WHERE t.delivery_type = 'instant' ORDER BY t.order_id ASC", $sql );
+        foreach ( array_slice( $page['results'], 0, count( $identities ) ) as $row ) {
+            $this->assertSame( array( '0007' ), $row->order_ids );
+        }
+        $this->assertSame( array(), $page['results'][5]->order_ids );
+    }
 }
 
 final class PaymentListQueryWpdbFake
@@ -113,10 +163,14 @@ final class PaymentListQueryWpdbFake
     public array $result_queries = array();
     public array $var_queries = array();
     public array $list_results;
+    public int $total = 35;
+    public array $members = array();
+    public array $count_results;
 
     public function __construct()
     {
         $this->list_results = array( (object) array( 'delivery_type' => 'express', 'pickup_number' => 'PU-20', 'cost' => '12500' ) );
+        $this->count_results = array( (object) array( 'total' => '7', 'unpaid' => '4', 'paid' => '3', 'pending' => '2', 'refunded' => '1' ) );
     }
 
     public function esc_like( $value ): string
@@ -148,8 +202,11 @@ final class PaymentListQueryWpdbFake
     {
         $this->result_queries[] = $sql;
 
-        if ( false === strpos( $sql, 'LIMIT' ) ) {
-            return array_fill( 0, 35, (object) array( 'pickup_number' => 'counted' ) );
+        if ( str_contains( $sql, 'COUNT(*) AS total' ) ) {
+            return $this->count_results;
+        }
+        if ( str_contains( $sql, 'SELECT selected.instant_payment_id, t.order_id' ) ) {
+            return $this->members;
         }
 
         return $this->list_results;
@@ -162,7 +219,7 @@ final class PaymentListQueryWpdbFake
         if ( false !== strpos( $sql, 'ORDER BY created_at ASC' ) ) {
             return '2024-03-12 08:00:00';
         }
-        if ( str_contains( $sql, 'payment_identity LIKE' ) ) { return '35'; }
+        if ( str_contains( $sql, 'payment_identity LIKE' ) ) { return (string) $this->total; }
         if ( false !== strpos( $sql, "status = 'pending'" ) ) { return '2'; }
         if ( false !== strpos( $sql, "status = 'refunded'" ) ) { return '1'; }
         if ( false !== strpos( $sql, "status = 'unpaid'" ) ) {
