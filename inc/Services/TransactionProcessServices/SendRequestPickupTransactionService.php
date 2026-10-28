@@ -505,12 +505,15 @@ class SendRequestPickupTransactionService extends BaseService
             }
             
             $itemNames = [];
+            $quantity = 0;
             
             foreach ($order->get_items() as $item) {
                 $itemName = $item->get_name();
                 $itemNames[] = $itemName;
+                $quantity += max( 0, (int) $item->get_quantity() );
                 
             }
+            $quantity = max( 1, $quantity );
             // Optimize item name generation
             $combinedItemNames = implode(", ", $itemNames);
             if (strlen($combinedItemNames) > 255) {
@@ -537,6 +540,7 @@ class SendRequestPickupTransactionService extends BaseService
                 "width"                     => (int) $helper->minAmount($transaction->width),
                 "height"                    => (int) $helper->minAmount($transaction->height),
                 "length"                    => (int) $helper->minAmount($transaction->length),
+                'qty'                       => $quantity,
                 "item_value"                => (int) round((float) ($transaction->transaction_value ?? 0)),
                 "insurance_amount"          => (int) round((float) ($transaction->insurance_cost ?? 0)),
                 "shipping_cost"             => (int) round((float) ($transaction->shipping_cost ?? 0)),
