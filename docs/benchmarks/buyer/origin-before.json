@@ -1,0 +1,596 @@
+{
+    "engine": "SQLite in-memory (not MySQL; no WordPress bootstrap or network)",
+    "sqlite_version": "3.54.0",
+    "php_version": "8.2.34",
+    "source": "\/private\/tmp\/buyer-origin-baseline-service.php",
+    "source_sha256": "9388db222b210f15c08ce7e69fd7a82b31b60e3931412be4b6eae4dbf8764c0c",
+    "locations": 100,
+    "default_id": 37,
+    "warmups": 5,
+    "sample_count": 30,
+    "expected_result_sha256": "4f2532c6dde05fed7d08802de100ac62bbea5b8e2a917c8080ff473199b533e4",
+    "cases": {
+        "three_independent_services": {
+            "median_ms": 0.132084,
+            "p95_ms": 0.137459,
+            "counts_per_sample": {
+                "total": 9,
+                "reads": 6,
+                "writes": 3,
+                "transactions": 0
+            },
+            "sql_per_sample": [
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1",
+                "UPDATE \"wp_kiriminaja_shipment_location\" SET is_default = 0 WHERE id != 37",
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1",
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1",
+                "UPDATE \"wp_kiriminaja_shipment_location\" SET is_default = 0 WHERE id != 37",
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1",
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1",
+                "UPDATE \"wp_kiriminaja_shipment_location\" SET is_default = 0 WHERE id != 37",
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1"
+            ],
+            "samples": [
+                {
+                    "ms": 0.130792,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.137459,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132792,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132375,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.135333,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132084,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132916,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.139541,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.133667,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.133417,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132708,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130042,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130083,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.129208,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.129917,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130083,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.133708,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132084,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.131959,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.131709,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130084,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.129333,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.129583,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130125,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130083,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.130667,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.134542,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132916,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.132958,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.133,
+                    "counts": {
+                        "total": 9,
+                        "reads": 6,
+                        "writes": 3,
+                        "transactions": 0
+                    }
+                }
+            ],
+            "result_parity": true
+        },
+        "one_service_three_calls": {
+            "median_ms": 0.043937,
+            "p95_ms": 0.044333,
+            "counts_per_sample": {
+                "total": 3,
+                "reads": 2,
+                "writes": 1,
+                "transactions": 0
+            },
+            "sql_per_sample": [
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1",
+                "UPDATE \"wp_kiriminaja_shipment_location\" SET is_default = 0 WHERE id != 37",
+                "SELECT * FROM \"wp_kiriminaja_shipment_location\" WHERE is_default = 1 AND is_active = 1 ORDER BY id ASC LIMIT 1"
+            ],
+            "samples": [
+                {
+                    "ms": 0.043459,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.0435,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043666,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043791,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043583,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043541,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043541,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044333,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043625,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.046292,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044042,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044083,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044208,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044083,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044125,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043959,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043833,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043834,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043959,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043834,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044042,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043958,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044083,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044333,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.044041,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043916,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043791,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043542,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                },
+                {
+                    "ms": 0.043375,
+                    "counts": {
+                        "total": 3,
+                        "reads": 2,
+                        "writes": 1,
+                        "transactions": 0
+                    }
+                }
+            ],
+            "result_parity": true
+        }
+    }
+}
