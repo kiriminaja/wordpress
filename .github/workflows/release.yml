@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
   build:
@@ -28,12 +27,6 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "22"
-
-      - name: Require existing validation for tagged commit
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          RELEASE_SHA="$(git rev-parse HEAD^{commit})" node scripts/check-release-validation.mjs
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

@@ -145,7 +145,7 @@ make tag                      # create local git tag v$(VERSION)
 
 Changelogs use GitHub's generated release notes, with one entry per pull request rather than individual commits. Install the GitHub CLI, run `gh auth login`, and push the release branch before running `make changelog` or `make release`. `FROM` selects the previous release tag, for example `make changelog FROM=v2.4.2`.
 
-Tag publishing first requires a successful, completed `Tests` workflow run for the exact tagged commit SHA, from PR CI or a manual workflow run. If that SHA has no matching successful validation (or its latest eligible run failed or is still running), publication stops. Run `Tests` manually for that exact commit and rerun `Publish` after it succeeds. The release workflow then builds the official ZIP and publishes it; it does not start tests on a tag push.
+Tag publishing builds the official ZIP and publishes it without requiring an existing validation run for the tagged commit. Tests remain available manually and in PR CI; publishing does not start tests on a tag push. Maintainers can publish hotfixes without waiting for validation.
 
 The publish workflow reads the version's saved changelog from `readme.txt` and uses the same notes for the GitHub release. You can edit that entry before tagging without having GitHub generate a different change list. No version bump or release is created by opening a pull request.
 
