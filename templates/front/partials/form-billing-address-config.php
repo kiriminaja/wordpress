@@ -57,6 +57,7 @@ return array(
     'updateCheckoutNonce'     => wp_create_nonce( 'kiriof-update-checkout' ),
     'fieldKey'                => (string) $field_key,
     'i18n'                    => array(
+        'invalidPhone'    => \KiriminAjaOfficial\Services\CheckoutPhoneValidation::message(),
         'shippingOptions' => __( 'Shipping options', 'kiriminaja-official' ),
         'shippingSelectionChanged' => __( 'Shipping options changed. Please review and select your courier again before placing the order.', 'kiriminaja-official' ),
         'district'        => __( 'Subdistrict', 'kiriminaja-official' ),
