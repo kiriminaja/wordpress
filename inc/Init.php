@@ -31,6 +31,7 @@ final class Init {
             Controllers\TransactionProcessController::class,
             Controllers\ShippingDiscountCouponController::class,
             Services\CheckoutShippingSelectionGuard::class,
+            Services\CheckoutPhoneValidation::class,
             Controllers\CheckoutController::class,
             Controllers\AccountAddressController::class,
             Blocks\BuyerCheckoutRegistration::class,

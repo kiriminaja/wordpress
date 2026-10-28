@@ -11,6 +11,7 @@ namespace KiriminAjaOfficial\Repositories { class SettingRepository {} }
 namespace {
 	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
 	require ABSPATH . 'inc/Services/CourierLogoAssets.php';
+	require ABSPATH . 'inc/Services/CheckoutPhoneValidation.php';
 	define( 'KIRIOF_DIR', ABSPATH );
 	define( 'KIRIOF_URL', 'https://shop.example/wp-content/plugins/kiriminaja/' );
 	define( 'KIRIOF_VERSION', 'test' );
