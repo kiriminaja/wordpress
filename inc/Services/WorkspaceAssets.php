@@ -24,6 +24,10 @@ final class WorkspaceAssets {
 			'kiriminaja-request-pickup-detail' => 'src/lib/pickup-detail/PickupDetail.svelte',
 			'kiriminaja-setting'               => 'src/lib/SettingsRoot.svelte',
 		);
+		$section = sanitize_key( $section );
+		if ( in_array( $section, array( 'cache', 'webhooks' ), true ) ) {
+			$section = 'technical';
+		}
 		if ( ! isset( $routes[ $page ] ) || ! is_readable( $manifest_path ) ) {
 			return array();
 		}

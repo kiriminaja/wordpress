@@ -72,8 +72,8 @@ queried its members separately. The final implementation:
 
 - Computes all status counts in one conditional aggregate, without changing global
   badge semantics or pushing list filters below payment grouping.
-- Fetches all displayed Instant memberships in one prepared SQL join against page
-  identities. SQL comparison retains column collation; returned identities match
+- Fetches all displayed Instant memberships in one prepared SQL query with a UNION
+  branch per page identity. Direct column-to-literal comparison retains column collation; returned identities match
   the selected groups. Membership remains complete and ordered, without
   `GROUP_CONCAT` truncation.
 - Does not persistently cache mutable payment results.
@@ -102,9 +102,9 @@ pages without Instant groups skip the membership query entirely.
 Reproduce the backend comparison without loading two competing class definitions:
 
 ```sh
-rtk proxy sh -c 'git show 3827ae843b1093cf6586311bba0679950e7fc72b:inc/Queries/WordPressPaymentListQuery.php > /tmp/payment-list-baseline.php'
-rtk php scripts/benchmark-payment-list.php --query-source=/tmp/payment-list-baseline.php
-rtk php scripts/benchmark-payment-list.php
+git show 3827ae843b1093cf6586311bba0679950e7fc72b:inc/Queries/WordPressPaymentListQuery.php > /tmp/payment-list-baseline.php
+php scripts/benchmark-payment-list.php --query-source=/tmp/payment-list-baseline.php
+php scripts/benchmark-payment-list.php
 ```
 
 Options: `--groups=2000 --warmups=3 --iterations=15`.
@@ -158,6 +158,37 @@ browser, without exposing credentials or customer data in artifacts:
 No local WordPress/dev server was started. DOM routing tests replace component
 imports/mount boundaries and are not browser E2E or real component render benchmarks.
 The existing component-runtime suites separately exercise compiled production components.
+
+## Review follow-up (2026-10-28)
+
+Synced with `main` through `72875e9d` (Classic Instant checkout fix, #302).
+Payment membership now uses direct column-to-prepared-literal comparisons in UNION
+branches. This avoids comparing a table column to a materialized literal column
+with the connection's potentially different MySQL collation, while returning the
+canonical page identity for complete case-insensitive membership. A plain IN query
+followed by raw case-sensitive PHP grouping would not preserve that behavior.
+No live MySQL validation was performed.
+
+The historical tables above describe the original run. New raw evidence is in
+`payments-review-after.json` and `frontend-review-after.json` beside the originals.
+The revised payment query uses five statements versus eighteen at baseline;
+combined median is 21.815 ms versus 40.057 ms (45.5% lower), p95 23.469 ms versus
+44.296 ms. These remain SQLite fixture measurements, not production timings.
+Updated frontend gzip totals are 200,130 bytes for transactions, 145,650 for payments,
+and 80,237 for settings root; reductions remain 5.4%, 31.2%, and 62.1% respectively.
+
+Async render handles now belong to their navigation generation and shell. Stale
+imports cannot overwrite current cleanup ownership; handles from a mount that
+triggers a newer navigation are disposed. Client and PHP preloads normalize
+cache/webhooks aliases to the technical section, and actual navigation loads the
+authoritative bootstrap view. Regression tests cover those races and aliases.
+
+The payment benchmark exits before initialization outside CLI. The built-manifest
+integration test skips on an unbuilt checkout, while deterministic resolver tests
+still run. The missing-manifest skip was tested explicitly and the manifest restored.
+Fresh verification after rebuilding: 1,474 PHP tests, 17,199 assertions, two renderer
+skips, and 795 frontend tests passed plus static/style checks. Local PHP remains
+8.2.34; CI is configured for 8.2.35.
 
 ## Reference mechanisms
 

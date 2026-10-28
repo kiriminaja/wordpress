@@ -96,6 +96,9 @@ function runtime(route: Route = 'transactions', payload: object | null = {}) {
   }[] = [];
   const gates = new Map<string, ReturnType<typeof deferred<void>>>();
   const modules = new Map<string, Promise<{ default: string }>>();
+  const loadCalls = new Map<string, number>();
+  const importDelays = new Map<string, ReturnType<typeof deferred<void>>>();
+  let onMount: ((component: string) => void) | undefined;
   let mountError: Error | undefined;
   let reloads = 0;
   Object.defineProperty(window.location, 'reload', {
@@ -105,15 +108,18 @@ function runtime(route: Route = 'transactions', payload: object | null = {}) {
     },
   });
   const load = (path: string) => {
+    const name = path.split('/').at(-1)!.replace('.svelte', '');
+    const call = (loadCalls.get(name) ?? 0) + 1;
+    loadCalls.set(name, call);
     if (!modules.has(path)) {
-      const name = path.split('/').at(-1)!.replace('.svelte', '');
       loads.push(name);
       modules.set(
         path,
         (gates.get(name)?.promise ?? Promise.resolve()).then(() => ({ default: name })),
       );
     }
-    return modules.get(path)!;
+    const delay = importDelays.get(`${name}:${call}`);
+    return delay ? delay.promise.then(() => modules.get(path)!) : modules.get(path)!;
   };
   const fetch = (value: URL, options: RequestInit) => {
     const response = deferred<Response>();
@@ -129,6 +135,11 @@ function runtime(route: Route = 'transactions', payload: object | null = {}) {
     unmounts,
     requests,
     gates,
+    loadCalls,
+    importDelays,
+    onMount(callback: (component: string) => void) {
+      onMount = callback;
+    },
     get reloads() {
       return reloads;
     },
@@ -155,6 +166,7 @@ function runtime(route: Route = 'transactions', payload: object | null = {}) {
           const node = window.document.createElement('p');
           node.dataset.runtimeComponent = component;
           options.target.append(node);
+          onMount?.(component);
           return { node };
         },
         (component: { node: HTMLElement }) => {
@@ -176,8 +188,8 @@ function runtime(route: Route = 'transactions', payload: object | null = {}) {
       anchor.dispatchEvent(event);
       return event;
     },
-    respond(index: number, route: Route, assets = '') {
-      requests[index].response.resolve(new Response(shell(route, {}, assets)));
+    respond(index: number, route: Route, assets = '', payload = {}) {
+      requests[index].response.resolve(new Response(shell(route, payload, assets)));
     },
     close() {
       window.happyDOM.abort();
@@ -188,11 +200,162 @@ function runtime(route: Route = 'transactions', payload: object | null = {}) {
 async function ready(app: ReturnType<typeof runtime>) {
   app.start();
   await until(() => app.mounts.length === 1, 'initial mount');
-  // start() registers delegation after its awaited render continuation.
+  // Allow startup's awaited render continuation to finish.
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('workspace entry routing runtime (component import/mount protocol fakes)', () => {
+  test('a detached startup host is not mounted when its import resolves', async () => {
+    const app = runtime();
+    const gate = deferred<void>();
+    app.gates.set('TransactionsApp', gate);
+    try {
+      app.start();
+      app.window.document.querySelector('[data-kiriof-transactions-page]')!.remove();
+      gate.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(app.mounts).toHaveLength(0);
+    } finally {
+      app.close();
+    }
+  });
+
+  test('a rejected stale startup import cannot replace the current workspace with an error', async () => {
+    const app = runtime();
+    const gate = deferred<void>();
+    app.gates.set('TransactionsApp', gate);
+    try {
+      app.start();
+      app.window.dispatchEvent(
+        new app.window.CustomEvent('kiriof:settings-navigate', {
+          detail: { href: url('pickup') },
+        }),
+      );
+      app.respond(0, 'pickup');
+      await until(() => app.window.location.href === url('pickup'));
+      gate.reject(new Error('stale chunk unavailable'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(app.window.document.querySelector('button')).toBeNull();
+      expect(
+        app.window.document.querySelector('[data-runtime-component="PickupDetail"]'),
+      ).not.toBeNull();
+    } finally {
+      app.close();
+    }
+  });
+
+  test('navigation during a delayed startup import cannot mount into the replaced host', async () => {
+    const app = runtime();
+    const gate = deferred<void>();
+    app.gates.set('TransactionsApp', gate);
+    try {
+      app.start();
+      const host = app.window.document.querySelector('[data-kiriof-transactions-root]')!;
+      expect(app.event(app.link('pickup'), 'click').defaultPrevented).toBe(true);
+      app.respond(0, 'pickup');
+      await until(() => app.window.location.href === url('pickup'));
+      gate.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(host.isConnected).toBe(false);
+      expect(app.mounts.map((record) => record.component)).toEqual(['PickupDetail']);
+      app.event(app.link('payments'), 'click');
+      app.respond(1, 'payments');
+      await until(() => app.window.location.href === url('payments'));
+      expect(app.unmounts).toHaveLength(1);
+      expect(
+        app.window.document.querySelector('[data-runtime-component="PickupDetail"]'),
+      ).toBeNull();
+    } finally {
+      app.close();
+    }
+  });
+
+  test('overlapping render imports never take ownership from the newer component', async () => {
+    const app = runtime();
+    const gate = deferred<void>();
+    app.importDelays.set('AccountSection:2', gate);
+    try {
+      await ready(app);
+      app.event(app.link('settings', {}, '&section=account'), 'click');
+      app.respond(0, 'settings', '', { view: 'account' });
+      await until(() => app.loadCalls.get('AccountSection') === 2);
+      const staleHost = app.window.document.querySelector('[data-kiriof-settings-root]')!;
+      app.event(app.link('pickup'), 'click');
+      app.respond(1, 'pickup');
+      await until(() => app.window.location.href === url('pickup'));
+      gate.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      expect(staleHost.isConnected).toBe(false);
+      expect(app.mounts.map((record) => record.component)).toEqual([
+        'TransactionsApp',
+        'PickupDetail',
+      ]);
+      app.event(app.link('payments'), 'click');
+      app.respond(2, 'payments');
+      await until(() => app.window.location.href === url('payments'));
+      expect(app.unmounts).toHaveLength(2);
+      expect(
+        app.window.document.querySelector('[data-runtime-component="PickupDetail"]'),
+      ).toBeNull();
+    } finally {
+      app.close();
+    }
+  });
+
+  test('navigation triggered during mount disposes that render without losing the next owner', async () => {
+    const app = runtime();
+    try {
+      await ready(app);
+      app.onMount((component) => {
+        if (component === 'AccountSection') app.event(app.link('pickup'), 'click');
+      });
+      app.event(app.link('settings', {}, '&section=account'), 'click');
+      app.respond(0, 'settings', '', { view: 'account' });
+      await until(() => app.requests.length === 2);
+      app.respond(1, 'pickup');
+      await until(() => app.window.location.href === url('pickup'));
+      expect(app.unmounts).toHaveLength(2);
+      app.event(app.link('payments'), 'click');
+      app.respond(2, 'payments');
+      await until(() => app.window.location.href === url('payments'));
+      expect(app.unmounts).toHaveLength(3);
+    } finally {
+      app.close();
+    }
+  });
+
+  for (const section of ['cache', 'webhooks', 'CaChE', 'WEB!HOOKS']) {
+    test(`settings ${section} preload matches the technical bootstrap`, async () => {
+      const app = runtime();
+      try {
+        await ready(app);
+        const anchor = app.link('settings', {}, `&section=${section}`);
+        app.event(anchor, 'pointerover');
+        expect(app.loads).toEqual(['TransactionsApp', 'TechnicalSection']);
+        app.event(anchor, 'click');
+        app.respond(0, 'settings', '', { view: 'technical' });
+        await until(() => app.mounts.length === 2);
+        expect(app.mounts[1].component).toBe('TechnicalSection');
+        expect(app.loads).toEqual(['TransactionsApp', 'TechnicalSection']);
+      } finally {
+        app.close();
+      }
+    });
+  }
+
+  test('navigation preloads the bootstrap view rather than a different URL section', async () => {
+    const app = runtime();
+    try {
+      await ready(app);
+      app.event(app.link('settings', {}, '&section=account'), 'click');
+      app.respond(0, 'settings', '', { view: 'technical' });
+      await until(() => app.mounts.length === 2);
+      expect(app.loads).toEqual(['TransactionsApp', 'TechnicalSection']);
+    } finally {
+      app.close();
+    }
+  });
+
   for (const route of Object.keys(definitions) as Route[]) {
     test(`${route} startup imports only its active component and retains boot through mount`, async () => {
       const app = runtime(route);

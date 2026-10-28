@@ -78,10 +78,19 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
             }
         }
         if ( $instant_ids ) {
+            $member_args = array();
+            foreach ( $instant_ids as $instant_id ) {
+                $member_args[] = $instant_id;
+                $member_args[] = $wpdb->prefix . 'kiriminaja_transactions';
+                $member_args[] = 'instant';
+                $member_args[] = $instant_id;
+            }
+            // Compare the column directly with literals so its collation wins even
+            // when the connection differs. Return the page identity for PHP grouping.
             $members = $wpdb->get_results( $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only the placeholder count is dynamic; every identity is prepared as a value.
-                'SELECT selected.instant_payment_id, t.order_id FROM %i AS t INNER JOIN (' . implode( ' UNION ALL ', array_fill( 0, count( $instant_ids ), 'SELECT %s AS instant_payment_id' ) ) . ') AS selected ON t.instant_payment_id = selected.instant_payment_id WHERE t.delivery_type = %s ORDER BY t.order_id ASC',
-                array_merge( array( $wpdb->prefix . 'kiriminaja_transactions' ), $instant_ids, array( 'instant' ) )
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only the branch count is dynamic; each branch prepares its identifier and all values.
+                implode( ' UNION ALL ', array_fill( 0, count( $instant_ids ), 'SELECT %s AS instant_payment_id, order_id FROM %i WHERE delivery_type = %s AND instant_payment_id = %s' ) ) . ' ORDER BY order_id ASC',
+                $member_args
             ) );
             $order_ids = array();
             foreach ( $members as $member ) {

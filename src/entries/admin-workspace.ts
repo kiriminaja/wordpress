@@ -1,4 +1,5 @@
 import { mount, unmount } from 'svelte';
+import type { Component } from 'svelte';
 import type { SettingsAppBootstrap } from '../lib/settings/types';
 import type { PaymentsBootstrap } from '../lib/payments/types';
 import type { PickupDetailBootstrap } from '../lib/pickup-detail/types';
@@ -70,6 +71,27 @@ const routes: RouteDefinition[] = [
     route: 'settings',
   },
 ];
+
+const loaders = {
+  transactions: () => import('../lib/transactions/TransactionsApp.svelte'),
+  payments: () => import('../lib/payments/PaymentsList.svelte'),
+  'transaction-detail': () => import('../lib/transaction-detail/TransactionDetail.svelte'),
+  'pickup-detail': () => import('../lib/pickup-detail/PickupDetail.svelte'),
+  settings: (view = '') => {
+    switch (view) {
+      case 'account':
+        return import('../lib/settings/AccountSection.svelte');
+      case 'couriers':
+        return import('../lib/settings/CouriersSection.svelte');
+      case 'tracking':
+        return import('../lib/settings/TrackingSection.svelte');
+      case 'technical':
+        return import('../lib/settings/TechnicalSection.svelte');
+      default:
+        return import('../lib/SettingsRoot.svelte');
+    }
+  },
+};
 
 let mounted: MountedComponent[] = [];
 let controller: AbortController | null = null;
@@ -198,63 +220,6 @@ async function clearMounted(): Promise<void> {
   await Promise.all(components.map((component) => unmount(component)));
 }
 
-async function renderSettings(host: HTMLElement, bootstrap: SettingsAppBootstrap): Promise<void> {
-  if (bootstrap.view === 'account')
-    mounted = [
-      mount((await import('../lib/settings/AccountSection.svelte')).default, {
-        target: host,
-        props: { bootstrap },
-      }),
-    ];
-  else if (bootstrap.view === 'couriers')
-    mounted = [
-      mount((await import('../lib/settings/CouriersSection.svelte')).default, {
-        target: host,
-        props: { bootstrap },
-      }),
-    ];
-  else if (bootstrap.view === 'tracking')
-    mounted = [
-      mount((await import('../lib/settings/TrackingSection.svelte')).default, {
-        target: host,
-        props: { bootstrap },
-      }),
-    ];
-  else if (bootstrap.view === 'technical')
-    mounted = [
-      mount((await import('../lib/settings/TechnicalSection.svelte')).default, {
-        target: host,
-        props: { bootstrap },
-      }),
-    ];
-  else
-    mounted = [
-      mount((await import('../lib/SettingsRoot.svelte')).default, {
-        target: host,
-        props: { bootstrap },
-      }),
-    ];
-}
-
-async function renderTransactionDetail(
-  host: HTMLElement,
-  bootstrap: TransactionDetailBootstrap,
-  url: URL,
-): Promise<void> {
-  const { default: TransactionDetail } =
-    await import('../lib/transaction-detail/TransactionDetail.svelte');
-  mounted = [
-    mount(TransactionDetail, {
-      target: host,
-      props: {
-        bootstrap,
-        onNavigate: navigate,
-        openAdjustDeficit: url.searchParams.get('adjust_deficit') === '1',
-      },
-    }),
-  ];
-}
-
 function clearBootSkeleton(host: HTMLElement): void {
   // Server-rendered placeholder (templates/_workspace-boot.php) keeps the WP
   // content area from flashing blank. Remove it only after mounting succeeds.
@@ -283,45 +248,79 @@ async function render(
   source: ParentNode,
   route: RouteDefinition,
   url = new URL(window.location.href),
-): Promise<void> {
+  navigationId = navigationSequence,
+): Promise<boolean> {
   const host = source.querySelector<HTMLElement>(route.root);
   if (!host) throw new Error(`Missing ${route.route} workspace root.`);
+  const shell = activeShell;
+  const isCurrent = () =>
+    navigationId === navigationSequence &&
+    host.isConnected &&
+    shell === activeShell &&
+    !!shell?.contains(host);
+  let components: MountedComponent[];
 
   if (route.route === 'transactions') {
-    const { default: TransactionsApp } = await import('../lib/transactions/TransactionsApp.svelte');
     const bootstrap = parsePayload<TransactionsBootstrap>(source, route);
-    mounted = [
+    const { default: TransactionsApp } = await loaders.transactions();
+    if (!isCurrent()) return false;
+    components = [
       mount(TransactionsApp, { target: host, props: { bootstrap, onNavigate: navigate } }),
     ];
   } else if (route.route === 'payments') {
-    const { default: PaymentsList } = await import('../lib/payments/PaymentsList.svelte');
     const bootstrap = parsePayload<PaymentsBootstrap>(source, route);
-    mounted = [
+    const { default: PaymentsList } = await loaders.payments();
+    if (!isCurrent()) return false;
+    components = [
       mount(PaymentsList, {
         target: host,
         props: { initialBootstrap: bootstrap, onNavigate: navigate },
       }),
     ];
-    host
-      .closest<HTMLElement>('[data-kiriof-payments-page]')
-      ?.classList.add('kiriof-payments-page--enhanced');
   } else if (route.route === 'transaction-detail') {
-    await renderTransactionDetail(
-      host,
-      parsePayload<TransactionDetailBootstrap>(source, route),
-      url,
-    );
+    const bootstrap = parsePayload<TransactionDetailBootstrap>(source, route);
+    const { default: TransactionDetail } = await loaders['transaction-detail']();
+    if (!isCurrent()) return false;
+    components = [
+      mount(TransactionDetail, {
+        target: host,
+        props: {
+          bootstrap,
+          onNavigate: navigate,
+          openAdjustDeficit: url.searchParams.get('adjust_deficit') === '1',
+        },
+      }),
+    ];
   } else if (route.route === 'pickup-detail') {
-    const { default: PickupDetail } = await import('../lib/pickup-detail/PickupDetail.svelte');
     const bootstrap = parsePayload<PickupDetailBootstrap>(source, route);
-    mounted = [mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } })];
+    const { default: PickupDetail } = await loaders['pickup-detail']();
+    if (!isCurrent()) return false;
+    components = [
+      mount(PickupDetail, { target: host, props: { bootstrap, onNavigate: navigate } }),
+    ];
   } else {
-    await renderSettings(host, parsePayload<SettingsAppBootstrap>(source, route));
+    const bootstrap = parsePayload<SettingsAppBootstrap>(source, route);
+    const { default: SettingsSection } = await loaders.settings(bootstrap.view);
+    if (!isCurrent()) return false;
+    // The bootstrap discriminant selects the matching section module above.
+    components = [
+      mount(SettingsSection as Component<{ bootstrap: SettingsAppBootstrap }>, {
+        target: host,
+        props: { bootstrap },
+      }),
+    ];
   }
 
+  if (!isCurrent()) {
+    await Promise.all(components.map((component) => unmount(component)));
+    return false;
+  }
+  mounted = components;
+  if (route.route === 'payments') shell?.classList.add('kiriof-payments-page--enhanced');
   clearBootSkeleton(host);
   host.removeAttribute('aria-busy');
   host.classList.add('is-mounted');
+  return true;
 }
 
 function isWorkspaceUrl(value: string | URL): value is string | URL {
@@ -372,14 +371,18 @@ async function navigate(value: string | URL, push = true): Promise<void> {
       throw new Error('Unable to load workspace page.');
 
     await ensureRouteAssets(nextDocument);
-    await preloadRoute(url);
+    if (route.route === 'settings') {
+      await loaders.settings(parsePayload<SettingsAppBootstrap>(nextDocument, route).view);
+    } else {
+      await loaders[route.route]();
+    }
     if (navigationId !== navigationSequence || navigationController.signal.aborted) return;
     await clearMounted();
     if (navigationId !== navigationSequence || navigationController.signal.aborted) return;
     const replacement = nextShell.cloneNode(true) as HTMLElement;
     activeShell?.replaceWith(replacement);
     activeShell = replacement;
-    await render(document, route, url);
+    if (!(await render(document, route, url, navigationId))) return;
     if (navigationId !== navigationSequence || navigationController.signal.aborted) return;
     syncPluginMenu(nextDocument);
     document.title = nextDocument.title || document.title;
@@ -421,26 +424,13 @@ function handleClick(event: MouseEvent): void {
 
 function preloadRoute(url: URL): Promise<unknown> {
   const route = routeForUrl(url);
-  if (route?.route === 'transactions') return import('../lib/transactions/TransactionsApp.svelte');
-  if (route?.route === 'payments') return import('../lib/payments/PaymentsList.svelte');
-  if (route?.route === 'transaction-detail')
-    return import('../lib/transaction-detail/TransactionDetail.svelte');
-  if (route?.route === 'pickup-detail') return import('../lib/pickup-detail/PickupDetail.svelte');
   if (route?.route === 'settings') {
-    switch (url.searchParams.get('section')) {
-      case 'account':
-        return import('../lib/settings/AccountSection.svelte');
-      case 'couriers':
-        return import('../lib/settings/CouriersSection.svelte');
-      case 'tracking':
-        return import('../lib/settings/TrackingSection.svelte');
-      case 'technical':
-        return import('../lib/settings/TechnicalSection.svelte');
-      default:
-        return import('../lib/SettingsRoot.svelte');
-    }
+    const section = (url.searchParams.get('section') ?? '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, '');
+    return loaders.settings(section === 'cache' || section === 'webhooks' ? 'technical' : section);
   }
-  return Promise.resolve();
+  return route ? loaders[route.route]() : Promise.resolve();
 }
 
 function handlePreload(event: Event): void {
@@ -459,21 +449,8 @@ async function start(): Promise<void> {
   if (!route) return;
   activeShell = document.querySelector<HTMLElement>(route.shell);
   if (!activeShell) return;
-
-  try {
-    await render(document, route);
-    if (
-      route.route === 'transaction-detail' &&
-      window.location.search.includes('adjust_deficit=')
-    ) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('adjust_deficit');
-      history.replaceState(history.state, '', url);
-    }
-  } catch {
-    showWorkspaceError(activeShell);
-    return;
-  }
+  const shell = activeShell;
+  const navigationId = navigationSequence;
 
   document.addEventListener('click', handleClick);
   document.addEventListener('pointerover', handlePreload);
@@ -483,6 +460,21 @@ async function start(): Promise<void> {
     const href = (event as CustomEvent<{ href: string }>).detail?.href;
     if (href) void navigate(href);
   });
+
+  try {
+    if (!(await render(document, route, new URL(window.location.href), navigationId))) return;
+    if (
+      route.route === 'transaction-detail' &&
+      window.location.search.includes('adjust_deficit=')
+    ) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('adjust_deficit');
+      history.replaceState(history.state, '', url);
+    }
+  } catch {
+    if (navigationId === navigationSequence && shell.isConnected) showWorkspaceError(shell);
+    return;
+  }
 }
 
 void start();
