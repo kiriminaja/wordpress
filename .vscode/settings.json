@@ -15,7 +15,7 @@
   "[json]": {
     "editor.tabSize": 2
   },
-  "php.version": "8.1",
+  "php.version": "8.2",
   "intelephense.environment.includePaths": [
     "vendor/php-stubs/wordpress-stubs",
     "vendor/php-stubs/woocommerce-stubs"
