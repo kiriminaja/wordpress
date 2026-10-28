@@ -137,7 +137,7 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 
 				return wp_kses_post( $kiriof_method_label_html );
 			};
-			$kiriof_use_classic_shipping_select = 1 < count( $available_methods );
+			$kiriof_use_classic_shipping_select = ! empty( $available_methods );
 		?>
 			<?php if ( $kiriof_use_classic_shipping_select ) : ?>
 				<div class="kiriof-classic-shipping-method-select-wrap">
@@ -186,7 +186,9 @@ $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( functi
 							// WPCS: XSS ok.
 						}
 						printf( '<label class="kiriof-shipping-method-label" for="shipping_method_%1$s_%2$s">%3$s</label>', absint( $index ), esc_attr( sanitize_title( $kiriof_method->id ) ), $kiriof_method_label_html ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above via wp_kses_post.
+						echo '<div class="kiriof-shipping-method-extensions">';
 						do_action( 'woocommerce_after_shipping_rate', $kiriof_method, $index );
+						echo '</div>';
 						?>
 					</li>
 				<?php endforeach; ?>
