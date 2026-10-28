@@ -187,6 +187,7 @@ function activeAccount(
           },
     configurable: true,
   });
+  Object.defineProperty(window.navigator, 'permissions', { value: { query: async () => ({ state: 'prompt' }) }, configurable: true });
   const flush = () => window.__accountFlush();
   window.kiriofAccountShippingConfig = {
     ajaxUrl: '/ajax',

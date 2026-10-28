@@ -22,7 +22,7 @@ A WordPress/WooCommerce plugin that integrates [KiriminAja](https://kiriminaja.c
 
 - WordPress 6.8+
 - WooCommerce 8.5+ (checkout fixtures cover 10.6)
-- PHP 8.1+
+- PHP 8.2.35+ (PHP 8.1 is no longer supported; CI runs on PHP 8.2.35)
 
 ## Installation
 

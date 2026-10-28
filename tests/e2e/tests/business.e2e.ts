@@ -133,7 +133,27 @@ const fixtureRates = [
   { id: 'kiriminaja-official:1:jne:reg', label: 'Fixture Regular courier', cost: 15000 },
 ];
 
+for (const permissionState of ['denied', 'granted'] as const) {
+  test(`Classic empty checkout renders immediately with ${permissionState} GPS permission without saving a pin`, async ({ app, browser, screen }) => {
+    const fixture = await checkout(app, browser, true, { success: true, data: [district] }, true, false, false, { emptyAddress: true, billingPostcode: '', shippingPostcode: '', permissionState });
+    await expect(screen.getByLabel('Delivery location map')).toBeVisible();
+    await expect(browser.locator('.leaflet-control-zoom')).toBeVisible();
+    await expect.poll(() => browser.evaluate(() => window.__geoCalls)).toBe(permissionState === 'granted' ? 1 : 0);
+    expect(await browser.evaluate(() => ({
+      street: (document.querySelector('#billing_address_1') as HTMLInputElement).value,
+      postcode: (document.querySelector('#billing_postcode') as HTMLInputElement).value,
+      point: window.kiriofBuyerPin.controller.getState().point,
+      complete: document.querySelector('.kiriof-classic-pin-state')!.classList.contains('is-complete'),
+      snapshot: JSON.parse((document.querySelector('[name="kiriof_buyer_destination_snapshot"]') as HTMLInputElement).value).version,
+    }))).toEqual({ street: '', postcode: '', point: null, complete: false, snapshot: 1 });
+    expect(fixture.saves().every(request => JSON.parse(request.body.data).destination.version === 1)).toBe(true);
+    expect(fixture.unexpected).toEqual([]);
+  });
+}
+
 type RecoverySettings = {
+  emptyAddress?: boolean;
+  permissionState?: 'prompt' | 'denied' | 'granted';
   billingDistrict?: { id: string; name: string };
   shippingDistrict?: { id: string; name: string };
   savedDistrictByPostcode?: Record<string, { destination_id: string; destination_name: string }>;
@@ -176,6 +196,8 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     window.wc_country_select_params = { countries: JSON.stringify({ ID: { YO: 'DI Yogyakarta', JT: 'Jawa Tengah' }, US: { CA: 'California', NY: 'New York' }, AQ: {} }), i18n_select_state_text: 'Select a state', i18n_searching: 'Searching…', i18n_no_matches: 'No matches found' };`,
     readFileSync(new URL('../fixtures/country-select.js', import.meta.url), 'utf8'),
     `window.__geoCalls = 0; window.__maps = 0; window.__checkoutUpdates = 0; window.__allowGeo = true;
+    Object.defineProperty(navigator,'permissions',{configurable:true,value:{query:async()=>({state:${JSON.stringify(recovery?.permissionState || 'prompt')}})}});
+    ${recovery?.emptyAddress ? `for(const scope of ['billing','shipping'])for(const field of ['address_1','address_2','city','postcode'])document.getElementById(scope+'_'+field).value='';` : ''}
 		window.kiriofClassicCheckoutConfig = ${JSON.stringify({
       enabled,
       ownsDistrict: false,
