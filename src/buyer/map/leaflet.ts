@@ -12,6 +12,8 @@ import type {
   MapProvider,
 } from './types';
 
+export const BUYER_MAP_CENTER: [number, number] = [-7.801389, 110.364722];
+
 export function coordinate(value: unknown, limit: number): string | null {
   if (('string' !== typeof value && 'number' !== typeof value) || '' === String(value).trim()) {
     return null;
@@ -207,7 +209,7 @@ export function createMapSession(options: MapSessionOptions): MapSession {
       throw new Error('Map unavailable');
     }
     map = L.map(options.node, { scrollWheelZoom: false }).setView(
-      options.defaultCenter || [-6.2088, 106.8456],
+      options.defaultCenter || BUYER_MAP_CENTER,
       13,
     );
     if (
@@ -315,23 +317,27 @@ export function createMapSession(options: MapSessionOptions): MapSession {
       }
       var sequence = ++locationSequence;
       var geolocation = options.geolocation;
-      if (!geolocation) {
+      if (!geolocation || typeof geolocation.getCurrentPosition !== 'function') {
         report('permission');
         return;
       }
-      geolocation.getCurrentPosition(
-        function (position) {
-          if (!disposed && sequence === locationSequence) {
-            pick(position.coords.latitude, position.coords.longitude, true);
-          }
-        },
-        function (error) {
-          if (!disposed && sequence === locationSequence) {
-            report(error.code === 1 ? 'permission' : 'location');
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-      );
+      try {
+        geolocation.getCurrentPosition(
+          function (position) {
+            if (!disposed && sequence === locationSequence) {
+              pick(position.coords.latitude, position.coords.longitude, true);
+            }
+          },
+          function (error) {
+            if (!disposed && sequence === locationSequence) {
+              report(error.code === 1 ? 'permission' : 'location');
+            }
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        );
+      } catch {
+        if (!disposed && sequence === locationSequence) report('permission');
+      }
     },
     getPoint: function () {
       return selected ? Object.assign({}, selected) : null;

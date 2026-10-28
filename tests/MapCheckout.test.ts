@@ -107,11 +107,11 @@ describe('Map checkout exported session: compiled production TypeScript VM, no U
 			expect(coverage.querySelector('path').getAttribute('d')).toBe('m12 3 10 18H2L12 3Z');
 			expect(section.querySelector(':scope > .kiriof-buyer-map__coverage')).toBeNull();
 			expect(section.querySelector(':scope > p:not(.kiriof-buyer-map__status):not(.kiriof-buyer-map__coverage-warning)')).toBeNull();
-			expect(h.maps).toHaveLength(1); expect(h.writes).toHaveLength(1);
+			expect(h.maps).toHaveLength(1); expect(h.writes).toHaveLength(0);
 		} finally { h.cleanup(); }
 		const pending = uiHarness({ autoLocation: false }); try {
 			expect(pending.container.querySelector('.kiriof-buyer-map__information')).toBeNull();
-			expect(pending.container.querySelector('.kiriof-buyer-map__status').textContent).toContain('Requesting location permission');
+			expect(pending.container.querySelector('.kiriof-buyer-map__status')).toBeNull(); expect(pending.maps).toHaveLength(1); expect(pending.initialRequests).toHaveLength(0);
 		} finally { pending.cleanup(); }
 	});
 	test('seller coverage circle is unrestricted, independent of device view and removed with map', () => {
@@ -152,7 +152,7 @@ describe('Map checkout exported session: compiled production TypeScript VM, no U
 	test('default center is view-only: no marker, persistence, or geolocation', () => {
 		const h = fixture(); expect(h.session.getPoint()).toBeNull(); expect(h.markers).toHaveLength(0);
 		expect(h.selections).toHaveLength(0); expect(h.locations).toHaveLength(0);
-		expect(h.maps[0].views).toEqual([{ center: [-6.2088, 106.8456], zoom: 13 }]);
+		expect(h.maps[0].views).toEqual([{ center: [-7.801389, 110.364722], zoom: 13 }]);
 	});
 	test('numeric and string zero are genuine selections, including range boundaries', () => {
 		const h = fixture(); expect(h.api.normalizePoint(0, '0')).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
@@ -242,7 +242,7 @@ describe('Map checkout exported session: compiled production TypeScript VM, no U
 		expect(h.session.getPoint()).toBeNull(); expect(h.maps[0].center).toEqual({ lat: 3, lng: 4 }); expect(h.maps[0].views).toHaveLength(1);
 	});
 	test('pick without pan changes selection but leaves camera view unchanged', () => {
-		const h = fixture(); h.session.pick(3, 4); expect(h.maps[0].views).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: -6.2088, lng: 106.8456 });
+		const h = fixture(); h.session.pick(3, 4); expect(h.maps[0].views).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: -7.801389, lng: 110.364722 });
 		expect(h.session.getPoint()).toEqual({ latitude: '3.0000000', longitude: '4.0000000' });
 	});
 	test('clear rejected by persistence keeps the prior selection', () => {
@@ -312,7 +312,7 @@ describe('Map checkout exported session: compiled production TypeScript VM, no U
 });
 
 const uiTest = test;
-function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any; coverage?: any; rejectCoordinates?: boolean; coverageBadge?: string } = {}) {
+function uiHarness(options: { google?: boolean; noLeaflet?: boolean; editing?: boolean; autoLocation?: boolean; noGeolocation?: boolean; throwLocation?: boolean; savedPoint?: any; coverage?: any; rejectCoordinates?: boolean; coverageBadge?: string } = {}) {
 	const window = new happy.Window({ url: 'https://checkout.example.test' });
 	const saved = new Map<string, PropertyDescriptor | undefined>();
 	for (const [key, value] of Object.entries({ window, document: window.document, navigator: window.navigator, HTMLElement: window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true })) {
@@ -334,9 +334,21 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 			if (options.autoLocation !== false) success({ coords: { latitude: -6, longitude: 106 } });
 		} else f.locations.push({ success, failure, options: requestOptions });
 	} } });
-	root.kiriofMapCheckoutConfig = { enabled: true, coverage: options.coverage, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
+	root.kiriofMapCheckoutConfig = { enabled: true, ...(options.google ? { provider: 'google', apiKey: 'fixture-google-key' } : {}), coverage: options.coverage, tiles: 'https://tiles.example.test/{z}/{x}/{y}', i18n: {
 		pinLocation: 'Pin Location', needPinLocation: 'Need Pin Location', mapCoverageBadge: options.coverageBadge, mapCoverage: 'Instant coverage: 40 km straight-line from pickup origin. Express addresses may be outside this area.', mapOutsideRadius: 'Outside Instant coverage; Express is allowed', mapTitle: 'Delivery pin', mapLocating: 'Requesting location permission…', mapConsent: 'Load map', mapLocate: 'Locate me', mapLatitude: 'Latitude', mapLongitude: 'Longitude', mapApply: 'Apply pin', mapInvalid: 'Invalid coordinates', mapUnavailable: 'Map unavailable', mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapHelp: 'Delivery location map', mapKeyboard: 'Use arrow keys to move the map. Press Enter to select the center location.', mapMoving: 'Moving pin', mapOptional: 'Optional delivery pin',
 	} };
+	if (options.google) root.google = { maps: {
+		Map: class {
+			center: any; events: Record<string, any> = {}; removed = false;
+			constructor(public container: any, settings: any) { this.center = settings.center; f.maps.push(this); }
+			getCenter() { return { lat: () => this.center.lat, lng: () => this.center.lng }; }
+			setCenter(point: any) { this.center = point; }
+			setZoom() {}
+			addListener(name: string, callback: any) { this.events[name] = callback; return { remove: () => { delete this.events[name]; } }; }
+			fire(name: string, event?: any) { this.events[name]?.(event); }
+		}, event: { trigger() {}, clearInstanceListeners(map: any) { map.removed = true; } },
+	} };
+
 	root.kiriofBuyerCheckout = {
 		getCoordinates: (address: any) => coordinates.get(JSON.stringify(address)) || null,
 		setCoordinates: (address: any, point: any) => { if (options.rejectCoordinates) return false; writes.push({ address, point }); coordinates.clear(); if (point) coordinates.set(JSON.stringify(address), { ...point }); return true; },
@@ -352,7 +364,7 @@ function uiHarness(options: { noLeaflet?: boolean; editing?: boolean; autoLocati
 	const reactRoot = renderer.createRoot(container);
 	const render = () => { React.act(() => reactRoot.render(React.createElement(registrations[0].component))); root.__buyerFlushSync(); };
 	const button = (text: string) => [...container.querySelectorAll('button')].find((item: any) => (item.getAttribute('aria-label') || item.textContent) === text) as any;
-	const click = (text: string) => React.act(() => { const target = button(text); expect(target).toBeDefined(); target.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+	const click = (text: string) => { React.act(() => { const target = button(text); expect(target).toBeDefined(); target.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); }); root.__buyerFlushSync(); };
 	const cleanup = () => { React.act(() => reactRoot.unmount()); for (const [key, descriptor] of saved) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as any)[key]; } };
 	render();
 	return { ...f, initialRequests, root, model, writes, registrations, presentation, coordinates, container, render, click, button, cleanup };
@@ -390,14 +402,35 @@ describe('shared location authorization gate', () => {
 	});
 });
 
-describe('MapControl: permission-gated actual React commit/ref runtime', () => {
+describe('MapControl: optional geolocation actual React commit/ref runtime', () => {
+	uiTest('Google Blocks opens without GPS and keeps saved pins authoritative until manual selection', async () => {
+		for (const pin of [undefined, { latitude: '7.0000000', longitude: '8.0000000' }]) {
+			const h = uiHarness({ google: true, noGeolocation: true, savedPoint: pin });
+			try {
+				await React.act(async () => { await Promise.resolve(); }); h.root.__buyerFlushSync();
+				expect(h.maps).toHaveLength(1);
+				expect(h.maps[0].center).toEqual(pin ? { lat: 7, lng: 8 } : { lat: -7.801389, lng: 110.364722 });
+				expect(h.writes).toEqual([]); expect(h.initialRequests).toEqual([]); expect(h.locations).toEqual([]);
+				h.click('Locate me');
+				expect(h.container.textContent).toContain('Permission denied');
+				expect(h.writes).toEqual([]);
+				expect(h.container.querySelector('.kiriof-buyer-map__viewport')).not.toBeNull();
+				React.act(() => h.maps[0].fire('click', { latLng: { lat: () => 0, lng: () => 0 } })); h.root.__buyerFlushSync();
+				expect(h.writes).toHaveLength(1);
+				expect(h.writes[0].point).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
+				h.model.cart.shippingAddress.address_1 = 'Changed address'; h.render();
+				expect(h.maps[0].removed).toBe(true);
+			} finally { h.cleanup(); }
+		}
+	});
+
 	uiTest('saved outside pin warning remains visible while permission is denied; device notice is removed', () => {
 		const h = uiHarness({ autoLocation: false, savedPoint: {latitude: 1, longitude: 0}, coverage: {origin: {latitude: 0, longitude: 0}, radiusMeters: 40000} });
 		try {
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).not.toBeNull();
-			React.act(() => h.initialRequests[0].failure({code: 1}));
+			h.click('Locate me'); React.act(() => h.locations[0].failure({code: 1}));
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).not.toBeNull();
-			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull();
+			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).not.toBeNull();
 			expect(h.writes).toHaveLength(0);
 		} finally { h.cleanup(); }
 		const granted = uiHarness();
@@ -414,10 +447,10 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			expect(h.circles.at(-1).removed).toBe(1);
 		} finally { h.cleanup(); }
 	});
-	uiTest('coverage circle awaits grant; out pin persists and warning never replaces permission or tile errors', () => {
+	uiTest('coverage circle mounts immediately; out pin persists and warning never replaces permission or tile errors', () => {
 		const h = uiHarness({ autoLocation: false, coverage: { origin: { latitude: 0, longitude: 0 }, radiusMeters: 40000 } }); try {
-			expect(h.circles).toHaveLength(0); expect(h.container.querySelector('.kiriof-buyer-map__information')).toBeNull();
-			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 0 } }));
+			expect(h.circles).toHaveLength(1); expect(h.initialRequests).toHaveLength(0);
+			React.act(() => h.maps[0].fire('click', {latlng:{lat:1,lng:0}}));
 			expect(h.circles).toHaveLength(1); expect(h.circles[0].position).toEqual([0, 0]); expect(h.writes).toHaveLength(1);
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage').textContent.trim()).toBe('Instant ≤ 40 km');
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning').getAttribute('role')).toBe('note'); expect(h.container.textContent).toContain('Outside Instant coverage');
@@ -431,68 +464,67 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 			expect(h.container.querySelector('.kiriof-buyer-map__coverage')).toBeNull(); expect(h.container.querySelector('.kiriof-buyer-map__information')).toBeNull(); expect(h.circles).toHaveLength(0);
 			h.root.kiriofMapCheckoutConfig.coverage = { origin: { latitude: -6, longitude: 106 }, radiusMeters: 40000 }; h.render();
 			expect(h.circles.at(-1).position).toEqual([-6, 106]); expect(h.container.querySelector('.kiriof-buyer-map__coverage-warning')).toBeNull();
-			h.root.kiriofMapCheckoutConfig.coverage.origin.latitude = 0; h.render();
+			React.act(() => h.maps.at(-1).fire('click', {latlng:{lat:-6,lng:106}})); h.root.kiriofMapCheckoutConfig.coverage.origin.latitude = 0; h.render();
 			expect(h.circles.at(-2).removed).toBe(1); expect(h.circles.at(-1).position).toEqual([0, 106]); expect(h.container.textContent).toContain('Outside Instant coverage');
-			expect(h.initialRequests).toHaveLength(1); expect(h.writes).toHaveLength(1);
+			expect(h.initialRequests).toHaveLength(0); expect(h.writes).toHaveLength(1);
 		} finally { h.cleanup(); }
 	});
-	uiTest('pending request has a visible status but no canvas, viewport, Leaflet map or tiles; zero grant opens and selects once', () => {
+	uiTest('default view mounts with no request or writes; explicit locate selects zero once', () => {
 		const h = uiHarness({ autoLocation: false }); try {
-			expect(h.initialRequests).toHaveLength(1); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]);
-			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull(); expect(h.container.querySelector('.kiriof-buyer-map__canvas')).toBeNull(); expect(h.button('Locate me')).toBeUndefined();
-			expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toContain('Requesting location permission'); h.render(); expect(h.initialRequests).toHaveLength(1);
-			React.act(() => h.initialRequests[0].success({ coords: { latitude: 0, longitude: 0 } }));
+			expect(h.initialRequests).toHaveLength(0); expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.writes).toEqual([]); expect(h.maps[0].center).toEqual({lat:-7.801389,lng:110.364722});
+			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).not.toBeNull(); expect(h.container.querySelector('.kiriof-buyer-map__canvas')).not.toBeNull();
+			h.click('Locate me'); h.render(); expect(h.locations).toHaveLength(1); expect(h.writes).toEqual([]);
+			React.act(() => h.locations[0].success({ coords: { latitude: 0, longitude: 0 } }));
 			expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes[0].point).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
-			expect(h.maps[0].container.isConnected).toBe(true); h.render(); expect(h.writes).toHaveLength(1); expect(h.initialRequests).toHaveLength(1);
+			expect(h.maps[0].container.isConnected).toBe(true); h.render(); expect(h.writes).toHaveLength(1); expect(h.initialRequests).toHaveLength(0);
 		} finally { h.cleanup(); }
 	});
-	for (const code of [1, 2, 3]) uiTest(`location error ${code} keeps picker hidden and saved pin untouched`, () => {
+	for (const code of [1, 2, 3]) uiTest(`location error ${code} keeps picker usable and saved pin untouched`, () => {
 		const pin = { latitude: '0.0000000', longitude: '0.0000000' };
 		const h = uiHarness({ autoLocation: false, savedPoint: pin }); try {
-			React.act(() => h.initialRequests[0].failure({ code }));
+			h.click('Locate me'); React.act(() => h.locations[0].failure({ code }));
 			expect(h.container.querySelector('.kiriof-buyer-map__status').textContent).toBe(code === 1 ? 'Permission denied' : 'Location failed');
-			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull(); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]); expect([...h.coordinates.values()]).toEqual([pin]);
-			h.render(); expect(h.initialRequests).toHaveLength(1);
-			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(0);
+			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).not.toBeNull(); expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.writes).toEqual([]); expect([...h.coordinates.values()]).toEqual([pin]);
+			h.render(); expect(h.initialRequests).toHaveLength(0); expect(h.locations).toHaveLength(1);
 		} finally { h.cleanup(); }
 	});
-	for (const options of [{ noGeolocation: true }, { throwLocation: true }]) uiTest('API unavailable or synchronous failure has no picker or writes', () => {
+	for (const options of [{ noGeolocation: true }, { throwLocation: true }]) uiTest('API unavailable or synchronous failure keeps picker with no writes', () => {
 		const h = uiHarness(options); try {
-			expect(h.container.textContent).toContain('Map unavailable'); expect(h.container.querySelector('.kiriof-buyer-map__viewport')).toBeNull(); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]);
+			expect(h.container.querySelector('.kiriof-buyer-map__viewport')).not.toBeNull(); expect(h.maps).toHaveLength(1); expect(h.tiles).toHaveLength(1); expect(h.writes).toEqual([]); h.click('Locate me'); expect(h.container.textContent).toContain('Permission denied'); expect(h.writes).toEqual([]);
 		} finally { h.cleanup(); }
 	});
 	uiTest('collapsed editor does not prompt; entering requests once, closing cancels pending, reentering starts fresh', () => {
 		const h = uiHarness({ editing: false, autoLocation: false }); try {
 			expect(h.container.childElementCount).toBe(0); expect(h.initialRequests).toEqual([]);
-			h.presentation.editing = true; h.render(); h.render(); expect(h.initialRequests).toHaveLength(1);
-			h.presentation.editing = false; h.render(); React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(0); expect(h.writes).toEqual([]);
-			h.presentation.editing = true; h.render(); expect(h.initialRequests).toHaveLength(2);
+			h.presentation.editing = true; h.render(); h.render(); expect(h.initialRequests).toHaveLength(0); h.click('Locate me');
+			h.presentation.editing = false; h.render(); React.act(() => h.locations[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps[0].removed).toBe(1); expect(h.writes).toEqual([]);
+			h.presentation.editing = true; h.render(); expect(h.initialRequests).toHaveLength(0); expect(h.maps).toHaveLength(2);
 		} finally { h.cleanup(); }
 	});
 	uiTest('address changes cancel old permission callbacks and require a fresh grant', () => {
 		const h = uiHarness({ autoLocation: false }); try {
-			h.model.cart.shippingAddress.address_1 = 'Second Street'; h.render(); expect(h.initialRequests).toHaveLength(2);
-			React.act(() => { h.initialRequests[0].success({ coords: { latitude: 1, longitude: 2 } }); h.initialRequests[0].failure({ code: 1 }); }); expect(h.maps).toHaveLength(0); expect(h.writes).toEqual([]);
-			React.act(() => h.initialRequests[1].success({ coords: { latitude: 3, longitude: 4 } })); expect(h.maps[0].center).toEqual({ lat: 3, lng: 4 }); expect(h.writes[0].address.address_1).toBe('Second Street');
+			h.click('Locate me'); h.model.cart.shippingAddress.address_1 = 'Second Street'; h.render(); expect(h.initialRequests).toHaveLength(0);
+			React.act(() => { h.locations[0].success({ coords: { latitude: 1, longitude: 2 } }); h.locations[0].failure({ code: 1 }); }); expect(h.maps).toHaveLength(2); expect(h.maps[0].removed).toBe(1); expect(h.writes).toEqual([]);
+			h.click('Locate me'); React.act(() => h.locations[1].success({ coords: { latitude: 3, longitude: 4 } })); expect(h.maps[1].center).toEqual({ lat: 3, lng: 4 }); expect(h.writes[0].address.address_1).toBe('Second Street');
 		} finally { h.cleanup(); }
 	});
 	uiTest('unmount ignores both late permission callbacks without ever making tiles', () => {
-		const h = uiHarness({ autoLocation: false }); h.cleanup(); h.initialRequests[0].success({ coords: { latitude: 1, longitude: 2 } }); h.initialRequests[0].failure({ code: 1 }); expect(h.maps).toHaveLength(0); expect(h.tiles).toHaveLength(0); expect(h.writes).toEqual([]);
+		const h = uiHarness({ autoLocation: false }); h.click('Locate me'); h.cleanup(); h.locations[0].success({ coords: { latitude: 1, longitude: 2 } }); h.locations[0].failure({ code: 1 }); expect(h.maps[0].removed).toBe(1); expect(h.tiles).toHaveLength(1); expect(h.writes).toEqual([]);
 	});
 	uiTest('grant restores matching saved pin without overwriting it with device coordinates; reopening asks again', () => {
 		const pin = { latitude: '0.0000000', longitude: '0.0000000' };
 		const h = uiHarness({ editing: true, savedPoint: pin }); try {
-			expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toEqual([]); expect(h.initialRequests).toHaveLength(1);
+			expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toEqual([]); expect(h.initialRequests).toHaveLength(0);
 			h.presentation.editing = false; h.render(); expect(h.maps[0].removed).toBe(1); expect(h.observers.at(-1).disconnected).toBe(1);
-			h.presentation.editing = true; h.render(); expect(h.initialRequests).toHaveLength(2); expect(h.maps[1].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toEqual([]);
+			h.presentation.editing = true; h.render(); expect(h.initialRequests).toHaveLength(0); expect(h.maps[1].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toEqual([]);
 		} finally { h.cleanup(); }
 	});
 	uiTest('granted map retains accessible canvas, fixed SVG and explicit follow-up locate', () => {
 		const h = uiHarness(); try {
 			const canvas = h.container.querySelector('.kiriof-buyer-map__canvas'); expect(canvas.getAttribute('aria-label')).toBe('Delivery location map'); expect(canvas.getAttribute('aria-description')).toContain('Use arrow keys');
 			const indicator = h.container.querySelector('.kiriof-buyer-map__indicator'); expect(indicator.getAttribute('aria-hidden')).toBeNull(); expect(indicator.querySelector(':scope > svg').getAttribute('aria-hidden')).toBe('true'); expect(indicator.querySelector('svg').getAttribute('focusable')).toBe('false'); expect(h.markers).toHaveLength(0);
-			expect(h.locations).toHaveLength(0); h.click('Locate me'); expect(h.locations).toHaveLength(1); React.act(() => h.position(0, 0, 0)); expect(h.writes).toHaveLength(2); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
-			h.click('Locate me'); React.act(() => h.locations[1].failure({ code: 1 })); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toHaveLength(2);
+			expect(h.locations).toHaveLength(0); h.click('Locate me'); expect(h.locations).toHaveLength(1); React.act(() => h.position(0, 0, 0)); expect(h.writes).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
+			h.click('Locate me'); React.act(() => h.locations[1].failure({ code: 1 })); expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 }); expect(h.writes).toHaveLength(1);
 			expect(h.button('Clear pin')).toBeUndefined(); expect(h.button('Load map')).toBeUndefined(); expect(h.container.querySelectorAll('input')).toHaveLength(0);
 		} finally { h.cleanup(); }
 	});
@@ -500,6 +532,7 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 		for (const rejectCoordinates of [false, true]) {
 			const h = uiHarness({ rejectCoordinates }); try {
 				const viewport = h.container.querySelector('.kiriof-buyer-map__viewport');
+				expect(h.writes).toHaveLength(0); React.act(() => h.maps[0].fire('click', {latlng:{lat:0,lng:0}})); h.root.__buyerFlushSync();
 				const badge = viewport.querySelector('.kiriof-buyer-map__pin-status');
 				expect(badge.parentElement.classList.contains('kiriof-buyer-map__indicator')).toBe(true);
 				expect(badge.textContent).toBe(rejectCoordinates ? 'Need Pin Location' : 'Pin Location');
@@ -528,26 +561,27 @@ describe('MapControl: permission-gated actual React commit/ref runtime', () => {
 	});
 	uiTest('camera movement publishes once at moveend and rerenders do not prompt or reset', () => {
 		const h = uiHarness({ coverage: { origin: { latitude: -6, longitude: 106 }, radiusMeters: 40000 } }); try {
-			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(1); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
+			React.act(() => { h.maps[0].fire('movestart'); h.maps[0].center = { lat: 1, lng: 2 }; }); expect(h.writes).toHaveLength(0); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
 			expect(h.container.querySelector('.kiriof-buyer-map__information').hidden).toBe(true);
 			expect(h.container.querySelector('.kiriof-buyer-map__pin-status').hidden).toBe(true);
-			React.act(() => h.maps[0].fire('moveend')); h.render(); h.render(); expect(h.writes).toHaveLength(2); expect(h.maps).toHaveLength(1); expect(h.initialRequests).toHaveLength(1); expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.container.textContent).toContain('Pin Location'); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
+			React.act(() => h.maps[0].fire('moveend')); h.render(); h.render(); expect(h.writes).toHaveLength(1); expect(h.maps).toHaveLength(1); expect(h.initialRequests).toHaveLength(0); expect(h.maps[0].center).toEqual({ lat: 1, lng: 2 }); expect(h.container.textContent).toContain('Pin Location'); expect(h.container.querySelector('.kiriof-buyer-map__status')).toBeNull();
 			expect(h.container.querySelector('.kiriof-buyer-map__information').hidden).toBe(false);
 			expect(h.container.querySelector('.kiriof-buyer-map__pin-status').hidden).toBe(false);
 		} finally { h.cleanup(); }
 	});
 	uiTest('ineligible checkout cancels map and requests; returning requires new authorization', () => {
 		const h = uiHarness({ autoLocation: false }); try {
+			h.click('Locate me');
 			h.model.collection = true; h.render(); expect(h.container.childElementCount).toBe(0);
-			React.act(() => h.initialRequests[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps).toHaveLength(0);
-			h.model.collection = false; h.model.cart.shippingAddress.country = 'US'; h.render(); expect(h.initialRequests).toHaveLength(1);
-			h.model.cart.shippingAddress.country = 'ID'; h.model.cart.needsShipping = false; h.render(); expect(h.initialRequests).toHaveLength(1);
-			h.model.cart.needsShipping = true; h.render(); expect(h.initialRequests).toHaveLength(2);
+			React.act(() => h.locations[0].success({ coords: { latitude: 1, longitude: 2 } })); expect(h.maps[0].removed).toBe(1);
+			h.model.collection = false; h.model.cart.shippingAddress.country = 'US'; h.render(); expect(h.initialRequests).toHaveLength(0);
+			h.model.cart.shippingAddress.country = 'ID'; h.model.cart.needsShipping = false; h.render(); expect(h.initialRequests).toHaveLength(0);
+			h.model.cart.needsShipping = true; h.render(); expect(h.initialRequests).toHaveLength(0); expect(h.maps).toHaveLength(2);
 		} finally { h.cleanup(); }
 	});
 	uiTest('missing Leaflet and tile errors never supply manual coordinates or default writes', () => {
 		const h = uiHarness({ noLeaflet: true }); try { expect(h.maps).toHaveLength(0); expect(h.writes).toEqual([]); expect(h.container.textContent).toContain('Map unavailable'); } finally { h.cleanup(); }
-		const tiles = uiHarness(); try { React.act(() => tiles.tiles.at(-1).fire('tileerror')); expect(tiles.container.textContent).toContain('Map unavailable'); expect(tiles.writes).toHaveLength(1); } finally { tiles.cleanup(); } expect(tiles.maps[0].removed).toBe(1);
+		const tiles = uiHarness(); try { React.act(() => tiles.tiles.at(-1).fire('tileerror')); expect(tiles.container.textContent).toContain('Map unavailable'); expect(tiles.writes).toHaveLength(0); } finally { tiles.cleanup(); } expect(tiles.maps[0].removed).toBe(1);
 	});
 	uiTest('forced shipping-address registration keeps map out of OrderMeta', () => {
 		const h = uiHarness(); try {

@@ -1,6 +1,6 @@
 // @ts-nocheck -- React hooks and registration are supplied by Woo, not bundled React.
 import type { BlocksRoot } from './types';
-import { createLocationGate, coverageStatus } from '../map/leaflet';
+import { coverageStatus } from '../map/leaflet';
 import { mapProviderRegistry } from '../map/providers';
 import { loadGoogleMaps } from '../map/google-loader';
 import { resolveMapConfig } from '../map/config';
@@ -83,10 +83,6 @@ export function bootBlocksMap(root: BlocksRoot): void {
     var coverageState = useState(null);
     var coverageResult = coverageState[0];
     var setCoverage = coverageState[1];
-    var grantState = useState(null);
-    var grant = grantState[0];
-    var setGrant = grantState[1];
-    var granted = visible && grant && grant.key === addressKey;
     var selected = point && point.key === addressKey ? point : null;
     function apply(next, snapshot, key) {
       var buyer = root.kiriofBuyerCheckout;
@@ -104,42 +100,16 @@ export function bootBlocksMap(root: BlocksRoot): void {
     }
     useEffect(
       function () {
-        setGrant(null);
         setPoint(null);
         setError('');
         setMoving(false);
         setCoverage(null);
-        if (!visible) {
-          return;
-        }
-        var gate = createLocationGate({
-          geolocation: root.navigator && root.navigator.geolocation,
-          onSuccess: function (next) {
-            if (latest.current.key === addressKey) {
-              setGrant({ key: addressKey, point: next });
-            }
-          },
-          onError: function (code) {
-            if (latest.current.key !== addressKey) return;
-            setError(
-              code === 'permission'
-                ? strings.mapPermission
-                : code === 'location'
-                  ? strings.mapLocationFailed
-                  : strings.mapUnavailable || 'Map unavailable',
-            );
-          },
-        });
-        gate.start();
-        return function () {
-          gate.dispose();
-        };
       },
       [addressKey, visible],
     );
     useEffect(
       function () {
-        if (!granted || !node.current) {
+        if (!visible || !node.current) {
           return;
         }
         var initial = root.kiriofBuyerCheckout && root.kiriofBuyerCheckout.getCoordinates(address);
@@ -166,7 +136,6 @@ export function bootBlocksMap(root: BlocksRoot): void {
             window: root as GoogleMapsWindow,
             leaflet: root.L,
             node: node.current,
-            defaultCenter: [Number(grant.point.latitude), Number(grant.point.longitude)],
             initial: initial,
             label: strings.mapTitle,
             coverage: coverage,
@@ -194,9 +163,6 @@ export function bootBlocksMap(root: BlocksRoot): void {
             },
           });
           session.current = mapSession;
-          if (!initial && mapSession.isAvailable()) {
-            mapSession.pick(grant.point.latitude, grant.point.longitude, true);
-          }
         }
         try {
           var provider = resolveMapConfig(config);
@@ -226,12 +192,12 @@ export function bootBlocksMap(root: BlocksRoot): void {
           }
         };
       },
-      [addressKey, visible, grant, coverageKey],
+      [addressKey, visible, coverageKey],
     );
     if (!visible) {
       return null;
     }
-    var status = moving ? '' : error || (!granted ? strings.mapLocating : '');
+    var status = moving ? '' : error;
     var outside =
       coverageResult && coverageResult.key === coverageKey
         ? coverageResult.status
@@ -243,100 +209,98 @@ export function bootBlocksMap(root: BlocksRoot): void {
       'section',
       { className: 'kiriof-buyer-map', 'aria-label': strings.mapTitle },
       h('h3', { className: 'kiriof-buyer-map__title' }, strings.mapTitle),
-      granted
-        ? h(
-            'div',
-            { className: 'kiriof-buyer-map__viewport' + (moving ? ' is-moving' : '') },
-            h('div', {
-              className: 'kiriof-buyer-map__canvas',
-              ref: node,
-              'aria-label': strings.mapHelp,
-              'aria-description': strings.mapKeyboard,
-            }),
-            hasCoverage
-              ? h(mapPresentation.Information, {
-                  attributes: {
-                    className: 'kiriof-buyer-map__information',
-                    role: 'note',
-                    hidden: moving,
-                    tabIndex: 0,
-                    'aria-label': strings.mapCoverage,
-                  },
-                  model: {
-                    badge: strings.mapCoverageBadge,
-                    coverage: strings.mapCoverage,
-                    hasCoverage: hasCoverage,
-                  },
-                })
-              : null,
-            h(
-              'div',
-              { className: 'kiriof-buyer-map__indicator' },
-              h(
-                'svg',
-                {
-                  viewBox: '0 0 32 44',
-                  width: 32,
-                  height: 44,
-                  focusable: 'false',
-                  'aria-hidden': 'true',
-                },
-                h('path', {
-                  d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 28 15 28s15-17 15-28C31 7.7 24.3 1 16 1Z',
-                  fill: 'currentColor',
-                  stroke: '#fff',
-                  strokeWidth: 2,
-                }),
-                h('circle', { cx: 16, cy: 16, r: 10, fill: '#fff' }),
-              ),
-              h(mapPresentation.Status, {
-                attributes: {
-                  className:
-                    'kiriof-buyer-map__pin-status ' + (selected ? 'is-complete' : 'is-warning'),
-                  hidden: moving,
-                  role: 'status',
-                  'aria-live': 'polite',
-                },
-                model: {
-                  complete: Boolean(selected),
-                  text: selected
-                    ? strings.pinLocation || buyerStrings.pinLocation
-                    : strings.needPinLocation || buyerStrings.needPinLocation,
-                },
-              }),
-            ),
-            h(
-              'button',
-              {
-                type: 'button',
-                className: 'kiriof-buyer-map__locate',
-                'aria-label': strings.mapLocate,
-                title: strings.mapLocate,
-                onClick: function () {
-                  if (session.current) {
-                    session.current.locate();
-                  }
-                },
+      h(
+        'div',
+        { className: 'kiriof-buyer-map__viewport' + (moving ? ' is-moving' : '') },
+        h('div', {
+          className: 'kiriof-buyer-map__canvas',
+          ref: node,
+          'aria-label': strings.mapHelp,
+          'aria-description': strings.mapKeyboard,
+        }),
+        hasCoverage
+          ? h(mapPresentation.Information, {
+              attributes: {
+                className: 'kiriof-buyer-map__information',
+                role: 'note',
+                hidden: moving,
+                tabIndex: 0,
+                'aria-label': strings.mapCoverage,
               },
-              h(
-                'svg',
-                {
-                  viewBox: '0 0 24 24',
-                  width: 22,
-                  height: 22,
-                  fill: 'none',
-                  stroke: 'currentColor',
-                  strokeWidth: 2,
-                  'aria-hidden': 'true',
-                  focusable: 'false',
-                },
-                h('circle', { cx: 12, cy: 12, r: 7 }),
-                h('circle', { cx: 12, cy: 12, r: 2 }),
-                h('path', { d: 'M12 2v3 M12 19v3 M2 12h3 M19 12h3' }),
-              ),
-            ),
-          )
-        : null,
+              model: {
+                badge: strings.mapCoverageBadge,
+                coverage: strings.mapCoverage,
+                hasCoverage: hasCoverage,
+              },
+            })
+          : null,
+        h(
+          'div',
+          { className: 'kiriof-buyer-map__indicator' },
+          h(
+            'svg',
+            {
+              viewBox: '0 0 32 44',
+              width: 32,
+              height: 44,
+              focusable: 'false',
+              'aria-hidden': 'true',
+            },
+            h('path', {
+              d: 'M16 1C7.7 1 1 7.7 1 16c0 11 15 28 15 28s15-17 15-28C31 7.7 24.3 1 16 1Z',
+              fill: 'currentColor',
+              stroke: '#fff',
+              strokeWidth: 2,
+            }),
+            h('circle', { cx: 16, cy: 16, r: 10, fill: '#fff' }),
+          ),
+          h(mapPresentation.Status, {
+            attributes: {
+              className:
+                'kiriof-buyer-map__pin-status ' + (selected ? 'is-complete' : 'is-warning'),
+              hidden: moving,
+              role: 'status',
+              'aria-live': 'polite',
+            },
+            model: {
+              complete: Boolean(selected),
+              text: selected
+                ? strings.pinLocation || buyerStrings.pinLocation
+                : strings.needPinLocation || buyerStrings.needPinLocation,
+            },
+          }),
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'kiriof-buyer-map__locate',
+            'aria-label': strings.mapLocate,
+            title: strings.mapLocate,
+            onClick: function () {
+              if (session.current) {
+                session.current.locate();
+              }
+            },
+          },
+          h(
+            'svg',
+            {
+              viewBox: '0 0 24 24',
+              width: 22,
+              height: 22,
+              fill: 'none',
+              stroke: 'currentColor',
+              strokeWidth: 2,
+              'aria-hidden': 'true',
+              focusable: 'false',
+            },
+            h('circle', { cx: 12, cy: 12, r: 7 }),
+            h('circle', { cx: 12, cy: 12, r: 2 }),
+            h('path', { d: 'M12 2v3 M12 19v3 M2 12h3 M19 12h3' }),
+          ),
+        ),
+      ),
       status
         ? h(
             'p',

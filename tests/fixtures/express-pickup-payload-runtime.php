@@ -109,5 +109,5 @@ namespace {
 		unset( $payload['pin'] );
 		$requests[] = array( 'url' => (string) $request->getUri(), 'method' => $request->getMethod(), 'payload' => $payload, 'pin_present' => $pin_present, 'pin_unchanged' => $pin_unchanged );
 	}
-	echo json_encode( array( 'requests' => $requests, 'writes' => $writes, 'created' => $created, 'status' => $response->status, 'data' => $response->data ), JSON_THROW_ON_ERROR );
+	echo json_encode( array( 'requests' => $requests, 'writes' => $writes, 'created' => $created, 'status' => $response->status, 'data' => $response->data, 'logs' => $logs, 'diagnostic_payload_json' => $api->pickupRequestPayloadJson() ), JSON_THROW_ON_ERROR );
 }

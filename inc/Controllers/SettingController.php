@@ -1598,32 +1598,109 @@ class SettingController{
 
         $files = $this->getPluginLogFiles();
         $filename = 'kiriminaja-plugin-logs-' . gmdate( 'Ymd-His' ) . '.log';
+        $export = $this->preparePluginLogExport( $files );
+        if ( false === $export ) {
+            wp_die( esc_html__( 'Unable to prepare plugin logs. Please check the server temporary directory and try again.', 'kiriminaja-official' ), '', array( 'response' => 500 ) );
+        }
+
+        // Discard buffered admin notices before sending the attachment.
+        while ( ob_get_level() > 0 ) {
+            if ( ! ob_end_clean() ) {
+                fclose( $export );
+                wp_die( esc_html__( 'Unable to download logs because the server output buffer could not be cleared.', 'kiriminaja-official' ), '', array( 'response' => 500 ) );
+            }
+        }
+        if ( headers_sent() ) {
+            fclose( $export );
+            wp_die( esc_html__( 'Unable to download logs because the server has already sent output.', 'kiriminaja-official' ), '', array( 'response' => 500 ) );
+        }
 
         nocache_headers();
         header( 'Content-Type: text/plain; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+        header( 'X-Content-Type-Options: nosniff' );
+        header_remove( 'Content-Length' );
+        // A compression handler changes the wire length; let it frame the response.
+        if ( ! ini_get( 'zlib.output_compression' ) ) {
+            $stat = fstat( $export );
+            header( 'Content-Length: ' . (int) $stat['size'] );
+        }
 
-        echo "KiriminAja Plugin Logs\n";
-        echo "Generated at: " . esc_html( current_time( 'mysql' ) ) . "\n";
-        echo "Sources: " . esc_html( implode( ', ', $this->getPluginLogSources() ) ) . "\n\n";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Prepared text/plain attachment; every written segment is escaped before entering the stream.
+        fpassthru( $export );
+        fclose( $export );
+        exit;
+    }
+
+    /** Spill to disk after 1 MiB; never load an entire log into PHP memory. */
+    private function preparePluginLogExport( array $files ) {
+        $export = fopen( 'php://temp/maxmemory:1048576', 'w+b' );
+        if ( false === $export ) {
+            return false;
+        }
+        $write = static function ( string $text ) use ( $export ): bool {
+            $text = esc_html( $text );
+            return strlen( $text ) === fwrite( $export, $text );
+        };
+        $success = $write( "KiriminAja Plugin Logs\nGenerated at: " . current_time( 'mysql' ) . "\nPeriod: today and the previous two days (UTC).\nSources: " . implode( ', ', $this->getPluginLogSources() ) . "\n\n" );
+        $remaining = 64 * 1024 * 1024;
 
         if ( empty( $files ) ) {
-            echo "No KiriminAja plugin logs found.\n";
-            exit;
+            $success = $success && $write( "No KiriminAja plugin logs found.\n" );
         }
-
         foreach ( $files as $file ) {
-            echo "\n===== " . esc_html( basename( $file ) ) . " =====\n";
-            $content = file_get_contents( $file );
-            if ( false === $content ) {
-                echo "Unable to read log file.\n";
+            if ( ! $success || $remaining <= 0 ) {
+                break;
+            }
+            $success = $write( "\n===== " . basename( $file ) . " =====\n" );
+            $input = fopen( $file, 'rb' );
+            if ( false === $input ) {
+                $success = $success && $write( "Unable to read log file.\n" );
                 continue;
             }
-            echo esc_html( $this->redactLogContent( $content ) );
-            echo "\n";
+            // Freeze the read extent so a live, growing log cannot keep the export open.
+            $stat = fstat( $input );
+            $size = min( (int) $stat['size'], $remaining );
+            $offset = (int) $stat['size'] - $size;
+            if ( $offset > 0 && 0 !== fseek( $input, $offset - 1 ) ) {
+                fclose( $input );
+                $success = $write( "Unable to seek log file.\n" );
+                continue;
+            }
+            $read = 0;
+            // A partial first line may begin inside a credential: omit it in full.
+            $oversized = $offset > 0 && "\n" !== fread( $input, 1 );
+            while ( $success && $read < $size ) {
+                $line = fgets( $input, min( 1048577, $size - $read + 1 ) );
+                if ( false === $line ) {
+                    if ( ! feof( $input ) ) {
+                        $success = $write( "\nUnable to read log file.\n" );
+                    }
+                    break;
+                }
+                $read += strlen( $line );
+                $complete = str_ends_with( $line, "\n" ) || $read >= $size;
+                if ( $oversized || ! $complete ) {
+                    if ( ! $oversized ) {
+                        $success = $write( "[Oversized or incomplete log line omitted for safe export.]\n" );
+                    }
+                    $oversized = ! $complete;
+                    continue;
+                }
+                $success = $write( $this->redactLogContent( $line ) );
+            }
+            fclose( $input );
+            $remaining -= $read;
+            $success = $success && $write( "\n" );
         }
-
-        exit;
+        if ( $remaining <= 0 ) {
+            $success = $success && $write( "\n[Export limited to the newest 64 MiB of plugin logs.]\n" );
+        }
+        if ( ! $success || ! rewind( $export ) ) {
+            fclose( $export );
+            return false;
+        }
+        return $export;
     }
 
     private function getPluginLogSources(): array {
@@ -1653,10 +1730,22 @@ class SettingController{
         }
 
         $files = array();
+        $now = time();
+        $today = gmdate( 'Y-m-d', $now );
+        $earliest = gmdate( 'Y-m-d', $now - 2 * 86400 );
         foreach ( $this->getPluginLogSources() as $source ) {
-            foreach ( glob( trailingslashit( $log_dir_real ) . $source . '-*.log' ) ?: array() as $file ) {
+            $paths = array_merge(
+                glob( trailingslashit( $log_dir_real ) . $source . '-*.log' ) ?: array(),
+                glob( trailingslashit( $log_dir_real ) . $source . '.[0-9]-*.log' ) ?: array()
+            );
+            foreach ( $paths as $file ) {
                 $real_file = realpath( $file );
-                if ( false === $real_file || 0 !== strpos( $real_file, $log_dir_real ) || ! is_readable( $real_file ) ) {
+                if ( false === $real_file || dirname( $real_file ) !== $log_dir_real || ! is_file( $real_file ) || ! is_readable( $real_file ) ) {
+                    continue;
+                }
+                // WooCommerce dates log filenames in UTC; mtime changes on rotation/copy.
+                $pattern = '/\A' . preg_quote( $source, '/' ) . '(?:\.[0-9])?-(\d{4}-\d{2}-\d{2})-[^\/]+\.log\z/';
+                if ( 1 !== preg_match( $pattern, basename( $real_file ), $date ) || $date[1] < $earliest || $date[1] > $today ) {
                     continue;
                 }
                 $files[ $real_file ] = filemtime( $real_file ) ?: 0;
@@ -1667,12 +1756,32 @@ class SettingController{
         return array_keys( $files );
     }
 
-    private function redactLogContent( string $content ): string {
+    private function redactLogContent( string $content, int $depth = 0 ): string {
+        // WooCommerce context can contain JSON encoded inside another JSON string.
+        if ( $depth < 4 ) {
+            $decoded_content = preg_replace_callback(
+                '~"(?:[^"\\\\\r\n]++|\\\\.)*+"~',
+                function ( array $match ) use ( $depth ): string {
+                    $decoded = json_decode( $match[0], true );
+                    if ( ! is_string( $decoded ) || ! preg_match( '/\b(?:authorization|api_key|setup_key|token|pin|password|secret)\b["\' \\t]*[:=]/i', $decoded ) ) {
+                        return $match[0];
+                    }
+                    $redacted = $this->redactLogContent( $decoded, $depth + 1 );
+                    $encoded = wp_json_encode( $redacted );
+                    return is_string( $encoded ) ? $encoded : '"[redacted]"';
+                },
+                $content
+            );
+            if ( null === $decoded_content ) {
+                return "[Log line omitted because redaction failed.]\n";
+            }
+            $content = $decoded_content;
+        }
         $patterns = array(
-            '/(authorization|api_key|setup_key|token|pin)(["\'\s:=]+)([^,"\'\s}]+)/i',
-            '/(Bearer\s+)[A-Za-z0-9._\-]+/i',
+            '/\b(Bearer)([ \t]+)[^\s,"\'<>]+/i',
+            '~\b(authorization|api_key|setup_key|token|pin|password|secret)(["\']?[ \t]*[:=][ \t]*)(?:"(?:[^"\\\\\r\n]++|\\\\.)*+"|\'(?:[^\'\\\\\r\n]++|\\\\.)*+\'|[^,"\'\s}]+)~i',
         );
 
-        return preg_replace( $patterns, '$1$2[redacted]', $content ) ?? $content;
+        return preg_replace( $patterns, '$1$2[redacted]', $content ) ?? "[Log line omitted because redaction failed.]\n";
     }
 }

@@ -71,6 +71,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gettext
 
+      - name: Run frontend checks
+        run: bun run frontend:check
+
+      - name: Check PHP literal escapes
+        run: php scripts/check-php-literal-escapes.php
+
       - name: Build official zip
         id: build
         run: |

@@ -86,7 +86,7 @@ function activeAccount(
   locationMode = 'pending',
   nativeProvince = false,
 ) {
-  const window = new happy.Window({ url: 'https://account.example.test' }) as any;
+  const window = new happy.Window({ url: 'https://account.example.test', settings: { disableJavaScriptFileLoading: true, enableJavaScriptEvaluation: false, handleDisabledFileLoadingAsSuccess: true } }) as any;
   const document = window.document;
   document.body.innerHTML = `<form>${Object.entries(initialAddress)
     .map(([key, value]) =>
@@ -270,6 +270,7 @@ function activeAccount(
       flush();
     },
     grant(index = locations.length - 1, latitude = 0, longitude = 0) {
+      if (index < 0) { document.querySelector('.kiriof-buyer-map__locate').click(); index = locations.length - 1; }
       locations[index].success({ coords: { latitude, longitude } });
       flush();
     },
@@ -386,6 +387,42 @@ function fixture(saved: any = null, extra: any = {}, locationMode = 'grant') {
 async function settle() {
   for (let index = 0; index < 8; index++) await Promise.resolve();
 }
+
+test('Google account map opens at Jogja without GPS, preserves saved pins, and remains manual after denial', async () => {
+  for (const saved of [null, savedPin({ destination_latitude: 7, destination_longitude: 8 })]) {
+    const h = activeAccount(saved, { map: { enabled: true, provider: 'google', apiKey: 'fixture-google-key' } });
+    accounts.push(h);
+    await settle();
+    const script = h.document.querySelector('script[data-kiriminaja-google-maps]');
+    expect(script).not.toBeNull();
+    const maps: any[] = [];
+    h.window.google = { maps: {
+      Map: class {
+        center: any; events: Record<string, any> = {};
+        constructor(_node: any, options: any) { this.center = options.center; maps.push(this); }
+        getCenter() { return { lat: () => this.center.lat, lng: () => this.center.lng }; }
+        setCenter(point: any) { this.center = point; }
+        setZoom() {}
+        addListener(name: string, callback: any) { this.events[name] = callback; return { remove: () => { delete this.events[name]; } }; }
+      }, event: { trigger() {}, clearInstanceListeners() {} },
+    } };
+    h.window[new URL(script.src).searchParams.get('callback')!]();
+    await settle(); h.flush();
+    expect(maps).toHaveLength(1);
+    expect(h.locations).toHaveLength(0);
+    expect(maps[0].center).toEqual(saved ? { lat: 7, lng: 8 } : { lat: -7.801389, lng: 110.364722 });
+    h.submit();
+    expect(h.posted().version).toBe(saved ? 2 : 1);
+    if (!saved) expect(h.posted().destination_latitude).toBeUndefined();
+    h.node('.kiriof-buyer-map__locate').click(); h.flush();
+    h.locations[0].failure({ code: 1 });
+    expect(h.node('.kiriof-buyer-map__viewport').hidden).toBe(false);
+    expect(h.node('.kiriof-buyer-map__status').textContent).toBe('Permission denied');
+    expect(h.posted().version).toBe(saved ? 2 : 1);
+    maps[0].events.click({ latLng: { lat: () => 0, lng: () => 0 } }); h.flush();
+    expect(h.posted().destination_latitude).toBe('0.0000000');
+  }
+});
 
 test('account entry enhances the native province without SelectWoo and keeps native save authority', async () => {
   const h = activeAccount(savedPin(), { map: { enabled: false } }, false, 'pending', true);
@@ -605,13 +642,14 @@ describe('Account shipping destination native form', () => {
   test('saved outside pin warns before permission; denial preserves warning and still allows save', async () => {
     const h = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending');
     expect(h.coverageWarning.hidden).toBe(false);
+    h.locate.fire('click');
     expect(h.coverageWarning.textContent).toBe('Outside Instant area. Express remains available.');
     expect(h.coverageWarning.getAttribute('role')).toBe('note');
     expect(h.coverageLegend.hidden).toBe(false);
     expect(h.coverageLegend.textContent).toBe('Instant coverage legend');
-    expect(h.circles).toHaveLength(0);
+    expect(h.circles).toHaveLength(1);
     h.locations[0].failure({ code: 1 });
-    expect(h.viewport.hidden).toBe(true);
+    expect(h.viewport.hidden).toBe(false);
     expect(h.mapStatus.textContent).toBe('Permission denied');
     expect(h.coverageWarning.hidden).toBe(false);
     h.advance(250);
@@ -621,12 +659,12 @@ describe('Account shipping destination native form', () => {
     expect(h.posted().version).toBe(2);
     expect(h.posted().district_id).toBe('13');
     expect(h.posted().destination_latitude).toBe('1.0000000');
-    expect(h.maps).toHaveLength(0);
-    expect(h.circles).toHaveLength(0);
+    expect(h.maps).toHaveLength(1);
+    expect(h.circles).toHaveLength(1);
   });
   test('permission draws coverage circle without constraining outside pin or native save', async () => {
     const h = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending');
-    h.locations[0].success({ coords: { latitude: 0, longitude: 0 } });
+    expect(h.locations).toHaveLength(0);
     expect(h.circles).toHaveLength(1);
     expect(h.circles[0].center).toEqual([0, 0]);
     expect(h.circles[0].options.radius).toBe(40000);
@@ -655,13 +693,14 @@ describe('Account shipping destination native form', () => {
   test('full address change clears outside warning with pin and ignores old location callbacks', () => {
     const h = fixture(savedPin({ destination_latitude: 1 }), coverageConfig, 'pending');
     expect(h.coverageWarning.hidden).toBe(false);
+    h.locate.fire('click');
     h.edit('address_2', 'Suite');
     expect(h.coverageWarning.hidden).toBe(true);
     expect(h.posted().version).toBe(1);
     expect(h.posted().destination_latitude).toBeUndefined();
     h.locations[0].success({ coords: { latitude: 2, longitude: 3 } });
     expect(h.coverageWarning.hidden).toBe(true);
-    expect(h.maps).toHaveLength(0);
+    expect(h.maps).toHaveLength(2); expect(h.maps[0].removed).toBe(1);
     expect(h.coverageLegend.hidden).toBe(false);
   });
   test('inside saved pin and unknown coverage never show warning or invent within label', () => {
@@ -719,7 +758,7 @@ describe('Account shipping destination native form', () => {
     h.choose('13');
     expect(h.posted().district_label).toBe('Other district');
     expect(h.requests).toHaveLength(1);
-    expect(h.timers.size).toBe(0);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
   });
   test('empty lookup keeps placeholder dropdown enabled and rejects fabricated changes', async () => {
     const h = fixture(destination(), {}, 'pending');
@@ -754,30 +793,30 @@ describe('Account shipping destination native form', () => {
     expect(h.retry.hidden).toBe(true);
     expect(h.district.disabled).toBe(true);
     expect(h.hidden.value).toBe(posted);
-    expect(h.locations).toHaveLength(1);
-    expect(h.maps).toHaveLength(0);
+    expect(h.locations).toHaveLength(0);
+    expect(h.maps).toHaveLength(1);
     expect(h.requests[0].options.signal.aborted).toBe(true);
     h.flush();
     await h.respond(1);
     h.choose('13');
     expect(h.posted().district_label).toBe('Other district');
     expect(h.posted().destination_latitude).toBe('0.0000000');
-    expect(h.locations).toHaveLength(1);
+    expect(h.locations).toHaveLength(0);
     expect(h.requests).toHaveLength(2);
   });
   test('network timeout begins only when the actual fetch starts and exits loading', () => {
     const h = fixture(destination(), {}, 'pending');
-    expect([...h.timers.values()].map((timer) => timer.delay)).toEqual([250]);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150).map((timer) => timer.delay)).toEqual([250]);
     h.advance(10000);
     expect(h.requests).toHaveLength(0);
     h.advance(250);
-    expect([...h.timers.values()].map((timer) => timer.delay)).toEqual([10000]);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150).map((timer) => timer.delay)).toEqual([10000]);
     h.advance(10000);
     expect(h.requests[0].options.signal.aborted).toBe(true);
     expect(h.district.disabled).toBe(false);
     expect(h.status.textContent).toBe('Lookup failed');
     expect(h.retry.hidden).toBe(false);
-    expect(h.timers.size).toBe(0);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
   });
   test('late success after timeout cannot replace remembered identity and retry succeeds', async () => {
     const h = fixture(destination(), {}, 'pending');
@@ -808,7 +847,7 @@ describe('Account shipping destination native form', () => {
     h.advance(250);
     h.requests[0].resolve({ ok: false });
     await settle();
-    expect(h.timers.size).toBe(0);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
     expect(h.district.disabled).toBe(false);
     expect(h.retry.hidden).toBe(false);
   });
@@ -823,12 +862,13 @@ describe('Account shipping destination native form', () => {
       { ok: true, json: async () => ({ success: false }) },
     ]) {
       const h = fixture(null, {}, 'pending');
+      h.locate.fire('click');
       h.advance(250);
       h.requests[0].resolve(response);
       await settle();
       expect(h.district.disabled).toBe(false);
       expect(h.status.textContent).toBe('Lookup failed');
-      expect(h.timers.size).toBe(0);
+      expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
     }
   });
   test('incomplete postcode disables dropdown and cancels both request and deadline', () => {
@@ -836,7 +876,7 @@ describe('Account shipping destination native form', () => {
     h.advance(250);
     h.edit('postcode', '10');
     expect(h.requests[0].options.signal.aborted).toBe(true);
-    expect(h.timers.size).toBe(0);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
     expect(h.district.disabled).toBe(true);
     expect(h.status.textContent).toBe('Postcode required');
     expect(h.retry.hidden).toBe(true);
@@ -869,75 +909,76 @@ describe('Account shipping destination native form', () => {
     h.root.fire('pagehide');
     await settle();
     h.window.__accountFlush();
-    expect(h.timers.size).toBe(0);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
     h.retry.fire('click');
     h.flush();
     expect(h.requests).toHaveLength(2);
     expect(h.requests[1].options.signal.aborted).toBe(true);
   });
-  test('pending permission creates neither Leaflet nor tiles, and ordinary edits do not re-request', async () => {
+  test('map mounts without permission and ordinary edits do not request location', async () => {
     const h = fixture(null, {}, 'pending');
-    expect(h.locations).toHaveLength(1);
-    expect(h.maps).toHaveLength(0);
-    expect(h.tiles).toHaveLength(0);
-    expect(h.viewport.hidden).toBe(true);
+    expect(h.locations).toHaveLength(0);
+    expect(h.maps).toHaveLength(1);
+    expect(h.tiles).toHaveLength(1);
+    expect(h.viewport.hidden).toBe(false);
+    expect(h.maps[0].center).toEqual({lat:-7.801389,lng:110.364722});
     expect(h.mapSection.hidden).toBe(false);
-    expect(h.locate.disabled).toBe(true);
+    expect(h.locate.disabled).toBe(false);
     h.edit('address_1', ' Street ');
     h.form.fire('input', h.district);
-    h.locate.fire('click');
     h.flush();
     await h.respond();
     h.choose('12');
     h.form.fire('submit');
-    expect(h.locations).toHaveLength(1);
+    expect(h.locations).toHaveLength(0);
     expect(h.posted().district_id).toBe('12');
     expect(h.posted().version).toBe(1);
-    h.locations[0].success({ coords: { latitude: 0, longitude: 0 } });
+    expect(h.locations).toHaveLength(0);
     expect(h.viewport.hidden).toBe(false);
     expect(h.maps).toHaveLength(1);
     expect(h.tiles).toHaveLength(1);
-    expect(h.posted().destination_latitude).toBe('0.0000000');
-    expect(h.posted().destination_longitude).toBe('0.0000000');
+    expect(h.posted().destination_latitude).toBeUndefined();
+    expect(h.posted().destination_longitude).toBeUndefined();
   });
   test('denial retains matching saved pin without exposing its viewport and permits district/save', async () => {
     const h = fixture(savedPin(), {}, 'pending');
+    h.locate.fire('click');
     h.locations[0].failure({ code: 1 });
     expect(h.mapStatus.textContent).toBe('Permission denied');
-    expect(h.viewport.hidden).toBe(true);
-    expect(h.maps).toHaveLength(0);
-    expect(h.tiles).toHaveLength(0);
+    expect(h.viewport.hidden).toBe(false);
+    expect(h.maps).toHaveLength(1);
+    expect(h.tiles).toHaveLength(1);
     expect(h.posted().version).toBe(2);
     h.flush();
     await h.respond();
     h.choose('13');
     h.form.fire('submit');
-    h.locate.fire('click');
     expect(h.posted().district_id).toBe('13');
     expect(h.posted().destination_latitude).toBe('0.0000000');
     expect(h.locations).toHaveLength(1);
-    expect(h.viewport.hidden).toBe(true);
+    expect(h.viewport.hidden).toBe(false);
   });
-  test('device grant never overwrites a matching saved pin', () => {
+  test('matching saved pin is authoritative without requesting device location', () => {
     const h = fixture(
       savedPin({ destination_latitude: 7, destination_longitude: 8 }),
       {},
       'pending',
     );
-    h.locations[0].success({ coords: { latitude: 0, longitude: 0 } });
+    expect(h.locations).toHaveLength(0);
     expect(h.maps[0].center).toEqual({ lat: 7, lng: 8 });
     expect(h.posted().destination_latitude).toBe(7);
     expect(h.indicator.hidden).toBe(false);
     expect(h.viewport.hidden).toBe(false);
   });
   for (const code of [2, 3]) {
-    test(`location error ${code} hides viewport without requiring a pin`, async () => {
+    test(`location error ${code} retains viewport without requiring a pin`, async () => {
       const h = fixture(null, {}, 'pending');
+      h.locate.fire('click');
       h.locations[0].failure({ code });
       expect(h.mapStatus.textContent).toBe('Location failed');
-      expect(h.viewport.hidden).toBe(true);
-      expect(h.maps).toHaveLength(0);
-      expect(h.tiles).toHaveLength(0);
+      expect(h.viewport.hidden).toBe(false);
+      expect(h.maps).toHaveLength(1);
+      expect(h.tiles).toHaveLength(1);
       h.flush();
       await h.respond();
       h.choose('12');
@@ -945,12 +986,13 @@ describe('Account shipping destination native form', () => {
       expect(h.posted().version).toBe(1);
     });
   }
-  test('missing geolocation API remains map-unavailable without Leaflet or tiles', async () => {
+  test('missing geolocation API keeps manual Leaflet picker and tiles available', async () => {
     const h = fixture(null, {}, 'unavailable');
-    expect(h.mapStatus.textContent).toBe('Map unavailable');
-    expect(h.viewport.hidden).toBe(true);
-    expect(h.maps).toHaveLength(0);
-    expect(h.tiles).toHaveLength(0);
+    expect(h.mapStatus.textContent).toBe('');
+    expect(h.viewport.hidden).toBe(false);
+    expect(h.maps).toHaveLength(1);
+    expect(h.tiles).toHaveLength(1);
+    h.locate.fire('click'); expect(h.mapStatus.textContent).toBe('Permission denied'); expect(h.viewport.hidden).toBe(false);
     h.flush();
     await h.respond();
     h.choose('12');
@@ -961,12 +1003,13 @@ describe('Account shipping destination native form', () => {
     const h = fixture(null, { map: { enabled: false } }, 'pending');
     expect(h.locations).toHaveLength(0);
     const eligible = fixture(null, {}, 'pending');
+    eligible.locate.fire('click');
     eligible.edit('country', 'US');
     eligible.locations[0].success({ coords: { latitude: 1, longitude: 2 } });
-    expect(eligible.maps).toHaveLength(0);
+    expect(eligible.maps[0].removed).toBe(1);
     expect(eligible.mapSection.hidden).toBe(true);
     eligible.edit('country', 'ID');
-    expect(eligible.locations).toHaveLength(2);
+    expect(eligible.locations).toHaveLength(1); expect(eligible.maps).toHaveLength(2);
   });
   test('shipping edit badges track verified district, placed pin and full-address invalidation', async () => {
     const h = fixture(
@@ -989,6 +1032,7 @@ describe('Account shipping destination native form', () => {
     await h.respond();
     h.choose('12');
     expect(Array.from(h.badges.children).map((node) => node.textContent)).toEqual(['⚠ Need pin']);
+    h.locate.fire('click');
     h.locations[0].success({ coords: { latitude: 0, longitude: 0 } });
     expect(Array.from(h.badges.children).map((node) => node.textContent)).toEqual(['✓ Pin saved']);
     h.edit('address_1', 'Other street');
@@ -1000,6 +1044,7 @@ describe('Account shipping destination native form', () => {
   });
   test('granted zero device point is selected, district is required, lookup uses the real buyer endpoint', async () => {
     const h = fixture();
+    h.locate.fire('click'); h.locations[0].success({coords:{latitude:0,longitude:0}});
     expect(h.posted().version).toBe(2);
     expect(h.maps[0].center).toEqual({ lat: 0, lng: 0 });
     expect(h.locations).toHaveLength(1);
@@ -1060,9 +1105,9 @@ describe('Account shipping destination native form', () => {
     h.edit('address_2', 'Suite 1');
     expect(old.removed).toBe(1);
     expect(h.maps).toHaveLength(2);
-    expect(h.indicator.hidden).toBe(false);
-    expect(h.locations).toHaveLength(2);
-    expect(h.posted().shipping_address.address_2).toBe('Suite 1');
+    expect(h.indicator.hidden).toBe(true);
+    expect(h.locations).toHaveLength(0);
+    expect(h.posted().version).toBe(1);
     expect(h.posted().district_id).toBe('12');
     expect(h.district.disabled).toBe(true);
     h.flush();
@@ -1077,7 +1122,7 @@ describe('Account shipping destination native form', () => {
     expect(h.maps).toHaveLength(1);
     expect(h.maps[0].removed).toBe(0);
     expect(h.posted().version).toBe(2);
-    expect(h.locations).toHaveLength(1);
+    expect(h.locations).toHaveLength(0);
   });
   test('cancellable debounce and generation reject obsolete postcode/country responses even when fetch ignores abort', async () => {
     const h = fixture(destination());
@@ -1125,18 +1170,19 @@ describe('Account shipping destination native form', () => {
     h.inputs.shipping_state.replaceWith(next);
     h.inputs.shipping_state = next;
     h.form.fire('change', h.inputs.shipping_state);
-    expect(h.posted().version).toBe(2);
+    expect(h.posted().version).toBe(1);
     h.click(1, 2);
     expect(h.posted().shipping_address.state).toBe('JB');
     h.inputs.shipping_postcode.value = ' 10 220 ';
     h.form.fire('submit');
     expect(h.posted().postcode).toBe('10220');
     expect(h.posted().district_id).toBe('');
-    expect(h.posted().shipping_address.postcode).toBe('10220');
+    expect(h.posted().version).toBe(1);
+    expect(h.posted().shipping_address).toBeUndefined();
   });
   test('gate rejects late geolocation after address edit or pagehide and hidden locate never requests', async () => {
     const h = fixture(destination(), {}, 'pending');
-    expect(h.locations).toHaveLength(1);
+    expect(h.locations).toHaveLength(0);
     h.locate.fire('click');
     expect(h.locations).toHaveLength(1);
     h.edit('city', 'Bandung');
@@ -1146,11 +1192,11 @@ describe('Account shipping destination native form', () => {
     h.root.fire('pagehide');
     await settle();
     h.window.__accountFlush();
-    h.locations[1].success({ coords: { latitude: 4, longitude: 5 } });
+    h.locations[0].success({ coords: { latitude: 4, longitude: 5 } });
     expect(h.posted().version).toBe(1);
-    expect(h.maps).toHaveLength(0);
-    expect(h.tiles).toHaveLength(0);
-    expect(h.timers.size).toBe(0);
+    expect(h.maps).toHaveLength(2); expect(h.maps.every(map => map.removed === 1)).toBe(true);
+    expect(h.tiles).toHaveLength(2);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
     h.form.fire('input', h.inputs.shipping_city);
     h.flush();
     expect(h.requests).toHaveLength(0);
@@ -1168,16 +1214,16 @@ describe('Account shipping destination native form', () => {
   test('pagehide disposes granted map and ignores late session callbacks', async () => {
     const h = fixture();
     h.locate.fire('click');
-    expect(h.locations).toHaveLength(2);
+    expect(h.locations).toHaveLength(1);
     const posted = h.hidden.value;
     h.root.fire('pagehide');
     await settle();
     h.window.__accountFlush();
-    h.locations[1].success({ coords: { latitude: 4, longitude: 5 } });
+    h.locations[0].success({ coords: { latitude: 4, longitude: 5 } });
     h.maps[0].fire('click', { latlng: { lat: 6, lng: 7 } });
     expect(h.hidden.value).toBe(posted);
     expect(h.maps[0].removed).toBe(1);
-    expect(h.timers.size).toBe(0);
+    expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
   });
   test('map unavailable is nonmandatory and district remains usable', async () => {
     const h = fixture(null, { map: { tiles: 'http://unsafe.test' } });
@@ -1191,7 +1237,7 @@ describe('Account shipping destination native form', () => {
     expect(h.posted().version).toBe(1);
   });
   test('DOMContentLoaded initializes once and pagehide disposes account and selector bridges', async () => {
-    const window = new happy.Window({ url: 'https://account.example.test' }) as any;
+    const window = new happy.Window({ url: 'https://account.example.test', settings: { disableJavaScriptFileLoading: true, enableJavaScriptEvaluation: false, handleDisabledFileLoadingAsSuccess: true } }) as any;
     try {
       Object.defineProperty(window.document, 'readyState', {
         value: 'loading',
@@ -1219,12 +1265,12 @@ describe('active typed account shipping entry with real Svelte', () => {
   test('synchronous permission grant does not subscribe the map lifecycle to pin changes', async () => {
     const h = activeAccount(null, {}, true);
     try {
-      expect(h.locations).toHaveLength(1);
+      expect(h.locations).toHaveLength(0);
       expect(h.maps).toHaveLength(1);
       h.maps[0].fire('click', { latlng: { lat: 1, lng: 2 } });
       h.flush();
       expect(h.posted().destination_latitude).toBe('1.0000000');
-      expect(h.locations).toHaveLength(1);
+      expect(h.locations).toHaveLength(0);
       expect(h.maps).toHaveLength(1);
     } finally {
       await h.close();
@@ -1234,7 +1280,7 @@ describe('active typed account shipping entry with real Svelte', () => {
   test('native six fields and submit stay authoritative; canonical district and zero pin persist', async () => {
     const h = activeAccount();
     try {
-      expect(h.node('.kiriof-buyer-map__viewport').hidden).toBe(true);
+      expect(h.node('.kiriof-buyer-map__viewport').hidden).toBe(false);
       expect(h.node('.kiriof-account-shipping-status').textContent).toContain('Checking');
       h.advance(250);
       expect(h.requests[0].options.body).toContain('action=kiriminaja_subdistrict_search');
@@ -1268,6 +1314,7 @@ describe('active typed account shipping entry with real Svelte', () => {
     });
     try {
       expect(h.node('.kiriof-buyer-map__coverage-warning').textContent).toBe('Outside');
+      h.node('.kiriof-buyer-map__locate').click(); h.flush();
       h.locations[0].failure({ code: 1 });
       h.flush();
       expect(h.node('.kiriof-buyer-map__status').textContent).toBe('Permission denied');
@@ -1276,15 +1323,15 @@ describe('active typed account shipping entry with real Svelte', () => {
       h.choose('13');
       h.submit();
       expect(h.posted().destination_latitude).toBe('1.0000000');
-      expect(h.maps).toHaveLength(0);
+      expect(h.maps).toHaveLength(1); expect(h.node('.kiriof-buyer-map__viewport').hidden).toBe(false);
       h.edit('address_2', 'Suite');
       expect(h.posted().version).toBe(1);
       expect(h.node('.kiriof-buyer-map__coverage-warning').hidden).toBe(true);
       h.grant(0, 2, 3);
-      expect(h.maps).toHaveLength(0);
-      h.grant();
+      expect(h.maps).toHaveLength(2); expect(h.maps[0].removed).toBe(1); expect(h.posted().version).toBe(1);
+      h.node('.kiriof-buyer-map__locate').click(); h.flush(); h.grant();
       expect(h.posted().shipping_address.address_2).toBe('Suite');
-      const map = h.maps[0];
+      const map = h.maps.at(-1);
       h.edit('city', 'New city');
       expect(map.removed).toBe(1);
     } finally {
@@ -1306,7 +1353,7 @@ describe('active typed account shipping entry with real Svelte', () => {
       h.advance(250);
       await h.respond(1);
       expect(h.posted().district_label).toBe('Canonical');
-      expect(h.locations).toHaveLength(1);
+      expect(h.locations).toHaveLength(0);
       expect(h.node('#kiriof-account-district-retry').hidden).toBe(true);
       h.choose('13');
       expect(h.posted().destination_latitude).toBe('0.0000000');
@@ -1330,7 +1377,8 @@ describe('active typed account shipping entry with real Svelte', () => {
       h.edit('country', 'US');
       expect(h.node('.kiriof-buyer-map').hidden).toBe(true);
       h.grant();
-      expect(h.maps).toHaveLength(1);
+      expect(h.maps).toHaveLength(2);
+      expect(h.maps.every(map => map.removed === 1)).toBe(true);
       h.edit('country', 'ID');
       h.grant();
       h.advance(250);
@@ -1342,7 +1390,7 @@ describe('active typed account shipping entry with real Svelte', () => {
       const posted = h.hidden.value;
       h.edit('postcode', '10220');
       expect(h.hidden.value).toBe(posted);
-      expect(h.timers.size).toBe(0);
+      expect([...h.timers.values()].filter(timer => timer.delay !== 150)).toHaveLength(0);
     } finally {
       await h.close();
     }

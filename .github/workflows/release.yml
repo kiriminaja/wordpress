@@ -30,7 +30,7 @@ jobs:
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           tools: composer
 
-      - name: Install PHP test dependencies
+      - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist
 
       - name: Setup Node
@@ -74,10 +74,8 @@ jobs:
       - name: Build ZIP (official variant — WP.org-ready)
         run: make zip plain
 
-      - name: Verify exact release source and artifact
-        run: |
-          test -f kiriminaja-official.zip
-          make test
+      - name: Verify release artifact exists
+        run: test -f kiriminaja-official.zip
 
       - name: Read release notes from readme changelog
         env:

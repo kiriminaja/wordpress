@@ -19,6 +19,9 @@ This repository is the KiriminAja Official WordPress plugin for WooCommerce. Kee
 
 ## Testing
 
+- Testing is explicit only: commits and `make zip` must not run tests or validation suites. Run manual test commands when requested; PR CI keeps its explicit checks.
+- `simple-git-hooks` has no managed hooks and preserves other hooks. Keep the legacy frontend pre-commit script a no-op so stale installations cannot run tests.
+
 - Use ParaTest as the default test runner: `make test`.
 - `make test` / `composer test` and the named JS test scripts reuse content-matched successful runs. Use `make test-force`, `composer test:force`, or `KIRIOF_TEST_FORCE=1` when fresh execution is required; report cache hits as reused results, not newly executed tests.
 - ParaTest is the only supported PHP test entry point (`make test` or `composer test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.

@@ -9,8 +9,35 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_failed_pickup_logs_wire_payload_with_integer_quantity_and_no_pin(): void {
+		foreach ( array( 'credit', 'qris' ) as $payment ) {
+			$result = $this->runFixture( array( 'payment' => $payment, 'http_status' => 500, 'item_quantities' => array( '2', '3' ) ) );
+			$failures = array_values( array_filter( $result['logs'], static function ( $log ) { return 'Request pickup API request failed.' === $log[1]; } ) );
+			$this->assertCount( 1, $failures );
+			$context = $failures[0][2];
+			$this->assertSame( 'api/mitra/v6.2/request_pickup', $context['endpoint'] );
+			$logged = json_decode( $context['request_payload_json'], true, 512, JSON_THROW_ON_ERROR );
+			$this->assertSame( 5, $logged['packages'][0]['qty'] );
+			$this->assertSame( 'credit' === $payment ? 'credit' : 'cash', $logged['payment_method'] );
+			$this->assertStringNotContainsString( '012345', json_encode( $result['logs'] ) );
+			$this->assertStringNotContainsString( 'fixture-express-token', json_encode( $result['logs'] ) );
+			if ( 'credit' === $payment ) { $this->assertSame( '[redacted]', $logged['pin'] ); }
+			else { $this->assertArrayNotHasKey( 'pin', $logged ); }
+			unset( $logged['pin'] );
+			$this->assertSame( $result['requests'][0]['payload'], $logged );
+		}
+	}
+
+	public function test_successful_booking_does_not_log_or_retain_payload(): void {
+		$result = $this->runFixture();
+		$this->assertSame( '', $result['diagnostic_payload_json'] );
+		foreach ( $result['logs'] as $log ) {
+			$this->assertArrayNotHasKey( 'request_payload_json', $log[2] );
+		}
+	}
+
 	public function test_express_package_quantity_sums_order_item_quantities(): void {
-		foreach ( array( array( 4 ), array( 2, 3 ), array() ) as $quantities ) {
+		foreach ( array( array( 4 ), array( 2, 3 ), array( '2', '3' ), array() ) as $quantities ) {
 			$result = $this->runFixture( array( 'item_quantities' => $quantities ) );
 			$this->assertSame( 200, $result['status'] );
 			$this->assertSame( max( 1, array_sum( $quantities ) ), $result['requests'][0]['payload']['packages'][0]['qty'] );

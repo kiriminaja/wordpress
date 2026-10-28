@@ -317,6 +317,8 @@ class SendRequestPickupTransactionService extends BaseService
             kiriof_log('warning', 'Request pickup API request failed.', [
                 'order_ids' => $this->orderIds,
                 'package_count' => count($apiPackages),
+                'endpoint' => 'api/mitra/v6.2/request_pickup',
+                'request_payload_json' => $this->apiRepository->pickupRequestPayloadJson(),
                 'error_code' => in_array($errorCode, ['PIN_INVALID', 'PIN_MAX_ATTEMPT_REACHED', 'BALANCE_NOT_ENOUGH'], true) ? $errorCode : 'UNKNOWN',
                 'backtrace' => false,
             ], 'kiriminaja_request_pickup');
@@ -540,7 +542,7 @@ class SendRequestPickupTransactionService extends BaseService
                 "width"                     => (int) $helper->minAmount($transaction->width),
                 "height"                    => (int) $helper->minAmount($transaction->height),
                 "length"                    => (int) $helper->minAmount($transaction->length),
-                'qty'                       => $quantity,
+                'qty'                       => (int) $quantity,
                 "item_value"                => (int) round((float) ($transaction->transaction_value ?? 0)),
                 "insurance_amount"          => (int) round((float) ($transaction->insurance_cost ?? 0)),
                 "shipping_cost"             => (int) round((float) ($transaction->shipping_cost ?? 0)),
