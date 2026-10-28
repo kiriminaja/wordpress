@@ -26,6 +26,19 @@ function replaceShippingRows(table: string, rows: string) {
   });
 }
 
+test('enhancement collapses empty bordered rate rows and restores labelled hook content after refresh', async ({ app, browser }) => {
+  await openFixture(app, browser);
+  await expect(browser.locator(`${section} .kiriof-buyer-combobox-trigger`)).toBeVisible();
+  expect(await browser.evaluate(() => [...document.querySelectorAll<HTMLElement>('.kiriof-classic-shipping-options .kiriof-shipping-method-item')].every(node => node.getBoundingClientRect().height === 0))).toBe(true);
+  const html = render('classic-shipping-presentation-runtime.php', { rates: [{ id: express, label: 'Hook JNE Regular', cost: 15000 }], chosen: express, hook_fields: true });
+  await browser.evaluate((fragment: string) => (window as any).__replaceReview(fragment, true), replaceShippingRows(review(), html));
+  await expect(browser.locator(`${section} label.kiriof-shipping-method-label`)).toBeVisible();
+  await expect(browser.locator(`${section} .fixture-shipping-hook input`)).toBeVisible();
+  await browser.evaluate((fragment: string) => (window as any).__replaceReview(fragment, true), fragment(2));
+  await expect(browser.locator(`${section} .kiriof-shipping-methods-list--enhanced`)).not.toBeVisible();
+  await assertIdle(browser);
+});
+
 function fragment(generation: number, packages = 1, virtual = false) {
   const rows = Array.from({ length: packages }, (_, index) => render('classic-shipping-presentation-runtime.php', {
     index, chosen: instant, rates: [
@@ -188,11 +201,12 @@ for (const count of [1, 2]) {
       await input.fill('Leave at reception');
     }
     expect(await browser.evaluate(() => ({
-      nativeHidden: [...document.querySelectorAll<HTMLElement>(`${'.kiriof-classic-shipping-options'} input.shipping_method, ${'.kiriof-classic-shipping-options'} label.kiriof-shipping-method-label`)].every(node => getComputedStyle(node).display === 'none'),
+      nativeHidden: [...document.querySelectorAll<HTMLElement>('.kiriof-classic-shipping-options input.shipping_method')].every(node => getComputedStyle(node).display === 'none'),
+      rateLabels: [...document.querySelectorAll<HTMLElement>('.kiriof-classic-shipping-options label.kiriof-shipping-method-label')].filter(node => node.getBoundingClientRect().height > 0).map(node => node.textContent),
       hookLabelsVisible: [...document.querySelectorAll<HTMLElement>('.fixture-shipping-hook label')].every(node => node.getBoundingClientRect().height > 0),
       values: (window as any).jQuery('form.checkout').serializeArray().filter((value: any) => value.name.startsWith('fixture_delivery[')).map((value: any) => value.value),
       checked: [...document.querySelectorAll<HTMLInputElement>('input.shipping_method:checked')].map(node => node.value),
-    }))).toEqual({ nativeHidden: true, hookLabelsVisible: true, values: Array(count).fill('Leave at reception'), checked: [express] });
+    }))).toEqual({ nativeHidden: true, rateLabels: rates.map(rate => `${rate.label}: Rp ${rate.cost}`), hookLabelsVisible: true, values: Array(count).fill('Leave at reception'), checked: [express] });
     await assertIdle(browser);
     expect(unexpected).toEqual([]);
   });

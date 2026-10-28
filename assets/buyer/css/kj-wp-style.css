@@ -210,7 +210,8 @@ tr.woocommerce-shipping-totals {
 }
 
 .kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced > li > input.kiriof-shipping-method-input,
-.kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced > li > label.kiriof-shipping-method-label {
+.kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced > li:not(:has(> .kiriof-shipping-method-extensions:not(:empty))),
+.kiriof-shipping-methods-ready .kiriof-shipping-methods-list--enhanced:not(:has(> li > .kiriof-shipping-method-extensions:not(:empty))) {
   display: none !important;
 }
 
