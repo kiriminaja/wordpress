@@ -137,6 +137,8 @@ export function bootBlocksMap(root: BlocksRoot): void {
             leaflet: root.L,
             node: node.current,
             initial: initial,
+            defaultCenter: config.defaultCenter,
+            permissions: root.navigator?.permissions,
             label: strings.mapTitle,
             coverage: coverage,
             onCoverage: function (status) {

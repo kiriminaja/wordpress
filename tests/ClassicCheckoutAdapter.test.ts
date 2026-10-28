@@ -84,10 +84,15 @@ function adapter(options: any = {}) {
 	const requests: any[] = [];
 	window.fetch = (_url: string, init: any) => { const request = deferred(); requests.push({ init, body: new URLSearchParams(init.body), ...request }); return request.promise; };
 	const geo: any[] = []; Object.defineProperty(window.navigator, 'geolocation', { value: { getCurrentPosition(success: any, failure: any) { geo.push({ success, failure }); } }, configurable: true });
+	Object.defineProperty(window.navigator, 'permissions', { value: { query: async () => ({ state: options.permissionState || 'prompt' }) }, configurable: true });
 	const maps: any[] = [];
-	window.L = { map() { const listeners: any = {}; const map: any = { listeners, removed: false, setView() { return map; }, on(name: string, callback: any) { listeners[name] = callback; return map; }, invalidateSize() {}, getCenter() { return { lat: -6.2, lng: 106.8 }; }, remove() { map.removed = true; } }; maps.push(map); return map; }, tileLayer() { return { addTo() { return this; }, on() {} }; } };
+	window.L = { map() { const listeners: any = {}; const map: any = { listeners, removed: false, views: [] as any[], setView(center: any) { map.views.push(center); return map; }, on(name: string, callback: any) { listeners[name] = callback; return map; }, invalidateSize() {}, getCenter() { return { lat: -6.2, lng: 106.8 }; }, remove() { map.removed = true; } }; maps.push(map); return map; }, tileLayer() { return { addTo() { return this; }, on() {} }; } };
 	window.HTMLElement.prototype.scrollIntoView = () => {};
 	window.kiriofClassicCheckoutConfig = { enabled: true, ownsDistrict: false, ajaxUrl: '/admin-ajax.php', nonce: 'nonce', needsShipping: true, map: { enabled: true, tiles: 'https://tiles.example/{z}/{x}/{y}.png', i18n: { mapPermission: 'Permission denied', mapLocationFailed: 'Location failed', mapPlaced: 'Pin placed', mapLocating: 'Locating' } }, ...options };
+	if (options.emptyAddress) {
+		for (const key of ['address_1', 'address_2', 'city', 'postcode']) document.querySelector<HTMLInputElement>(`#billing_${key}`)!.value = '';
+		(document.querySelector('#kiriof_destination_area') as HTMLSelectElement).selectedIndex = -1;
+	}
 	h.load();
 	const query = (selector: string): any => document.querySelector(selector);
 	const hidden = () => JSON.parse(query('[name="kiriof_buyer_destination_snapshot"]').value);
@@ -150,6 +155,19 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+	test('empty checkout renders a regional map before street, postcode or district are entered', () => {
+		const h = adapter({ emptyAddress: true, map: { enabled: true, coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 } } });
+		expect(h.maps).toHaveLength(1);
+		expect(h.query('.kiriof-classic-map').hidden).toBe(false);
+		expect(h.maps[0].views[0]).toEqual([-6.9, 107.6]);
+		expect(h.geo).toHaveLength(0);
+		expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+		expect(h.hidden().version).toBe(1);
+		h.maps[0].listeners.click({ latlng: { lat: -6.9, lng: 107.6 } });
+		h.flush();
+		expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+		expect(h.hidden().version).toBe(1);
+	});
 	test('drag hides pin status and hints until idle, without writing intermediate map positions', async()=>{
 		const h=adapter({savedDestination:saved()});await h.acknowledge();
 		const badge=h.query('.kiriof-classic-pin-state');const status=h.query('.kiriof-classic-pin > p[role="status"]');

@@ -1,4 +1,5 @@
-import { normalizePoint, coverageStatus, BUYER_MAP_CENTER } from './leaflet';
+import { normalizePoint, coverageStatus } from './leaflet';
+import { fallbackMapCenter, suggestGrantedDeviceCenter } from './viewport';
 import type {
   GoogleMapsAPI,
   GoogleMapsWindow,
@@ -14,14 +15,6 @@ import type {
 
 function literal(point: Point): GoogleLatLngLiteral {
   return { lat: Number(point.latitude), lng: Number(point.longitude) };
-}
-function defaultCenter(value: MapSessionOptions['defaultCenter']): GoogleLatLngLiteral {
-  const point = Array.isArray(value)
-    ? normalizePoint(value[0], value[1])
-    : value && 'lat' in value
-      ? normalizePoint(value.lat, value.lng)
-      : null;
-  return point ? literal(point) : { lat: BUYER_MAP_CENTER[0], lng: BUYER_MAP_CENTER[1] };
 }
 /** 64 geodesic destinations; no routing/geometry library or filled coverage polygon. */
 function ring(center: GoogleLatLngLiteral, radius: number): GoogleLatLngLiteral[] {
@@ -149,8 +142,9 @@ export function createGoogleMapSession(options: MapSessionOptions): MapSession {
     selected = options.initial
       ? normalizePoint(options.initial.latitude, options.initial.longitude)
       : null;
+    const fallback = fallbackMapCenter(options, normalizePoint);
     map = new api.Map(node, {
-      center: selected ? literal(selected) : defaultCenter(options.defaultCenter),
+      center: selected ? literal(selected) : { lat: fallback[0], lng: fallback[1] },
       zoom: selected ? 16 : 13,
       scrollwheel: false,
       streetViewControl: false,
@@ -231,6 +225,13 @@ export function createGoogleMapSession(options: MapSessionOptions): MapSession {
     );
     node.addEventListener('keydown', keydown);
     reportCoverage();
+    const initialLocationSequence = locationSequence;
+    suggestGrantedDeviceCenter(
+      options,
+      normalizePoint,
+      () => !disposed && !selected && !moving && locationSequence === initialLocationSequence,
+      (point) => show(point),
+    );
     resizeTimer = schedule(resized, 150);
     if (globalThis.ResizeObserver) {
       observer = new globalThis.ResizeObserver(resized);
