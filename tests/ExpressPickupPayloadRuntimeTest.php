@@ -9,6 +9,36 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_express_package_quantity_sums_order_item_quantities(): void {
+		foreach ( array( array( 4 ), array( 2, 3 ), array() ) as $quantities ) {
+			$result = $this->runFixture( array( 'item_quantities' => $quantities ) );
+			$this->assertSame( 200, $result['status'] );
+			$this->assertSame( max( 1, array_sum( $quantities ) ), $result['requests'][0]['payload']['packages'][0]['qty'] );
+		}
+	}
+
+	public function test_express_packages_send_default_quantity_on_wire(): void {
+		$cases = array(
+			'credit'      => array(),
+			'qris'        => array( 'payment' => 'qris', 'pin' => '' ),
+			'top'         => array( 'top' => true ),
+			'cod'         => array( 'payment' => '', 'cod' => true ),
+			'empty items' => array( 'empty_items' => true ),
+		);
+		foreach ( $cases as $label => $input ) {
+			$result = $this->runFixture( $input );
+			$this->assertSame( 200, $result['status'], $label );
+			$this->assertCount( 1, $result['requests'], $label );
+			$payload = $result['requests'][0]['payload'];
+			$this->assertArrayNotHasKey( 'qty', $payload, $label );
+			$this->assertNotEmpty( $payload['packages'], $label );
+			foreach ( $payload['packages'] as $package ) {
+				$this->assertArrayHasKey( 'qty', $package, $label );
+				$this->assertSame( 1, $package['qty'], $label );
+			}
+		}
+	}
+
 	public function test_credit_leading_zero_pin_survives_real_service_repository_and_wire(): void {
 		$result = $this->runFixture();
 		$this->assertSame( 200, $result['status'] );

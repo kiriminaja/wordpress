@@ -37,10 +37,23 @@ namespace {
 	function wc_get_order( $id ) {
 		return new class() {
 			public function get_items() {
-				return ! empty( $GLOBALS['input']['empty_items'] ) ? array() : array( new class() {
-					public function get_name() { return 'Purchased variation'; }
-					public function get_product() { return false; }
-				} );
+				if ( ! empty( $GLOBALS['input']['empty_items'] ) ) {
+					return array();
+				}
+				$quantities = $GLOBALS['input']['item_quantities'] ?? array( 1 );
+				return array_map(
+					static function ( $quantity ) {
+						return new class( $quantity ) {
+							private int $quantity;
+
+							public function __construct( $quantity ) { $this->quantity = (int) $quantity; }
+							public function get_name() { return 'Purchased variation'; }
+							public function get_quantity() { return $this->quantity; }
+							public function get_product() { return false; }
+						};
+					},
+					$quantities
+				);
 			}
 			public function get_payment_method() { return ! empty( $GLOBALS['input']['cod'] ) ? 'cod' : 'bacs'; }
 		};
