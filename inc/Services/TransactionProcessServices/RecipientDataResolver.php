@@ -52,7 +52,7 @@ class RecipientDataResolver {
             if ( '' === $value && $order && method_exists( $order, 'get_' . $type . '_' . $field ) ) {
                 $value = trim( (string) $order->{ 'get_' . $type . '_' . $field }() );
             }
-            if ( 'phone' === $field && '' === $value && $order && method_exists( $order, 'get_meta' ) ) {
+            if ( 'phone' === $field && '' === $value && $order && ! method_exists( $order, 'get_' . $type . '_phone' ) && method_exists( $order, 'get_meta' ) ) {
                 $value = trim( (string) $order->get_meta( '_' . $type . '_phone', true ) );
             }
             $result[ $field ] = $value;
