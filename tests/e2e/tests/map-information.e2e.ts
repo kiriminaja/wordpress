@@ -78,6 +78,7 @@ for (const { provider, width, coverage } of [
     await app.open('/map');
     const status = browser.locator('.kiriof-buyer-map__pin-status');
     await expect(browser.locator('.kiriof-buyer-map__canvas')).toBeVisible();
+    expect(await browser.evaluate(() => ({ tabindex: document.querySelector('.kiriof-buyer-map__canvas')!.getAttribute('tabindex'), role: document.querySelector('.kiriof-buyer-map__canvas')!.getAttribute('role') }))).toEqual({ tabindex: '0', role: 'application' });
     await expect(status).toContainText('Need Pin Location');
     expect(await browser.evaluate(() => ({ geoCalls: (window as any).__geoCalls, selected: (window as any).__selected ?? null }))).toEqual({ geoCalls: 0, selected: null });
     expect(await browser.evaluate(() => {

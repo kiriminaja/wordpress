@@ -215,6 +215,8 @@ export function bootBlocksMap(root: BlocksRoot): void {
         h('div', {
           className: 'kiriof-buyer-map__canvas',
           ref: node,
+          tabIndex: 0,
+          role: 'application',
           'aria-label': strings.mapHelp,
           'aria-description': strings.mapKeyboard,
         }),
