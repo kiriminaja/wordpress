@@ -3,9 +3,10 @@
  display: block; clear: both; float: none; width: 100%; max-width: none; flex-basis: 100%; box-sizing: border-box;
  margin: 0.75rem 0 1.25rem; padding: 0; border: 0; background: transparent; overflow: visible;
 }
+.woocommerce form.checkout .kiriof-classic-pin p.kiriof-classic-pin-message { margin: 0; font: inherit; color: inherit; }
 .woocommerce form.checkout .kiriof-classic-pin > label { display: block; position: static; margin: 0 0 0.5rem; font: inherit; }
 .woocommerce form.checkout .kiriof-classic-pin p { margin: 0.75rem 0; }
-.woocommerce form.checkout .kiriof-classic-pin p.kiriof-classic-pin-feedback {
+.woocommerce form.checkout .kiriof-classic-pin .kiriof-classic-pin-feedback {
  display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin: 0.375rem 0 0;
  font-size: 12px; line-height: 1.5; color: #475569;
 }

@@ -95,7 +95,7 @@
   <button type="button" class="button kiriof-classic-map-locate" aria-label={strings.mapLocate || 'Current location'} title={strings.mapLocate || 'Current location'} onclick={locate}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8" /></svg></button>
   {#if hasCoverage}<span class="kiriof-classic-map-coverage" role="note" title={strings.mapCoverage || config.map?.i18n?.mapCoverage} hidden={moving}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z" /><path d="M12 9v4m0 3h.01" /></svg>{strings.mapCoverageBadge || config.map?.i18n?.mapCoverageBadge || 'Instant ≤ 40 km'}</span>{/if}
 </div>
-<p class="kiriof-classic-pin-feedback" role="status" hidden={moving || !status}>
-  <span>{status}</span>
-  <button type="button" class="kiriof-classic-pin-retry" hidden={!!incomplete || !view.queue.error} onclick={() => controller.retry()}>{strings.retry || 'Retry'}</button>
-</p>
+<div class="kiriof-classic-pin-feedback" hidden={moving || !status}>
+  <p class="kiriof-classic-pin-message" role="status"><span>{status}</span></p>
+  <button type="button" class="kiriof-classic-pin-retry" hidden={moving || !!incomplete || !view.queue.error} onclick={() => controller.retry()}>{strings.retry || 'Retry'}</button>
+</div>

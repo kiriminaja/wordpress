@@ -171,6 +171,33 @@ async function assertIdle(browser: any) {
   expect(counts.network).toBe(0);
 }
 
+for (const count of [1, 2]) {
+  test(`custom shipping select preserves required hook fields with ${count} available rates`, async ({ app, browser }) => {
+    const unexpected = await openFixture(app, browser);
+    const rates = [
+      { id: express, label: 'Hook JNE Regular', cost: 15000 },
+      { id: instant, label: 'Hook GoSend Instant', cost: 20000 },
+    ].slice(0, count);
+    const html = render('classic-shipping-presentation-runtime.php', { rates, chosen: express, hook_fields: true });
+    await browser.evaluate((fragment: string) => (window as any).__replaceReview(fragment, true), replaceShippingRows(review(), html));
+    await expect(browser.locator(`${section} .kiriof-buyer-combobox-trigger`)).toBeVisible();
+    await expect(browser.locator(`${section} .kiriof-shipping-methods-list--enhanced`)).toBeVisible();
+    for (const rate of rates) {
+      const input = browser.locator(`${section} .fixture-shipping-hook input[name="fixture_delivery[0][${rate.id}]"]`);
+      await expect(input).toBeVisible();
+      await input.fill('Leave at reception');
+    }
+    expect(await browser.evaluate(() => ({
+      nativeHidden: [...document.querySelectorAll<HTMLElement>(`${'.kiriof-classic-shipping-options'} input.shipping_method, ${'.kiriof-classic-shipping-options'} label.kiriof-shipping-method-label`)].every(node => getComputedStyle(node).display === 'none'),
+      hookLabelsVisible: [...document.querySelectorAll<HTMLElement>('.fixture-shipping-hook label')].every(node => node.getBoundingClientRect().height > 0),
+      values: (window as any).jQuery('form.checkout').serializeArray().filter((value: any) => value.name.startsWith('fixture_delivery[')).map((value: any) => value.value),
+      checked: [...document.querySelectorAll<HTMLInputElement>('input.shipping_method:checked')].map(node => node.value),
+    }))).toEqual({ nativeHidden: true, hookLabelsVisible: true, values: Array(count).fill('Leave at reception'), checked: [express] });
+    await assertIdle(browser);
+    expect(unexpected).toEqual([]);
+  });
+}
+
 for (const width of [1200, 390]) {
   test(`shipping section moves native controls before summary and survives whole-table AJAX at ${width}px`, async ({ app, browser }) => {
     await browser.setViewport({ width, height: 1000 });

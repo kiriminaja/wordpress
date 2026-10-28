@@ -213,7 +213,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	});
 	test('drag hides pin status and hints until idle, without writing intermediate map positions', async()=>{
 		const h=adapter({savedDestination:saved()});await h.acknowledge();
-		const badge=h.query('.kiriof-classic-pin-state');const status=h.query('.kiriof-classic-pin > p[role="status"]');
+		const badge=h.query('.kiriof-classic-pin-state');const status=h.query('.kiriof-classic-pin-feedback');
 		const before=h.mutations().length;
 		h.maps[0].listeners.movestart();await settle();h.flush();expect(badge.hidden).toBe(true);expect(status.hidden).toBe(true);expect(h.mutations()).toHaveLength(before);
 		h.maps[0].listeners.moveend();await h.advance();await h.acknowledge();
@@ -222,7 +222,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('pin postcode rejection explains validation instead of lookup failure and regular pricing remains independent', async()=>{
 		const h=adapter({savedDestination:saved(),pinErrors:{kiriof_pin_district_not_mapped:'Selected subdistrict does not match your postcode.'}});await h.advance();
 		await h.respond(h.mutations()[0],{code:'kiriof_pin_district_not_mapped',message:'private remote details'},false);
-		expect(h.query('.kiriof-classic-pin-feedback > span').textContent).toBe('Selected subdistrict does not match your postcode.');
+		expect(h.query('.kiriof-classic-pin-message > span').textContent).toBe('Selected subdistrict does not match your postcode.');
 		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(false);
 		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
 		expect(h.emit(h.form,'checkout_place_order')).not.toBe(false);
@@ -232,7 +232,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	test('HTTP-200 success without explicit pin_saved cannot show a confirmed pin',async()=>{
 		const h=adapter({savedDestination:saved()});await h.advance();await h.respond(h.mutations()[0],{});
 		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
-		expect(h.query('.kiriof-classic-pin > p[role="status"]').textContent).toContain('Could not save the delivery pin');
+		expect(h.query('.kiriof-classic-pin-message[role="status"]').textContent).toContain('Could not save the delivery pin');
 	});
 	test('pin remains directly below active district after theme sorting and repeated separate-address toggles', async () => {
 		const h=adapter({savedDestination:saved()});await h.acknowledge();
@@ -314,7 +314,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 	});
 	test('explicit geolocation failure keeps map usable and stale callbacks cannot overwrite changed address', async () => {
 		const h = adapter(); await h.acknowledge(); expect(h.geo).toHaveLength(0); h.query('.kiriof-classic-map-locate').click(); h.flush(); h.geo[0].failure({ code: 1 }); h.flush();
-		expect(h.query('.kiriof-classic-pin-feedback > span').textContent).toBe('Permission denied');
+		expect(h.query('.kiriof-classic-pin-message > span').textContent).toBe('Permission denied');
 		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(true); expect(h.maps).toHaveLength(1);
 		h.query('.kiriof-classic-map-locate').click(); h.flush(); const stale = h.geo[1];
 		h.change('billing_address_1', 'New street'); await h.advance(200);
@@ -346,6 +346,24 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
 		h.query('[value="kiriminaja:regular"]').checked = true;
 		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
+	});
+	test('Retry stays outside the text-only live status and hides while the map moves', async () => {
+		const h = adapter({ savedDestination: saved() }); await h.advance();
+		await h.respond(h.mutations()[0], null, false);
+		const retry = h.query('.kiriof-classic-pin-retry');
+		const status = h.query('.kiriof-classic-pin-feedback [role="status"], .kiriof-classic-pin-feedback[role="status"]');
+		expect(status.querySelector('button') === null).toBe(true);
+		expect(status.textContent).not.toContain('Retry');
+		expect(retry.closest('[role="status"]') === null).toBe(true);
+		expect(retry.hidden).toBe(false);
+		h.maps[0].listeners.movestart(); await settle(); h.flush();
+		expect(retry.hidden).toBe(true);
+		h.maps[0].listeners.moveend(); await settle(); h.flush();
+		expect(retry.hidden).toBe(false);
+		retry.click(); await h.advance();
+		expect(h.mutations()).toHaveLength(2);
+		await h.respond(h.mutations()[1]); h.emit(h.window.document.body, 'updated_checkout'); await h.advance();
+		expect(retry.hidden).toBe(true);
 	});
 	test('failed pin saves retry without permitting Instant or aborting server mutations', async () => {
 		const h = adapter({ savedDestination: saved() }); await h.advance();
