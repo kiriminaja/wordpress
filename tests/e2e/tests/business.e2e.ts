@@ -26,6 +26,9 @@ const binding = {
 
 test('Classic explicit district survives theme replacement and its pin waits for session acknowledgment', async ({ app, browser, screen }) => {
   const fixture = await checkout(app, browser, true, { success: true, data: [district] }, false, false, true);
+  await expect(screen.getByLabel('Delivery location map')).toBeVisible();
+  expect(await browser.evaluate(() => window.__geoCalls)).toBe(0);
+  await screen.getByRole('button', 'Current location').tap();
   await expect.poll(() => fixture.saves().length).toBeGreaterThan(0);
   await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.pending && !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
   await browser.evaluate(() => {
@@ -647,7 +650,10 @@ test('Classic pin saves only coordinates context and an address edit invalidates
 }) => {
   const fixture = await checkout(app, browser, true);
   await expect(screen.getByLabel('Delivery location map')).toBeVisible();
-  await expect(browser.locator('.kiriof-classic-pin-state')).toContainText('Pin Location');
+  await expect(browser.locator('.kiriof-classic-pin-state')).toContainText('Need Pin Location');
+  expect(await browser.evaluate(() => window.__geoCalls)).toBe(0);
+  expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toBeNull();
+  await screen.getByRole('button', 'Current location').tap();
   await expect
     .poll(() =>
       browser.evaluate(() =>
@@ -677,8 +683,8 @@ test('Classic pin saves only coordinates context and an address edit invalidates
 
   await screen.getByRole('button', 'Place order').tap();
   await expect(browser.locator('#outcome')).toContainText('allowed');
-  // The next location request remains pending, as a real browser permission
-  // prompt would. An old pin must not authorize the newly edited address.
+  // An old pin must not authorize the newly edited address, even though the
+  // map remains available without requesting location permission again.
   await browser.evaluate(() => {
     window.__allowGeo = false;
     return true;
@@ -711,6 +717,8 @@ test('Classic placement survives separate shipping toggles and Woo native row re
       pinHeading: document.querySelectorAll('.kiriof-classic-pin h3').length,
     })),
   ).toEqual({ text: '', svg: 1, badgeInViewport: true, pinHeading: 0 });
+  expect(await browser.evaluate(() => window.__geoCalls)).toBe(0);
+  await locate.tap();
   await expect
     .poll(() =>
       browser.evaluate(() =>
@@ -835,6 +843,7 @@ async function mapGeometry(browser: any) {
         Math.abs(map.right - locate.right - 12) < 1 && Math.abs(locate.top - map.top - 12) < 1,
       locateBackground: getComputedStyle(document.querySelector('.kiriof-classic-map-locate'))
         .backgroundColor,
+      locateHovered: document.querySelector('.kiriof-classic-map-locate').matches(':hover'),
       badgeContained: contained(badge),
       controlsContained: contained(zoom) && contained(attribution),
       badgeNoOverlap:
@@ -887,6 +896,9 @@ for (const width of [1200, 390]) {
     await browser.setViewport({ width, height: 1000 });
     const fixture = await checkout(app, browser, true, { success: true, data: [district] }, true);
     await expect(browser.locator('.leaflet-control-zoom')).toBeVisible();
+    expect(await browser.evaluate(() => window.__geoCalls)).toBe(0);
+    expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toBeNull();
+    await screen.getByRole('button', 'Current location').tap();
     await expect.poll(() => fixture.saves().length).toBeGreaterThan(0);
     await expect
       .poll(() =>
@@ -916,7 +928,7 @@ for (const width of [1200, 390]) {
       expect(geometry.mapWidth).toBe(geometry.viewportWidth - 2);
       expect(geometry.locateWidth).toBe(44);
       expect(geometry.locateHeight).toBe(44);
-      expect(geometry.locateBackground).toBe('rgb(255, 255, 255)');
+      expect(geometry.locateBackground).toBe(geometry.locateHovered ? 'rgb(248, 250, 252)' : 'rgb(255, 255, 255)');
       expect(geometry.zoomDecorations).toEqual(['none', 'none']);
       for (const key of [
         'locateContained',
@@ -931,7 +943,8 @@ for (const width of [1200, 390]) {
       ]) {
         expect(geometry[key]).toBe(true);
       }
-      return geometry;
+      const { locateBackground, locateHovered, ...stableGeometry } = geometry;
+      return stableGeometry;
     };
     // Capture evidence even when geometry assertions expose a CSS regression.
     await app.screenshot(`classic-map-${width}`);
@@ -945,6 +958,7 @@ for (const width of [1200, 390]) {
     for (const separate of [true, false, true, false]) {
       await screen.getByLabel('Ship to a different address?').tap();
       await expect.poll(() => placement(browser)).toEqual(expectedPlacement);
+      await screen.getByRole('button', 'Current location').tap();
       await expect
         .poll(() =>
           browser.evaluate(() =>
