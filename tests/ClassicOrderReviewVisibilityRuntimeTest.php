@@ -38,12 +38,13 @@ final class ClassicOrderReviewVisibilityRuntimeTest extends TestCase {
 		$this->assertNotContains( 'woocommerce_after_shipping_rate', array_column( $result['hooks'], 'name' ) );
 	}
 
-	public function test_single_instant_rate_is_a_native_checked_radio_without_select(): void {
+	public function test_single_instant_rate_uses_custom_select_and_retains_native_checked_input(): void {
 		$html = $this->render( 'single' )['html'];
 		$this->assertStringContainsString( 'value="kiriminaja-instant:1:gosend:instant"', $html );
 		$this->assertSame( 1, substr_count( $html, 'type="radio"' ) );
 		$this->assertStringContainsString( 'checked="checked"', $html );
-		$this->assertStringNotContainsString( '<select', $html );
+		$this->assertStringContainsString( 'class="wc-enhanced-select kiriof-classic-shipping-method-select"', $html );
+		$this->assertStringContainsString( 'kiriof-shipping-methods-list--enhanced', $html );
 		$this->assertStringContainsString( 'Rp 140,000', $html );
 	}
 }

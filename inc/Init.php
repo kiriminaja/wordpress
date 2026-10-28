@@ -33,6 +33,7 @@ final class Init {
             Services\CheckoutShippingSelectionGuard::class,
             Services\CheckoutPhoneValidation::class,
             Services\ClassicCheckoutRecipientSync::class,
+            Services\ClassicInstantRateRefresh::class,
             Services\TransactionPhoneIssueCache::class,
             Controllers\CheckoutController::class,
             Controllers\AccountAddressController::class,
