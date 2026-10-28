@@ -79,6 +79,23 @@ export function startClassicPin(
     point: Point | null = null;
   let pointAddress: NativeAddress | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let editing = false;
+  let contactKey = '';
+  const currentContactKey = () =>
+    JSON.stringify(
+      [
+        'billing_first_name',
+        'billing_last_name',
+        'billing_phone',
+        'shipping_first_name',
+        'shipping_last_name',
+        'shipping_phone',
+        'ship_to_different_address',
+      ].map((name) => {
+        const field = form.querySelector<HTMLInputElement>(`[name="${name}"]`);
+        return field?.type === 'checkbox' ? field.checked : field?.value || '';
+      }),
+    );
   const presentation = createPinPresentation();
   const place = () =>
     placeNativePin(
@@ -102,6 +119,7 @@ export function startClassicPin(
     savedDestination: config.savedDestination,
     // The server accepts pins only after the district session writer commits.
     isBlocked: () =>
+      editing ||
       busy ||
       Boolean(root.kiriofBuyerSelectors?.districtPending?.()) ||
       Boolean(
@@ -121,7 +139,14 @@ export function startClassicPin(
     onChange: render,
   });
   const select = (next: Point | null, expected: NativeAddress) => {
-    if (next && (!expected.address_1 || !expected.postcode)) return false;
+    if (
+      next &&
+      (!expected.address_1 ||
+        !expected.city ||
+        !expected.state ||
+        !/^[0-9]{5}$/.test(expected.postcode))
+    )
+      return false;
     point = next;
     pointAddress = expected;
     return native.district() ? controller.selectPoint(next, expected) : true;
@@ -143,6 +168,7 @@ export function startClassicPin(
     }
     render();
   }
+  contactKey = currentContactKey();
   const current = native.district();
   lastDistrict = current?.id || '';
   if (!current || controller.getState().selection?.id !== current.id)
@@ -168,7 +194,21 @@ export function startClassicPin(
   $(form).on('input.kiriofClassicPin change.kiriofClassicPin', 'input, select', (event) => {
     if (event.target === hidden) return;
     clearTimeout(timer);
-    timer = setTimeout(changed, 200);
+    editing = event.type === 'input';
+    if (editing) changed();
+    timer = setTimeout(
+      () => {
+        editing = false;
+        changed();
+        const next = currentContactKey();
+        if (next !== contactKey) {
+          contactKey = next;
+          $(root.document.body).trigger('update_checkout');
+        }
+        controller.flush();
+      },
+      editing ? 700 : 200,
+    );
   });
   $(root.document.body)
     .on('update_checkout.kiriofClassicPin', () => {

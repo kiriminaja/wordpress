@@ -116,6 +116,7 @@ export interface MapSessionOptions {
   attribution?: string;
   defaultCenter?: [number, number] | Leaflet.LatLngExpression;
   initial?: PointInput | null;
+  initialView?: PointInput | null;
   coverage?: Coverage | null;
   label?: string;
   geolocation?: GeolocationProvider | null;
@@ -134,6 +135,7 @@ export interface MapSession {
   clear(): void;
   locate(): void;
   getPoint(): Point | null;
+  getCenter?(): Point | null;
   isAvailable(): boolean;
   dispose(): void;
 }

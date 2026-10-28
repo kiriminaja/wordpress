@@ -85,9 +85,10 @@ export function createClassicPin(options: ClassicPinOptions) {
       point = normalizePoint(saved.destination_latitude, saved.destination_longitude);
   }
   function destination(): PinDestination {
+    const hasPostcode = /^[0-9]{5}$/.test(current.postcode);
     const value = normalizeDestination({
-      district_id: current.country === 'ID' ? selection?.id : '',
-      district_label: selection?.label,
+      district_id: current.country === 'ID' && hasPostcode ? selection?.id : '',
+      district_label: current.country === 'ID' && hasPostcode ? selection?.label : '',
       country: current.country,
       postcode: current.postcode,
       address_type: 'shipping',

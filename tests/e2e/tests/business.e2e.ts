@@ -1192,7 +1192,10 @@ for (const width of [1200, 390]) {
       events: (window as any).__shippingUpdates,
     }))).toEqual({ chosen: fixtureRates[1].id, events: [{ id: fixtureRates[1].id, name: 'shipping_method[0]', checked: true }] });
     await expect.poll(() => browser.evaluate(() => window.__checkoutUpdates)).toBe(updatesBefore + 1);
-    await expect(browser.locator('#shipping_method')).not.toBeVisible();
+    expect(await browser.evaluate(() => {
+      const controls = [...document.querySelectorAll<HTMLElement>('#shipping_method > li > input.kiriof-shipping-method-input, #shipping_method > li > label.kiriof-shipping-method-label')];
+      return { count: controls.length, hidden: controls.every(node => node.getClientRects().length === 0) };
+    })).toEqual({ count: fixtureRates.length * 2, hidden: true });
     for (let cycle = 0; cycle < 3; cycle++) {
       for (const scope of ['billing', 'shipping']) {
         if (scope === 'shipping') await screen.getByLabel('Ship to a different address?').tap();
@@ -1388,7 +1391,10 @@ for (const width of [1200, 390]) {
 test('Classic courier Choices is independent of Select2', async ({ app, browser }) => {
   const fixture = await checkout(app, browser, true, [district], true, 'no-select2');
   await expect(browser.locator('.kiriof-classic-shipping-method-select-wrap .kiriof-buyer-combobox-trigger')).toBeVisible();
-  await expect(browser.locator('#shipping_method')).not.toBeVisible();
+  expect(await browser.evaluate(() => {
+      const controls = [...document.querySelectorAll<HTMLElement>('#shipping_method > li > input.kiriof-shipping-method-input, #shipping_method > li > label.kiriof-shipping-method-label')];
+      return { count: controls.length, hidden: controls.every(node => node.getClientRects().length === 0) };
+    })).toEqual({ count: fixtureRates.length * 2, hidden: true });
   await browser.locator('.kiriof-classic-shipping-method-select-wrap .kiriof-buyer-combobox-trigger').click();
   await browser.locator('.kiriof-buyer-combobox-option').filter({ hasText: 'Fixture Regular courier' }).click();
   expect(await browser.evaluate(() => ({

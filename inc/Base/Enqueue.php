@@ -389,6 +389,9 @@ class Enqueue extends BaseInit{
                 $config['ownsDistrict'] = false;
                 $config['i18n']['pinSaveFailed'] = __( 'Could not save the delivery pin. Please retry.', 'kiriminaja-official' );
                 $config['i18n']['pinSaving'] = __( 'Saving delivery pin…', 'kiriminaja-official' );
+                $config['i18n']['pinPostcodeRequired'] = __( 'Enter a 5-digit postcode to save the delivery pin.', 'kiriminaja-official' );
+                $config['i18n']['pinDistrictRequired'] = __( 'Select a subdistrict to save the delivery pin.', 'kiriminaja-official' );
+                $config['i18n']['pinAddressRequired'] = __( 'Complete the street, city and province to save the delivery pin.', 'kiriminaja-official' );
                 $config['pinErrors'] = array(
                     'kiriof_pin_instant_disabled' => __( 'Instant delivery is not enabled.', 'kiriminaja-official' ),
                     'kiriof_pin_address_mismatch' => __( 'The delivery pin country or postcode does not match the checkout address. Please select the pin again.', 'kiriminaja-official' ),

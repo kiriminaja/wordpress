@@ -9,6 +9,9 @@ export function fallbackMapCenter(
   options: MapSessionOptions,
   normalize: NormalizePoint,
 ): [number, number] {
+  const previous =
+    options.initialView && normalize(options.initialView.latitude, options.initialView.longitude);
+  if (previous) return [Number(previous.latitude), Number(previous.longitude)];
   const origin = options.coverage?.origin;
   const regional = origin && normalize(origin.latitude, origin.longitude);
   if (regional) return [Number(regional.latitude), Number(regional.longitude)];
@@ -28,7 +31,8 @@ export function suggestGrantedDeviceCenter(
   current: () => boolean,
   center: (point: Point) => void,
 ): void {
-  if (options.initial || !options.permissions || !options.geolocation) return;
+  if (options.initial || options.initialView || !options.permissions || !options.geolocation)
+    return;
   try {
     void Promise.resolve(options.permissions.query({ name: 'geolocation' }))
       .then((permission) => {

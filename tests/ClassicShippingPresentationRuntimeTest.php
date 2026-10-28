@@ -11,6 +11,15 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_single_unselected_instant_rate_keeps_an_explicit_select_placeholder(): void {
+		$result = $this->render( array( 'rates' => array( array( 'id' => 'kiriminaja-instant:7:gosend:instant', 'label' => 'GoSend Instant', 'cost' => 18000 ) ) ) );
+		$this->assertStringContainsString( 'class="wc-enhanced-select kiriof-classic-shipping-method-select"', $result['html'] );
+		$this->assertStringContainsString( '<option value="" selected="selected" disabled="disabled">Select Option</option>', $result['html'] );
+		$this->assertStringContainsString( 'value="kiriminaja-instant:7:gosend:instant"', $result['html'] );
+		$this->assertStringNotContainsString( 'checked="checked"', $result['html'] );
+		$this->assertSame( array( array( 'kiriminaja-instant:7:gosend:instant', 0 ) ), $result['hooks'] );
+	}
+
 	private function summary_row( string $html, string $kind, int $index ): string {
 		$this->assertSame( 1, preg_match( '/<tr\b[^>]*class="[^"]*\bkiriof-classic-shipping-summary-' . preg_quote( $kind, '/' ) . '\b[^"]*"[^>]*>.*?<\/tr>/s', $html, $matches ) );
 		$row = $matches[0];
@@ -93,7 +102,7 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 		) );
 	}
 
-	public function test_single_rate_preserves_label_eta_without_adding_metadata_or_dropdown(): void {
+	public function test_single_rate_preserves_label_eta_and_uses_the_custom_select(): void {
 		$result = $this->render( array( 'chosen' => 'legacy', 'rates' => array( array( 'id' => 'legacy', 'label' => 'JNE REG (1-2 days) <script>', 'meta' => array( 'kiriof_rate_eta' => '1-2 days', 'kiriof_rate_description' => 'Regular & safe <script>alert(1)</script>' ) ) ) ) );
 		$this->assertSame( array(
 			'label matched' => 1,
@@ -110,8 +119,8 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 			'excludes Regular' => false,
 			'native radio present' => true,
 			'native radio checked' => true,
-			'excludes select' => false,
-			'excludes kiriof-shipping-methods-list--enhanced' => false,
+			'excludes select' => true,
+			'excludes kiriof-shipping-methods-list--enhanced' => true,
 			'hooks' => array( array( 'legacy', 0 ) ),
 		), array(
 			'ETA occurrences' => substr_count( $options, '1-2 days' ),
@@ -205,7 +214,7 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 				'checked count' => 1,
 				'chosen radio checked' => 1,
 				'hooks' => array_map( static function ( $rate ) use ( $index ) { return array( $rate['id'], $index ); }, $rates ),
-				'dropdown count' => 3 === $index ? 1 : 0,
+				'dropdown count' => 1,
 			), array(
 				'contains Shipping Options' => str_contains( $options, '<th scope="row">Shipping Options</th>' ),
 				'contains GoSend Instant' => str_contains( $options, '<td data-title="Shipping Options">GoSend Instant</td>' ),
