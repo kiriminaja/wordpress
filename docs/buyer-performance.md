@@ -52,9 +52,9 @@ read followed by explicit repair. No migration or background repair was added.
 Reproduce:
 
 ```sh
-rtk proxy sh -c 'git show 0973754cb45d16b9263e6c6210969f8df8825a23:inc/Services/ShipmentLocationService.php > /tmp/buyer-origin-baseline-service.php'
-rtk php scripts/benchmark-buyer-origin.php --query-source=/tmp/buyer-origin-baseline-service.php
-rtk php scripts/benchmark-buyer-origin.php
+git show 0973754cb45d16b9263e6c6210969f8df8825a23:inc/Services/ShipmentLocationService.php > /tmp/buyer-origin-baseline-service.php
+php scripts/benchmark-buyer-origin.php --query-source=/tmp/buyer-origin-baseline-service.php
+php scripts/benchmark-buyer-origin.php
 ```
 
 Options: `--warmups=5 --samples=30`. Current shorthand: `bun run benchmark:buyer-origin`.
@@ -92,11 +92,11 @@ checkout flags are covered by `BuyerConfigPerformanceRuntimeTest`.
 Reproduce call-count comparisons with the existing fixture and a saved baseline:
 
 ```sh
-rtk proxy sh -c 'git show 0973754cb45d16b9263e6c6210969f8df8825a23:inc/Base/Enqueue.php > /tmp/buyer-enqueue-baseline.php'
-rtk php tests/fixtures/buyer-config-performance.php blocks /tmp/buyer-enqueue-baseline.php
-rtk php tests/fixtures/buyer-config-performance.php blocks
-rtk php tests/fixtures/buyer-config-performance.php classic /tmp/buyer-enqueue-baseline.php
-rtk php tests/fixtures/buyer-config-performance.php classic
+git show 0973754cb45d16b9263e6c6210969f8df8825a23:inc/Base/Enqueue.php > /tmp/buyer-enqueue-baseline.php
+php tests/fixtures/buyer-config-performance.php blocks /tmp/buyer-enqueue-baseline.php
+php tests/fixtures/buyer-config-performance.php blocks
+php tests/fixtures/buyer-config-performance.php classic /tmp/buyer-enqueue-baseline.php
+php tests/fixtures/buyer-config-performance.php classic
 ```
 
 Full fixture outputs are retained as `config-{blocks,classic}-{before,after}.json`
@@ -129,7 +129,7 @@ The baseline request-budget scenario was executed against the original compiled
 entry before changing the bridge. The optimized budget is a passing regression in
 `tests/AccountShippingDestination.test.ts`, test named
 `account district request budget for ten separately debounced street edits`.
-Run `rtk bun test --timeout 20000 tests/AccountShippingDestination.test.ts`.
+Run `bun test --timeout 20000 tests/AccountShippingDestination.test.ts`.
 Timers and responses are controlled by the harness. These are **HTTP call counts,
 not real network, upstream API or database timings**: the server's exact-postcode
 cache may already prevent many upstream API calls.
@@ -194,6 +194,14 @@ Local PHP is 8.2.34, below main's newly declared minimum 8.2.35. Local verificat
 results are reported with that caveat; the installed runtime was not changed.
 
 ## Final verification
+
+Review/sync follow-up: merged `main` through `72875e9d` (#302) via the updated
+workspace branch, including its collation, alias, mount-ownership and fresh-checkout
+test fixes. The buyer benchmark is also CLI-only and reproduction commands no
+longer require rtk. Fresh combined-branch verification: 1,478 PHP tests, 17,285
+assertions, two renderer skips, and 798 frontend tests passed plus static/style
+checks. ZIP parity and development-file exclusions passed. The benchmark CLI smoke
+run still executes successfully. Historical verification below predates this sync.
 
 - `make zip`: successful. Changed PHP matches packaged bytes; benchmark scripts,
   documentation, tests and source-only frontend files remain excluded.

@@ -11,6 +11,10 @@
 
 declare(strict_types=1);
 
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+
 $options = getopt( '', array( 'query-source:', 'warmups:', 'samples:' ) );
 $source  = $options['query-source'] ?? dirname( __DIR__ ) . '/inc/Services/ShipmentLocationService.php';
 if ( ! is_file( $source ) ) {
