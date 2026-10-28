@@ -23,8 +23,13 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 			$this->assertStringNotContainsString( 'fixture-express-token', json_encode( $result['logs'] ) );
 			if ( 'credit' === $payment ) { $this->assertSame( '[redacted]', $logged['pin'] ); }
 			else { $this->assertArrayNotHasKey( 'pin', $logged ); }
-			unset( $logged['pin'] );
-			$this->assertSame( $result['requests'][0]['payload'], $logged );
+			foreach ( array( 'Private', 'Buyer', 'private-address', 'Original Store', 'private-origin', '08123456789', 'Purchased variation', 'example.test' ) as $personal ) {
+				$this->assertStringNotContainsString( $personal, $context['request_payload_json'] );
+			}
+			$this->assertSame( '[redacted]', $logged['packages'][0]['destination_phone'] );
+			$this->assertSame( '[redacted]', $logged['packages'][0]['destination_address'] );
+			$this->assertSame( $result['requests'][0]['payload']['packages'][0]['weight'], $logged['packages'][0]['weight'] );
+			$this->assertSame( $result['requests'][0]['payload']['packages'][0]['service'], $logged['packages'][0]['service'] );
 		}
 	}
 

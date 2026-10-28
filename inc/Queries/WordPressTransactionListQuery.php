@@ -6,6 +6,7 @@ use KiriminAjaOfficial\Contracts\TransactionListQueryInterface;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
 use KiriminAjaOfficial\Services\ListDateRangeFilter;
 use KiriminAjaOfficial\Services\CheckoutPhoneValidation;
+use KiriminAjaOfficial\Services\TransactionPhoneIssueCache;
 use KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver;
 
 // Exit if accessed directly.
@@ -648,8 +649,17 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     }
 
     public function getPhoneIssueIds(): array {
-        if ( null !== $this->phone_issue_ids ) {
+        $cache_available = class_exists( TransactionPhoneIssueCache::class ) && TransactionPhoneIssueCache::available();
+        $revision = $cache_available ? TransactionPhoneIssueCache::revision() : null;
+        if ( ! $cache_available && null !== $this->phone_issue_ids ) {
             return $this->phone_issue_ids;
+        }
+        if ( $cache_available ) {
+            $cached = TransactionPhoneIssueCache::get( $revision );
+            if ( null !== $cached ) {
+                $this->phone_issue_ids = $cached;
+                return $cached;
+            }
         }
         $this->phone_issue_ids = array();
         if ( ! function_exists( 'wc_get_order' ) ) {
@@ -664,12 +674,17 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         do {
             // Keyset batches bound memory; only new Express rows without booking evidence hydrate orders.
             $rows = $this->wpdb->get_results( $this->wpdb->prepare(
-                "SELECT t.* FROM {$table} t INNER JOIN {$o['table']} p ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE t.id > %d AND t.delivery_type = %s AND t.status = %s AND TRIM(COALESCE(t.awb, '')) = '' AND TRIM(COALESCE(t.pickup_number, '')) = '' AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') {$clause} ORDER BY t.id ASC LIMIT 200",
+                "SELECT t.id, t.wp_wc_order_stat_order_id, t.shipping_info FROM {$table} t INNER JOIN {$o['table']} p ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE t.id > %d AND t.delivery_type = %s AND t.status = %s AND TRIM(COALESCE(t.awb, '')) = '' AND TRIM(COALESCE(t.pickup_number, '')) = '' AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') {$clause} ORDER BY t.id ASC LIMIT 200",
                 $cursor,
                 'express',
                 'new'
             ) );
             $this->logDatabaseError();
+            if ( ! empty( $this->wpdb->last_error ) ) {
+                $ids = $this->phone_issue_ids;
+                $this->phone_issue_ids = null;
+                return $ids;
+            }
             foreach ( (array) $rows as $row ) {
                 $cursor = (int) $row->id;
                 $order  = wc_get_order( (int) $row->wp_wc_order_stat_order_id );
@@ -682,6 +697,9 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         } while ( count( (array) $rows ) === 200 );
 
         $this->phone_issue_ids = array_values( array_unique( $this->phone_issue_ids ) );
+        if ( $cache_available ) {
+            TransactionPhoneIssueCache::put( $revision, $this->phone_issue_ids );
+        }
         return $this->phone_issue_ids;
     }
 

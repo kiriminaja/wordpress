@@ -4,6 +4,40 @@ use PHPUnit\Framework\TestCase;
 final class PluginLogDownloadRuntimeTest extends TestCase {
 	private string $directory;
 
+	public function test_invalid_utf8_has_visible_replacement_without_losing_safe_suffix(): void {
+		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', "broken \xC3 tail SAFE_SUFFIX\nNEXT_LINE\n" );
+		$result = $this->download();
+		$this->assertStringContainsString( 'Invalid UTF-8 bytes replaced.', $result['body'] );
+		$this->assertStringContainsString( 'SAFE_SUFFIX', $result['body'] );
+		$this->assertStringContainsString( 'NEXT_LINE', $result['body'] );
+		$this->assertSame( 1, preg_match( '//u', $result['body'] ) );
+	}
+
+	public function test_file_replaced_after_discovery_is_never_exported(): void {
+		foreach ( array( 'regular', 'symlink' ) as $swap ) {
+			$path = $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log';
+			if ( file_exists( $path ) || is_link( $path ) ) { unlink( $path ); }
+			file_put_contents( $path, 'ORIGINAL_CONTENT' );
+			file_put_contents( $this->directory . '/private.log', 'OUTSIDE_PRIVATE_DATA' );
+			$result = $this->download( compact( 'swap' ) );
+			$this->assertStringContainsString( 'Log file changed during export; skipped.', $result['body'] );
+			$this->assertStringNotContainsString( 'PRIVATE_DATA', $result['body'] );
+		}
+	}
+
+	public function test_prefixed_and_hyphenated_credentials_are_redacted_even_inside_json_strings(): void {
+		$secrets = array( 'access_token' => 'PRIVATE_ACCESS', 'refresh_token' => 'PRIVATE_REFRESH', 'client_secret' => 'PRIVATE_CLIENT', 'api_secret' => 'PRIVATE_API', 'x-api-key' => 'PRIVATE_HEADER', 'setup-key' => 'PRIVATE_SETUP' );
+		$content = '';
+		foreach ( $secrets as $key => $secret ) { $content .= $key . '=' . $secret . "\n"; }
+		$content .= json_encode( array( 'context' => json_encode( array( 'access_token' => 'PRIVATE_NESTED' ) ) ) ) . "\n";
+		$content .= str_repeat( '-', 100000 ) . " SAFE_SUFFIX\n";
+		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', $content );
+		$result = $this->download();
+		$this->assertStringNotContainsString( 'PRIVATE_', $result['body'] );
+		$this->assertStringContainsString( 'SAFE_SUFFIX', $result['body'] );
+		$this->assertStringNotContainsString( 'redaction failed', $result['body'] );
+	}
+
 	protected function setUp(): void {
 		$this->directory = sys_get_temp_dir() . '/kiriof-log-download-' . bin2hex( random_bytes( 6 ) );
 		mkdir( $this->directory );

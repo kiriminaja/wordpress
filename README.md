@@ -87,7 +87,7 @@ Commits do not run repository-managed tests. `bun install` retains the hook setu
 
 The plugin uses WooCommerce's native logger through `kiriof_log()` and `KiriminAjaOfficial\Utils\Logger`.
 
-Technical settings exports plugin-only file logs for today and the previous two UTC dates, including rotations. Exports use bounded memory, include at most 64 MiB of recent log input, and omit individual lines over 1 MiB rather than emit partially redacted records. Failed Express pickup requests include their post-mapping JSON payload under `request_payload_json`; PINs are redacted and authorization headers are never included. These logs contain shipment/contact details: share them with support only with the merchant's consent. No diagnostic export is sent automatically.
+Technical settings exports plugin-only file logs for today and the previous two UTC dates, including rotations. Exports use bounded memory, include at most 64 MiB of recent log input, and omit individual lines over 1 MiB rather than emit partially redacted records. Failed Express pickup requests include a privacy-redacted copy of their post-mapping JSON under `request_payload_json`: operational fields and numeric types remain, while contact details, addresses, coordinates, descriptive text and PINs are redacted. Authorization headers are never included. Historical logs can still contain personal details, so share exports only with the merchant's consent. No diagnostic export is sent automatically.
 
 Current source identifiers:
 
@@ -145,7 +145,7 @@ make tag                      # create local git tag v$(VERSION)
 
 Changelogs use GitHub's generated release notes, with one entry per pull request rather than individual commits. Install the GitHub CLI, run `gh auth login`, and push the release branch before running `make changelog` or `make release`. `FROM` selects the previous release tag, for example `make changelog FROM=v2.4.2`.
 
-Tag publishing first builds the official zip, then runs `make test` against that exact source/staged artifact before GitHub release or SVN deployment. No artifact is rebuilt after verification.
+Tag publishing first requires a successful, completed `Tests` workflow run for the exact tagged commit SHA, from PR CI or a manual workflow run. If that SHA has no matching successful validation (or its latest eligible run failed or is still running), publication stops. Run `Tests` manually for that exact commit and rerun `Publish` after it succeeds. The release workflow then builds the official ZIP and publishes it; it does not start tests on a tag push.
 
 The publish workflow reads the version's saved changelog from `readme.txt` and uses the same notes for the GitHub release. You can edit that entry before tagging without having GitHub generate a different change list. No version bump or release is created by opening a pull request.
 

@@ -22,7 +22,11 @@ namespace {
 	function trailingslashit( $value ) { return rtrim( $value, '/\\' ) . '/'; }
 	function nocache_headers() {}
 	function current_time( $type ) { return '2026-10-28 12:00:00'; }
-	function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ); }
+	function wp_check_invalid_utf8( $value, $strip = false ) {
+		$value = (string) $value;
+		return 1 === preg_match( '//u', $value ) ? $value : '';
+	}
+	function esc_html( $value ) { return htmlspecialchars( wp_check_invalid_utf8( $value ), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ); }
 	function esc_html__( $value, $domain ) { return esc_html( $value ); }
 	function __( $value, $domain ) { return $value; }
 	function wp_json_encode( $value ) { return json_encode( $value ); }
@@ -31,5 +35,23 @@ namespace {
 		echo 'UNRELATED_BUFFERED_OUTPUT';
 	}
 	$controller = ( new ReflectionClass( \KiriminAjaOfficial\Controllers\SettingController::class ) )->newInstanceWithoutConstructor();
+	if ( ! empty( $scenario['swap'] ) ) {
+		$discover = new ReflectionMethod( $controller, 'getPluginLogFiles' );
+		$discover->setAccessible( true );
+		$files = $discover->invoke( $controller );
+		$path = $files[0]['path'];
+		rename( $path, $scenario['directory'] . '/original.log' );
+		if ( 'symlink' === $scenario['swap'] ) {
+			symlink( $scenario['directory'] . '/private.log', $path );
+		} else {
+			file_put_contents( $path, 'REPLACEMENT_PRIVATE_DATA' );
+		}
+		$prepare = new ReflectionMethod( $controller, 'preparePluginLogExport' );
+		$prepare->setAccessible( true );
+		$stream = $prepare->invoke( $controller, $files );
+		fpassthru( $stream );
+		fclose( $stream );
+		exit;
+	}
 	$controller->downloadPluginLogs();
 }

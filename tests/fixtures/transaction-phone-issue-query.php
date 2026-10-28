@@ -105,7 +105,7 @@ namespace {
 		public function get_var( $sql ) { return $this->db->query( $sql )->fetchColumn(); }
 		public function get_row( $sql ) { return $this->db->query( $sql )->fetch( PDO::FETCH_OBJ ); }
 		public function get_results( $sql ) {
-			if ( str_contains( $sql, 'SELECT t.*' ) ) { ++$this->scans; }
+			if ( str_contains( $sql, 'ORDER BY t.id ASC LIMIT 200' ) ) { ++$this->scans; }
 			return $this->db->query( $sql )->fetchAll( PDO::FETCH_OBJ );
 		}
 	}

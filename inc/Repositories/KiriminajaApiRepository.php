@@ -311,11 +311,22 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
     private function captureFailedPickupPayload( array $payload ): void {
-        if ( array_key_exists( 'pin', $payload ) ) {
-            $payload['pin'] = '[redacted]';
-        }
+        $payload = $this->redactPickupDiagnostic( $payload );
         $json = wp_json_encode( $payload );
         $this->pickup_request_payload_json = is_string( $json ) ? $json : '';
+    }
+
+    /** Keep operational values/types, not customer identities or arbitrary descriptive text. */
+    private function redactPickupDiagnostic( array $payload ): array {
+        $operational = array( 'order_id', 'platform_name', 'schedule', 'payment_method', 'service', 'service_type', 'package_type_id', 'qty', 'weight', 'width', 'height', 'length', 'price', 'item_value', 'insurance_amount', 'shipping_cost', 'cod', 'drop', 'dropoff', 'is_with_insurance', 'discount_amount', 'discount_percentage', 'woocommerce_discount_amount', 'kelurahan_id', 'kecamatan_id', 'destination_kelurahan_id', 'destination_kecamatan_id' );
+        foreach ( $payload as $key => $value ) {
+            if ( is_array( $value ) ) {
+                $payload[ $key ] = $this->redactPickupDiagnostic( $value );
+            } elseif ( ! in_array( $key, $operational, true ) ) {
+                $payload[ $key ] = '[redacted]';
+            }
+        }
+        return $payload;
     }
 
     public function get_couriers() {

@@ -1643,6 +1643,10 @@ class SettingController{
             return false;
         }
         $write = static function ( string $text ) use ( $export ): bool {
+            if ( '' !== $text && '' === wp_check_invalid_utf8( $text ) ) {
+                // Preserve readable diagnostics around malformed bytes, then escape normally.
+                $text = "[Invalid UTF-8 bytes replaced.]\n" . htmlspecialchars_decode( htmlspecialchars( $text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ), ENT_QUOTES );
+            }
             $text = esc_html( $text );
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Write one bounded escaped segment to the temporary stream.
             return strlen( $text ) === fwrite( $export, $text );
@@ -1653,10 +1657,11 @@ class SettingController{
         if ( empty( $files ) ) {
             $success = $success && $write( "No KiriminAja plugin logs found.\n" );
         }
-        foreach ( $files as $file ) {
+        foreach ( $files as $file_record ) {
             if ( ! $success || $remaining <= 0 ) {
                 break;
             }
+            $file = $file_record['path'];
             $success = $write( "\n===== " . basename( $file ) . " =====\n" );
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Read only allowlisted, contained log files through bounded streams instead of loading entire logs.
             $input = fopen( $file, 'rb' );
@@ -1666,6 +1671,12 @@ class SettingController{
             }
             // Freeze the read extent so a live, growing log cannot keep the export open.
             $stat = fstat( $input );
+            if ( false === $stat || 0100000 !== ( $stat['mode'] & 0170000 ) || $stat['dev'] !== $file_record['dev'] || $stat['ino'] !== $file_record['ino'] ) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Reject a replaced or nonregular log using the opened descriptor identity.
+                fclose( $input );
+                $success = $success && $write( "[Log file changed during export; skipped.]\n" );
+                continue;
+            }
             $size = min( (int) $stat['size'], $remaining );
             $offset = (int) $stat['size'] - $size;
             if ( $offset > 0 && 0 !== fseek( $input, $offset - 1 ) ) {
@@ -1758,22 +1769,27 @@ class SettingController{
                 if ( 1 !== preg_match( $pattern, basename( $real_file ), $date ) || $date[1] < $earliest || $date[1] > $today ) {
                     continue;
                 }
-                $files[ $real_file ] = filemtime( $real_file ) ?: 0;
+                $stat = lstat( $real_file );
+                if ( false === $stat || 0100000 !== ( $stat['mode'] & 0170000 ) ) {
+                    continue;
+                }
+                $files[ $real_file ] = array( 'path' => $real_file, 'dev' => $stat['dev'], 'ino' => $stat['ino'], 'mtime' => $stat['mtime'] );
             }
         }
 
-        arsort( $files );
-        return array_keys( $files );
+        uasort( $files, static function ( array $left, array $right ): int { return $right['mtime'] <=> $left['mtime']; } );
+        return array_values( $files );
     }
 
     private function redactLogContent( string $content, int $depth = 0 ): string {
+        $credential_key = '(?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-])*(?:authorization|api[_-]key|setup[_-]key|token|pin|password|secret)';
         // WooCommerce context can contain JSON encoded inside another JSON string.
         if ( $depth < 4 ) {
             $decoded_content = preg_replace_callback(
                 '~"(?:[^"\\\\\r\n]++|\\\\.)*+"~',
-                function ( array $match ) use ( $depth ): string {
+                function ( array $match ) use ( $depth, $credential_key ): string {
                     $decoded = json_decode( $match[0], true );
-                    if ( ! is_string( $decoded ) || ! preg_match( '/\b(?:authorization|api_key|setup_key|token|pin|password|secret)\b["\' \\t]*[:=]/i', $decoded ) ) {
+                    if ( ! is_string( $decoded ) || ! preg_match( '~' . $credential_key . '\b["\' \\t]*[:=]~i', $decoded ) ) {
                         return $match[0];
                     }
                     $redacted = $this->redactLogContent( $decoded, $depth + 1 );
@@ -1789,7 +1805,7 @@ class SettingController{
         }
         $patterns = array(
             '/\b(Bearer)([ \t]+)[^\s,"\'<>]+/i',
-            '~\b(authorization|api_key|setup_key|token|pin|password|secret)(["\']?[ \t]*[:=][ \t]*)(?:"(?:[^"\\\\\r\n]++|\\\\.)*+"|\'(?:[^\'\\\\\r\n]++|\\\\.)*+\'|[^,"\'\s}]+)~i',
+            '~(' . $credential_key . ')(["\']?[ \t]*[:=][ \t]*)(?:"(?:[^"\\\\\r\n]++|\\\\.)*+"|\'(?:[^\'\\\\\r\n]++|\\\\.)*+\'|[^,"\'\s}]+)~i',
         );
 
         return preg_replace( $patterns, '$1$2[redacted]', $content ) ?? "[Log line omitted because redaction failed.]\n";

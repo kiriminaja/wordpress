@@ -183,7 +183,7 @@ final class TransactionListQueryWpdbFake
     public function get_results($sql): array
     {
         $this->queries[] = $sql;
-        if ( str_starts_with( $sql, 'SELECT t.* FROM ' ) ) {
+        if ( str_contains( $sql, 'ORDER BY t.id ASC LIMIT 200' ) ) {
             $this->phone_queries[] = $sql;
             return array();
         }
