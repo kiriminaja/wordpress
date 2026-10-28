@@ -210,7 +210,7 @@ export function createMapSession(options: MapSessionOptions): MapSession {
     }
     map = L.map(options.node, { scrollWheelZoom: false }).setView(
       fallbackMapCenter(options, normalizePoint),
-      13,
+      options.initialView ? 16 : 13,
     );
     if (
       coverage &&
@@ -348,6 +348,10 @@ export function createMapSession(options: MapSessionOptions): MapSession {
     },
     getPoint: function () {
       return selected ? Object.assign({}, selected) : null;
+    },
+    getCenter: function () {
+      const center = !disposed && map?.getCenter();
+      return center ? normalizePoint(center.lat, center.lng) : null;
     },
     isAvailable: function () {
       return Boolean(map && !disposed);

@@ -12,6 +12,10 @@
 
 declare(strict_types=1);
 
+if ( 'cli' !== PHP_SAPI ) {
+    exit;
+}
+
 $options = getopt( '', array( 'query-source:', 'groups:', 'warmups:', 'iterations:' ) );
 $source  = $options['query-source'] ?? dirname( __DIR__ ) . '/inc/Queries/WordPressPaymentListQuery.php';
 if ( ! is_file( $source ) ) {

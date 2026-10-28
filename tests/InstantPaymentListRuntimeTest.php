@@ -37,8 +37,13 @@ final class InstantPaymentListRuntimeTest extends TestCase {
         $result = $this->runDatabase(['transactions'=>$transactions, 'requests'=>[[], ['page'=>2]]]);
         $this->assertSame(['all'=>24, 'unpaid'=>0, 'paid'=>24, 'pending'=>0, 'refunded'=>0], $result['counts']);
         $this->assertCount(8, $result['queries']);
-        $membership = array_values(array_filter($result['queries'], static fn($sql) => str_contains($sql, 'SELECT selected.instant_payment_id, t.order_id')));
+        $membership = array_values(array_filter($result['queries'], static fn($sql) => str_contains($sql, ' AS instant_payment_id, order_id FROM ')));
         $this->assertCount(2, $membership);
+        foreach ($membership as $index=>$sql) {
+            $this->assertSame(count($result['pages'][$index]['results']), substr_count($sql, ' AS instant_payment_id, order_id FROM '));
+            $this->assertStringNotContainsString('JOIN', $sql);
+            $this->assertStringEndsWith(' ORDER BY order_id ASC', $sql);
+        }
         $this->assertCount(20, $result['pages'][0]['results']);
         $this->assertCount(4, $result['pages'][1]['results']);
         $seen = [];
@@ -51,6 +56,33 @@ final class InstantPaymentListRuntimeTest extends TestCase {
             }
         }
         $this->assertCount(24, array_unique($seen));
+    }
+
+    #[Test]
+    public function case_insensitive_literal_and_numeric_identities_keep_distinct_complete_memberships(): void {
+        $identities = ["quote'_%\\", '0', '001', '1', 'x) OR 1=1 --'];
+        $transactions = [];
+        $expected = [];
+        foreach ($identities as $group=>$identity) {
+            $key = strtolower($identity);
+            $expected[$key] = [];
+            for ($member = 9; $member >= 0; --$member) {
+                $order = sprintf('%02d-%04d', $group, $member);
+                $expected[$key][] = $order;
+                $transactions[] = ['order_id'=>$order, 'delivery_type'=>'instant', 'instant_payment_id'=>0 === $member % 2 ? strtoupper($identity) : $identity, 'created_at'=>'2025-03-01', 'instant_payment_status'=>'paid', 'shipping_cost'=>1];
+            }
+            sort($expected[$key], SORT_STRING);
+        }
+        $result = $this->runDatabase(['transactions'=>$transactions, 'instant_payment_id_collation'=>'NOCASE']);
+        $this->assertSame(5, $result['pages'][0]['total']);
+        $this->assertCount(5, $result['pages'][0]['results']);
+        $this->assertCount(5, $result['queries']);
+        foreach ($result['pages'][0]['results'] as $row) {
+            $this->assertSame($expected[strtolower($row['instant_payment_id'])], $row['order_ids']);
+            $this->assertSame(10, $row['order_amt']);
+        }
+        $this->assertSame(4, substr_count($result['queries'][2], ' UNION ALL '));
+        $this->assertStringNotContainsString('JOIN', $result['queries'][2]);
     }
 
     #[Test]
@@ -70,7 +102,8 @@ final class InstantPaymentListRuntimeTest extends TestCase {
         $this->assertSame(3.0, (float) $row['cost']);
         $this->assertSame($row['instant_payment_id'], $result['bootstrap']['rows'][0]['identity']);
         $this->assertCount(5, $result['queries']);
-        $this->assertStringContainsString('ON t.instant_payment_id = selected.instant_payment_id', $result['queries'][2]);
+        $literal = "'" . $row['instant_payment_id'] . "'";
+        $this->assertSame("SELECT {$literal} AS instant_payment_id, order_id FROM wp_kiriminaja_transactions WHERE delivery_type = 'instant' AND instant_payment_id = {$literal} ORDER BY order_id ASC", $result['queries'][2]);
 
         $default = $this->runDatabase(['transactions'=>$transactions]);
         $this->assertSame(3, $default['pages'][0]['total']);

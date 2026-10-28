@@ -145,7 +145,7 @@ export function createGoogleMapSession(options: MapSessionOptions): MapSession {
     const fallback = fallbackMapCenter(options, normalizePoint);
     map = new api.Map(node, {
       center: selected ? literal(selected) : { lat: fallback[0], lng: fallback[1] },
-      zoom: selected ? 16 : 13,
+      zoom: selected || options.initialView ? 16 : 13,
       scrollwheel: false,
       streetViewControl: false,
       mapTypeControl: false,
@@ -277,6 +277,10 @@ export function createGoogleMapSession(options: MapSessionOptions): MapSession {
       }
     },
     getPoint: () => (selected ? { ...selected } : null),
+    getCenter: () => {
+      const center = !disposed && map?.getCenter();
+      return center ? normalizePoint(center.lat(), center.lng()) : null;
+    },
     isAvailable: () => Boolean(map && !disposed),
     dispose() {
       if (disposed) return;

@@ -37,8 +37,9 @@ final class PaymentListQueryRuntimeTest extends TestCase
             $source
         );
         $this->assertStringContainsString( '$members = $wpdb->get_results( $wpdb->prepare(', $source );
-        $this->assertStringContainsString( 'SELECT selected.instant_payment_id, t.order_id FROM %i AS t INNER JOIN (', $source );
-        $this->assertStringContainsString( 'ON t.instant_payment_id = selected.instant_payment_id', $source );
+        $this->assertStringContainsString( 'SELECT %s AS instant_payment_id, order_id FROM %i WHERE delivery_type = %s AND instant_payment_id = %s', $source );
+        $this->assertStringNotContainsString( 'AS selected', $source );
+        $this->assertStringNotContainsString( 'INNER JOIN (', $source );
         $this->assertStringNotContainsString( 'instant_payment_id IN (', $source );
         $this->assertStringNotContainsString( 'GROUP_CONCAT(', $source );
         $this->assertStringNotContainsString( 'phpcs:disable PluginCheck.Security.DirectDB', $source );
@@ -147,8 +148,14 @@ final class PaymentListQueryRuntimeTest extends TestCase
         $this->assertCount( 2, $wpdb->result_queries );
         $this->assertCount( 1, $wpdb->var_queries );
         $sql = $wpdb->result_queries[1];
-        $this->assertStringContainsString( "INNER JOIN (SELECT 'quote''_%\\' AS instant_payment_id UNION ALL SELECT '0' AS instant_payment_id UNION ALL SELECT '001' AS instant_payment_id UNION ALL SELECT '1' AS instant_payment_id UNION ALL SELECT 'x) OR 1=1 --' AS instant_payment_id) AS selected", $sql );
-        $this->assertStringContainsString( "ON t.instant_payment_id = selected.instant_payment_id WHERE t.delivery_type = 'instant' ORDER BY t.order_id ASC", $sql );
+        $branches = array();
+        foreach ( $identities as $identity ) {
+            $literal = "'" . str_replace( "'", "''", $identity ) . "'";
+            $branches[] = "SELECT {$literal} AS instant_payment_id, order_id FROM wp_kiriminaja_transactions WHERE delivery_type = 'instant' AND instant_payment_id = {$literal}";
+        }
+        $this->assertSame( implode( ' UNION ALL ', $branches ) . ' ORDER BY order_id ASC', $sql );
+        $this->assertStringNotContainsString( 'JOIN', $sql );
+        $this->assertStringNotContainsString( 'COLLATE', $sql );
         foreach ( array_slice( $page['results'], 0, count( $identities ) ) as $row ) {
             $this->assertSame( array( '0007' ), $row->order_ids );
         }
@@ -205,7 +212,7 @@ final class PaymentListQueryWpdbFake
         if ( str_contains( $sql, 'COUNT(*) AS total' ) ) {
             return $this->count_results;
         }
-        if ( str_contains( $sql, 'SELECT selected.instant_payment_id, t.order_id' ) ) {
+        if ( str_contains( $sql, ' AS instant_payment_id, order_id FROM ' ) ) {
             return $this->members;
         }
 

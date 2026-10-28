@@ -21,7 +21,13 @@ function absint( $value ) { return abs( (int) $value ); }
 function sanitize_title( $value ) { return preg_replace( '/[^a-z0-9_-]/', '-', strtolower( $value ) ); }
 function checked( $actual, $expected, $echo = true ) { $value = $actual === $expected ? 'checked="checked"' : ''; if ( $echo ) { echo $value; } return $value; }
 function selected( $actual, $expected ) { echo $actual === $expected ? 'selected="selected"' : ''; }
-function do_action( $name, $rate, $index ) { $GLOBALS['hooks'][] = array( $rate->id, $index ); }
+function do_action( $name, $rate, $index ) {
+	$GLOBALS['hooks'][] = array( $rate->id, $index );
+	if ( ! empty( $GLOBALS['input']['hook_fields'] ) ) {
+		$id = 'fixture-delivery-' . $index . '-' . sanitize_title( $rate->id );
+		echo '<div class="fixture-shipping-hook"><label for="' . esc_attr( $id ) . '">Delivery instructions</label><input id="' . esc_attr( $id ) . '" name="fixture_delivery[' . esc_attr( $index ) . '][' . esc_attr( $rate->id ) . ']" required></div>';
+	}
+}
 function WC() { return $GLOBALS['wc']; }
 function wc_prices_include_tax() { return ! empty( $GLOBALS['input']['prices_include_tax'] ); }
 $GLOBALS['wc'] = (object) array( 'session' => new class {
