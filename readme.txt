@@ -4,7 +4,7 @@ Donate link: https://developer.kiriminaja.com/kopi
 Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.1
-Requires PHP: 8.1
+Requires PHP: 8.2.35
 Stable tag: 3.0.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html

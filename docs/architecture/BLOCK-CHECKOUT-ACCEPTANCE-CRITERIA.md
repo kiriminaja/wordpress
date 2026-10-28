@@ -187,7 +187,7 @@ This is the single follow-up checklist for **WooCommerce Checkout Blocks**. Clas
 
 **Implemented / local verification · Browser/theme matrix is a release blocker**
 
-- [x] Headers/readmes align on **WordPress 6.8+, WooCommerce 8.5+ (tested target 10.6), PHP 8.1+**. CI pins WP 6.8 with WC 8.5.0 and 10.6.0; PHP suites cover 8.1, 8.2, 8.3, and 8.5.
+- [x] Headers/readmes require **WordPress 6.8+, WooCommerce 8.5+, PHP 8.2.35+**. PHP 8.1 support is dropped. All CI PHP jobs use 8.2.35, including the behavior suite and WordPress/WooCommerce smoke checks; the smoke matrix is defined in `.github/workflows/test.yml`.
 - [x] Local layout/fallback fixtures cover single integration ownership, ShopVerse layout recovery, missing extension APIs/card markup, and unrelated/collection/no-shipping contexts.
 - [ ] Define the supported browser matrix and run minimum/current supported Woo versions on a default block theme and deployed merchant theme, including ShopVerse where supported.
 - [ ] Verify editor save/reopen yields exactly one District/map integration and required fallback controls remain usable.

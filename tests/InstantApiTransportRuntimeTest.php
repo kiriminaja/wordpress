@@ -193,7 +193,7 @@ final class InstantApiTransportRuntimeTest extends TestCase {
 	}
 
 	public function test_stream_cap_rejects_sparse_file_write_before_storing_bytes(): void {
-		// PHP 8.1/8.2 memory streams reject seeks beyond EOF. A real temporary
+		// PHP 8.2 memory streams reject seeks beyond EOF. A real temporary
 		// file supports sparse seeks on every supported runtime and tests our cap.
 		$resource = tmpfile();
 		$this->assertIsResource( $resource );

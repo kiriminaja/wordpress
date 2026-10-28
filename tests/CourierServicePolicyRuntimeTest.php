@@ -170,7 +170,6 @@ final class CourierServicePolicyRuntimeTest extends TestCase {
  $repository->storeCourierWhitelist( array( 'service_selection' => '{"jne":["OLD"]}' ) );
  $wpdb->rows['origin_whitelist_expedition_services'] = '{';
  $cache = new ReflectionProperty( Repository::class, 'setting_cache' );
- if ( PHP_VERSION_ID < 80100 ) { $cache->setAccessible( true ); }
  $cache->setValue( null, array() );
  save_selection( '{"jne":["OLD"]}', false );
  $wpdb->fail = true;
