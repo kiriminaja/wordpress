@@ -92,7 +92,7 @@ define( 'KIRIOF_SLUG_FILE', plugin_basename( __FILE__ ) );
 
 // Enable KA Credit and PIN for the SDK-backed pickup flow.
 define( 'KIRIOF_ENABLE_KA_CREDIT', true );
-define( 'KIRIOF_VERSION', '3.0.5' );
+define( 'KIRIOF_VERSION', '3.0.4' );
 define( 'KIRIOF_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'KIRIOF_MAX_COD_AMOUNT', 3000000 );
 define( 'KIRIOF_MAX_CUSTOM_SHIPMENT_LOCATIONS', 5 );
