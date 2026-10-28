@@ -81,7 +81,7 @@ export type TransactionRow = {
   wcOrderUrl: string;
   detailUrl: string;
   createdAt: string;
-  customer: { name: string; phone: string };
+  customer: { name: string; phone: string; phoneInvalid?: boolean };
   courier: { code: string; service: string; paymentLabel: string };
   status: InstantStatusPresentation & { deficit: boolean };
   printStatus: 'printed' | 'unprinted';

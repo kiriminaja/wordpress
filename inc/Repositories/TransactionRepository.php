@@ -745,7 +745,8 @@ class TransactionRepository implements TransactionPrintRepositoryInterface {
         return $this->getTransactionByOrderIds($orderIds);
     }
     public function getCountTransactionProcessNew(){
-        return ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts()['total'];
+        // Phone issues change the badge partition, never the total pending order count.
+        return ( new WordPressTransactionBadgeQuery( $this->wpdb ) )->getCounts( array() )['total'];
     }
 
     /**

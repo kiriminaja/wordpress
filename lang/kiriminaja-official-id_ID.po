@@ -5976,3 +5976,11 @@ msgstr "Nama penerima dan nomor telepon Indonesia yang valid diperlukan untuk pe
 #: inc/Services/InstantCheckoutQuoteService.php
 msgid "The shipping recipient address must contain 20 to 250 characters for Instant delivery."
 msgstr "Alamat penerima harus terdiri dari 20 hingga 250 karakter untuk pengiriman Instant."
+
+#: inc/Services/TransactionListViewModelFactory.php
+msgid "Invalid recipient phone"
+msgstr "Nomor telepon penerima tidak valid"
+
+#: inc/Services/TransactionPhoneIssue.php
+msgid "The recipient phone number is invalid. Correct the shipping or billing phone in the WooCommerce order before requesting pickup."
+msgstr "Nomor telepon penerima tidak valid. Perbaiki nomor telepon pengiriman atau penagihan pada pesanan WooCommerce sebelum meminta pickup."

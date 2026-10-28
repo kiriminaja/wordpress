@@ -167,4 +167,33 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 		$this->assertNoPersistence( $result );
 		$this->assertSame( array(), $result['requests'] );
 	}
+
+	public function test_invalid_recipient_phone_blocks_pickup_before_api_or_writes(): void {
+		foreach ( array( '', '0812letters3456', '+628123456789012345', '1234567' ) as $phone ) {
+			$result = $this->runFixture( array( 'recipient_phone' => $phone ) );
+			$this->assertNoPersistence( $result );
+			$this->assertSame( array(), $result['requests'] );
+			$this->assertSame( 'invalid_recipient_phone', $result['data']['error_code'] );
+		}
+		$this->assertSame( 200, $this->runFixture( array( 'recipient_phone' => '+62 (812) 3456-7890' ) )['status'] );
+	}
+
+	public function test_one_invalid_recipient_rejects_the_complete_selected_batch(): void {
+		$result = $this->runFixture( array(
+			'additional_rows' => array( array( 'order_id' => 'ORDER-2', 'wp_wc_order_stat_order_id' => 2 ) ),
+			'addresses' => array( 2 => array( 'shipping' => array( 'phone' => 'bad' ), 'billing' => array( 'phone' => '08123456789' ) ) ),
+		) );
+		$this->assertNoPersistence( $result );
+		$this->assertSame( array(), $result['requests'] );
+		$this->assertSame( 'invalid_recipient_phone', $result['data']['error_code'] );
+	}
+
+	public function test_corrected_live_billing_phone_overrides_legacy_invalid_snapshot(): void {
+		$result = $this->runFixture( array(
+			'row' => array( 'shipping_info' => '{"_billing_phone":"bad"}' ),
+			'addresses' => array( 1 => array( 'shipping' => array(), 'billing' => array( 'phone' => '+62 (812) 3456-7890' ) ) ),
+		) );
+		$this->assertSame( 200, $result['status'] );
+		$this->assertSame( '+62 (812) 3456-7890', $result['requests'][0]['payload']['packages'][0]['destination_phone'] );
+	}
 }

@@ -43,6 +43,8 @@ namespace {
     require ABSPATH . 'inc/Utils/ServiceResponse.php';
     require ABSPATH . 'inc/Base/BaseService.php';
     require ABSPATH . 'inc/Services/TransactionDeliveryType.php';
+    require ABSPATH . 'inc/Services/CheckoutPhoneValidation.php';
+    require ABSPATH . 'inc/Services/TransactionPhoneIssue.php';
     require ABSPATH . 'inc/Services/PackageTypeService.php';
     require ABSPATH . 'inc/Services/ShippingProcessServices/GetShippingProcessPayment.php';
     require ABSPATH . 'inc/Services/TransactionProcessServices/SendRequestPickupTransactionService.php';

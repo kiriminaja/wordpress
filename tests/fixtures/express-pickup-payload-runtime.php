@@ -6,7 +6,11 @@ namespace KiriminAjaOfficial\Repositories {
 	}
 	class TransactionRepository {
 		public function getTransactionByPickupNumber( $id ) { return array( $GLOBALS['transaction'] ); }
-		public function getTransactionByOrderIds( $ids ) { return array( $GLOBALS['transaction'] ); }
+		public function getTransactionByOrderIds( $ids ) {
+			$transactions = array( $GLOBALS['transaction'] );
+			foreach ( $GLOBALS['input']['additional_rows'] ?? array() as $row ) { $transactions[] = (object) array_merge( (array) $GLOBALS['transaction'], $row ); }
+			return $transactions;
+		}
 		public function updateTransactionByCallback( $payload ) { $GLOBALS['writes'][] = $payload; }
 	}
 	class SettingRepository {}
@@ -15,13 +19,6 @@ namespace KiriminAjaOfficial\Services {
 	class SettingService { public function isTopPaymentMethod() { return ! empty( $GLOBALS['input']['top'] ); } }
 	class KiriminajaApiService { public function getProfile() { return (object) array(); } }
 	class ShipmentLocationService {}
-}
-namespace KiriminAjaOfficial\Services\TransactionProcessServices {
-	class RecipientDataResolver {
-		public function resolve( $order, $info, $transaction ) {
-			return array( 'first_name' => 'Private', 'last_name' => 'Buyer', 'address_1' => 'private-address', 'address_2' => '', 'phone' => '08123456789', 'postcode' => '54321', 'city' => 'City', 'state' => '', 'country' => 'ID' );
-		}
-	}
 }
 namespace {
 	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
@@ -35,7 +32,12 @@ namespace {
 	function kiriof_log( ...$args ) { $GLOBALS['logs'][] = $args; }
 	function kiriof_helper() { return new class() { public function minAmount( $value ) { return max( 1, $value ); } }; }
 	function wc_get_order( $id ) {
-		return new class() {
+		return new class( $id ) {
+			public function __construct( private int $id ) {}
+			public function get_address( $type ) {
+				$default = 'shipping' === $type ? array( 'first_name' => 'Private', 'last_name' => 'Buyer', 'address_1' => 'private-address', 'phone' => $GLOBALS['input']['recipient_phone'] ?? '08123456789', 'postcode' => '54321', 'city' => 'City', 'country' => 'ID' ) : array();
+				return $GLOBALS['input']['addresses'][ $this->id ][ $type ] ?? $default;
+			}
 			public function get_items() {
 				if ( ! empty( $GLOBALS['input']['empty_items'] ) ) {
 					return array();

@@ -56,6 +56,7 @@ class TransactionListViewModelFactory {
 		$shipping_info         = json_decode( (string) ( $row->shipping_info ?? '{}' ) );
 		$wc_order              = function_exists( 'wc_get_order' ) ? wc_get_order( $row->wc_order_id ) : false;
 		$recipient             = $this->recipient_resolver->resolve( $wc_order, $shipping_info, $row );
+		$phone_issue           = TransactionPhoneIssue::unbookedExpress( $row ) && ( ! empty( $row->kiriof_phone_issue ) || ! CheckoutPhoneValidation::valid( $recipient['phone'] ) );
 		$billing_address       = $wc_order && method_exists( $wc_order, 'get_address' ) ? (array) $wc_order->get_address( 'billing' ) : array();
 		$billing_name          = trim( (string) ( $billing_address['first_name'] ?? '' ) . ' ' . (string) ( $billing_address['last_name'] ?? '' ) );
 		$recipient_name        = trim( $recipient['first_name'] . ' ' . $recipient['last_name'] );
@@ -83,7 +84,7 @@ class TransactionListViewModelFactory {
 		$is_processable        = 'wc-processing' === $post_status && 'new' === (string) $row->status;
 		$awb                   = (string) ( $row->awb ?? '' );
 		$order_id              = (string) ( $row->order_id ?? '' );
-		$can_request_pickup    = $is_processable && ( ! $is_deficit || $effective_payout >= 0 );
+		$can_request_pickup    = $is_processable && ! $phone_issue && ( ! $is_deficit || $effective_payout >= 0 );
 		$print_capable_filter  = in_array( $status_filter, array( 'all', 'processed' ), true );
 		$can_print             = $is_express && $print_capable_filter && '' !== $awb && 'request_pickup' === (string) $row->status;
 		$can_cancel            = $is_express ? ExpressCancellationEligibility::canCancel( $row ) : InstantShipmentState::canCancel( $row );
@@ -110,6 +111,12 @@ class TransactionListViewModelFactory {
 		$status_presentation   = $is_express
 			? array( 'label' => $status_label, 'tone' => $status_tone, 'deficit' => $is_deficit, 'tooltip' => '', 'issue' => false )
 			: array_merge( InstantDeliveryStatus::describe( $row ), array( 'deficit' => false ) );
+		if ( $phone_issue ) {
+			$status_presentation['label'] = __( 'Invalid recipient phone', 'kiriminaja-official' );
+			$status_presentation['tone'] = 'warning';
+			$status_presentation['issue'] = TransactionPhoneIssue::message();
+			$status_presentation['tooltip'] = TransactionPhoneIssue::message();
+		}
 		// An Instant shipment state must not conceal WooCommerce's order hold.
 		// Prefer the live order over a potentially stale query status (legacy/HPOS).
 		$instant_wc_status = $wc_order ? (string) $wc_order->get_status() : preg_replace( '/^wc-/', '', $post_status );
@@ -146,7 +153,7 @@ class TransactionListViewModelFactory {
 			'wcOrderUrl'      => admin_url( 'post.php?post=' . (int) $row->wc_order_id . '&action=edit' ),
 			'detailUrl'       => admin_url( 'admin.php?page=kiriminaja-transaction-detail&id=' . absint( $row->wc_order_id ?? $row->wp_wc_order_stat_order_id ?? 0 ) ),
 			'createdAt'       => wp_date( 'M d, Y H:i', strtotime( (string) $row->wc_date_created ), new DateTimeZone( 'UTC' ) ),
-			'customer'        => array( 'name' => $billing_name, 'phone' => (string) $recipient['phone'] ),
+			'customer'        => array( 'name' => $billing_name, 'phone' => (string) $recipient['phone'], 'phoneInvalid' => $phone_issue ),
 			'courier'         => array(
 				'code'         => strtolower( (string) ( $row->service ?? '' ) ),
 				'service'      => $helper->formatServiceName( $row->service, $row->service_name ?? '' ),
@@ -175,7 +182,7 @@ class TransactionListViewModelFactory {
 				'canPickup' => $can_request_pickup,
 				'canProcess' => (bool) $can_process_instant,
 				'canPrint'  => $can_print,
-				'title'     => $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ),
+				'title'     => $phone_issue ? TransactionPhoneIssue::message() : ( $is_express ? $this->selectionTitle( $is_deficit, $effective_payout, $print_capable_filter, $can_print, $is_processable ) : ( $checkbox_disabled ? __( 'This Instant shipment cannot be processed or printed. Review its shipment and payment state.', 'kiriminaja-official' ) : '' ) ),
 			),
 			'actions'         => array(
 				'paymentUrl'   => $can_pay_instant ? add_query_arg( array( 'key' => $instant_payment_id, 'instant_payment_id' => $instant_payment_id, 'open_payment' => '1' ), admin_url( 'admin.php?page=kiriminaja-request-pickup' ) ) : '',

@@ -16,6 +16,8 @@ use KiriminAjaOfficial\Services\PackageTypeService;
 use KiriminAjaOfficial\Services\SettingService;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
 use KiriminAjaOfficial\Services\TransactionDeliveryType;
+use KiriminAjaOfficial\Services\CheckoutPhoneValidation;
+use KiriminAjaOfficial\Services\TransactionPhoneIssue;
 class SendRequestPickupTransactionService extends BaseService
 {
     public array $orderIds = [];
@@ -405,6 +407,16 @@ class SendRequestPickupTransactionService extends BaseService
         foreach ( (array) $transactions as $transaction ) {
             if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) ) {
                 return self::error( array(), __( 'Instant shipment processing is not available yet.', 'kiriminaja-official' ) );
+            }
+        }
+        foreach ( (array) $transactions as $transaction ) {
+            $order = wc_get_order( (int) ( $transaction->wp_wc_order_stat_order_id ?? 0 ) );
+            if ( $order ) {
+                $snapshot = json_decode( (string) ( $transaction->shipping_info ?? '' ) );
+                $recipient = $this->recipientDataResolver->resolve( $order, $snapshot, $transaction );
+                if ( ! CheckoutPhoneValidation::valid( $recipient['phone'] ) ) {
+                    return self::error( array( 'error_code' => 'invalid_recipient_phone' ), TransactionPhoneIssue::message() );
+                }
             }
         }
 

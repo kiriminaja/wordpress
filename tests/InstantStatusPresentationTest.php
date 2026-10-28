@@ -14,7 +14,7 @@ final class InstantStatusPresentationTest extends TestCase {
                 'service'       => 'express' === $delivery_type ? 'jne' : 'gosend',
                 'awb'           => '',
                 'order_id'      => '',
-                'wc_order'      => array( 'status' => 'processing', 'paid' => true ),
+                'wc_order'      => array( 'status' => 'processing', 'paid' => true, 'address' => array( 'phone' => '081234567890' ) ),
             );
             foreach ( array( 'list', 'detail', 'fallback' ) as $mode ) {
                 $row = $this->row( $payload + array( 'mode' => $mode ) );

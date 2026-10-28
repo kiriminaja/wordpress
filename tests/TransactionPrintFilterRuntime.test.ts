@@ -207,6 +207,27 @@ describe('TransactionsApp print filters (compiled production Svelte and bits-ui)
     actions: { preview: true, paymentUrl, print: true, cancel: false, process: false, track: false, reconcile: false },
     actionData: {}, awb: 'AWB-1', createdAt: '2026-01-02',
   });
+  test('Order issue shows the original invalid phone in red without a dial link or pickup selection', async () => {
+    const reason = 'The recipient phone number is invalid. Correct the shipping or billing phone in the WooCommerce order before requesting pickup.';
+    const row = {
+      ...transactionRow('express', ''),
+      customer: { name: 'Fixture buyer', phone: '08523434AAAAAAXXXXX55678', phoneInvalid: true },
+      status: { code: 'new', label: 'Invalid recipient phone', tone: 'warning', issue: reason, deficit: false },
+      printStatus: 'unprinted', awb: '',
+    };
+    const h = await fixture('express', '', [row], { status: 'order-issue', key: '', courier: '', cod: '' });
+    try {
+      const phone = h.target.querySelector<HTMLElement>('.kiriof-customer-phone')!;
+      expect(phone.textContent).toBe(row.customer.phone);
+      expect(phone.classList.contains('!text-destructive')).toBe(true);
+      expect(phone.tagName).toBe('SPAN');
+      expect(phone.getAttribute('title')).toBe(reason);
+      expect(h.target.querySelector('a[href^="tel:"]')).toBeNull();
+      expect(h.target.querySelector('[name="transaction_id[]"]')).toBeNull();
+      expect(h.target.querySelector('tbody')?.textContent).toContain('Order issue');
+      expect(h.target.querySelector('a[aria-label="Detail"]')).not.toBeNull();
+    } finally { await h.cleanup(); }
+  });
   test('eligible Instant Scan to Pay is a grouped row action, never courier content', async () => {
     const paymentUrl = '/wp-admin/admin.php?page=kiriminaja-request-pickup&instant_payment_id=PAY-1&open_payment=1';
     const h = await fixture('instant', '0', [transactionRow('instant', paymentUrl)]); try {
