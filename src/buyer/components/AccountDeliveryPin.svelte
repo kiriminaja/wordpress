@@ -41,6 +41,7 @@
           map = mapProviderRegistry[provider.provider].createSession({
             ...provider, google, document: root.document, window: root as unknown as GoogleMapsWindow, node: canvas, leaflet: root.L, initial, coverage: config.map?.coverage,
             geolocation: root.navigator?.geolocation,
+            defaultCenter: config.map?.defaultCenter, permissions: root.navigator?.permissions,
             schedule: (callback, delay) => root.setTimeout(callback, delay),
             cancel: handle => root.clearTimeout(handle as number),
             onError: error,

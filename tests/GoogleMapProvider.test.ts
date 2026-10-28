@@ -64,6 +64,20 @@ function runtime() {
 }
 
 describe('shared Google runtime provider', () => {
+	test('granted GPS suggests the camera only; a manual pin wins over late device results', async () => {
+		const f = runtime(), selections: unknown[] = [];
+		let success: any;
+		const session = createGoogleMapSession({ google: f.api, node: new Window().document.createElement('div') as unknown as HTMLElement,
+			coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 },
+			permissions: { query: async () => ({ state: 'granted' }) },
+			geolocation: { getCurrentPosition(ok) { success = ok; } }, onSelect: point => { selections.push(point); } });
+		expect(f.getCenter()).toEqual({ lat: -6.9, lng: 107.6 });
+		await Promise.resolve(); await Promise.resolve();
+		success({ coords: { latitude: -6.2, longitude: 106.8 } });
+		expect(f.getCenter()).toEqual({ lat: -6.2, lng: 106.8 });
+		expect(session.getPoint()).toBeNull(); expect(selections).toEqual([]);
+		session.dispose();
+	});
   for (const geolocation of [undefined, { getCurrentPosition() { throw new Error('blocked'); } }, { getCurrentPosition(_success: any, failure: any) { failure({ code: 1 }); } }]) {
     test('optional location failure preserves the Jogja view and manual Google selection', () => {
       const f = runtime(), selections: any[] = [], errors: string[] = [];

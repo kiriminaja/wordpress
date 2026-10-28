@@ -74,6 +74,22 @@ function fixture(extra: any = {}, browserRoot?: any) {
 }
 
 describe('Map checkout exported session: compiled production TypeScript VM, no UI hooks', () => {
+	test('granted device location only centers the camera and never overwrites a manual selection', async () => {
+		const h = fixture({ permissions: { query: async () => ({ state: 'granted' }) }, coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 } });
+		expect(h.maps[0].views[0].center).toEqual([-6.9, 107.6]);
+		for (let i = 0; i < 8; i++) await Promise.resolve();
+		expect(h.locations).toHaveLength(1);
+		h.position(0, -6.2, 106.8);
+		expect(h.maps[0].views.at(-1).center).toEqual([-6.2, 106.8]);
+		expect(h.session.getPoint()).toBeNull(); expect(h.selections).toEqual([]);
+		h.session.dispose();
+		const stale = fixture({ permissions: { query: async () => ({ state: 'granted' }) } });
+		for (let i = 0; i < 8; i++) await Promise.resolve();
+		stale.click(0, 0); stale.position(0, -6.2, 106.8);
+		expect(stale.session.getPoint()).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
+		expect(stale.maps[0].views.at(-1).center).toEqual([0, 0]);
+		stale.session.dispose();
+	});
 	test('Haversine metres validates full coordinate objects, zero, antipodes and inclusive millimetre boundary', () => {
 		const { api } = fixture(); const origin = { latitude: '0', longitude: 0 };
 		expect(api.coverageDistance(origin, origin)).toBe(0);

@@ -29,7 +29,7 @@
   $effect(() => {
     void key; void restart;
     const state = untrack(() => controller.getState());
-    if (!visible || !canvas || !config.map?.enabled || !state.address.address_1 || !state.address.postcode) return;
+    if (!visible || !canvas || !config.map?.enabled) return;
     const expected = state.address;
     let disposed = false;
     let map: MapSession | undefined;
@@ -46,6 +46,7 @@
         map = mapProviderRegistry[provider.provider].createSession({
           ...provider, google, document: root.document, window: root as GoogleMapsWindow,
           node: canvas, leaflet: root.L, coverage: config.map?.coverage,
+          defaultCenter: config.map?.defaultCenter, permissions: root.navigator?.permissions,
           initial: state.point, geolocation: root.navigator?.geolocation,
           onMove: next => { if (current()) moving = next; },
           onSelect: next => current() && select(next, expected),

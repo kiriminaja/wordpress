@@ -38,6 +38,7 @@ function html(provider: 'leaflet' | 'google', coverage: boolean) {
     reactSource(),
     `window.__runtimeErrors=[];window.addEventListener('error',e=>window.__runtimeErrors.push(e.message));window.addEventListener('unhandledrejection',e=>window.__runtimeErrors.push(String(e.reason)));
     window.__geoCalls=0;window.__denyGeo=false;Object.defineProperty(navigator,'geolocation',{value:{getCurrentPosition(ok,fail){window.__geoCalls++;if(window.__denyGeo){fail({code:1});return;}ok({coords:{latitude:-7.7,longitude:110.3}})}}});
+    Object.defineProperty(navigator,'permissions',{configurable:true,value:{query:async()=>({state:'prompt'})}});
     const R=window.__React;const cart={needsShipping:true,shippingAddress:{country:'ID',address_1:'Fixture address'}};
     window.wp={element:R,data:{useSelect:fn=>fn(name=>name==='wc/store/cart'?{getCartData:()=>cart}:{prefersCollection:()=>false})}};
     window.wc={blocksCheckout:{registerCheckoutBlock:registration=>{if(registration.metadata.name==='kiriminaja-official/map-checkout')window.__MapControl=registration.component;}}};
@@ -81,12 +82,12 @@ for (const { provider, width, coverage } of [
     expect(await browser.evaluate(() => ({ tabindex: document.querySelector('.kiriof-buyer-map__canvas')!.getAttribute('tabindex'), role: document.querySelector('.kiriof-buyer-map__canvas')!.getAttribute('role') }))).toEqual({ tabindex: '0', role: 'application' });
     await expect(status).toContainText('Need Pin Location');
     expect(await browser.evaluate(() => ({ geoCalls: (window as any).__geoCalls, selected: (window as any).__selected ?? null }))).toEqual({ geoCalls: 0, selected: null });
-    expect(await browser.evaluate(() => {
+    expect(await browser.evaluate((expected: { latitude: number; longitude: number }) => {
       const center=(window as any).__map.getCenter();
       const latitude=typeof center.lat==='function'?center.lat():center.lat;
       const longitude=typeof center.lng==='function'?center.lng():center.lng;
-      return Math.abs(latitude-(-7.801389))<0.001&&Math.abs(longitude-110.364722)<0.001;
-    })).toBe(true);
+      return Math.abs(latitude-expected.latitude)<0.001&&Math.abs(longitude-expected.longitude)<0.001;
+    }, coverage ? { latitude: -7.7, longitude: 110.3 } : { latitude: -7.801389, longitude: 110.364722 })).toBe(true);
     await browser.evaluate(() => { (window as any).__denyGeo=true; });
     await browser.locator('.kiriof-buyer-map__locate').tap();
     await expect.poll(() => browser.evaluate(() => (window as any).__geoCalls)).toBe(1);

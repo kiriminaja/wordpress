@@ -1,5 +1,7 @@
 import type * as Leaflet from 'leaflet';
 import { resolveMapConfig } from './config';
+import { fallbackMapCenter, suggestGrantedDeviceCenter } from './viewport';
+export { BUYER_MAP_CENTER } from './viewport';
 import type {
   Point,
   PointInput,
@@ -11,8 +13,6 @@ import type {
   MapSession,
   MapProvider,
 } from './types';
-
-export const BUYER_MAP_CENTER: [number, number] = [-7.801389, 110.364722];
 
 export function coordinate(value: unknown, limit: number): string | null {
   if (('string' !== typeof value && 'number' !== typeof value) || '' === String(value).trim()) {
@@ -209,7 +209,7 @@ export function createMapSession(options: MapSessionOptions): MapSession {
       throw new Error('Map unavailable');
     }
     map = L.map(options.node, { scrollWheelZoom: false }).setView(
-      options.defaultCenter || BUYER_MAP_CENTER,
+      fallbackMapCenter(options, normalizePoint),
       13,
     );
     if (
@@ -278,6 +278,13 @@ export function createMapSession(options: MapSessionOptions): MapSession {
       }
     }
     reportCoverage(selected);
+    const initialLocationSequence = locationSequence;
+    suggestGrantedDeviceCenter(
+      options,
+      normalizePoint,
+      () => !disposed && !selected && !moving && locationSequence === initialLocationSequence,
+      (point) => show(point),
+    );
     timer = schedule(function () {
       if (!disposed) {
         map!.invalidateSize({ pan: false });

@@ -121,6 +121,7 @@ export function startClassicPin(
     onChange: render,
   });
   const select = (next: Point | null, expected: NativeAddress) => {
+    if (next && (!expected.address_1 || !expected.postcode)) return false;
     point = next;
     pointAddress = expected;
     return native.district() ? controller.selectPoint(next, expected) : true;

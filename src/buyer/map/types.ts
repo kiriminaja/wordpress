@@ -120,6 +120,9 @@ export interface MapSessionOptions {
   label?: string;
   geolocation?: GeolocationProvider | null;
   schedule?(callback: () => void, delay: number): unknown;
+  permissions?: {
+    query(descriptor: { name: 'geolocation' }): PromiseLike<{ state: PermissionState }>;
+  } | null;
   cancel?(handle: unknown): void;
   onError?(code: MapError): void;
   onSelect?(point: Point | null): boolean | void;

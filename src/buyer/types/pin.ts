@@ -5,6 +5,7 @@ import type { Coverage } from '../map/types';
 export interface MapProviderInput extends MapProviderConfigInput {
   apiKey?: string;
   enabled?: boolean;
+  defaultCenter?: [number, number];
   coverage?: Coverage;
   i18n?: Record<string, string>;
 }
