@@ -18,6 +18,7 @@ namespace {
 	}
 	function wc_get_order( $id ) {
 		++$GLOBALS['phone_reads'];
+		if ( 'order-unavailable' === $GLOBALS['scenario'] && 1 === (int) $id ) { return false; }
 		return new class( $id ) {
 			private $id;
 			public function __construct( $id ) { $this->id = $id; }
@@ -37,6 +38,8 @@ namespace {
 				);
 				$phone = $phones[ $this->id ][ $type ] ?? '';
 				if ( 'duplicates' === $GLOBALS['scenario'] && 1 === $this->id ) { $phone = ''; }
+				if ( 'phone-length' === $GLOBALS['scenario'] && 1 === $this->id && 'shipping' === $type ) { $phone = '085451111000000'; }
+				if ( 'phone-length' === $GLOBALS['scenario'] && 2 === $this->id && 'billing' === $type ) { $phone = '+6285234534567'; }
 				if ( $this->id >= 12 ) { $phone = 212 === $this->id ? 'bad' : '08123456789'; }
 				return array( 'phone' => 1 === $this->id && ! empty( $GLOBALS['corrected'] ) ? '08123456789' : $phone );
 			}
@@ -116,6 +119,8 @@ namespace {
 	$badges = $query->getDeliveryCounts();
 	$filters['status'] = 'wc-processing';
 	$regular = $query->getPage( $filters, 1, 100 );
+	$filters['status'] = 'all';
+	$regular_all = $query->getPage( $filters, 1, 100 );
 	$filters['status'] = 'processed';
 	$processed = $query->getPage( $filters, 1, 100 );
 	$reads = $GLOBALS['phone_reads'];
@@ -127,5 +132,5 @@ namespace {
 	$corrected_badges = $corrected_query->getDeliveryCounts();
 	$filters['status'] = 'wc-processing';
 	$corrected_regular = $corrected_query->getPage( $filters, 1, 100 );
-	echo json_encode( compact( 'page', 'counts', 'badges', 'regular', 'processed', 'corrected', 'corrected_badges', 'corrected_regular', 'reads', 'scans' ), JSON_THROW_ON_ERROR );
+	echo json_encode( compact( 'page', 'counts', 'badges', 'regular', 'regular_all', 'processed', 'corrected', 'corrected_badges', 'corrected_regular', 'reads', 'scans' ), JSON_THROW_ON_ERROR );
 }

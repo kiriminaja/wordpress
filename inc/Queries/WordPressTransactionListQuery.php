@@ -673,9 +673,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
             foreach ( (array) $rows as $row ) {
                 $cursor = (int) $row->id;
                 $order  = wc_get_order( (int) $row->wp_wc_order_stat_order_id );
-                if ( ! $order ) {
-                    continue;
-                }
                 $snapshot  = json_decode( (string) ( $row->shipping_info ?? '' ) );
                 $recipient = $resolver->resolve( $order, $snapshot, $row );
                 if ( ! CheckoutPhoneValidation::valid( $recipient['phone'] ) ) {

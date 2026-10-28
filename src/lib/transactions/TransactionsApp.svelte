@@ -456,7 +456,9 @@
                   <a class="kiriof-order-link" href={row.wcOrderUrl} target="_blank">#{row.wcOrderId}</a>
                   <strong class="kiriof-row-title">{row.customer.name}</strong>
                   {#if row.customer.phoneInvalid}
-                    <span class="kiriof-customer-phone !text-destructive" title={String(row.status.issue || '')}>{row.customer.phone || row.status.label}</span>
+                    <ActionTooltip label={String(row.status.issue || '')} focusable>
+                      <span class="kiriof-customer-phone !text-destructive">{row.customer.phone || '—'}</span>
+                    </ActionTooltip>
                   {:else if row.customer.phone}
                     <a class="kiriof-customer-phone" href={`tel:${formatPhone(row.customer.phone)}`}>{formatPhone(row.customer.phone)}</a>
                   {/if}

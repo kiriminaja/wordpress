@@ -6,6 +6,25 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class TransactionPhoneIssueQueryRuntimeTest extends TestCase {
+	public function test_unavailable_order_uses_the_same_snapshot_as_row_display(): void {
+		foreach ( array( 'legacy', 'hpos' ) as $storage ) {
+			$result = $this->scenario( $storage, 'order-unavailable' );
+			$this->assertSame( 3, $result['page']['total'] );
+			$this->assertNotContains( 1, array_column( $result['regular_all']['results'], 'wc_order_id' ) );
+			$this->assertSame( 3, $result['badges']['issue'] );
+		}
+	}
+	public function test_overlong_local_phone_is_exclusively_an_issue_but_allowed_international_phone_stays_regular(): void {
+		foreach ( array( 'legacy', 'hpos' ) as $storage ) {
+			$result = $this->scenario( $storage, 'phone-length' );
+			$this->assertSame( 3, $result['page']['total'] );
+			$this->assertNotContains( 1, array_column( $result['regular']['results'], 'wc_order_id' ) );
+			$this->assertContains( 2, array_column( $result['regular']['results'], 'wc_order_id' ) );
+			$this->assertNotContains( 1, array_column( $result['regular_all']['results'], 'wc_order_id' ) );
+			$this->assertContains( 2, array_column( $result['regular_all']['results'], 'wc_order_id' ) );
+			$this->assertSame( 3, $result['badges']['issue'] );
+		}
+	}
 	private function scenario( string $storage, string $scenario ): array {
 		$command = kiriof_test_fixture_php_shell( array( PLUGIN_DIR . '/tests/fixtures/transaction-phone-issue-query.php', $storage, $scenario ) );
 		exec( $command . ' 2>&1', $output, $status );

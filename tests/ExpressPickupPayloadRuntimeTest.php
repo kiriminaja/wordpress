@@ -169,13 +169,14 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 	}
 
 	public function test_invalid_recipient_phone_blocks_pickup_before_api_or_writes(): void {
-		foreach ( array( '', '0812letters3456', '+628123456789012345', '1234567' ) as $phone ) {
+		foreach ( array( '', '0812letters3456', '+628123456789012345', '+6285451111000000', '085451111000000', '1234567' ) as $phone ) {
 			$result = $this->runFixture( array( 'recipient_phone' => $phone ) );
 			$this->assertNoPersistence( $result );
 			$this->assertSame( array(), $result['requests'] );
 			$this->assertSame( 'invalid_recipient_phone', $result['data']['error_code'] );
 		}
 		$this->assertSame( 200, $this->runFixture( array( 'recipient_phone' => '+62 (812) 3456-7890' ) )['status'] );
+		$this->assertSame( 200, $this->runFixture( array( 'recipient_phone' => '+6285234534567' ) )['status'] );
 	}
 
 	public function test_one_invalid_recipient_rejects_the_complete_selected_batch(): void {

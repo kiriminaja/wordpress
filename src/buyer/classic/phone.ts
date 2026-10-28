@@ -11,10 +11,16 @@ export function validCheckoutPhone(value: string): boolean {
   if (value.length > 64) return false;
   const phone = value.replace(/^ +| +$/g, '');
   const digits = phone.replace(/[^0-9]/g, '');
+  const internationalDigits =
+    !phone.startsWith('+') && digits.startsWith('08')
+      ? `62${digits.slice(1)}`
+      : !phone.startsWith('+') && digits.startsWith('8')
+        ? `62${digits}`
+        : digits;
   return (
     /^\+?(?:[0-9]|\([0-9]+\))(?:[0-9]|[ -](?=[0-9(])|\([0-9]+\))*(?![\s\S])/.test(phone) &&
     digits.length >= 8 &&
-    digits.length <= 15
+    internationalDigits.length <= 15
   );
 }
 

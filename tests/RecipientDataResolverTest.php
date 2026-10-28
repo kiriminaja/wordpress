@@ -10,6 +10,17 @@ require_once PLUGIN_DIR . '/inc/Services/TransactionProcessServices/RecipientDat
 
 final class RecipientDataResolverTest extends TestCase
 {
+	public function test_legacy_phone_metadata_is_preserved_for_issue_display(): void {
+		$order = new class() {
+			public function get_address( $type ): array { return array(); }
+			public function get_shipping_phone(): string { return ''; }
+			public function get_billing_phone(): string { return ''; }
+			public function get_meta( $key, $single ): string { return '_billing_phone' === $key ? '+6285451111000000' : ''; }
+		};
+		$recipient = ( new \KiriminAjaOfficial\Services\TransactionProcessServices\RecipientDataResolver() )->resolve( $order, (object) array(), (object) array() );
+		$this->assertSame( '+6285451111000000', $recipient['phone'] );
+	}
+
     #[Test]
     public function current_shipping_data_replaces_the_checkout_snapshot(): void
     {

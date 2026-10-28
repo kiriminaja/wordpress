@@ -118,7 +118,7 @@ PHP;
     }
 
     public function test_unbooked_express_invalid_phone_is_an_unselectable_order_issue(): void {
-        foreach ( array( '', '0812bad12345', '+628123456789012345' ) as $phone ) {
+        foreach ( array( '', '0812bad12345', '+628123456789012345', '+6285451111000000', '085451111000000' ) as $phone ) {
             $row = $this->runFixture( 'transaction-instant-ui-runtime.php', array( 'awb' => '', 'shipping_info' => json_encode( array( '_billing_phone' => $phone ) ) ) );
             $this->assertFalse( $row['selection']['canPickup'] );
             $this->assertTrue( $row['selection']['disabled'] );
@@ -128,7 +128,7 @@ PHP;
             $this->assertStringContainsString( 'Correct the shipping or billing phone', $row['status']['issue'] );
             $this->assertTrue( $row['actions']['preview'] );
         }
-        $row = $this->runFixture( 'transaction-instant-ui-runtime.php', array( 'awb' => '', 'wc_order' => array( 'address' => array( 'phone' => '+62 (812) 3456-7890' ) ), 'shipping_info' => '{"_billing_phone":"bad"}' ) );
+        $row = $this->runFixture( 'transaction-instant-ui-runtime.php', array( 'awb' => '', 'wc_order' => array( 'address' => array( 'phone' => '+6285234534567' ) ), 'shipping_info' => '{"_billing_phone":"bad"}' ) );
         $this->assertTrue( $row['selection']['canPickup'] );
         $this->assertFalse( $row['customer']['phoneInvalid'] );
         $this->assertFalse( $row['status']['issue'] );
