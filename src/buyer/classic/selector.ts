@@ -5,6 +5,7 @@ import { searchSubdistrict } from '../api/subdistrict';
 import type { SelectorBridge, SelectorConfig, SelectorOption } from '../types/selector';
 import { syncDistrictAddress } from './district-address';
 import { isFunnelKitCheckout, usesShippingAddress } from './address-scope';
+import { clearFunnelKitLayout, syncFunnelKitLayout } from './funnelkit-layout';
 
 type JQueryField = {
   data: (key: string, value?: unknown) => unknown;
@@ -675,6 +676,9 @@ export function startClassicSelectors(
       recover(record);
     }
     if (active()) document.querySelectorAll<HTMLSelectElement>('form select').forEach(init);
+    document
+      .querySelectorAll<HTMLFormElement>('form.kiriof-funnelkit-checkout')
+      .forEach(syncFunnelKitLayout);
   }
   function queueRefresh() {
     if (queued || stopped) return;
@@ -718,10 +722,10 @@ export function startClassicSelectors(
       const relevant = mutations.some((mutation) => {
         const target =
           mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
-        if (mutation.attributeName === 'class')
+        if (['class', 'style', 'hidden'].includes(mutation.attributeName || ''))
           return Boolean(
             target?.matches(
-              '#billing_city_field, #billing_state_field, #billing_postcode_field, #shipping_city_field, #shipping_state_field, #shipping_postcode_field',
+              '#billing_city_field, #billing_state_field, #billing_postcode_field, #billing_country_field, #shipping_city_field, #shipping_state_field, #shipping_postcode_field, #shipping_country_field',
             ),
           );
         if (target?.closest('select')) return true;
@@ -749,6 +753,8 @@ export function startClassicSelectors(
         'aria-invalid',
         'aria-describedby',
         'class',
+        'style',
+        'hidden',
         ...metadata,
       ],
     });
@@ -757,6 +763,7 @@ export function startClassicSelectors(
     document.body.addEventListener('updated_checkout', queueRefresh);
     document.body.addEventListener('kiriof:classic-district-ready', queueRefresh);
     document.body.addEventListener('country_to_state_changed', queueRefresh);
+    root.addEventListener('resize', queueRefresh);
     root
       .jQuery?.(document.body)
       .on(
@@ -797,9 +804,13 @@ export function startClassicSelectors(
       document.body.removeEventListener('updated_checkout', queueRefresh);
       document.body.removeEventListener('kiriof:classic-district-ready', queueRefresh);
       document.body.removeEventListener('country_to_state_changed', queueRefresh);
+      root.removeEventListener('resize', queueRefresh);
       root.jQuery?.(document.body).off('.kiriofBuyerSelectors');
       root.removeEventListener('pagehide', bridge.dispose!);
       records.forEach(destroy);
+      document
+        .querySelectorAll<HTMLFormElement>('form.kiriof-funnelkit-checkout')
+        .forEach(clearFunnelKitLayout);
       if (root.kiriofBuyerSelectors === bridge) delete root.kiriofBuyerSelectors;
       if (root.kiriofClassicChoices === bridge) delete root.kiriofClassicChoices;
     },
