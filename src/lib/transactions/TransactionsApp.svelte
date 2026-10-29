@@ -38,18 +38,21 @@
   import KiriofCard from '$lib/ui/KiriofCard.svelte';
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import CopyableValue from '$lib/ui/CopyableValue.svelte';
-  import PrintPreviewDialog from '$lib/ui/PrintPreviewDialog.svelte';
+  import DeferredDialog from '$lib/ui/DeferredDialog.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DateRangeFilter from '$lib/ui/DateRangeFilter.svelte';
   import DataTableFooter from '../admin-list/DataTableFooter.svelte';
   import KiriofMultiFilter from '$lib/ui/KiriofMultiFilter.svelte';
   import CourierLogo from '$lib/ui/CourierLogo.svelte';
-  import InstantProcessDialog from './InstantProcessDialog.svelte';
-  import RequestPickupDialog from './RequestPickupDialog.svelte';
-  import TransactionActionDialogs, { type TransactionActionDialog } from './TransactionActionDialogs.svelte';
-  import InstantOperationDialog from './InstantOperationDialog.svelte';
+  import type { TransactionActionDialog } from './TransactionActionDialogs.svelte';
   import { type InstantOperationMode, instantStatusIcon } from './types';
   import type { TransactionFilters, TransactionRow, TransactionsBootstrap } from './types';
+
+  const loadInstantProcessDialog = () => import('./InstantProcessDialog.svelte');
+  const loadRequestPickupDialog = () => import('./RequestPickupDialog.svelte');
+  const loadTransactionActionDialogs = () => import('./TransactionActionDialogs.svelte');
+  const loadInstantOperationDialog = () => import('./InstantOperationDialog.svelte');
+  const loadPrintPreviewDialog = () => import('$lib/ui/PrintPreviewDialog.svelte');
 
   let {
     bootstrap: initialBootstrap,
@@ -305,7 +308,7 @@
       <nav class="kiriof-admin-list-scopes kiriof-transactions-scopes" aria-label={bootstrap.i18n.transactionScope}>
         <WorkspaceTabs value={scopeValue} tabs={scopeTabs} onChange={changeScope} />
         <div class="kiriof-admin-list-tools kiriof-transactions-list-tools">
-          <DateRangeFilter dateFrom={filters.date_from} dateTo={filters.date_to} month={filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.clearFilters} onChange={(range) => { Object.assign(filters, range); void navigate({ ...range, date_range_invalid: '' }); }} />
+          <DateRangeFilter dateFrom={filters.date_from} dateTo={filters.date_to} month={filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.clearFilters} loadingLabel={bootstrap.i18n.loading} errorLabel={bootstrap.i18n.actionError} retryLabel={bootstrap.i18n.retry} onChange={(range) => { Object.assign(filters, range); void navigate({ ...range, date_range_invalid: '' }); }} />
           <Select.Root type="single" value={String(bootstrap.pagination.perPage)} disabled={refreshing} onValueChange={(value: string) => void navigate({ per_page: value || '25' })}>
             <Select.Trigger hideIcon><IconListNumbers /><Select.Value>{bootstrap.pagination.perPage}</Select.Value><IconChevronDown class="kiriof-select-chevron" /></Select.Trigger>
             <Select.Content class="kiriof-shadcn">
@@ -574,19 +577,39 @@
     />
   </KiriofCard>
   {#if !isInstant}
-  <RequestPickupDialog
-    bind:open={pickupDialogOpen}
-    orderIds={pickupOrderIds}
-    ajaxUrl={bootstrap.bulk.ajaxUrl}
-    nonce={bootstrap.bulk.nonce}
-    pickupUrl={bootstrap.bulk.pickupUrl}
-    i18n={bootstrap.i18n}
-  />
-  <TransactionActionDialogs bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
+  <DeferredDialog active={pickupDialogOpen} load={loadRequestPickupDialog} i18n={bootstrap.i18n} onClose={() => (pickupDialogOpen = false)}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent
+        bind:open={pickupDialogOpen}
+        orderIds={pickupOrderIds}
+        ajaxUrl={bootstrap.bulk.ajaxUrl}
+        nonce={bootstrap.bulk.nonce}
+        pickupUrl={bootstrap.bulk.pickupUrl}
+        i18n={bootstrap.i18n}
+      />
+    {/snippet}
+  </DeferredDialog>
+  <DeferredDialog active={actionDialog !== null} load={loadTransactionActionDialogs} i18n={bootstrap.i18n} onClose={() => (actionDialog = null)}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent bind:action={actionDialog} locations={bootstrap.shipmentLocations} locationsUrl={bootstrap.locationsUrl} ajaxUrl={bootstrap.bulk.ajaxUrl} i18n={bootstrap.i18n} onComplete={refreshList} />
+    {/snippet}
+  </DeferredDialog>
   {/if}
-  {#if instantOperation}
-    <InstantOperationDialog mode={instantOperation.mode} orderIds={[instantOperation.id]} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onClose={(completed) => { instantOperation = null; if (completed) refreshList(); }} />
-  {/if}
-  <InstantProcessDialog bind:open={instantDialogOpen} orderIds={instantOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onComplete={refreshList} />
-  <PrintPreviewDialog deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={isInstant ? bootstrap.bulk.nonce : bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
+  <DeferredDialog active={instantOperation !== null} load={loadInstantOperationDialog} i18n={bootstrap.i18n} onClose={() => (instantOperation = null)}>
+    {#snippet children({ default: DialogComponent })}
+      {#if instantOperation}
+        <DialogComponent mode={instantOperation.mode} orderIds={[instantOperation.id]} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onClose={(completed) => { instantOperation = null; if (completed) refreshList(); }} />
+      {/if}
+    {/snippet}
+  </DeferredDialog>
+  <DeferredDialog active={instantDialogOpen} load={loadInstantProcessDialog} i18n={bootstrap.i18n} onClose={() => (instantDialogOpen = false)}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent bind:open={instantDialogOpen} orderIds={instantOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={bootstrap.bulk.nonce} i18n={bootstrap.i18n} onComplete={refreshList} />
+    {/snippet}
+  </DeferredDialog>
+  <DeferredDialog active={printPreviewOpen} load={loadPrintPreviewDialog} i18n={bootstrap.i18n} onClose={() => (printPreviewOpen = false)}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent deliveryType={isInstant ? 'instant' : 'express'} bind:open={printPreviewOpen} orderIds={printPreviewOrderIds} ajaxUrl={bootstrap.bulk.ajaxUrl} nonce={isInstant ? bootstrap.bulk.nonce : bootstrap.bulk.printPreviewNonce} i18n={bootstrap.i18n} />
+    {/snippet}
+  </DeferredDialog>
 </div>
