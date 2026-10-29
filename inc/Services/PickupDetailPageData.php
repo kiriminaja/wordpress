@@ -44,6 +44,9 @@ class PickupDetailPageData {
 			$wc_order      = function_exists( 'wc_get_order' ) ? wc_get_order( (int) ( $transaction->wp_wc_order_stat_order_id ?? 0 ) ) : false;
 			$shipping_info = json_decode( (string) ( $transaction->shipping_info ?? '{}' ) );
 			$recipient     = $this->recipient_resolver->resolve( $wc_order, $shipping_info, $transaction );
+			$payment_method = $wc_order && method_exists( $wc_order, 'get_payment_method' )
+				? (string) $wc_order->get_payment_method()
+				: (string) ( $transaction->payment_method ?? $shipping_info->_payment_method ?? '' );
 			$billing       = $wc_order && method_exists( $wc_order, 'get_address' ) ? (array) $wc_order->get_address( 'billing' ) : array();
 			$customer_name = trim( (string) ( $billing['first_name'] ?? '' ) . ' ' . (string) ( $billing['last_name'] ?? '' ) );
 			$recipient_name = trim( $recipient['first_name'] . ' ' . $recipient['last_name'] );
@@ -82,7 +85,7 @@ class PickupDetailPageData {
 			$discount         = (float) ( $transaction->discount_amount ?? 0 );
 			$transaction_value = (float) ( $transaction->transaction_value ?? 0 );
 			$total             = max( 0, $shipping_cost + $insurance_cost + $cod_fee - $discount );
-            $cod_value         = ShipmentDetailAmounts::expressCod( $transaction, (string) ( $transaction->payment_method ?? '' ) );
+			$cod_value         = ShipmentDetailAmounts::expressCod( $transaction, $payment_method );
 			$raw_status        = (string) ( $transaction->raw_status ?? $transaction->status ?? '' );
 			$status_label      = isset( $transaction->raw_status ) ? (string) ( $transaction->status ?? '' ) : kiriof_helper()->transactionStatusLabel( $raw_status );
 
@@ -93,7 +96,7 @@ class PickupDetailPageData {
 				'customer'     => array(
 					'name'         => $customer_name,
 					'phone'        => (string) $recipient['phone'],
-					'paymentLabel' => $cod_fee > 0 ? __( 'COD', 'kiriminaja-official' ) : __( 'Non-COD', 'kiriminaja-official' ),
+					'paymentLabel' => 'cod' === strtolower( $payment_method ) ? __( 'COD', 'kiriminaja-official' ) : __( 'Non-COD', 'kiriminaja-official' ),
 				),
 				'courier'      => array(
 					'code'    => strtolower( (string) ( $transaction->service ?? '' ) ),
