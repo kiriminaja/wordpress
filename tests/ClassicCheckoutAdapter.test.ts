@@ -97,20 +97,20 @@ function adapter(options: any = {}) {
 	const query = (selector: string): any => document.querySelector(selector);
 	const hidden = () => JSON.parse(query('[name="kiriof_buyer_destination_snapshot"]').value);
 	const change = (id: string, value: any, kind = 'change') => { const input = query(`#${id}`); if (typeof value === 'boolean') input.checked = value; else input.value = value; emit(form, kind, input); };
-	const respond = async (request: any, data: any = { pin_saved: true }, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); h.flush(); };
+	const respond = async (request: any, data: any = { coordinates_saved: true }, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); h.flush(); };
 	const mutations = () => requests.filter(r => r.body.get('action') === 'kiriof-session-save');
 	const payload = (request: any) => JSON.parse(request.body.get('data'));
 	const lookups = () => requests.filter(r => r.body.get('action') === 'kiriminaja_subdistrict_search');
 	const acknowledge = async () => { for (let i = 0; i < 8; i++) { await h.advance(); const request = mutations().find(r => !r.done); if (!request) return; request.done = true; await respond(request); emit(document.body, 'updated_checkout'); } throw new Error('Checkout update cycle'); };
-	const choose = (value = '123', label = 'Gambir', scope = 'billing') => { const id = scope === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'; const select = query(`#${id}`); select.append(new window.Option(label, value)); select.value = value; query(`#${id}_name`).value = label; emit(window.document.body, 'kiriof:classic-district-synced'); };
+	const choose = (value = '123', label = 'Gambir', scope = 'billing') => { const id = scope === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'; const select = query(`#${id}`); const existing = Array.from(select.options).find((option: any) => option.value === value) as any; if (existing) existing.text = label; else select.append(new window.Option(label, value)); select.value = value; query(`#${id}_name`).value = label; emit(window.document.body, 'kiriof:classic-district-synced'); };
 	cleanups.push(() => window.dispatchEvent(new window.Event('pagehide')));
 	return { ...h, form, query, hidden, change, respond, mutations, lookups, acknowledge, choose, requests, payload, emit, events, handlers, geo, maps };
 }
 
 describe('Typed Classic pin controller with real shared session queue', () => {
-	test('serializes address context without taking ownership of native settings', async () => {
+	test('serializes only coordinate draft context without taking ownership of native settings', async () => {
 		const h = coreHarness(); h.controller.sync(); await h.advance();
-		expect(h.sends[0].snapshot).toMatchObject({ action: 'sync_checkout', address_scope: 'billing', effective_address: binding });
+		expect(h.sends[0].snapshot).toEqual({ action: 'save_classic_coordinates', address_scope: 'billing', country: 'ID', coordinates: null });
 		for (const key of ['insurance', 'payment_method', 'shipping_methods']) expect(h.sends[0].snapshot).not.toHaveProperty(key);
 	});
 	test('boots against the actual session export without a compatibility alias', () => {
@@ -130,18 +130,19 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 		const h = coreHarness({ address: { ...binding, country: ' id ', postcode: '10 110' }, savedDestination: saved() });
 		expect(h.controller.getState().destination.country).toBe('ID'); expect(h.controller.getState().destination.postcode).toBe('10110'); expect(h.controller.getState().point).not.toBeNull();
 	});
-	test('every binding-field edit invalidates pins; postcode/country/scope also clear district', () => {
+	test('address edits preserve coordinates and selection; only country and scope clear them', () => {
 		for (const key of Object.keys(binding)) {
 			const h = coreHarness({ savedDestination: saved() }); h.controller.updateAddress({ ...binding, [key]: key === 'country' ? 'US' : 'changed' }, 'billing');
-			expect(h.controller.getState().point).toBeNull(); expect(Boolean(h.controller.getState().selection)).toBe(!['postcode', 'country'].includes(key));
+			expect(Boolean(h.controller.getState().point)).toBe(key !== 'country'); expect(Boolean(h.controller.getState().selection)).toBe(key !== 'country');
+			expect(h.controller.getState().destination.version).toBe(['postcode', 'country'].includes(key) ? 1 : 2);
 		}
 		const h = coreHarness({ savedDestination: saved() }); h.controller.updateAddress(binding, 'shipping'); expect(h.controller.getState().scope).toBe('shipping'); expect(h.controller.getState().selection).toBeNull(); expect(h.controller.getState().point).toBeNull();
 	});
 	test('serializes writes, supersedes unsent snapshots, and preserves newer pending before older completion', async () => {
-		const h = coreHarness(); const first = h.controller.selectDistrict({ id: '123', label: 'First' }); await h.advance();
-		const middle = h.controller.selectDistrict({ id: '124', label: 'Middle' }); const latest = h.controller.selectDistrict({ id: '125', label: 'Latest' });
-		expect((await middle).status).toBe('superseded'); expect(h.sends).toHaveLength(1); expect(h.controller.getState().queue.pending.destination.district_id).toBe('125');
-		h.sends[0].resolve({}); await h.advance(); expect((await first).status).toBe('success'); expect(h.sends).toHaveLength(2); expect(h.sends[1].snapshot.destination.district_id).toBe('125');
+		const h = coreHarness(); h.controller.selectPoint({ latitude: -6, longitude: 106 }); const first = h.controller.sync(); await h.advance();
+		h.controller.selectPoint({ latitude: -7, longitude: 107 }); const middle = h.controller.sync(); h.controller.selectPoint({ latitude: -8, longitude: 108 }); const latest = h.controller.sync();
+		expect((await middle).status).toBe('superseded'); expect(h.sends).toHaveLength(1); expect(h.controller.getState().queue.pending.coordinates.latitude).toBe('-8.0000000');
+		h.sends[0].resolve({}); await h.advance(); expect((await first).status).toBe('success'); expect(h.sends).toHaveLength(2); expect(h.sends[1].snapshot.coordinates.latitude).toBe('-8.0000000');
 		h.sends[1].resolve({}); await settle(); expect((await latest).status).toBe('success');
 	});
 	test('failed save remains pending and retries without aborting server mutations on dispose', async () => {
@@ -150,29 +151,88 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 	});
 	test('rejects stale and invalid coordinates', () => {
 		const h = coreHarness({ savedDestination: saved() }); expect(h.controller.selectPoint({ latitude: -6.2, longitude: 106.8 }, { ...binding, address_1: 'Old' })).toBe(false);
-		h.controller.selectPoint({ latitude: 100, longitude: 106.8 }, binding); expect(h.controller.getState().point).toBeNull();
+		expect(h.controller.selectPoint({ latitude: 100, longitude: 106.8 }, binding)).toBe(false); expect(h.controller.getState().point).toEqual({ latitude: '-6.2000000', longitude: '106.8000000' });
+	});
+	test('saves before district or address completion and does not resave on address or district edits', async () => {
+		const h = coreHarness({ address: { country: 'ID' } });
+		expect(h.controller.selectPoint({ latitude: 0, longitude: 0 })).toBe(true); await h.advance();
+		expect(h.sends[0].snapshot.coordinates).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
+		h.sends[0].resolve({}); await h.advance();
+		h.controller.updateAddress(binding, 'billing'); await h.controller.selectDistrict({ id: '123', label: 'Gambir' }); await h.advance();
+		expect(h.sends).toHaveLength(1); expect(h.controller.getState().destination.version).toBe(2);
+		h.controller.sync(); await h.advance(); expect(h.sends).toHaveLength(1);
+	});
+	test('does not write initial empty states but clears a previous point on country or scope changes', async () => {
+		const empty = coreHarness(); empty.controller.updateAddress({ ...binding, country: 'US' }, 'shipping'); await empty.controller.selectDistrict(null); await empty.advance(); expect(empty.sends).toHaveLength(0);
+		for (const [next, scope] of [[{ ...binding, country: 'US' }, 'billing'], [binding, 'shipping']] as const) {
+			const h = coreHarness({ savedDestination: saved() }); h.controller.updateAddress(next, scope); await h.advance();
+			expect(h.sends[0].snapshot).toEqual({ action: 'save_classic_coordinates', address_scope: scope, country: next.country, coordinates: null });
+		}
 	});
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
-	test('typing invalidates a saved pin immediately, retains its camera and debounces backend sync', async () => {
+  test('restores an incomplete saved coordinate draft and acknowledges it independently', async () => {
+    const h = adapter({ emptyAddress: true, savedPinDrafts: { billing: { latitude: '-7.75', longitude: '110.4' } } });
+    expect(h.window.kiriofBuyerPin.controller.getState().point).toEqual({ latitude: '-7.7500000', longitude: '110.4000000' });
+    await h.acknowledge();
+    expect(h.payload(h.mutations()[0]).coordinates).toEqual({ latitude: '-7.7500000', longitude: '110.4000000' });
+    expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
+    expect(h.query('.kiriof-classic-pin-message').textContent).toContain('Pin saved');
+  });
+  test('hidden separate-address flag binds coordinates to shipping, not billing', async () => {
+    const h = adapter();
+    const flag = h.query('[name="ship_to_different_address"]');
+    flag.type = 'hidden'; flag.value = '1';
+    h.emit(h.window.document.body, 'updated_checkout');
+    h.maps.at(-1).listeners.click({ latlng: { lat: -7.75, lng: 110.4 } });
+    await h.acknowledge();
+    expect(h.payload(h.mutations().at(-1)).address_scope).toBe('shipping');
+    flag.value = '0'; h.emit(h.window.document.body, 'updated_checkout');
+    expect(h.window.kiriofBuyerPin.controller.getState().scope).toBe('billing');
+    expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+  });
+	test('FunnelKit clearing hidden hierarchy and street edits preserve the pin', async () => {
+		const h = adapter({ savedDestination: saved(), indonesiaStates: { JK: 'DKI Jakarta' } });
+		await h.acknowledge();
+		h.choose('123', 'Gambir, Gambir, Jakarta, DKI Jakarta, 10110');
+		for (const key of ['city', 'state', 'postcode']) {
+			const input = h.query(`#billing_${key}`);
+			const row = h.window.document.createElement('p');
+			row.id = `billing_${key}_field`;
+			row.className = 'form-row fkcf-hidden';
+			input.before(row); row.append(input); input.value = '';
+		}
+		h.emit(h.window.document.body, 'updated_checkout');
+		h.flush();
+		expect(h.query('#billing_city').value).toBe('Jakarta');
+		expect(h.query('#billing_state').value).toBe('JK');
+		expect(h.query('#billing_postcode').value).toBe('10110');
+		expect(h.hidden().version).toBe(2);
+		expect(h.hidden().shipping_address).toEqual(binding);
+		h.change('billing_address_1', 'Another street', 'input'); h.flush();
+		expect(h.hidden().version).toBe(2);
+		expect(h.hidden().shipping_address.address_1).toBe('Another street');
+		expect(h.window.kiriofBuyerPin.controller.getState().point).not.toBeNull();
+	});
+	test('typing preserves a saved pin and map session without resaving coordinates', async () => {
 		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
 		h.maps.at(-1).listeners.click({ latlng: { lat: -7.2, lng: 110.1 } }); h.flush(); await h.acknowledge();
 		const before = h.mutations().length;
 		h.change('billing_address_1', 'Jalan Baru', 'input'); h.flush();
-		expect(h.hidden().version).toBe(1);
-		expect(h.maps.at(-1).views[0]).toEqual([-7.2, 110.1]);
-		expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+		expect(h.hidden().version).toBe(2);
+		expect(h.maps).toHaveLength(1);
+		expect(h.maps[0].removed).toBe(false);
+		expect(h.window.kiriofBuyerPin.controller.getState().point).toEqual({ latitude: '-7.2000000', longitude: '110.1000000' });
 		await h.advance(300);
 		expect(h.mutations()).toHaveLength(before);
 		h.change('billing_address_1', 'Jalan Baru 15', 'input'); h.flush(); await h.advance(300);
 		expect(h.mutations()).toHaveLength(before);
-		expect(h.maps.at(-1).views[0]).toEqual([-7.2, 110.1]);
+		expect(h.maps).toHaveLength(1);
 		await h.advance(400);
-		expect(h.mutations()).toHaveLength(before + 1);
-		expect(h.payload(h.mutations().at(-1)).destination.version).toBe(1);
+		expect(h.mutations()).toHaveLength(before);
 		await h.acknowledge();
-		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
 	});
 	test('contact edits trigger one debounced native rate refresh without changing pin address', async () => {
 		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
@@ -184,19 +244,38 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		h.emit(h.window.document.body, 'updated_checkout'); await h.advance(700);
 		expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(before + 1);
 	});
-	test('missing postcode names the field without sending a district snapshot the server cannot accept', async () => {
+	test('missing postcode still saves coordinates and then hints to complete shipping address', async () => {
 		const h = adapter(); await h.acknowledge();
 		h.change('billing_postcode', '', 'input'); h.flush();
 		h.choose('456', 'Sari Harjo'); await h.advance(700);
-		expect(h.query('.kiriof-classic-pin-feedback').textContent).toContain('Enter a 5-digit postcode');
 		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(true);
 		expect(h.query('.kiriof-classic-map').hidden).toBe(false);
-		for (const request of h.mutations()) {
-			const destination = h.payload(request).destination;
-			if (!destination.postcode) expect(destination.district_id).toBe('');
-		}
+		expect(h.mutations()).toHaveLength(0);
 		h.maps.at(-1).listeners.click({ latlng: { lat: -6.2, lng: 106.8 } }); h.flush();
+		await h.acknowledge();
+		expect(h.payload(h.mutations()[0]).coordinates).toEqual({ latitude: '-6.2000000', longitude: '106.8000000' });
+		expect(h.query('.kiriof-classic-pin-feedback').textContent).toContain('Complete your address and subdistrict to check shipping');
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
 		expect(h.hidden().version).toBe(1);
+	});
+	test('saves coordinates without waiting for Woo busy, editing or district mutations', async () => {
+		const h = adapter({ emptyAddress: true });
+		h.window.kiriofBuyerSelectors = { refresh() {}, districtPending: () => true };
+		h.window.kiriofClassicDistrictMutation = { active: true, pending: {}, failed: true };
+		h.emit(h.window.document.body, 'update_checkout');
+		h.change('billing_address_1', 'Still typing', 'input'); h.flush();
+		h.maps[0].listeners.click({ latlng: { lat: -6.2, lng: 106.8 } }); h.flush();
+		await h.advance();
+		expect(h.mutations()).toHaveLength(1);
+		expect(h.payload(h.mutations()[0])).toEqual({ action: 'save_classic_coordinates', address_scope: 'billing', country: 'ID', coordinates: { latitude: '-6.2000000', longitude: '106.8000000' } });
+		await h.respond(h.mutations()[0]);
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
+	});
+	test('coverage badge is informational and does not prevent saving distant coordinates', async () => {
+		const h = adapter({ emptyAddress: true, map: { enabled: true, coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 } } });
+		expect(h.query('.kiriof-classic-map-coverage').textContent).toContain('Instant ≤ 40 km');
+		h.maps[0].listeners.click({ latlng: { lat: 0, lng: 0 } }); h.flush(); await h.advance();
+		expect(h.payload(h.mutations()[0]).coordinates).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
 	});
 	test('empty checkout renders a regional map before street, postcode or district are entered', () => {
 		const h = adapter({ emptyAddress: true, map: { enabled: true, coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 } } });
@@ -208,7 +287,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(h.hidden().version).toBe(1);
 		h.maps[0].listeners.click({ latlng: { lat: -6.9, lng: 107.6 } });
 		h.flush();
-		expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+		expect(h.window.kiriofBuyerPin.controller.getState().point).not.toBeNull();
 		expect(h.hidden().version).toBe(1);
 	});
 	test('drag hides pin status and hints until idle, without writing intermediate map positions', async()=>{
@@ -229,10 +308,12 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		h.query('input.shipping_method').checked=false;h.query('[value="kiriminaja-instant:gosend"]').checked=true;
 		expect(h.emit(h.form,'checkout_place_order')).toBe(false);
 	});
-	test('HTTP-200 success without explicit pin_saved cannot show a confirmed pin',async()=>{
-		const h=adapter({savedDestination:saved()});await h.advance();await h.respond(h.mutations()[0],{});
-		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
-		expect(h.query('.kiriof-classic-pin-message[role="status"]').textContent).toContain('Could not save the delivery pin');
+	test('HTTP-200 success requires explicit coordinates_saved and rejects legacy acknowledgement',async()=>{
+		for (const data of [{}, { pin_saved: true }, { coordinates_saved: 'true' }, { coordinates_saved: false }]) {
+			const h=adapter({savedDestination:saved()});await h.advance();await h.respond(h.mutations()[0],data);
+			expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(false);
+			expect(h.query('.kiriof-classic-pin-message[role="status"]').textContent).toContain('Could not save the delivery pin');
+		}
 	});
 	test('pin remains directly below active district after theme sorting and repeated separate-address toggles', async () => {
 		const h=adapter({savedDestination:saved()});await h.acknowledge();
@@ -271,7 +352,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		const request = h.mutations().at(-1);
 		expect([...request.body.keys()].sort()).toEqual(['action', 'data', 'nonce']);
 		expect(request.body.get('nonce')).toBe('nonce');
-		expect(h.payload(request)).toEqual({ action: 'sync_classic_pin', address_scope: 'billing', effective_address: binding, destination: h.hidden() });
+		expect(h.payload(request)).toEqual({ action: 'save_classic_coordinates', address_scope: 'billing', country: 'ID', coordinates: { latitude: '-6.2000000', longitude: '106.8000000' } });
 		expect(request.init.credentials).toBe('same-origin');
 		expect(request.init.signal).toBeUndefined();
 		expect(new h.window.FormData(h.form).get('kiriof_buyer_destination_snapshot')).toBe(JSON.stringify(h.hidden()));
@@ -284,15 +365,16 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(h.mutations()).toHaveLength(count); expect(h.maps).toHaveLength(1);
 		expect(h.events.filter(e => e === 'update_checkout')).toHaveLength(count + 4);
 	});
-	test('existing district-synced event observes matching label and retains device suggestion until district exists', async () => {
+	test('district-synced event binds an already saved point locally without resaving it', async () => {
 		const h = adapter(); h.query('#kiriof_destination_area').value = ''; h.query('#kiriof_destination_area_name').value = '';
 		h.emit(h.window.document.body, 'kiriof:classic-district-synced');
 		h.query('.kiriof-classic-map-locate').click(); h.flush();
 		h.geo[0].success({ coords: { latitude: 0, longitude: 0 } });
 		expect(h.hidden().version).toBe(1);
+		await h.acknowledge(); const count = h.mutations().length;
 		h.choose('456', 'Existing legacy label');
 		expect(h.hidden()).toMatchObject({ version: 2, district_id: '456', district_label: 'Existing legacy label', destination_latitude: '0.0000000' });
-		await h.acknowledge(); expect(h.lookups()).toHaveLength(0);
+		await h.acknowledge(); expect(h.lookups()).toHaveLength(0); expect(h.mutations()).toHaveLength(count);
 	});
 	test('seller-disabled map makes no geolocation or tile/map requests', async () => {
 		const h = adapter({ map: { enabled: false } }); await h.acknowledge();
@@ -312,28 +394,34 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		const foreign = adapter(); foreign.change('billing_country', 'US'); await foreign.advance(200);
 		expect(foreign.query('.kiriof-classic-pin').hidden).toBe(true);
 	});
-	test('explicit geolocation failure keeps map usable and stale callbacks cannot overwrite changed address', async () => {
+	test('geolocation survives street edits but callbacks cannot cross country or scope', async () => {
 		const h = adapter(); await h.acknowledge(); expect(h.geo).toHaveLength(0); h.query('.kiriof-classic-map-locate').click(); h.flush(); h.geo[0].failure({ code: 1 }); h.flush();
 		expect(h.query('.kiriof-classic-pin-message > span').textContent).toBe('Permission denied');
 		expect(h.query('.kiriof-classic-pin-retry').hidden).toBe(true); expect(h.maps).toHaveLength(1);
 		h.query('.kiriof-classic-map-locate').click(); h.flush(); const stale = h.geo[1];
 		h.change('billing_address_1', 'New street'); await h.advance(200);
-		const status = h.query('.kiriof-classic-pin [role="status"]').textContent;
-		stale.success({ coords: { latitude: -7, longitude: 107 } }); stale.failure({ code: 1 });
-		expect(h.maps).toHaveLength(2); expect(h.maps[0].removed).toBe(true); expect(h.query('.kiriof-classic-pin [role="status"]').textContent).toBe(status);
+		stale.success({ coords: { latitude: -7, longitude: 107 } });
+		expect(h.maps).toHaveLength(1); expect(h.maps[0].removed).toBe(false); expect(h.hidden().destination_latitude).toBe('-7.0000000');
+		expect(h.hidden().shipping_address.address_1).toBe('New street');
 		h.query('.kiriof-classic-map-locate').click(); h.flush();
-		h.geo.at(-1).success({ coords: { latitude: -6.2, longitude: 106.8 } });
-		expect(h.hidden().destination_latitude).toBe('-6.2000000');
+		const foreign = h.geo.at(-1); h.change('billing_country', 'US', 'input'); h.flush();
+		foreign.success({ coords: { latitude: -6.2, longitude: 106.8 } });
+		expect(h.window.kiriofBuyerPin.controller.getState().point).toBeNull();
+		const scoped = adapter(); scoped.query('.kiriof-classic-map-locate').click(); scoped.flush();
+		const previous = scoped.geo.at(-1); scoped.change('ship-to-different-address-checkbox', true); await scoped.advance(200);
+		previous.success({ coords: { latitude: -6.2, longitude: 106.8 } });
+		expect(scoped.window.kiriofBuyerPin.controller.getState().point).toBeNull();
 	});
-	test('address and scope edits invalidate pin without changing existing district fields', async () => {
+	test('address edits retain pin while scope changes clear it without changing district fields', async () => {
 		const h = adapter({ savedDestination: saved() }); await h.acknowledge();
 		h.change('billing_address_2', 'Changed unit'); await h.advance(200);
-		expect(h.maps[0].removed).toBe(true); expect(h.hidden().destination_latitude).toBeUndefined();
+		expect(h.maps[0].removed).toBe(false); expect(h.hidden().destination_latitude).toBe('-6.2000000');
 		expect(h.query('#kiriof_destination_area').value).toBe('123');
 		h.choose('456', 'Shipping legacy label', 'shipping');
 		h.change('ship-to-different-address-checkbox', true); await h.advance(200); await h.acknowledge();
 		expect(h.query('#kiriof_shipping_destination_area_field').nextElementSibling).toBe(h.query('.kiriof-classic-pin'));
-		expect(h.payload(h.mutations().at(-1))).toMatchObject({ address_scope: 'shipping', destination: { district_id: '456', district_label: 'Shipping legacy label' } });
+		expect(h.payload(h.mutations().at(-1))).toMatchObject({ address_scope: 'shipping', country: 'ID', coordinates: null });
+		expect(h.hidden()).toMatchObject({ district_id: '456', district_label: 'Shipping legacy label' });
 		expect(h.hidden().destination_latitude).toBeUndefined();
 	});
 	test('pending pin blocks ONLY Instant; regular remains unaffected, settled Instant allows submit', async () => {
@@ -343,7 +431,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
 		await h.acknowledge(); expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
 		h.change('billing_address_1', 'Changed street'); await h.advance(200); await h.acknowledge();
-		expect(h.emit(h.form, 'checkout_place_order')).toBe(false);
+		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
 		h.query('[value="kiriminaja:regular"]').checked = true;
 		expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
 	});

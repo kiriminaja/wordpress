@@ -8,6 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Refresh Classic's cached quotes without changing a reviewed destination or courier. */
 final class ClassicInstantRateRefresh {
 	private const RECOVERY_KEY = 'kiriof_classic_instant_rate_recovery';
+	private ClassicDistrictAddressSync $address_sync;
+
+	public function __construct( ?ClassicDistrictAddressSync $address_sync = null ) {
+		$this->address_sync = $address_sync ?? new ClassicDistrictAddressSync();
+	}
 
 	public function register(): void {
 		add_action( 'woocommerce_checkout_update_order_review', array( $this, 'refresh' ), 20, 1 );
@@ -23,16 +28,22 @@ final class ClassicInstantRateRefresh {
 			return;
 		}
 		parse_str( $post_data, $data );
-		if ( ! is_string( $data['kiriof_buyer_destination_snapshot'] ?? null ) ) {
+		$data = $this->address_sync->normalize( $data );
+		$drafts = $wc->session->get( ClassicPinDraftService::SESSION_KEY, null );
+		$scope = ClassicDistrictAddressSync::separate( $data ) ? 'shipping' : 'billing';
+		$draft_bound = is_array( $drafts ) && is_array( $drafts[ $scope ] ?? null );
+		if ( ! $draft_bound && ! is_string( $data['kiriof_buyer_destination_snapshot'] ?? null ) ) {
 			return;
 		}
 		try {
 			$destination = BuyerDestination::normalize( $wc->session->get( 'kiriof_buyer_destination', null ) );
-			$posted = BuyerDestination::normalize( json_decode( $data['kiriof_buyer_destination_snapshot'], true ) );
-			if ( 2 !== $destination['version'] || '' === $destination['district_id'] || $destination !== $posted ) {
+			$posted = $draft_bound ? $destination : BuyerDestination::normalize( json_decode( $data['kiriof_buyer_destination_snapshot'], true ) );
+			$district_key = 'shipping' === $scope ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+			if ( 2 !== $destination['version'] || '' === $destination['district_id'] || $destination !== $posted
+				|| ( $draft_bound && ( $destination['district_id'] !== ( $data[ $district_key ] ?? null ) || $drafts[ $scope ] !== $wc->session->get( 'kiriof_buyer_destination_coordinates', null ) ) ) ) {
 				return;
 			}
-			$scope = ! empty( $data['ship_to_different_address'] ) ? 'shipping' : 'billing';
+			$scope = ClassicDistrictAddressSync::separate( $data ) ? 'shipping' : 'billing';
 			$address = array();
 			foreach ( BuyerDestination::ADDRESS_FIELDS as $field ) {
 				$address[ $field ] = $data[ $scope . '_' . $field ] ?? '';

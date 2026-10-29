@@ -23,28 +23,25 @@
   let cameraScope = '';
   let locate = () => { if (session) session.locate(); else restart++; };
   const view = $derived(controller.view);
-  const key = $derived(view.scope + JSON.stringify(view.address));
-  const complete = $derived(Boolean(view.point && !view.queue.pending && !view.queue.inFlight && !view.queue.error));
+  const key = $derived(view.scope + ':' + view.address.country);
+  const complete = $derived(Boolean(view.point && view.queue.acknowledged?.coordinates && !view.queue.pending && !view.queue.inFlight && !view.queue.error));
   const hasCoverage = $derived(Boolean(coverageStatus(config.map?.coverage, config.map?.coverage?.origin)));
-  const incomplete = $derived(!/^[0-9]{5}$/.test(view.address.postcode)
-    ? strings.pinPostcodeRequired || 'Enter a 5-digit postcode to save the delivery pin.'
-    : !view.selection ? strings.pinDistrictRequired || 'Select a subdistrict to save the delivery pin.'
-    : !view.address.address_1 || !view.address.city || !view.address.state
-      ? strings.pinAddressRequired || 'Complete the street, city and province to save the delivery pin.' : '');
-  const status = $derived(incomplete || requirement || (view.queue.error ? (view.queue.error instanceof Error ? view.queue.error.message : strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.') : view.queue.pending || view.queue.inFlight ? strings.pinSaving || 'Saving delivery pin…' : mapError));
+  const incomplete = $derived(!/^[0-9]{5}$/.test(view.address.postcode) || !view.selection
+    || !view.address.address_1 || !view.address.city || !view.address.state);
+  const status = $derived(requirement || (view.queue.error ? (view.queue.error instanceof Error ? view.queue.error.message : strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.') : view.queue.pending || view.queue.inFlight ? strings.pinSaving || 'Saving delivery pin…' : mapError || (complete && incomplete ? strings.pinCompleteAddress || 'Pin saved. Complete your address and subdistrict to check shipping.' : '')));
 
   $effect(() => {
     void key; void restart;
     const state = untrack(() => controller.getState());
     if (!visible || !canvas || !config.map?.enabled) return;
-    const expected = state.address;
-    const initialView = cameraScope === state.scope ? camera : null;
+    const scopeKey = state.scope + ':' + state.address.country;
+    const initialView = cameraScope === scopeKey ? camera : null;
     let disposed = false;
     let map: MapSession | undefined;
     moving = false; mapError = ''; canvasHidden = true;
     function current() {
       const latest = controller.getState();
-      return !disposed && latest.scope === state.scope && JSON.stringify(latest.address) === JSON.stringify(expected);
+      return !disposed && latest.scope === state.scope && latest.address.country === state.address.country;
     }
     function show() {
       if (!current()) return;
@@ -57,7 +54,7 @@
           defaultCenter: config.map?.defaultCenter, permissions: root.navigator?.permissions,
           initial: state.point, initialView, geolocation: root.navigator?.geolocation,
           onMove: next => { if (current()) moving = next; },
-          onSelect: next => current() && select(next, expected),
+          onSelect: next => current() && select(next, controller.getState().address),
           onError: code => { if (current()) mapError = (code === 'permission' ? strings.mapPermission : code === 'location' ? strings.mapLocationFailed : strings.mapUnavailable) || 'Map unavailable'; },
         });
         session = map;
@@ -79,7 +76,7 @@
     untrack(show);
     return () => {
       camera = map?.getCenter?.() || map?.getPoint() || state.point || initialView;
-      cameraScope = state.scope;
+      cameraScope = scopeKey;
       disposed = true; map?.dispose(); if (session === map) session = undefined;
     };
   });
@@ -97,5 +94,5 @@
 </div>
 <div class="kiriof-classic-pin-feedback" hidden={moving || !status}>
   <p class="kiriof-classic-pin-message" role="status"><span>{status}</span></p>
-  <button type="button" class="kiriof-classic-pin-retry" hidden={moving || !!incomplete || !view.queue.error} onclick={() => controller.retry()}>{strings.retry || 'Retry'}</button>
+  <button type="button" class="kiriof-classic-pin-retry" hidden={moving || !view.queue.error} onclick={() => controller.retry()}>{strings.retry || 'Retry'}</button>
 </div>

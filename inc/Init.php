@@ -32,6 +32,8 @@ final class Init {
             Controllers\ShippingDiscountCouponController::class,
             Services\CheckoutShippingSelectionGuard::class,
             Services\CheckoutPhoneValidation::class,
+            Services\ClassicDistrictAddressSync::class,
+            Services\ClassicPinDraftService::class,
             Services\ClassicCheckoutRecipientSync::class,
             Services\ClassicInstantRateRefresh::class,
             Services\TransactionPhoneIssueCache::class,

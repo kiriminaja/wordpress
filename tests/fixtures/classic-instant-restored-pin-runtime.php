@@ -7,6 +7,8 @@ require __DIR__ . '/instant-checkout-quote-runtime.php';
 ob_end_clean();
 $root = dirname( __DIR__, 2 );
 require_once $root . '/inc/Services/ClassicShippingRateCache.php';
+require_once $root . '/inc/Services/ClassicDistrictAddressSync.php';
+require_once $root . '/inc/Services/ClassicPinDraftService.php';
 require_once $root . '/inc/Services/ClassicInstantRateRefresh.php';
 $api->calls = 0;
 $api->payloads = array();
@@ -33,6 +35,8 @@ function current_filter() { return $GLOBALS['refresh_hook']; }
 function add_action( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['refresh_hooks'][ $name ][ $priority ][] = $callback; }
 function add_filter( ...$args ) {}
 function absint( $value ) { return abs( (int) $value ); }
+function wp_slash( $value ) { return is_array( $value ) ? array_map( 'wp_slash', $value ) : ( is_string( $value ) ? addslashes( $value ) : $value ); }
+function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : ( is_string( $value ) ? stripslashes( $value ) : $value ); }
 class WC_Shipping_Method {
 	public $id, $tax_status, $instance_id, $method_title, $method_description, $supports, $instance_form_fields, $enabled, $title;
 	public array $rates = array();
@@ -57,6 +61,44 @@ require $root . '/wc/KiriminajaInstantShippingMethod.php';
 kiriof_instant_shipping_method();
 $quote_service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService( $settings, $locations, $api );
 $method = new Kiriof_Instant_Shipping_Method_Controller( 11, $quote_service );
+if ( ! empty( $recovery_input['draft_to_rate'] ) ) {
+	$session->set( 'kiriof_buyer_destination', null );
+	$session->set( 'kiriof_buyer_destination_coordinates', null );
+	$session->set( 'kiriof_destination', '999' );
+	$session->set( 'kiriof_destination_area', '42' );
+	$lookup_calls = array();
+	$lookup = static function ( $postcode ) use ( &$lookup_calls ) {
+		$lookup_calls[] = $postcode;
+		$changed = '12346' === $postcode;
+		return (object) array( 'status' => 200, 'data' => array( array( 'id' => $changed ? 43 : 42, 'text' => 'Village, District, Jakarta, DKI Jakarta, ' . $postcode, 'zip_code' => $postcode ) ) );
+	};
+	$drafts = new \KiriminAjaOfficial\Services\ClassicPinDraftService( new \KiriminAjaOfficial\Services\ClassicDistrictAddressSync( $lookup ), $lookup );
+	$drafts->save( array( 'address_scope' => 'billing', 'country' => 'ID', 'coordinates' => array( 'latitude' => '-6.3', 'longitude' => '106.9' ) ) );
+	$method->calculate_shipping( $package );
+	$before_review = array( 'destination' => $session->get( 'kiriof_buyer_destination' ), 'rates' => $method->rates, 'calls' => $api->calls );
+	$rounds = array();
+	foreach ( array( '42' => '12345', '43' => '12346' ) as $id => $postcode ) {
+		$form = array( 'payment_method' => 'bacs', 'kiriof_destination_area' => (string) $id, 'kiriof_destination_area_name' => 'Untrusted client label' );
+		$package['destination']['postcode'] = $postcode;
+		foreach ( $package['destination'] as $key => $value ) { $form[ 'billing_' . $key ] = $value; }
+		$GLOBALS['refresh_hook'] = 'woocommerce_checkout_update_order_review';
+		$_POST = array( 'post_data' => wp_slash( http_build_query( $form ) ) );
+		$drafts->review( http_build_query( $form ) );
+		parse_str( wp_unslash( $_POST['post_data'] ), $review );
+		$method->rates = array();
+		$method->calculate_shipping( $package );
+		$rounds[] = array(
+			'destination' => $session->get( 'kiriof_buyer_destination' ),
+			'snapshot' => json_decode( $review['kiriof_buyer_destination_snapshot'] ?? 'null', true ),
+			'coordinates' => $session->get( 'kiriof_buyer_destination_coordinates' ),
+			'rates' => array_map( static fn( $rate ) => $rate->rate, array_values( $method->rates ) ),
+			'calls' => $api->calls,
+			'cache' => $session->get( 'shipping_for_package_0' ),
+		);
+	}
+	echo json_encode( array( 'before_review' => $before_review, 'rounds' => $rounds, 'lookup_calls' => $lookup_calls, 'legacy_district' => $session->get( 'kiriof_destination' ), 'payloads' => $api->payloads, 'logs' => $GLOBALS['logs'] ), JSON_THROW_ON_ERROR );
+	exit;
+}
 $form = array( 'payment_method' => 'bacs', 'kiriof_buyer_destination_snapshot' => json_encode( $destination ) );
 foreach ( $address as $key => $value ) { $form[ 'billing_' . $key ] = $value; }
 if ( empty( $recovery_input['without_recovery'] ) ) {

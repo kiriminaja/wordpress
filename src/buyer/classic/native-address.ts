@@ -4,24 +4,22 @@ import {
   type AddressScope,
   type District,
 } from '../state/classic-pin.svelte';
+import { syncDistrictAddress } from './district-address';
+import { usesShippingAddress } from './address-scope';
 
-export function nativeAddress(form: HTMLFormElement) {
+export function nativeAddress(form: HTMLFormElement, states: Record<string, string> = {}) {
   const field = (id: string) => form.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`);
-  const scope = (): AddressScope =>
-    (
-      form.querySelector<HTMLInputElement>('#ship-to-different-address-checkbox') ||
-      form.querySelector<HTMLInputElement>('[name="ship_to_different_address"]')
-    )?.checked
-      ? 'shipping'
-      : 'billing';
+  const scope = (): AddressScope => (usesShippingAddress(form) ? 'shipping' : 'billing');
   const district = (): District | null => {
     const id =
       scope() === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
     const node = field(id);
-    const label = field(`${id}_name`);
+    const label = form.querySelector<HTMLInputElement>(`[name="${id}_name"]`);
     const text =
       label?.value ||
-      (node instanceof HTMLSelectElement ? node.selectedOptions[0]?.text : '') ||
+      (node instanceof HTMLSelectElement
+        ? Array.from(node.options).find((option) => option.value === node.value)?.text
+        : '') ||
       '';
     return node && /^[1-9][0-9]*$/.test(node.value) && text
       ? { id: node.value, label: text }
@@ -30,12 +28,14 @@ export function nativeAddress(form: HTMLFormElement) {
   return {
     scope,
     district,
-    address: () =>
-      address(
+    address: () => {
+      syncDistrictAddress(form, states);
+      return address(
         Object.fromEntries(
           addressFields.map((key) => [key, field(`${scope()}_${key}`)?.value || '']),
         ),
-      ),
+      );
+    },
     collection: () => {
       const inputs = [
         ...form.querySelectorAll<HTMLInputElement>(

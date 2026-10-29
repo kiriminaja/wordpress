@@ -205,3 +205,76 @@
 .kiriof-buyer-combobox:has(.kiriof-buyer-combobox-clear) .kiriof-buyer-combobox-trigger {
   padding-right: 64px;
 }
+
+/* FunnelKit floats native labels and applies CTA colors to all buttons. */
+.kiriof-funnelkit-select-field {
+  position: relative;
+}
+.kiriof-funnelkit-select-field label[for] {
+  position: absolute !important;
+  top: 6px !important;
+  left: 14px !important;
+  right: 14px !important;
+  width: auto !important;
+  max-width: calc(100% - 28px);
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  font-size: 0.8125em !important;
+  line-height: 1.4 !important;
+  z-index: 1;
+  pointer-events: none;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox .kiriof-buyer-combobox-trigger {
+  min-height: 58px !important;
+  height: auto !important;
+  padding: 25px 44px 8px 14px !important;
+  background: #fff !important;
+  background-image: none !important;
+  color: #333 !important;
+  border: 1px solid #767676 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  line-height: 1.5 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+.kiriof-funnelkit-select-field
+  .kiriof-buyer-combobox:has(.kiriof-buyer-combobox-clear)
+  .kiriof-buyer-combobox-trigger {
+  padding-right: 80px !important;
+}
+.kiriof-funnelkit-select-field
+  .kiriof-buyer-combobox-trigger
+  > span:not(.kiriof-buyer-combobox-arrow) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.kiriof-funnelkit-select-field .is-open .kiriof-buyer-combobox-arrow {
+  top: 50%;
+  transform: translateY(-50%) rotate(180deg);
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox .kiriof-buyer-combobox-clear {
+  top: auto !important;
+  bottom: 0;
+  right: 28px;
+  width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #333 !important;
+  box-shadow: none !important;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-trigger:focus-visible,
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-clear:focus-visible {
+  outline: 2px solid #333 !important;
+  outline-offset: 2px !important;
+}

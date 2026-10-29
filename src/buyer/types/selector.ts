@@ -12,6 +12,7 @@ export type SelectorOption = {
 };
 
 export type SelectorConfig = {
+  indonesiaStates?: Record<string, string>;
   map?: MapProviderInput;
   isCheckout?: boolean | '1' | '';
   billingDistrict?: { id?: string | number; name?: string };

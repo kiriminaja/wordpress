@@ -161,6 +161,8 @@ class CheckoutController
             'kiriof_destination_area_name',
             'kiriof_buyer_destination',
             'kiriof_buyer_destination_coordinates',
+            'kiriof_classic_pin_drafts',
+            'kiriof_classic_pin_scope',
             'kiriof_insurance',
             'billing_insurance',
             'force_insurance',
@@ -1225,6 +1227,8 @@ class CheckoutController
         WC()->session->set( 'kiriof_woocommerce_discount_description', null );
         WC()->session->set( 'kiriof_buyer_destination', null );
         WC()->session->set( 'kiriof_buyer_destination_coordinates', null );
+        WC()->session->set( 'kiriof_classic_pin_drafts', null );
+        WC()->session->set( 'kiriof_classic_pin_scope', null );
         if ( $explicit_destination && ! is_array( $order->get_meta( ExpressCheckoutValidationService::META_KEY, true ) ) && isset( WC()->customer ) && is_object( WC()->customer ) ) {
             $snapshot = $order->get_meta( BuyerDestination::META_KEY, true );
             if ( is_array( $snapshot ) && ! empty( $snapshot['district_id'] ) ) {
@@ -2910,6 +2914,18 @@ class CheckoutController
             if ( ! is_array( $data ) ) {
                 wp_send_json_error( array( 'msg' => 'Invalid data' ) );
                 wp_die();
+            }
+
+            if ( isset( $data['action'] ) && 'save_classic_coordinates' === $data['action'] ) {
+                try {
+                    ( new \KiriminAjaOfficial\Services\ClassicPinDraftService() )->save( $data );
+                } catch ( \Throwable $error ) {
+                    $details = $this->kiriof_classic_pin_error_details( $error instanceof \InvalidArgumentException ? $error->getCode() : 10 );
+                    wp_send_json_error( array( 'code' => $details[0], 'msg' => esc_html( $details[1] ), 'message' => esc_html( $details[1] ) ), $details[2] );
+                    return;
+                }
+                wp_send_json_success( array( 'coordinates_saved' => true ) );
+                return;
             }
 
             if ( isset( $data['action'] ) && 'sync_classic_pin' === $data['action'] ) {

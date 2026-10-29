@@ -17,7 +17,7 @@ async function fixture(savedDestination?: any, selectedDistrict = false, provide
   const L = { map(node: any) { const events: Record<string, any> = {}; const map = { node, events, removed: false, center: {lat: -6.2,lng:106.8}, setView() {return this;}, on(name: string, cb: any) {events[name] = cb; return this;}, getCenter() {return this.center;}, invalidateSize() {}, remove() {this.removed = true;} }; maps.push(map); return map; }, tileLayer() {return { addTo() {return this;}, on() {return this;} };} };
   (window as any).L = L;
   Object.defineProperty(window.navigator, 'geolocation', { configurable: true, value: { getCurrentPosition(ok: any) { location = ok; } } });
-  (window as any).fetch = async (_url: any, options: any) => { requests.push(JSON.parse(new URLSearchParams(options.body).get('data')!)); return { ok: true, json: async () => failSave ? {success:true,data:{pin_saved:false,code:'mismatch',message:'unsafe'}} : {success:true,data:{pin_saved:true}} }; };
+  (window as any).fetch = async (_url: any, options: any) => { requests.push(JSON.parse(new URLSearchParams(options.body).get('data')!)); return { ok: true, json: async () => failSave ? {success:true,data:{coordinates_saved:false,code:'mismatch',message:'unsafe'}} : {success:true,data:{coordinates_saved:true}} }; };
   (window as any).kiriofClassicCheckoutConfig = {enabled:true, ajaxUrl:'/ajax', nonce:'nonce', savedDestination, map:{enabled:true, provider, ...(provider === 'google' ? { apiKey: 'fixture-google-key' } : {})}, pinErrors:{mismatch:'Localized mismatch'}};
   const loadGoogle = () => {
     const script = window.document.querySelector<HTMLScriptElement>('script[data-kiriminaja-google-maps]');
@@ -59,12 +59,12 @@ async function fixture(savedDestination?: any, selectedDistrict = false, provide
 
 test('compiled pin mounts without geolocation, accepts suggestions before district, saves localized failures, retains map on queue changes and cleans up', async () => {
   const h = await fixture(); try {
-    expect(h.maps).toHaveLength(1); expect(h.requests.every(request => !request.destination.destination_latitude)).toBe(true); h.window.document.querySelector<HTMLButtonElement>('.kiriof-classic-map-locate')!.click(); h.location(); await h.settle(); expect(h.maps).toHaveLength(1);
-    expect(h.bridge.controller.getState().point).toBeNull();
+    expect(h.maps).toHaveLength(1); expect(h.requests).toHaveLength(0); h.window.document.querySelector<HTMLButtonElement>('.kiriof-classic-map-locate')!.click(); h.location(); await h.settle(); expect(h.maps).toHaveLength(1);
+    expect(h.bridge.controller.getState().point).not.toBeNull();
     h.trigger(h.window.document.body,'updated_checkout'); await h.settle();
     const district = h.window.document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!; district.value='12'; h.bridge.changed(); await h.settle();
     expect(h.bridge.controller.getState().point).not.toBeNull(); expect(h.maps).toHaveLength(1);
-    expect(h.requests.at(-1).action).toBe('sync_classic_pin'); expect(h.requests.at(-1).destination.version).toBe(2);
+    expect(h.requests.at(-1).action).toBe('save_classic_coordinates'); expect(h.requests.at(-1).coordinates).toEqual({latitude:'-6.2000000',longitude:'106.8000000'});
     h.trigger(h.window.document.body,'updated_checkout'); await h.settle();
     h.fail(); h.maps[0].events.movestart(); await h.settle(); expect(h.window.document.querySelector('.kiriof-classic-pin-state')?.hidden).toBe(true);
     h.maps[0].center={lat:-6.3,lng:106.9};h.maps[0].events.moveend(); await h.settle();
@@ -114,7 +114,7 @@ test('Google pin loads without permission and rejects stale loading generations 
   } finally { await h.cleanup(); }
 });
 
-test('pin waits for the latest district commit, including checkout refresh and failed district writes', async () => {
+test('pin saves while district commits are pending or failed without resaving on district changes', async () => {
   const h = await fixture(undefined, true);
   try {
     h.maps[0].events.click({latlng:{lat:0,lng:0}}); await h.settle();
@@ -128,18 +128,20 @@ test('pin waits for the latest district commit, including checkout refresh and f
     district.value = '13'; h.bridge.changed(); await h.settle();
     h.trigger(h.window.document.body, 'updated_checkout'); await h.settle();
     expect(h.requests).toHaveLength(before);
-    expect(h.bridge.controller.getState().queue.pending?.destination.district_id).toBe('13');
+    expect(h.bridge.controller.getState().selection?.id).toBe('13');
+    expect(h.bridge.controller.getState().queue.pending).toBeNull();
     expect(h.bridge.controller.getState().queue.error).toBeNull();
 
     mutation.active = false; mutation.failed = true;
     h.trigger(h.window.document.body, 'updated_checkout'); await h.settle();
-    void h.bridge.controller.retry(); await h.settle();
-    expect(h.requests).toHaveLength(before);
+    h.maps[0].events.click({latlng:{lat:-7,lng:110}}); await h.settle();
+    expect(h.requests).toHaveLength(before + 1);
+    expect(h.requests.at(-1).coordinates).toEqual({latitude:'-7.0000000',longitude:'110.0000000'});
 
     mutation.failed = false;
     h.trigger(h.window.document.body, 'kiriof:classic-district-synced'); await h.settle();
     expect(h.requests).toHaveLength(before + 1);
-    expect(h.requests.at(-1).destination.district_id).toBe('13');
+    expect(h.requests.at(-1).action).toBe('save_classic_coordinates');
     expect(h.bridge.controller.getState().queue.error).toBeNull();
   } finally { await h.cleanup(); }
 });
@@ -151,6 +153,6 @@ test('Google pending runtime is discarded on hidden/unmounted checkout without a
     h.bridge.changed(); await h.settle();
     h.loadGoogle(); await h.settle();
     expect(h.maps).toHaveLength(0);
-    expect(h.requests.some(request => request.destination.version === 2)).toBe(false);
+    expect(h.requests.some(request => request.coordinates)).toBe(false);
   } finally { await h.cleanup(); }
 });
