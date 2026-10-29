@@ -41,6 +41,7 @@ namespace {
     require ABSPATH . 'inc/Services/CheckoutPhoneValidation.php';
     require ABSPATH . 'inc/Services/TransactionPhoneIssue.php';
     require ABSPATH . 'inc/Services/ShipmentDetailPayment.php';
+    require ABSPATH . 'inc/Services/ShipmentDetailAmounts.php';
     require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
     // Load the production static lifecycle guards; no repository instance is needed.
     require ABSPATH . 'inc/Services/InstantShipmentState.php';

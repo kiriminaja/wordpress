@@ -41,6 +41,7 @@ namespace {
     require ABSPATH . 'inc/Services/CheckoutPhoneValidation.php';
     require ABSPATH . 'inc/Services/TransactionPhoneIssue.php';
     require ABSPATH . 'inc/Services/ShipmentDetailPayment.php';
+    require ABSPATH . 'inc/Services/ShipmentDetailAmounts.php';
     require ABSPATH . 'inc/Services/InstantDeliveryStatus.php';
     // Load the production static lifecycle guards; no repository instance is needed.
     require ABSPATH . 'inc/Services/InstantShipmentState.php';
@@ -62,12 +63,12 @@ namespace {
             public function is_paid(): bool { return $this->data['paid'] ?? false; }
             public function get_address($type): array { return $this->data['address'] ?? []; }
             public function get_meta($key, $single = true) { return $this->data['meta'][$key] ?? ''; }
-            public function get_payment_method(): string { return 'bacs'; }
+            public function get_payment_method(): string { return $this->data['payment_method'] ?? 'bacs'; }
             public function get_discount_total(): float { return 0; }
             public function get_coupon_codes(): array { return []; }
-            public function get_shipping_total(): float { return 12000; }
-            public function get_total(): float { return 62000; }
-            public function get_subtotal(): float { return 50000; }
+            public function get_shipping_total(): float { return $this->data['shipping_total'] ?? 12000; }
+            public function get_total(): float { return $this->data['total'] ?? 62000; }
+            public function get_subtotal(): float { return $this->data['subtotal'] ?? 50000; }
             public function get_items($type = 'line_item'): array {
                 if ('fee' === $type) {
                     if (!empty($this->data['fees_unavailable'])) { throw new \RuntimeException('Unavailable'); }
