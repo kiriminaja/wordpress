@@ -200,6 +200,8 @@ class CheckoutController
             add_action('woocommerce_after_checkout_billing_form', array($this, 'add_custom_select_options_field_and_script'), 9999);
             add_action('wp_footer', array($this, 'add_custom_select_options_field_and_script'));
             add_action('woocommerce_before_order_notes', array($this, 'kiriof_render_classic_insurance_field'), 5);
+            add_action( 'woocommerce_checkout_update_order_review', array( $this, 'kiriof_sync_classic_review_insurance' ), 20, 1 );
+            add_action( 'woocommerce_checkout_process', array( $this, 'kiriof_sync_classic_checkout_insurance' ), 5 );
 
             // Block checkout: register District as additional field and expose a Store API
             // update callback so React/block themes (ShopVerse etc.) can refresh fees.
@@ -266,6 +268,48 @@ class CheckoutController
             add_filter( 'woocommerce_available_payment_gateways', array($this,'kiriof_filter_cod_availability'), 10, 1 );
         }
     }
+    public function kiriof_sync_classic_review_insurance( $post_data ): void {
+        if ( 'woocommerce_checkout_update_order_review' !== current_filter() || ! is_string( $post_data ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+            return;
+        }
+        // WooCommerce verifies the nonce and unslashes this payload before the hook.
+        parse_str( $post_data, $data );
+        $this->kiriof_sync_classic_insurance( $data );
+    }
+
+    public function kiriof_sync_classic_checkout_insurance(): void {
+        if ( 'woocommerce_checkout_process' !== current_filter() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+            return;
+        }
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WooCommerce verified checkout; the helper accepts only exact checkbox values.
+        $this->kiriof_sync_classic_insurance( wp_unslash( $_POST ) );
+    }
+
+    private function kiriof_sync_classic_insurance( array $data ): void {
+        if ( ! function_exists( 'WC' ) || ! WC() || ! isset( WC()->session ) || ! WC()->session ) {
+            return;
+        }
+        $value = $data[ $this->field_insurance_key ] ?? null;
+        // Missing fields belong to partial refreshes, not an implicit opt-out.
+        if ( ! is_string( $value ) || ! in_array( $value, array( '0', '1' ), true ) ) {
+            return;
+        }
+        $insurance = $this->kiriof_global_insurance_enabled() || '1' === $value ? 1 : 0;
+        $changed = $insurance !== (int) WC()->session->get( 'kiriof_insurance', 0 ) || $insurance !== (int) WC()->session->get( 'billing_insurance', 0 );
+        WC()->session->set( 'kiriof_insurance', $insurance );
+        WC()->session->set( 'billing_insurance', $insurance );
+        if ( $changed ) {
+            $this->kiriof_clear_cached_checkout_fees();
+            \KiriminAjaOfficial\Services\ClassicShippingRateCache::invalidate();
+        }
+    }
+
+    private function kiriof_clear_cached_checkout_fees(): void {
+        WC()->session->set( 'kiriof_cached_insurance_amt', 0 );
+        WC()->session->set( 'kiriof_cached_cod_amt', 0 );
+        WC()->session->set( 'kiriof_cached_fee_context', null );
+    }
+
     function kiriof_shipping_method_update() {
         if ( ! $this->kiriof_cart_needs_shipping() ) {
             $this->kiriof_clear_logistics_session();
@@ -291,6 +335,7 @@ class CheckoutController
     private function kiriof_add_checkout_fees() {
         $chosen_methods = WC()->session->get( 'chosen_shipping_methods' );
         if ( empty( $chosen_methods ) || ! is_array( $chosen_methods ) ) {
+            $this->kiriof_clear_cached_checkout_fees();
             return;
         }
 
@@ -303,6 +348,7 @@ class CheckoutController
             }
         }
         if ( '' === $kiriof_method ) {
+            $this->kiriof_clear_cached_checkout_fees();
             return;
         }
 
@@ -323,6 +369,7 @@ class CheckoutController
             $destination_id = (int) WC()->session->get( 'shipping_destination_id', 0 );
         }
         if ( ! $destination_id ) {
+            $this->kiriof_clear_cached_checkout_fees();
             return;
         }
 
@@ -341,6 +388,9 @@ class CheckoutController
         );
         $cached_context  = WC()->session->get( 'kiriof_cached_fee_context', array() );
         $cache_matches   = $this->kiriof_fee_cache_matches( $cached_context, $cache_context );
+        if ( ! $cache_matches ) {
+            $this->kiriof_clear_cached_checkout_fees();
+        }
 
         // Read cached fees from session only if they match the current checkout
         // context. Courier changes can change force-insurance rules; payment
