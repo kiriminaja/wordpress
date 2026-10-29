@@ -1,9 +1,49 @@
 const regionClass = 'kiriof-funnelkit-region-field';
 const widthProperty = '--kiriof-region-width';
 const heightProperty = '--kiriof-control-height';
+const borderProperty = '--kiriof-control-border-color';
+
+function syncNativeBorder(form: HTMLFormElement) {
+  for (const scope of ['billing', 'shipping']) {
+    const district =
+      scope === 'shipping'
+        ? 'kiriof_shipping_destination_area_field'
+        : 'kiriof_destination_area_field';
+    const fields = form.querySelectorAll<HTMLElement>(
+      `.kiriof-funnelkit-select-field[id^="${scope}_"], .kiriof-funnelkit-select-field#${district}`,
+    );
+    const reference = ['postcode', 'address_1', 'city']
+      .map((field) => form.querySelector<HTMLInputElement>(`#${scope}_${field}`))
+      .find((input) => {
+        if (
+          !input ||
+          input.disabled ||
+          input.type === 'hidden' ||
+          input.getAttribute('aria-invalid') === 'true' ||
+          input.closest('.woocommerce-invalid, .wfacp-invalid, .fkcf-hidden')
+        )
+          return false;
+        const view = form.ownerDocument.defaultView!;
+        const style = view.getComputedStyle(input);
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          view.document.activeElement !== input
+        );
+      });
+    const color = reference
+      ? form.ownerDocument.defaultView!.getComputedStyle(reference).borderTopColor
+      : '';
+    for (const field of fields) {
+      if (color && field.style.getPropertyValue(borderProperty) !== color)
+        field.style.setProperty(borderProperty, color);
+    }
+  }
+}
 
 /** Reclaim only the adjacent address thirds occupied by our enhanced state field. */
 export function syncFunnelKitLayout(form: HTMLFormElement) {
+  syncNativeBorder(form);
   const desired = new Map<HTMLElement, string>();
   for (const scope of ['billing', 'shipping']) {
     const state = form.querySelector<HTMLElement>(`#${scope}_state_field`);
@@ -61,10 +101,11 @@ export function syncFunnelKitLayout(form: HTMLFormElement) {
 
 export function clearFunnelKitLayout(form: HTMLFormElement) {
   for (const row of form.querySelectorAll<HTMLElement>(
-    `.${regionClass}, [style*="${heightProperty}"]`,
+    `.${regionClass}, [style*="${heightProperty}"], [style*="${borderProperty}"]`,
   )) {
     row.classList.remove(regionClass);
     row.style.removeProperty(widthProperty);
     row.style.removeProperty(heightProperty);
+    row.style.removeProperty(borderProperty);
   }
 }

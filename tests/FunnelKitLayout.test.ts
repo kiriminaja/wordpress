@@ -27,6 +27,34 @@ function fixture() {
 }
 
 describe('FunnelKit adjacent address thirds', () => {
+  test('enhanced state and district inherit neutral native borders and keep per-scope styling', () => {
+    const { form, row } = fixture();
+    row('shipping_district_field').id = 'kiriof_shipping_destination_area_field';
+    row('shipping_postcode').style.border = '1px solid rgb(221, 216, 211)';
+    row('billing_postcode').style.border = '1px solid rgb(190, 191, 192)';
+    syncFunnelKitLayout(form);
+    expect(
+      row('shipping_state_field').style.getPropertyValue('--kiriof-control-border-color'),
+    ).toBe('rgb(221, 216, 211)');
+    expect(
+      row('kiriof_shipping_destination_area_field').style.getPropertyValue(
+        '--kiriof-control-border-color',
+      ),
+    ).toBe('rgb(221, 216, 211)');
+    expect(row('billing_state_field').style.getPropertyValue('--kiriof-control-border-color')).toBe(
+      'rgb(190, 191, 192)',
+    );
+    row('shipping_postcode').setAttribute('aria-invalid', 'true');
+    row('shipping_postcode').style.borderColor = 'red';
+    syncFunnelKitLayout(form);
+    expect(
+      row('shipping_state_field').style.getPropertyValue('--kiriof-control-border-color'),
+    ).toBe('rgb(221, 216, 211)');
+    clearFunnelKitLayout(form);
+    expect(
+      row('shipping_state_field').style.getPropertyValue('--kiriof-control-border-color'),
+    ).toBe('');
+  });
   test('redistributes hidden country independently per address without moving nodes', () => {
     const { form, row } = fixture();
     const order = Array.from(form.querySelectorAll('[id]'), (node) => node.id);

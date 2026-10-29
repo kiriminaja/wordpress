@@ -262,7 +262,7 @@
   background: #fff !important;
   background-image: none !important;
   color: #333 !important;
-  border: 1px solid #767676 !important;
+  border: 1px solid var(--kiriof-control-border-color, #d8d8d8) !important;
   border-radius: 4px !important;
   box-shadow: none !important;
   font: inherit !important;
@@ -307,4 +307,27 @@
 .kiriof-funnelkit-select-field .kiriof-buyer-combobox-clear:focus-visible {
   outline: 2px solid #333 !important;
   outline-offset: 2px !important;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-trigger[aria-invalid='true'] {
+  border-color: #b32d2e !important;
+}
+.kiriof-funnelkit-insurance-field {
+  clear: both;
+  float: none !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin: 12px 0 0 !important;
+  padding: 0 8px !important;
+  font: inherit !important;
+  line-height: 1.5 !important;
+}
+.kiriof-funnelkit-insurance-field > label {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  font: inherit !important;
 }
