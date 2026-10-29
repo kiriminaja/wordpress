@@ -69,7 +69,7 @@ class TransactionListViewModelFactory {
 		$discount_amount       = (float) ( $row->discount_amount ?? 0 );
 		$cod_fee               = (float) ( $row->cod_fee ?? 0 );
 		$transaction_value     = (float) ( $row->transaction_value ?? 0 );
-		$cod_value             = ShipmentDetailAmounts::expressCod( $row );
+		$cod_value             = ShipmentDetailAmounts::expressCod( $row, $payment_method );
 		$is_deficit            = ! empty( $row->is_deficit );
 		$item_discount         = $wc_order ? (float) $wc_order->get_discount_total() : 0.0;
 		$coupon_codes          = $wc_order ? (array) $wc_order->get_coupon_codes() : array();

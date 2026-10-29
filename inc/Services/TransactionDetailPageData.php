@@ -92,7 +92,7 @@ class TransactionDetailPageData
         $cod_fee = (float) ($transaction->cod_fee ?? 0);
         $admin_fee = ShipmentDetailAmounts::adminFee( $wc_order, $transaction );
         $discount = max(0, (float) ($transaction->discount_amount ?? 0));
-        $cod_value = ShipmentDetailAmounts::expressCod( $transaction );
+        $cod_value = ShipmentDetailAmounts::expressCod( $transaction, $wc_order && method_exists( $wc_order, 'get_payment_method' ) ? (string) $wc_order->get_payment_method() : '' );
         $payment_label = $cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official");
         $status = (string) ($transaction->status ?? "new");
         $awb = (string) ($transaction->awb ?? "");
@@ -400,7 +400,7 @@ class TransactionDetailPageData
                     "paymentMethod" => $payment["method"],
                     "paymentId" => $payment["id"],
                     "costs" => ["orderTotal" => $order_total, "subtotal" => 0, "totalShipping" => $paid_shipping + $insurance + $cod_fee, "actualShipping" => $shipping, "shippingDiscount" => $discount, "shipping" => $paid_shipping, "insurance" => $insurance, "codFee" => $cod_fee, "adminFee" => $admin_fee, "itemDiscount" => 0, "total" => $paid_shipping + $insurance + $cod_fee + $admin_fee],
-                    "codValue" => ShipmentDetailAmounts::expressCod( $transaction ),
+                    "codValue" => ShipmentDetailAmounts::expressCod( $transaction, '' ),
                     "printUrl" => "",
                     "liveTrackingUrl" => $is_express ? "" : InstantTrackingPresentation::trackingUrl($transaction),
                     "routeMap" => InstantDetailMapData::prepare($transaction),

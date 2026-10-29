@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 use PHPUnit\Framework\TestCase;
 
 final class TransactionCodPresentationRuntimeTest extends TestCase {
@@ -46,11 +47,16 @@ final class TransactionCodPresentationRuntimeTest extends TestCase {
 	}
 
 	public function test_instant_and_non_cod_have_no_collectible_cod(): void {
-		foreach ( array( array( 'cod_fee' => 0 ), array( 'delivery_type' => 'instant', 'service' => 'gosend' ) ) as $overrides ) {
+		foreach ( array( array( 'cod_fee' => 0, 'wc_order' => array( 'payment_method' => 'bacs' ) ), array( 'delivery_type' => 'instant', 'service' => 'gosend' ) ) as $overrides ) {
 			foreach ( array( 'list', 'detail', 'fallback' ) as $mode ) {
 				$data = $this->render( $mode, $overrides );
 				$this->assertSame( 0, 'list' === $mode ? $data['package']['codValue'] : $data['transaction']['shipment']['codValue'] );
 			}
 		}
+	}
+
+	public function test_cod_payment_method_still_has_cod_value_when_cod_fee_is_zero(): void {
+		$data = $this->render( 'detail', array( 'cod_fee' => 0, 'wc_order' => array( 'payment_method' => 'cod', 'shipping_total' => 7315, 'total' => 208515, 'subtotal' => 200000 ) ) )['transaction']['shipment'];
+		$this->assertSame( 208515, $data['codValue'] );
 	}
 }

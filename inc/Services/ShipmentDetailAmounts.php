@@ -8,8 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Read-only amounts with explicit checkout provenance, never order-total arithmetic. */
 class ShipmentDetailAmounts {
 	/** Display the same Express COD amount assembled by the pickup payload. */
-	public static function expressCod( object $transaction ): float {
-		if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) || (float) ( $transaction->cod_fee ?? 0 ) <= 0 ) {
+	public static function expressCod( object $transaction, string $payment_method = '' ): float {
+		if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) || ( 'cod' !== strtolower( trim( $payment_method ) ) && (float) ( $transaction->cod_fee ?? 0 ) <= 0 ) ) {
 			return 0.0;
 		}
 		return (float) max( 1, (int) round(

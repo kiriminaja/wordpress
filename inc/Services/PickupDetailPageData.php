@@ -82,7 +82,7 @@ class PickupDetailPageData {
 			$discount         = (float) ( $transaction->discount_amount ?? 0 );
 			$transaction_value = (float) ( $transaction->transaction_value ?? 0 );
 			$total             = max( 0, $shipping_cost + $insurance_cost + $cod_fee - $discount );
-			$cod_value         = $shipping_cost + $insurance_cost + ( $cod_fee > 0 ? $cod_fee + $transaction_value : 0 );
+            $cod_value         = ShipmentDetailAmounts::expressCod( $transaction, (string) ( $transaction->payment_method ?? '' ) );
 			$raw_status        = (string) ( $transaction->raw_status ?? $transaction->status ?? '' );
 			$status_label      = isset( $transaction->raw_status ) ? (string) ( $transaction->status ?? '' ) : kiriof_helper()->transactionStatusLabel( $raw_status );
 
