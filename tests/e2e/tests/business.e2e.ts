@@ -163,6 +163,63 @@ type RecoverySettings = {
   separate?: boolean;
 };
 
+test('Classic coordinates save before address or district entry, wait for acknowledgment, and clear on country or scope changes', async ({ app, browser, screen }) => {
+  const fixture = await checkout(app, browser, true, { success: true, data: [district] }, false, false, true, {
+    emptyAddress: true, billingPostcode: '', shippingPostcode: '', holdCoordinates: true,
+  });
+  const point = { latitude: '-7.7000000', longitude: '110.3000000' };
+  try {
+    await expect(screen.getByLabel('Delivery location map')).toBeVisible();
+    expect(fixture.saves()).toHaveLength(0);
+    await screen.getByRole('button', 'Current location').tap();
+    await expect.poll(() => fixture.saves().length).toBe(1);
+    expect(JSON.parse(fixture.saves()[0].body.data)).toEqual({
+      action: 'save_classic_coordinates', address_scope: 'billing', country: 'ID', coordinates: point,
+    });
+    expect(fixture.districts()).toHaveLength(0);
+    expect(await recoverySelection(browser)).toEqual({
+      kiriof_destination_area: { value: '', label: '' },
+      kiriof_shipping_destination_area: { value: '', label: '' },
+    });
+    await screen.getByRole('button', 'Place order').tap();
+    await expect(browser.locator('#outcome')).toContainText('blocked');
+    fixture.releaseCoordinates();
+    await expect.poll(() => browser.evaluate(() => {
+      const queue = window.kiriofBuyerPin.controller.getState().queue;
+      return !queue.pending && !queue.inFlight && !queue.error;
+    })).toBe(true);
+    await screen.getByRole('button', 'Place order').tap();
+    await expect(browser.locator('#outcome')).toContainText('allowed');
+    expect(await browser.evaluate(() => (document.querySelector('#billing_address_1') as HTMLInputElement).value)).toBe('');
+
+    await screen.getByLabel('Ship to a different address?').tap();
+    await expect.poll(() => fixture.saves().length).toBe(2);
+    expect(JSON.parse(fixture.saves()[1].body.data)).toEqual({
+      action: 'save_classic_coordinates', address_scope: 'shipping', country: 'ID', coordinates: null,
+    });
+    fixture.releaseCoordinates();
+    await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
+    expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toBeNull();
+    await screen.getByRole('button', 'Current location').tap();
+    await expect.poll(() => fixture.saves().length).toBe(3);
+    fixture.releaseCoordinates();
+    await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
+    await browser.evaluate(() => {
+      jQuery('#shipping_country').val('US').trigger('change');
+      return true;
+    });
+    await expect.poll(() => fixture.saves().length).toBe(4);
+    expect(JSON.parse(fixture.saves()[3].body.data)).toEqual({
+      action: 'save_classic_coordinates', address_scope: 'shipping', country: 'US', coordinates: null,
+    });
+    fixture.releaseCoordinates();
+    await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
+    expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toBeNull();
+    expect(fixture.districts()).toHaveLength(0);
+    expect(fixture.unexpected).toEqual([]);
+  } finally { await fixture.cleanup(); }
+});
+
 function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' | 'native' | 'no-select2' = false, districtWrites = false, recovery?: RecoverySettings) {
   const src = script;
   const dependency = (file: string) =>
