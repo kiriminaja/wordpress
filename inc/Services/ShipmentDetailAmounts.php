@@ -7,6 +7,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /** Read-only amounts with explicit checkout provenance, never order-total arithmetic. */
 class ShipmentDetailAmounts {
+	/** Display the same Express COD amount assembled by the pickup payload. */
+	public static function expressCod( object $transaction, string $payment_method = '' ): float {
+		if ( 'instant' === TransactionDeliveryType::resolve( $transaction ) || ( 'cod' !== strtolower( trim( $payment_method ) ) && (float) ( $transaction->cod_fee ?? 0 ) <= 0 ) ) {
+			return 0.0;
+		}
+		return (float) max( 1, (int) round(
+			(float) ( $transaction->shipping_cost ?? 0 )
+			- (float) ( $transaction->discount_amount ?? 0 )
+			+ (float) ( $transaction->insurance_cost ?? 0 )
+			+ (float) ( $transaction->cod_fee ?? 0 )
+			+ (float) ( $transaction->transaction_value ?? 0 )
+		) );
+	}
+
 	/** Matches InstantCheckoutController::ADMIN_FEE_META_KEY and the durable shipping_info key. */
 	private const ADMIN_FEE_META_KEY = '_kiriof_instant_admin_fee';
 	/** Matches InstantCheckoutController::FEE_TYPE. */

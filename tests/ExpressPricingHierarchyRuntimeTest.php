@@ -14,8 +14,8 @@ final class ExpressPricingHierarchyRuntimeTest extends TestCase {
             $this->assertFalse( $result[$case]['status'], $case );
             $this->assertSame( 'Could not resolve shipping address hierarchy.', $result[$case]['data'] );
         }
-        // Two cold postal searches, none for repeats or mismatches; one unknown lookup.
-        $this->assertCount( 4, $result['searches'] );
+        // Cold lookups, mismatch revalidation, unknown village, and explicit UI warming.
+        $this->assertCount( 5, $result['searches'] );
         $this->assertCount( 4, $result['posts'] );
         $this->assertTrue( $result['warm']['status'] );
         $this->assertSame( 0, $result['warm_additional_searches'] );

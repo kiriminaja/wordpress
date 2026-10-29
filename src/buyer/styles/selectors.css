@@ -10,6 +10,23 @@
   white-space: nowrap !important;
   border: 0 !important;
 }
+
+/* Hidden country rows must not leave an unused third beside postcode and state. */
+.kiriof-funnelkit-checkout .form-row.kiriof-funnelkit-region-field {
+  width: var(--kiriof-region-width) !important;
+  max-width: var(--kiriof-region-width) !important;
+  flex: 0 0 var(--kiriof-region-width) !important;
+  min-width: 0;
+  box-sizing: border-box;
+  clear: none !important;
+}
+@media (max-width: 767px) {
+  .kiriof-funnelkit-checkout .form-row.kiriof-funnelkit-region-field {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+}
 .kiriof-buyer-combobox {
   position: relative;
   width: 100%;
@@ -190,8 +207,8 @@
   height: auto;
 }
 .kiriof-buyer-combobox-content .kiriof-buyer-courier-label {
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 .kiriof-buyer-combobox-trigger > span:not(.kiriof-buyer-combobox-arrow) {
   flex: 1;
@@ -204,4 +221,113 @@
 }
 .kiriof-buyer-combobox:has(.kiriof-buyer-combobox-clear) .kiriof-buyer-combobox-trigger {
   padding-right: 64px;
+}
+
+/* FunnelKit floats native labels and applies CTA colors to all buttons. */
+.kiriof-funnelkit-select-field {
+  position: relative;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-selector,
+.kiriof-funnelkit-select-field .kiriof-buyer-selector-ui,
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.kiriof-funnelkit-select-field label[for] {
+  position: absolute !important;
+  top: 4px !important;
+  left: 20px !important;
+  right: 20px !important;
+  width: auto !important;
+  max-width: calc(100% - 40px);
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  font-size: 0.8125em !important;
+  line-height: 1.3 !important;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox .kiriof-buyer-combobox-trigger {
+  min-height: var(--kiriof-control-height, 47px) !important;
+  height: var(--kiriof-control-height, 47px) !important;
+  padding: 20px 44px 4px 12px !important;
+  background: #fff !important;
+  background-image: none !important;
+  color: #333 !important;
+  border: 1px solid var(--kiriof-control-border-color, #d8d8d8) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  line-height: 20px !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+.kiriof-funnelkit-select-field
+  .kiriof-buyer-combobox:has(.kiriof-buyer-combobox-clear)
+  .kiriof-buyer-combobox-trigger {
+  padding-right: 80px !important;
+}
+.kiriof-funnelkit-select-field
+  .kiriof-buyer-combobox-trigger
+  > span:not(.kiriof-buyer-combobox-arrow) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.kiriof-funnelkit-select-field .is-open .kiriof-buyer-combobox-arrow {
+  top: 50%;
+  transform: translateY(-50%) rotate(180deg);
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox .kiriof-buyer-combobox-clear {
+  top: auto !important;
+  bottom: 0;
+  right: 28px;
+  width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #333 !important;
+  box-shadow: none !important;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-trigger:focus-visible,
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-clear:focus-visible {
+  outline: 2px solid #333 !important;
+  outline-offset: 2px !important;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox-trigger[aria-invalid='true'] {
+  border-color: #b32d2e !important;
+}
+.kiriof-funnelkit-insurance-field {
+  clear: both;
+  float: none !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin: 12px 0 0 !important;
+  padding: 0 8px !important;
+  font: inherit !important;
+  line-height: 1.5 !important;
+}
+.kiriof-funnelkit-insurance-field > label {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  font: inherit !important;
 }

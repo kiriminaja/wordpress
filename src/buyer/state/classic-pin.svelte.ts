@@ -1,4 +1,9 @@
-import { createQueue, type QueueState, type QueueOptions } from './checkout-queue';
+import {
+  createQueue,
+  type QueueState,
+  type QueueOptions,
+  type QueueResult,
+} from './checkout-queue';
 import { normalizeDestination, type Destination } from './destination';
 import { normalizePoint } from '../map/leaflet';
 import type { Point, PointInput } from '../map/types';
@@ -24,10 +29,10 @@ export type PinDestination = Omit<Destination, 'version'> & {
   shipping_address?: NativeAddress;
 };
 export interface PinSnapshot {
-  action: 'sync_checkout';
+  action: 'save_classic_coordinates';
   address_scope: AddressScope;
-  effective_address: NativeAddress;
-  destination: PinDestination;
+  country: string;
+  coordinates: Point | null;
 }
 export interface ClassicPinView {
   address: NativeAddress;
@@ -60,6 +65,7 @@ export interface ClassicPinOptions extends Pick<
   address?: Partial<NativeAddress>;
   scope?: AddressScope;
   savedDestination?: PinDestination | null;
+  savedCoordinates?: PointInput | null;
   onChange?(view: ClassicPinView): void;
 }
 /** Pin state reads native Woo fields but never owns or writes their values. */
@@ -84,6 +90,8 @@ export function createClassicPin(options: ClassicPinOptions) {
     )
       point = normalizePoint(saved.destination_latitude, saved.destination_longitude);
   }
+  if (current.country === 'ID' && options.savedCoordinates)
+    point = normalizePoint(options.savedCoordinates.latitude, options.savedCoordinates.longitude);
   function destination(): PinDestination {
     const hasPostcode = /^[0-9]{5}$/.test(current.postcode);
     const value = normalizeDestination({
@@ -121,10 +129,10 @@ export function createClassicPin(options: ClassicPinOptions) {
   }
   function sync() {
     return queue.update({
-      action: 'sync_checkout',
+      action: 'save_classic_coordinates',
       address_scope: scope,
-      effective_address: address(current),
-      destination: destination(),
+      country: current.country,
+      coordinates: point,
     });
   }
   return {
@@ -135,32 +143,34 @@ export function createClassicPin(options: ClassicPinOptions) {
     updateAddress(input: Partial<NativeAddress>, nextScope: AddressScope) {
       const next = address(input);
       if (sameAddress(current, next) && scope === nextScope) return false;
-      if (
-        current.country !== next.country ||
-        current.postcode !== next.postcode ||
-        scope !== nextScope
-      )
-        selection = null;
+      const changedCountryOrScope = current.country !== next.country || scope !== nextScope;
+      if (changedCountryOrScope) selection = null;
       current = next;
       scope = nextScope;
-      point = null;
+      if (changedCountryOrScope) {
+        const hadPoint = point !== null;
+        point = null;
+        notify();
+        if (hadPoint) void sync();
+        return true;
+      }
       notify();
-      void sync();
       return true;
     },
-    selectDistrict(next: District | null) {
+    selectDistrict(next: District | null): Promise<QueueResult<PinSnapshot>> {
       selection =
         next && /^[1-9][0-9]*$/.test(String(next.id)) && next.label
           ? { id: String(next.id), label: next.label }
           : null;
-      point = null;
       notify();
-      return sync();
+      return Promise.resolve({ status: 'success', snapshot: null, error: null });
     },
     selectPoint(next: PointInput | null, expected?: NativeAddress) {
-      if (current.country !== 'ID' || !selection || (expected && !sameAddress(expected, current)))
-        return false;
-      point = next ? normalizePoint(next.latitude, next.longitude) : null;
+      if (current.country !== 'ID' || (expected && !sameAddress(expected, current))) return false;
+      const normalized = next ? normalizePoint(next.latitude, next.longitude) : null;
+      if (next && !normalized) return false;
+      if (!normalized && !point) return true;
+      point = normalized;
       notify();
       void sync();
       return true;

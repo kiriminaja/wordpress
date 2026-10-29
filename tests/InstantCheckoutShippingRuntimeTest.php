@@ -3,6 +3,36 @@ use PHPUnit\Framework\TestCase;
 
 /** Run the real WooCommerce method in isolated, network-free PHP fixtures. */
 final class InstantCheckoutShippingRuntimeTest extends TestCase {
+	public function test_draft_review_promotes_current_district_and_rebinds_coordinates_to_a_new_rate(): void {
+		$output = array();
+		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/classic-instant-restored-pin-runtime.php' ) . ' ' . escapeshellarg( json_encode( array( 'draft_to_rate' => true ) ) ) . ' 2>&1', $output, $status );
+		$this->assertSame( 0, $status, implode( "\n", $output ) );
+		$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+		$this->assertSame( array( 'destination' => null, 'rates' => array(), 'calls' => 0 ), $result['before_review'] );
+		$this->assertSame( '999', $result['legacy_district'] );
+		$this->assertSame( array( '12345', '12346' ), $result['lookup_calls'] );
+		$this->assertCount( 2, $result['rounds'] );
+		foreach ( $result['rounds'] as $index => $round ) {
+			$postcode = 0 === $index ? '12345' : '12346';
+			$this->assertSame( (string) ( 42 + $index ), $round['destination']['district_id'] );
+			$this->assertSame( 2, $round['destination']['version'] );
+			$this->assertSame( $postcode, $round['destination']['postcode'] );
+			$this->assertSame( $postcode, $round['destination']['shipping_address']['postcode'] );
+			$this->assertSame( 'Village, District, Jakarta, DKI Jakarta, ' . $postcode, $round['destination']['district_label'] );
+			$this->assertSame( array( 'latitude' => '-6.3', 'longitude' => '106.9' ), $round['coordinates'] );
+			$this->assertSame( $round['destination'], $round['snapshot'] );
+			$this->assertSame( $index + 1, $round['calls'] );
+			$this->assertFalse( $round['cache'] );
+			$this->assertCount( 1, $round['rates'] );
+			$this->assertSame( 'kiriminaja-instant:11:gosend:GO-INSTANT', $round['rates'][0]['id'] );
+			$this->assertEquals( 18000, $round['rates'][0]['cost'] );
+			$this->assertMatchesRegularExpression( '/^[a-f0-9]{64}$/D', $round['rates'][0]['meta_data']['kiriof_instant_quote_token'] );
+		}
+		$this->assertNotSame( $result['rounds'][0]['rates'][0]['meta_data']['kiriof_instant_quote_token'], $result['rounds'][1]['rates'][0]['meta_data']['kiriof_instant_quote_token'] );
+		$this->assertCount( 2, $result['payloads'] );
+		$this->assertSame( array(), $result['logs'] );
+	}
+
 	private function run_fixture(): array {
 		// The isolated fixture returns all scenarios in one deterministic snapshot.
 		// Share it within this worker, but retain the assertions in every test.

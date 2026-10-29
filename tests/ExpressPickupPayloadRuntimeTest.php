@@ -133,6 +133,29 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 		}
 	}
 
+	public function test_cod_wire_amount_subtracts_shipping_discount_from_reported_order(): void {
+		$result = $this->runFixture( array(
+			'payment' => '',
+			'cod' => true,
+			'row' => array(
+				'transaction_value' => 200000,
+				'shipping_cost' => 7700,
+				'discount_amount' => 385,
+				'insurance_cost' => 1200,
+				'cod_fee' => 6945,
+			),
+		) );
+		$this->assertSame( 200, $result['status'] );
+		$this->assertCount( 1, $result['requests'] );
+		$request = $result['requests'][0];
+		$this->assertSame( 'https://express-api.invalid/api/mitra/v6.2/request_pickup', $request['url'] );
+		$package = $request['payload']['packages'][0];
+		$this->assertSame( 215460, $package['cod'] );
+		$this->assertNotSame( 215845, $package['cod'] );
+		$this->assertSame( 7700, $package['shipping_cost'] );
+		$this->assertSame( 385, $package['discount_amount'] );
+	}
+
 	public function test_cod_omits_method_and_pin_and_creates_paid_cod_locally(): void {
 		$result = $this->runFixture( array( 'payment' => '', 'cod' => true ) );
 		$this->assertSame( 200, $result['status'] );

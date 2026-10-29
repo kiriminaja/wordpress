@@ -15,6 +15,8 @@ import type { SelectorBridge } from '../types/selector';
 import type * as Leaflet from 'leaflet';
 
 export interface ClassicPinConfig extends ClassicPinTransportConfig {
+  savedPinDrafts?: Partial<Record<'billing' | 'shipping', Point | null>>;
+  indonesiaStates?: Record<string, string>;
   enabled?: boolean;
   needsShipping?: boolean;
   savedDestination?: PinDestination | null;
@@ -66,18 +68,15 @@ export function startClassicPin(
   )
     return;
   const strings = { ...config.i18n, ...config.map.i18n };
-  const native = nativeAddress(form);
+  const native = nativeAddress(form, config.indonesiaStates);
   const panel = root.document.createElement('section');
   panel.className = 'kiriof-classic-pin form-row form-row-wide';
   const hidden = root.document.createElement('input');
   hidden.type = 'hidden';
   hidden.name = 'kiriof_buyer_destination_snapshot';
   form.append(hidden);
-  let busy = false,
-    disposed = false,
-    lastDistrict = '',
-    point: Point | null = null;
-  let pointAddress: NativeAddress | null = null;
+  let disposed = false,
+    lastDistrict = '';
   let timer: ReturnType<typeof setTimeout> | undefined;
   let editing = false;
   let contactKey = '';
@@ -117,16 +116,7 @@ export function startClassicPin(
     address: native.address(),
     scope: native.scope(),
     savedDestination: config.savedDestination,
-    // The server accepts pins only after the district session writer commits.
-    isBlocked: () =>
-      editing ||
-      busy ||
-      Boolean(root.kiriofBuyerSelectors?.districtPending?.()) ||
-      Boolean(
-        root.kiriofClassicDistrictMutation?.active ||
-        root.kiriofClassicDistrictMutation?.pending ||
-        root.kiriofClassicDistrictMutation?.failed,
-      ),
+    savedCoordinates: config.savedPinDrafts?.[native.scope()],
     send: async (snapshot) => {
       await saveClassicPin(
         snapshot,
@@ -138,33 +128,24 @@ export function startClassicPin(
     },
     onChange: render,
   });
-  const select = (next: Point | null, expected: NativeAddress) => {
-    if (
-      next &&
-      (!expected.address_1 ||
-        !expected.city ||
-        !expected.state ||
-        !/^[0-9]{5}$/.test(expected.postcode))
-    )
-      return false;
-    point = next;
-    pointAddress = expected;
-    return native.district() ? controller.selectPoint(next, expected) : true;
-  };
+  const instantStatus = root.document.createElement('div');
+  instantStatus.className = 'kiriof-classic-instant-status';
+  instantStatus.setAttribute('role', 'status');
+  instantStatus.setAttribute('aria-live', 'polite');
+  instantStatus.hidden = true;
+  panel.append(instantStatus);
+  const select = (next: Point | null, expected: NativeAddress) =>
+    controller.selectPoint(next, expected);
   function changed() {
     if (disposed) return;
     // Woo can replace native fields before the selector's queued refresh runs.
     root.kiriofBuyerSelectors?.refresh();
-    if (controller.updateAddress(native.address(), native.scope())) {
-      point = null;
-      pointAddress = null;
-    }
+    controller.updateAddress(native.address(), native.scope());
     const selected = native.district();
     const id = selected?.id || '';
     if (id !== lastDistrict || (selected && !controller.getState().selection)) {
       lastDistrict = id;
       void controller.selectDistrict(selected);
-      if (point && selected && pointAddress) controller.selectPoint(point, pointAddress);
     }
     render();
   }
@@ -211,13 +192,10 @@ export function startClassicPin(
     );
   });
   $(root.document.body)
-    .on('update_checkout.kiriofClassicPin', () => {
-      busy = true;
-    })
+    .on('update_checkout.kiriofClassicPin', changed)
     .on(
       'updated_checkout.kiriofClassicPin checkout_error.kiriofClassicPin kiriof:classic-district-synced.kiriofClassicPin',
       (event) => {
-        busy = false;
         changed();
         if (event.type === 'kiriof:classic-district-synced' && controller.getState().queue.error)
           void controller.retry();

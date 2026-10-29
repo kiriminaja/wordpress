@@ -35,6 +35,8 @@ namespace {
     function WC() { return $GLOBALS['wc']; }
     require ABSPATH . 'inc/Services/BuyerDestination.php';
     require ABSPATH . 'inc/Services/ClassicShippingRateCache.php';
+    require ABSPATH . 'inc/Services/ClassicDistrictAddressSync.php';
+    require ABSPATH . 'inc/Services/ClassicPinDraftService.php';
     require ABSPATH . 'inc/Services/InstantCheckoutQuoteService.php';
     require ABSPATH . 'inc/Controllers/CheckoutController.php';
     require ABSPATH . 'inc/Controllers/GeneralAjaxController.php';
@@ -81,12 +83,26 @@ namespace {
     if ( 'no-session' === $GLOBALS['mode'] ) { $GLOBALS['wc']->session = null; }
     if ( 'clear' === $GLOBALS['mode'] ) { $destination = array_merge( $destination, array( 'version' => 1, 'district_id' => '', 'district_label' => '' ) ); unset( $destination['destination_latitude'], $destination['destination_longitude'], $destination['shipping_address'] ); }
     $data = array( 'action' => 'sync_classic_pin', 'address_scope' => 'shipping-mismatch' === $GLOBALS['mode'] ? 'shipping' : 'billing', 'effective_address' => $address, 'destination' => $destination, 'insurance' => false, 'payment_method' => 'bacs', 'shipping_metode_id' => 'other' );
+    if ( str_starts_with( $GLOBALS['mode'], 'draft-' ) ) {
+        $data = array( 'action' => 'save_classic_coordinates', 'address_scope' => 'billing', 'country' => 'ID', 'coordinates' => array( 'latitude' => '-6.2', 'longitude' => '106.8' ) );
+        if ( 'draft-save' !== $GLOBALS['mode'] && 'draft-nonce' !== $GLOBALS['mode'] ) {
+            $session->values['kiriof_buyer_destination'] = $destination;
+            $session->values['kiriof_buyer_destination_coordinates'] = $data['coordinates'];
+            $session->values['kiriof_classic_pin_drafts'] = array( 'billing' => $data['coordinates'] );
+        }
+        if ( in_array( $GLOBALS['mode'], array( 'draft-clear', 'draft-foreign-clear', 'draft-country-missing', 'draft-country-malformed' ), true ) ) { $data['coordinates'] = null; }
+        if ( 'draft-foreign' === $GLOBALS['mode'] ) { $data['country'] = 'US'; }
+        if ( in_array( $GLOBALS['mode'], array( 'draft-foreign-clear', 'draft-foreign-omitted' ), true ) ) { $data['country'] = 'US'; }
+        if ( 'draft-foreign-omitted' === $GLOBALS['mode'] ) { unset( $data['coordinates'] ); }
+        if ( 'draft-country-missing' === $GLOBALS['mode'] ) { unset( $data['country'] ); }
+        if ( 'draft-country-malformed' === $GLOBALS['mode'] ) { $data['country'] = array( 'US' ); }
+    }
     if ( 'bad-scope' === $GLOBALS['mode'] ) { $data['address_scope'] = 'private'; }
     if ( in_array( $GLOBALS['mode'], array( 'legacy-same', 'legacy-changed' ), true ) ) {
         $session->values['kiriof_buyer_destination'] = $destination;
         $data = array( 'destination_id' => 'legacy-same' === $GLOBALS['mode'] ? 123 : 999, 'postcode' => '12345' );
     }
-    $_POST = array( 'nonce' => 'nonce' === $GLOBALS['mode'] ? 'invalid' : 'valid', 'data' => json_encode( $data ) );
+    $_POST = array( 'nonce' => in_array( $GLOBALS['mode'], array( 'nonce', 'draft-nonce' ), true ) ? 'invalid' : 'valid', 'data' => json_encode( $data ) );
     if ( in_array( $GLOBALS['mode'], array( 'district-same', 'district-changed', 'district-cached-rates' ), true ) ) {
         $session->values['kiriof_buyer_destination'] = $destination;
         $_POST = array( 'nonce' => 'valid', 'val' => 'district-same' === $GLOBALS['mode'] ? 123 : 999, 'postcode' => '12345' );

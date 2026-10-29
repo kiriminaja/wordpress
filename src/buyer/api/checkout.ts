@@ -5,7 +5,7 @@ export interface ClassicPinTransportConfig {
   nonce: string;
   pinErrors?: Record<string, string>;
 }
-/** Only explicit pin_saved acknowledgment succeeds; never display server-provided text. */
+/** Only explicit coordinates_saved acknowledgment succeeds; never display server-provided text. */
 export async function saveClassicPin(
   snapshot: PinSnapshot,
   config: ClassicPinTransportConfig,
@@ -20,18 +20,18 @@ export async function saveClassicPin(
       action: 'kiriof-session-save',
       nonce: config.nonce,
       data: JSON.stringify({
-        action: 'sync_classic_pin',
+        action: 'save_classic_coordinates',
         address_scope: snapshot.address_scope,
-        effective_address: snapshot.effective_address,
-        destination: snapshot.destination,
+        country: snapshot.country,
+        coordinates: snapshot.coordinates,
       }),
     }).toString(),
   });
   const payload = (await response.json()) as {
     success?: boolean;
-    data?: { pin_saved?: boolean; code?: string };
+    data?: { coordinates_saved?: boolean; code?: string };
   };
-  if (!response.ok || !payload.success || payload.data?.pin_saved !== true) {
+  if (!response.ok || !payload.success || payload.data?.coordinates_saved !== true) {
     const code = payload.data?.code;
     throw new Error((code && config.pinErrors?.[code]) || fallback);
   }
