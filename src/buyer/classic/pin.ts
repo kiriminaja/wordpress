@@ -128,6 +128,12 @@ export function startClassicPin(
     },
     onChange: render,
   });
+  const instantStatus = root.document.createElement('div');
+  instantStatus.className = 'kiriof-classic-instant-status';
+  instantStatus.setAttribute('role', 'status');
+  instantStatus.setAttribute('aria-live', 'polite');
+  instantStatus.hidden = true;
+  panel.append(instantStatus);
   const select = (next: Point | null, expected: NativeAddress) =>
     controller.selectPoint(next, expected);
   function changed() {

@@ -36,6 +36,7 @@ final class Init {
             Services\ClassicPinDraftService::class,
             Services\ClassicCheckoutRecipientSync::class,
             Services\ClassicInstantRateRefresh::class,
+            Services\InstantCheckoutStatusService::class,
             Services\TransactionPhoneIssueCache::class,
             Controllers\CheckoutController::class,
             Controllers\AccountAddressController::class,
