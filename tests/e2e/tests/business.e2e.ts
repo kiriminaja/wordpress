@@ -24,7 +24,7 @@ const binding = {
   country: 'ID',
 };
 
-test('Classic explicit district survives theme replacement and its pin waits for session acknowledgment', async ({ app, browser, screen }) => {
+test('Classic explicit district survives theme replacement without resaving its acknowledged coordinates', async ({ app, browser, screen }) => {
   const fixture = await checkout(app, browser, true, { success: true, data: [district] }, false, false, true);
   await expect(screen.getByLabel('Delivery location map')).toBeVisible();
   expect(await browser.evaluate(() => window.__geoCalls)).toBe(0);
@@ -53,12 +53,11 @@ test('Classic explicit district survives theme replacement and its pin waits for
   await expect.poll(() => browser.evaluate(() => ({
     id: document.querySelector<HTMLSelectElement>('#kiriof_destination_area')!.value,
     label: document.querySelector<HTMLInputElement>('#kiriof_destination_area_name')!.value,
-    queued: window.kiriofBuyerPin.controller.getState().queue.pending?.destination.district_id,
-  }))).toEqual({ id: district.id, label: district.text, queued: district.id });
+    point: window.kiriofBuyerPin.controller.getState().point,
+  }))).toEqual({ id: district.id, label: district.text, point: { latitude: '-7.7000000', longitude: '110.3000000' } });
   expect(fixture.saves().length).toBe(saves);
   expect(fixture.districts()[0].body.val).toBe(district.id);
   fixture.releaseDistrict();
-  await expect.poll(() => fixture.saves().some(request => JSON.parse(request.body.data).destination.district_id === district.id)).toBe(true);
   await expect.poll(() => browser.evaluate(() => ({
     error: window.kiriofBuyerPin.controller.getState().queue.error,
     pending: window.kiriofBuyerPin.controller.getState().queue.pending,
@@ -78,6 +77,7 @@ test('Classic explicit district survives theme replacement and its pin waits for
   expect(preserved.before).not.toBeNull();
   expect(preserved.after).toEqual(preserved.before);
   expect(preserved.district).toBe(district.id);
+  expect(fixture.saves()).toHaveLength(saves);
   expect(fixture.unexpected).toEqual([]);
 });
 const district = { id: '4567', text: 'Sleman, Sleman, DI Yogyakarta, 55581' };
@@ -146,12 +146,13 @@ for (const permissionState of ['denied', 'granted'] as const) {
       complete: document.querySelector('.kiriof-classic-pin-state')!.classList.contains('is-complete'),
       snapshot: JSON.parse((document.querySelector('[name="kiriof_buyer_destination_snapshot"]') as HTMLInputElement).value).version,
     }))).toEqual({ street: '', postcode: '', point: null, complete: false, snapshot: 1 });
-    expect(fixture.saves().every(request => JSON.parse(request.body.data).destination.version === 1)).toBe(true);
+    expect(fixture.saves()).toHaveLength(0);
     expect(fixture.unexpected).toEqual([]);
   });
 }
 
 type RecoverySettings = {
+  holdCoordinates?: boolean;
   emptyAddress?: boolean;
   permissionState?: 'prompt' | 'denied' | 'granted';
   billingDistrict?: { id: string; name: string };
@@ -345,9 +346,9 @@ async function checkout(
 ) {
   const requests: { url: string; method: string; body: Record<string, string> }[] = [];
   const unexpected: string[] = [];
-  let committedDistrict = '123';
   const events: string[] = [];
   const districtReleases = new Set<() => void>();
+  const coordinateReleases = new Set<() => void>();
   let closing = false;
   await browser.route('**/*', async (route: any) => {
     const url = new URL(route.request.url);
@@ -380,7 +381,6 @@ async function checkout(
       if (districtWrites && body.action === 'kiriof_get_destination_area') {
         events.push('district-save');
         if (!closing) await new Promise<void>(resolve => { districtReleases.add(resolve); });
-        committedDistrict = body.val;
         events.push('district-ack');
         await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: { code: 200 } }) });
         return;
@@ -389,11 +389,17 @@ async function checkout(
         body.action === 'kiriminaja_subdistrict_search' ||
         body.action === 'kiriof-session-save'
       ) {
-        if (body.action === 'kiriof-session-save') events.push('pin-save');
+        if (body.action === 'kiriof-session-save') {
+          const pin = JSON.parse(body.data);
+          expect(Object.keys(pin).sort()).toEqual(['action', 'address_scope', 'coordinates', 'country']);
+          expect(pin.action).toBe('save_classic_coordinates');
+          events.push('pin-save');
+          if (recovery?.holdCoordinates && !closing) await new Promise<void>(resolve => { coordinateReleases.add(resolve); });
+        }
         await route.fulfill({
           contentType: 'application/json',
           body: JSON.stringify(
-            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : districtWrites && JSON.parse(body.data).destination.district_id !== committedDistrict ? { success: false, data: { code: 'kiriof_pin_district_mismatch' } } : { success: true, data: { pin_saved: true } },
+            body.action === 'kiriminaja_subdistrict_search' ? (typeof searchResponse === 'function' ? await searchResponse(body) : searchResponse) : { success: true, data: { coordinates_saved: true } },
           ),
         });
         return;
@@ -411,6 +417,10 @@ async function checkout(
     saves: () => requests.filter((request) => request.body.action === 'kiriof-session-save'),
     districts: () => requests.filter((request) => request.body.action === 'kiriof_get_destination_area'),
     events,
+    releaseCoordinates: () => {
+      coordinateReleases.forEach(release => release());
+      coordinateReleases.clear();
+    },
     releaseDistrict: () => {
       districtReleases.forEach(release => release());
       districtReleases.clear();
@@ -419,6 +429,8 @@ async function checkout(
       closing = true;
       districtReleases.forEach(release => release());
       districtReleases.clear();
+      coordinateReleases.forEach(release => release());
+      coordinateReleases.clear();
       await browser.evaluate(() => {
         window.kiriofBuyerSelectors?.dispose?.();
         window.kiriofBuyerPin?.dispose();
@@ -442,28 +454,24 @@ async function acknowledgeRecovery(fixture: Awaited<ReturnType<typeof checkout>>
   await expect.poll(() => fixture.districts().length).toBe(1);
   expect(fixture.districts()[0].body.val).toBe(id);
   expect(fixture.districts()[0].body.different_address).toBe(scope === 'shipping' ? '1' : '0');
-  // In particular, never wait for a bootstrap '123' pin save: this field
-  // started blank and the production writer must commit before a pin can save.
+  // District recovery must not invent a coordinate selection or null save.
   expect(fixture.saves()).toHaveLength(0);
   expect(await browser.evaluate(() => window.__checkoutUpdates)).toBe(0);
   fixture.releaseDistrict();
-  await expect.poll(() => fixture.saves().length).toBe(1);
   await expect.poll(() => browser.evaluate(() => ({
     pending: window.kiriofBuyerPin.controller.getState().queue.pending,
     inFlight: window.kiriofBuyerPin.controller.getState().queue.inFlight,
     error: window.kiriofBuyerPin.controller.getState().queue.error,
     updates: window.__checkoutUpdates,
-  }))).toEqual({ pending: null, inFlight: null, error: null, updates: 2 });
-  const pin = JSON.parse(fixture.saves()[0].body.data);
-  expect(pin.destination.district_id).toBe(id);
-  expect(pin.address_scope).toBe(scope);
-  expect(fixture.events).toEqual(['district-save', 'district-ack', 'pin-save']);
+  }))).toEqual({ pending: null, inFlight: null, error: null, updates: 1 });
+  expect(fixture.saves()).toHaveLength(0);
+  expect(fixture.events).toEqual(['district-save', 'district-ack']);
   expect(fixture.unexpected).toEqual([]);
 }
 
 const otherDistrict = { id: '8910', text: 'Mlati, Sleman, DI Yogyakarta, 55284' };
 
-test('Classic autofill recovers a saved config ID from postcode rows and waits for district acknowledgment before pin save', async ({ app, browser }) => {
+test('Classic autofill recovers a saved config ID from postcode rows without saving unselected coordinates', async ({ app, browser }) => {
   const fixture = await checkout(app, browser, true, { success: true, data: [otherDistrict, district] }, false, false, true, {
     billingDistrict: { id: district.id, name: 'Outdated saved billing label' },
     shippingPostcode: '',
@@ -483,7 +491,7 @@ test('Classic autofill recovers a saved config ID from postcode rows and waits f
       kiriof_shipping_destination_area: { value: '', label: '' },
     });
     expect(fixture.districts()).toHaveLength(1);
-    expect(fixture.saves()).toHaveLength(1);
+    expect(fixture.saves()).toHaveLength(0);
   } finally { await fixture.cleanup(); }
 });
 
@@ -665,7 +673,7 @@ test('seller-disabled Instant does not alter Classic district or ask for locatio
   expect(fixture.unexpected).toEqual([]);
 });
 
-test('Classic pin saves only coordinates context and an address edit invalidates Instant submission', async ({
+test('Classic pin saves only coordinates context and preserves its point after a street edit', async ({
   app,
   browser,
   screen,
@@ -689,32 +697,30 @@ test('Classic pin saves only coordinates context and an address edit invalidates
   expect(request.body.action).toBe('kiriof-session-save');
   expect(request.body.nonce).toBe('fixture-pin-nonce');
   const data = JSON.parse(request.body.data);
-  expect(data.action).toBe('sync_classic_pin');
+  expect(data.action).toBe('save_classic_coordinates');
   expect(data.address_scope).toBe('billing');
-  expect(data.effective_address).toEqual(binding);
-  expect(data.destination.version).toBe(2);
-  expect(data.destination.district_id).toBe('123');
-  expect(data.destination.destination_latitude).toBe('-7.7000000');
-  expect(data.destination.destination_longitude).toBe('110.3000000');
+  expect(data.country).toBe('ID');
+  expect(data.coordinates).toEqual({ latitude: '-7.7000000', longitude: '110.3000000' });
   expect(Object.keys(data).sort()).toEqual([
     'action',
     'address_scope',
-    'destination',
-    'effective_address',
+    'coordinates',
+    'country',
   ]);
 
   await screen.getByRole('button', 'Place order').tap();
   await expect(browser.locator('#outcome')).toContainText('allowed');
-  // An old pin must not authorize the newly edited address, even though the
-  // map remains available without requesting location permission again.
+  const saves = fixture.saves().length;
   await browser.evaluate(() => {
     window.__allowGeo = false;
     return true;
   });
   await screen.getByLabel('billing address_1').fill('Jalan Kaliurang 20');
   await screen.getByRole('button', 'Place order').tap();
-  await expect(browser.locator('#outcome')).toContainText('blocked');
-  await expect(browser.locator('.kiriof-classic-pin-state')).toContainText('Need Pin Location');
+  await expect(browser.locator('#outcome')).toContainText('allowed');
+  await expect(browser.locator('.kiriof-classic-pin-state')).toContainText('Pin Location');
+  expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toEqual(data.coordinates);
+  expect(fixture.saves()).toHaveLength(saves);
   expect(fixture.searches()).toHaveLength(0);
   expect(fixture.unexpected).toEqual([]);
 });
@@ -973,7 +979,7 @@ for (const width of [1200, 390]) {
     const initial = await assertGeometry();
     // Successful appearance must follow a real intercepted production save,
     // not a fixture assigning the badge or coordinates directly.
-    expect(JSON.parse(fixture.saves().at(-1).body.data).destination.destination_latitude).toBe(
+    expect(JSON.parse(fixture.saves().at(-1).body.data).coordinates.latitude).toBe(
       '-7.7000000',
     );
     await screen.getByRole('button', 'Current location').tap();
@@ -1095,13 +1101,8 @@ for (const [envelope, response] of [
         })),
       )
       .toEqual({ id: district.id, name: district.text, label: district.text });
-    await expect
-      .poll(() =>
-        fixture
-          .saves()
-          .some((request) => JSON.parse(request.body.data).destination.district_id === district.id),
-      )
-      .toBe(true);
+    expect(fixture.saves()).toHaveLength(0);
+    expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toBeNull();
     await expect.poll(() => placement(browser)).toEqual(expectedPlacement);
     expect(fixture.unexpected).toEqual([]);
   });
