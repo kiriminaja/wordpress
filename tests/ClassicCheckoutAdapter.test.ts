@@ -172,6 +172,27 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+  test('FunnelKit pin inherits district gutters without a floating field wrapper or layout moves', () => {
+    const h = adapter();
+    const form = h.query('form');
+    form.insertAdjacentHTML('beforeend', '<input type="hidden" name="_wfacp_post_id" value="1248"><input type="hidden" name="wfacp_billing_same_as_shipping" value="0">');
+    const district = h.query('#kiriof_shipping_destination_area_field');
+    district.style.paddingLeft = '12px'; district.style.paddingRight = '16px';
+    const next = h.window.document.createElement('p'); next.id = 'different-billing-field';
+    district.after(next);
+    h.emit(h.window.document.body, 'updated_checkout'); h.flush();
+    const panel = h.query('.kiriof-classic-pin');
+    expect(panel.previousElementSibling).toBe(district);
+    expect(panel.nextElementSibling).toBe(next);
+    expect(panel.style.getPropertyValue('--kiriof-pin-padding-left')).toBe('12px');
+    expect(panel.style.getPropertyValue('--kiriof-pin-padding-right')).toBe('16px');
+    expect(panel.classList.contains('wfacp-form-control-wrapper')).toBe(false);
+    expect(panel.querySelector('.kiriof-classic-map-viewport')).not.toBeNull();
+    district.style.paddingLeft = '8px'; district.style.paddingRight = '8px';
+    h.emit(h.window.document.body, 'updated_checkout'); h.flush();
+    expect(panel.style.getPropertyValue('--kiriof-pin-padding-left')).toBe('8px');
+    expect(panel.style.getPropertyValue('--kiriof-pin-padding-right')).toBe('8px');
+  });
   for (const flagValue of ['0', '1']) {
     test(`FunnelKit shipping-first keeps shipping scope with different-billing flag ${flagValue}`, async () => {
       const h = adapter();

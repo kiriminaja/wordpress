@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/** Restores only explicitly marked, empty Classic address fields from verified districts. */
+/** Restores Classic address fields and shared billing districts from verified selections. */
 final class ClassicDistrictAddressSync {
 	private $lookup;
 	private array $lookups = array();
@@ -74,6 +74,67 @@ final class ClassicDistrictAddressSync {
 			}
 		}
 		return $data;
+	}
+
+	private function sharedBillingDistrict( array $data ): array {
+		if ( ! self::shippingFirst( $data ) || ! in_array( $data['wfacp_billing_same_as_shipping'] ?? null, array( '0', 0 ), true ) || 'ID' !== ( $data['shipping_country'] ?? null ) ) {
+			return array();
+		}
+		$wc = function_exists( 'WC' ) ? WC() : null;
+		if ( $wc && isset( $wc->cart ) && is_callable( array( $wc->cart, 'get_cart' ) ) ) {
+			$physical = false;
+			foreach ( $wc->cart->get_cart() as $item ) {
+				$product = $item['data'] ?? null;
+				if ( ( ! isset( $item['quantity'] ) || 0 < (float) $item['quantity'] ) && ( ! is_object( $product ) || ! is_callable( array( $product, 'needs_shipping' ) ) || $product->needs_shipping() ) ) {
+					$physical = true;
+					break;
+				}
+			}
+			if ( ! $physical ) {
+				return array();
+			}
+		}
+		if ( array_key_exists( 'shipping_method', $data ) ) {
+			if ( ! is_array( $data['shipping_method'] ) ) {
+				return array();
+			}
+			foreach ( $data['shipping_method'] as $method ) {
+				if ( ! is_string( $method ) || in_array( explode( ':', $method, 2 )[0], array( 'local_pickup', 'pickup_location' ), true ) ) {
+					return array();
+				}
+			}
+		}
+		foreach ( array( 'kiriof_destination_area', 'kiriof_destination_area_name' ) as $key ) {
+			if ( array_key_exists( $key, $data ) && ! is_string( $data[ $key ] ) && ! is_int( $data[ $key ] ) ) {
+				return array();
+			}
+		}
+		$data = $this->normalize( $data );
+		$id = $this->districtId( $data['kiriof_shipping_destination_area'] ?? null );
+		$label = $this->parts( $data['kiriof_shipping_destination_area_name'] ?? null );
+		$postcode = $data['shipping_postcode'] ?? null;
+		if ( null === $id || null === $label || ! is_string( $postcode ) || $postcode !== $label[4] ) {
+			return array();
+		}
+		$matches = array();
+		foreach ( $this->rows( $postcode ) as $row ) {
+			if ( ( is_array( $row ) || is_object( $row ) ) && $id === $this->districtId( ( (array) $row )['id'] ?? null ) ) {
+				$matches[] = (array) $row;
+			}
+		}
+		if ( 1 !== count( $matches ) ) {
+			return array();
+		}
+		$canonical = $this->parts( $matches[0]['text'] ?? null );
+		if ( null === $canonical || $postcode !== $canonical[4] || ( isset( $matches[0]['zip_code'] ) && $postcode !== $matches[0]['zip_code'] ) ) {
+			return array();
+		}
+		$updates = array();
+		foreach ( array( 'kiriof_destination_area', 'kiriof_shipping_destination_area' ) as $key ) {
+			$updates[ $key ] = (string) $id;
+			$updates[ $key . '_name' ] = implode( ', ', $canonical );
+		}
+		return $updates;
 	}
 
 	/** WooCommerce's nonce check precedes this hook; its customer setters follow it. */
@@ -152,6 +213,9 @@ final class ClassicDistrictAddressSync {
 		foreach ( $this->repairs( $data, $this->normalize( $data ) ) as $key => $value ) {
 			$_POST[ $key ] = wp_slash( $value );
 		}
+		foreach ( $this->sharedBillingDistrict( $data ) as $key => $value ) {
+			$_POST[ $key ] = wp_slash( $value );
+		}
 	}
 
 	public function posted( array $data ): array {
@@ -199,6 +263,10 @@ final class ClassicDistrictAddressSync {
 					$data[ $shipping_key ] = $value;
 				}
 			}
+		}
+		// FunnelKit can replace custom fields after WooCommerce has sanitized them.
+		foreach ( $this->sharedBillingDistrict( $raw ) as $key => $value ) {
+			$data[ $key ] = $value;
 		}
 		return $data;
 	}

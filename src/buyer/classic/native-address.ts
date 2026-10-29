@@ -77,6 +77,16 @@ export function placeNativePin(
       row.getAttribute('data-priority') === null ? 61 : Number(row.getAttribute('data-priority'));
     const value = String(Number.isFinite(priority) ? priority + 0.5 : 61.5);
     if (panel.getAttribute('data-priority') !== value) panel.setAttribute('data-priority', value);
+    if (funnelkit) {
+      const style = form.ownerDocument.defaultView?.getComputedStyle(row);
+      for (const [property, padding] of [
+        ['--kiriof-pin-padding-left', style?.paddingLeft],
+        ['--kiriof-pin-padding-right', style?.paddingRight],
+      ]) {
+        if (padding && panel.style.getPropertyValue(property!) !== padding)
+          panel.style.setProperty(property!, padding);
+      }
+    }
   }
   if (funnelkit) return;
   const email = form.querySelector('#billing_email')?.closest('.form-row');
