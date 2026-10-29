@@ -293,6 +293,10 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
 		expect(h.query('.kiriof-classic-map-coverage').textContent).toContain('Instant ≤ 40 km');
 		h.maps[0].listeners.click({ latlng: { lat: 0, lng: 0 } }); h.flush(); await h.advance();
 		expect(h.payload(h.mutations()[0]).coordinates).toEqual({ latitude: '0.0000000', longitude: '0.0000000' });
+		await h.respond(h.mutations()[0]);
+		expect(h.query('.kiriof-classic-pin-message').textContent).toContain('outside the 40 km');
+		expect(h.query('.kiriof-classic-pin-state').classList.contains('is-complete')).toBe(true);
+		expect(h.query('.kiriof-classic-instant-status').getAttribute('aria-live')).toBe('polite');
 	});
 	test('empty checkout renders a regional map before street, postcode or district are entered', () => {
 		const h = adapter({ emptyAddress: true, map: { enabled: true, coverage: { origin: { latitude: -6.9, longitude: 107.6 }, radiusMeters: 40000 } } });

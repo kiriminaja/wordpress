@@ -43,6 +43,11 @@ final class ClassicInstantStatusRuntimeTest extends TestCase {
 			'cod_not_supported' => 'Instant delivery does not support COD.',
 			'cod_unsupported' => 'Instant delivery does not support COD.',
 			'quote_failed' => 'Instant delivery rates are temporarily unavailable. Please try again.',
+			'outside_instant_radius' => 'Instant delivery is available only within 40 km of the pickup origin. You can use Express delivery for this address.',
+			'origin_invalid' => 'The store pickup address is not ready for Instant delivery.',
+			'no_rates' => 'No Instant delivery rates are available for this address and cart.',
+			'services_disabled' => 'No Instant courier services are enabled.',
+			'quote_unavailable' => 'Instant delivery rates are temporarily unavailable. Please try again.',
 			'available' => 'Instant prices have expired. Refresh your shipping quote before placing the order.',
 		);
 		foreach ( $messages as $code => $message ) {

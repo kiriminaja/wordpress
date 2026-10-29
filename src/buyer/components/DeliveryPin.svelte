@@ -26,9 +26,10 @@
   const key = $derived(view.scope + ':' + view.address.country);
   const complete = $derived(Boolean(view.point && view.queue.acknowledged?.coordinates && !view.queue.pending && !view.queue.inFlight && !view.queue.error));
   const hasCoverage = $derived(Boolean(coverageStatus(config.map?.coverage, config.map?.coverage?.origin)));
+  const outsideCoverage = $derived(coverageStatus(config.map?.coverage, view.point)?.inside === false);
   const incomplete = $derived(!/^[0-9]{5}$/.test(view.address.postcode) || !view.selection
     || !view.address.address_1 || !view.address.city || !view.address.state);
-  const status = $derived(requirement || (view.queue.error ? (view.queue.error instanceof Error ? view.queue.error.message : strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.') : view.queue.pending || view.queue.inFlight ? strings.pinSaving || 'Saving delivery pin…' : mapError || (complete && incomplete ? strings.pinCompleteAddress || 'Pin saved. Complete your address and subdistrict to check shipping.' : '')));
+  const status = $derived(requirement || (view.queue.error ? (view.queue.error instanceof Error ? view.queue.error.message : strings.pinSaveFailed || 'Could not save the delivery pin. Please retry.') : view.queue.pending || view.queue.inFlight ? strings.pinSaving || 'Saving delivery pin…' : mapError || (complete && outsideCoverage ? strings.pinOutsideCoverage || 'Pin saved. This location is outside the 40 km Instant delivery area. You can still use regular shipping.' : complete && incomplete ? strings.pinCompleteAddress || 'Pin saved. Complete your address and subdistrict to check shipping.' : '')));
 
   $effect(() => {
     void key; void restart;

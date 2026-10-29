@@ -43,7 +43,7 @@ $service = new KiriminAjaOfficial\Services\InstantCheckoutStatusService();
 $service->register();
 $existing = array( '.woocommerce-checkout-review-order-table' => '<table>native</table>', '.wfacp-order-summary' => '<div>FunnelKit</div>' );
 $result = array( 'hooks' => $GLOBALS['hooks'], 'registered' => in_array( get_class( $service ), KiriminAjaOfficial\Init::get_services(), true ) );
-foreach ( array( 'inactive', 'destination_required', 'recipient_invalid', 'cod_not_supported', 'cod_unsupported', 'quote_failed', 'available', 'PRIVATE\"><script>alert(1)</script>' ) as $code ) {
+foreach ( array( 'inactive', 'destination_required', 'recipient_invalid', 'cod_not_supported', 'cod_unsupported', 'quote_failed', 'available', 'outside_instant_radius', 'origin_invalid', 'no_rates', 'services_disabled', 'quote_unavailable', 'PRIVATE\"><script>alert(1)</script>' ) as $code ) {
 	$session->values = array( 'kiriof_instant_checkout_status' => array( $key => array( 'code' => $code, 'message' => 'PRIVATE raw provider message <script>', 'updated' => time(), 'token' => 'PRIVATE-token', 'coordinates' => 'PRIVATE-coordinates' ) ) );
 	$result['states'][ $code ] = $service->classic_fragments( $existing );
 }
