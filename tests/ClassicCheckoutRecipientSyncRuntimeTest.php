@@ -8,6 +8,13 @@ final class ClassicCheckoutRecipientSyncRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_visible_funnelkit_flag_uses_shared_billing_semantics_when_hidden_flag_is_absent(): void {
+		$form = array( '_wfacp_post_id' => '123', 'billing_same_as_shipping' => '1', 'shipping_country' => 'ID', 'shipping_first_name' => '', 'billing_first_name' => 'Laksana', 'billing_last_name' => 'Adi', 'billing_phone' => '081234567890' );
+		$result = $this->runFixture( array( 'forms' => array( $form ) ) );
+		$this->assertSame( 'Laksana', $result['steps'][0]['recipient']['first_name'] );
+		$this->assertSame( '081234567890', $result['steps'][0]['recipient']['phone'] );
+	}
+
 	public function test_funnelkit_current_contact_clears_do_not_reuse_prior_review_or_billing_names(): void {
 		$form = array( '_wfacp_post_id' => '123', 'wfacp_billing_same_as_shipping' => '0', 'shipping_country' => 'ID', 'shipping_first_name' => '', 'billing_first_name' => 'Laksana', 'billing_last_name' => 'Adi', 'billing_phone' => '81229917900', 'wfacp_input_phone_field' => '{"billing":{"code":"62","number":"81229917900","hidden":"no"},"shipping":{"code":"","number":"","hidden":""}}' );
 		$empty = array_replace( $form, array( 'billing_phone' => '', 'wfacp_billing_same_as_shipping' => '1' ) );

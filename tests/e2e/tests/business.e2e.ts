@@ -216,6 +216,15 @@ test('Classic coordinates save before address or district entry, wait for acknow
     await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
     expect(await browser.evaluate(() => window.kiriofBuyerPin.controller.getState().point)).toBeNull();
     expect(fixture.districts()).toHaveLength(0);
+    await browser.evaluate(() => {
+      const rate = document.querySelector<HTMLInputElement>('input.shipping_method')!;
+      rate.value = 'kiriminaja-official:1:jne:reg';
+      jQuery(rate).trigger('change');
+      return true;
+    });
+    await screen.getByRole('button', 'Place order').tap();
+    await expect(browser.locator('#outcome')).toContainText('allowed');
+    expect(fixture.saves()).toHaveLength(4);
     expect(fixture.unexpected).toEqual([]);
   } finally { await fixture.cleanup(); }
 });

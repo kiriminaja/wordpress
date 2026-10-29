@@ -16,6 +16,13 @@ final class ClassicDistrictAddressSync {
 		$this->lookup = $lookup;
 	}
 
+	public static function sharedBilling( array $data ): bool {
+		if ( array_key_exists( 'wfacp_billing_same_as_shipping', $data ) ) {
+			return in_array( $data['wfacp_billing_same_as_shipping'], array( '0', 0 ), true );
+		}
+		return in_array( $data['billing_same_as_shipping'] ?? null, array( '1', 1 ), true );
+	}
+
 	public function register(): void {
 		add_action( 'woocommerce_checkout_update_order_review', array( $this, 'sync' ), 5, 1 );
 		add_action( 'woocommerce_checkout_process', array( $this, 'process' ), 5 );
@@ -77,7 +84,7 @@ final class ClassicDistrictAddressSync {
 	}
 
 	private function sharedBillingDistrict( array $data ): array {
-		if ( ! self::shippingFirst( $data ) || ! in_array( $data['wfacp_billing_same_as_shipping'] ?? null, array( '0', 0 ), true ) || 'ID' !== ( $data['shipping_country'] ?? null ) ) {
+		if ( ! self::shippingFirst( $data ) || ! self::sharedBilling( $data ) || 'ID' !== ( $data['shipping_country'] ?? null ) ) {
 			return array();
 		}
 		$wc = function_exists( 'WC' ) ? WC() : null;

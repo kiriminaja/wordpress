@@ -84,7 +84,11 @@ final class ClassicCheckoutRecipientSync {
 	}
 
 	private function contact( array $data ): array {
-		$shared = in_array( $data['wfacp_billing_same_as_shipping'] ?? $data['billing_same_as_shipping'] ?? null, array( '0', 0 ), true );
+		if ( array_key_exists( 'wfacp_billing_same_as_shipping', $data ) ) {
+			$shared = in_array( $data['wfacp_billing_same_as_shipping'], array( '0', 0 ), true );
+		} else {
+			$shared = in_array( $data['billing_same_as_shipping'] ?? null, array( '1', 1 ), true );
+		}
 		$contact = array();
 		foreach ( InstantCheckoutRecipient::FIELDS as $field ) {
 			$key = 'shipping_' . $field;
