@@ -209,6 +209,16 @@
 /* FunnelKit floats native labels and applies CTA colors to all buttons. */
 .kiriof-funnelkit-select-field {
   position: relative;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.kiriof-funnelkit-select-field .kiriof-buyer-selector,
+.kiriof-funnelkit-select-field .kiriof-buyer-selector-ui,
+.kiriof-funnelkit-select-field .kiriof-buyer-combobox {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .kiriof-funnelkit-select-field label[for] {
   position: absolute !important;

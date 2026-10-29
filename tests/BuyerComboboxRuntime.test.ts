@@ -47,6 +47,7 @@ async function bundle() {
       },
     ],
   });
+
   if (!build.success) throw new Error(build.logs.join('\n'));
   return readFileSync(join(directory, 'runtime.js'));
 }
@@ -147,6 +148,21 @@ const district =
   '<label for="district">Subdistrict</label><select id="district" name="kiriof_destination_area" required aria-describedby="help"><option value="">Select Option</option><option value="101" selected>Old district</option></select><span id="help">Search your subdistrict</span>';
 
 describe('Classic buyer selectors (compiled actual bits-ui)', () => {
+  test('FunnelKit column classes and field placement stay builder-owned', async () => {
+    const h = await fixture('<input name="_wfacp_post_id" value="123" type="hidden"><div class="wfacp-row"><p id="shipping_postcode_field" class="form-row wfacp-form-control-wrapper wfacp-col-left-half"><input name="shipping_postcode" value="55222"></p><p id="shipping_state_field" class="form-row wfacp-form-control-wrapper wfacp-col-right-half"><label for="shipping_state">Province</label><select id="shipping_state"><option value="YO">DI Yogyakarta</option></select></p></div>');
+    try {
+      const form = h.window.document.querySelector('form')!;
+      expect(form.classList.contains('kiriof-funnelkit-checkout')).toBe(true);
+      expect(h.window.document.querySelector('#shipping_state_field')!.classList.contains('wfacp-col-right-half')).toBe(true);
+      expect(h.window.document.querySelector('#shipping_postcode_field')!.classList.contains('wfacp-col-left-half')).toBe(true);
+      expect(h.window.document.querySelector('.wfacp-row')!.children).toHaveLength(2);
+      const css = readFileSync(join(root, 'assets/buyer/css/kiriof-classic-checkout.css'), 'utf8');
+      for (const selector of css.matchAll(/([^{}]+)\{([^{}]+)\}/g)) {
+        if (/#[a-z]+_(?:city|state|postcode|phone)_field/.test(selector[1]) && /(?:width|grid-column)\s*:/.test(selector[2]))
+          expect(selector[1]).toContain(':not(.kiriof-funnelkit-checkout)');
+      }
+    } finally { await h.cleanup(); }
+  });
   test('FunnelKit fields own a scoped style hook without styling unrelated buttons', async () => {
     const h = await fixture(
       '<div class="wfacp-form-control-wrapper"><label for="billing_state">State</label><select id="billing_state"><option value="YO" selected>Daerah Istimewa Yogyakarta</option></select></div><button type="submit" id="place_order">Place order</button>',

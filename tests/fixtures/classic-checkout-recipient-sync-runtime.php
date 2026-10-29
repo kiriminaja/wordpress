@@ -56,7 +56,7 @@ namespace {
 		public function add_rate( $rate ) { $this->rates[ $rate['id'] ] = $rate; }
 	}
 	$root = dirname( __DIR__, 2 );
-	foreach ( array( 'BuyerDestination', 'InstantCheckoutRecipient', 'ClassicShippingRateCache', 'ClassicCheckoutRecipientSync' ) as $name ) { require $root . '/inc/Services/' . $name . '.php'; }
+	foreach ( array( 'BuyerDestination', 'InstantCheckoutRecipient', 'ClassicShippingRateCache', 'ClassicDistrictAddressSync', 'ClassicCheckoutRecipientSync' ) as $name ) { require $root . '/inc/Services/' . $name . '.php'; }
 	$customer = new SyncCustomer();
 	$customer->data = $input['initial'] ?? array();
 	$session = new SyncSession();

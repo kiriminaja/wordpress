@@ -61,6 +61,68 @@ require $root . '/wc/KiriminajaInstantShippingMethod.php';
 kiriof_instant_shipping_method();
 $quote_service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService( $settings, $locations, $api );
 $method = new Kiriof_Instant_Shipping_Method_Controller( 11, $quote_service );
+if ( isset( $recovery_input['funnelkit'] ) ) {
+	require_once $root . '/inc/Services/ClassicCheckoutRecipientSync.php';
+	$GLOBALS['wc']->customer = new class() {
+		public array $data = array();
+		public function __call( $name, $args ) {
+			if ( str_starts_with( $name, 'set_' ) ) { $this->data[ substr( $name, 4 ) ] = $args[0]; return; }
+			return $this->data[ substr( $name, 4 ) ] ?? '';
+		}
+	};
+	$GLOBALS['wc']->countries = new class() { public function get_states( $country ) { return array( 'JK' => 'DKI Jakarta' ); } };
+	$session->set( 'kiriof_buyer_destination', null );
+	$session->set( 'chosen_payment_method', 'bacs' );
+	$lookup = static fn( $postcode ) => (object) array( 'status' => 200, 'data' => array( array( 'id' => 42, 'text' => 'Village, District, Jakarta, DKI Jakarta, 12345', 'zip_code' => '12345' ) ) );
+	$sync = new \KiriminAjaOfficial\Services\ClassicDistrictAddressSync( $lookup );
+	$drafts = new \KiriminAjaOfficial\Services\ClassicPinDraftService( $sync, $lookup );
+	$drafts->save( array( 'address_scope' => 'shipping', 'country' => 'ID', 'coordinates' => array( 'latitude' => '-6.3', 'longitude' => '106.9' ) ) );
+	$form = array( '_wfacp_post_id' => '123', 'wfacp_billing_same_as_shipping' => '0', 'payment_method' => 'bacs', 'kiriof_shipping_destination_area' => '42', 'kiriof_shipping_destination_area_name' => 'Village, District, Jakarta, DKI Jakarta, 12345', 'shipping_first_name' => 'Shipping', 'shipping_last_name' => 'Recipient', 'billing_phone' => '081234567890' );
+	foreach ( $address as $key => $value ) { $form[ 'shipping_' . $key ] = $value; }
+	if ( ! empty( $recovery_input['different_billing'] ) ) {
+		$form['wfacp_billing_same_as_shipping'] = '1';
+		$form['billing_same_as_shipping'] = '1';
+		foreach ( $address as $key => $value ) { $form[ 'billing_' . $key ] = $value; }
+		$form['billing_address_1'] = 'Different billing street';
+		$form['billing_first_name'] = 'Billing';
+	}
+	if ( ! empty( $recovery_input['native_checkbox'] ) ) { $form['ship_to_different_address'] = 'on'; }
+	if ( ! empty( $recovery_input['hidden'] ) ) {
+		$form['kiriof_shipping_derived_address'] = 'city,state,postcode';
+		foreach ( array( 'city', 'state', 'postcode' ) as $field ) { $form[ 'shipping_' . $field ] = ''; }
+	}
+	foreach ( $recovery_input['override'] ?? array() as $key => $value ) { $form[ $key ] = $value; }
+	foreach ( $recovery_input['omit'] ?? array() as $key ) { unset( $form[ $key ] ); }
+	$sync->register();
+	$drafts->register();
+	( new \KiriminAjaOfficial\Services\ClassicCheckoutRecipientSync() )->register();
+	$GLOBALS['refresh_hook'] = 'woocommerce_checkout_update_order_review';
+	$_POST = array( 'post_data' => wp_slash( http_build_query( $form ) ) );
+	// WC's review JS sends root aliases separately from the serialized form.
+	foreach ( \KiriminAjaOfficial\Services\BuyerDestination::ADDRESS_FIELDS as $field ) {
+		$alias = 'address_1' === $field ? 'address' : $field;
+		$_POST[ $alias ] = wp_slash( $form[ 'billing_' . $field ] ?? '' );
+		$_POST[ 's_' . $alias ] = wp_slash( $form[ 'billing_' . $field ] ?? '' );
+	}
+	$callbacks = $GLOBALS['refresh_hooks'][ $GLOBALS['refresh_hook'] ];
+	ksort( $callbacks );
+	foreach ( $callbacks as $list ) { foreach ( $list as $callback ) { $callback( http_build_query( $form ) ); } }
+	// WC_AJAX::update_order_review runs these native setters AFTER the hook.
+	foreach ( \KiriminAjaOfficial\Services\BuyerDestination::ADDRESS_FIELDS as $field ) {
+		$alias = 'address_1' === $field ? 'address' : $field;
+		$billing_setter = 'set_billing_' . $field;
+		$shipping_setter = 'set_shipping_' . $field;
+		WC()->customer->$billing_setter( wp_unslash( $_POST[ $alias ] ?? '' ) );
+		WC()->customer->$shipping_setter( wp_unslash( $_POST[ 's_' . $alias ] ?? '' ) );
+		$package['destination'][ $field ] = WC()->customer->{'get_shipping_' . $field}();
+	}
+	foreach ( \KiriminAjaOfficial\Services\InstantCheckoutRecipient::FIELDS as $field ) { unset( $package['destination'][ $field ] ); }
+	$api->scenario = $recovery_input['courier'] ?? '';
+	$method->rates = array();
+	$method->calculate_shipping( $package );
+	echo json_encode( array( 'rates' => array_keys( $method->rates ), 'calls' => $api->calls, 'destination' => $session->get( 'kiriof_buyer_destination' ), 'package' => $package['destination'], 'customer' => WC()->customer->data, 'post' => wp_unslash( $_POST ), 'payloads' => $api->payloads, 'logs' => $GLOBALS['logs'] ), JSON_THROW_ON_ERROR );
+	exit;
+}
 if ( ! empty( $recovery_input['draft_to_rate'] ) ) {
 	$session->set( 'kiriof_buyer_destination', null );
 	$session->set( 'kiriof_buyer_destination_coordinates', null );

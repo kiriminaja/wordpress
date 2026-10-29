@@ -115,6 +115,11 @@ final class ClassicPinDraftService {
 		}
 		$raw = $this->checkout_input;
 		$context = $data;
+		foreach ( array( '_wfacp_post_id', 'wfacp_billing_same_as_shipping', 'billing_same_as_shipping' ) as $key ) {
+			if ( array_key_exists( $key, $raw ) ) {
+				$context[ $key ] = $raw[ $key ];
+			}
+		}
 		foreach ( array( 'kiriof_destination_area', 'kiriof_destination_area_name', 'kiriof_shipping_destination_area', 'kiriof_shipping_destination_area_name' ) as $key ) {
 			$context[ $key ] = $raw[ $key ] ?? null;
 		}

@@ -23,7 +23,8 @@ final class ClassicCheckoutRecipientSync {
 
 		// The hook receives WooCommerce's already-unslashed serialized checkout payload.
 		parse_str( $post_data, $data );
-		$separate = isset( $data['ship_to_different_address'] ) && is_string( $data['ship_to_different_address'] ) && ! empty( $data['ship_to_different_address'] );
+		$separate = ClassicDistrictAddressSync::separate( $data );
+		InstantCheckoutRecipient::classicPhone( $wc->customer, $separate && ClassicDistrictAddressSync::shippingFirst( $data ) ? $this->value( $data, 'shipping_phone' ) : null );
 		$changed  = false;
 		foreach ( InstantCheckoutRecipient::FIELDS as $field ) {
 			$billing_key = 'billing_' . $field;

@@ -97,6 +97,14 @@ final class ClassicDistrictAddressSync {
 			}
 		}
 		$this->repairReviewAliases( $data, $separate );
+		if ( $separate && self::shippingFirst( $data ) ) {
+			// WC_AJAX applies these aliases after all review hooks, not the form fields.
+			foreach ( BuyerDestination::ADDRESS_FIELDS as $field ) {
+				$value = $normalized[ 'shipping_' . $field ] ?? '';
+				$alias = 'address_1' === $field ? 'address' : $field;
+				$_POST[ 's_' . $alias ] = is_string( $value ) ? wp_slash( $value ) : '';
+			}
+		}
 		if ( $data !== $normalized ) {
 			$_POST['post_data'] = wp_slash( http_build_query( $normalized, '', '&' ) );
 		}
@@ -153,7 +161,20 @@ final class ClassicDistrictAddressSync {
 		// Custom marker fields need not be registered in WooCommerce's checkout fieldset.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The process hook verified the lifecycle; normalize validates this evidence.
 		$raw = wp_unslash( $_POST );
+		if ( self::separate( $raw ) && self::shippingFirst( $raw ) ) {
+			foreach ( array_merge( BuyerDestination::ADDRESS_FIELDS, InstantCheckoutRecipient::FIELDS ) as $field ) {
+				$key = 'shipping_' . $field;
+				if ( array_key_exists( $key, $raw ) ) {
+					$data[ $key ] = is_string( $raw[ $key ] ) ? sanitize_text_field( $raw[ $key ] ) : '';
+				}
+			}
+		}
 		$context = $data;
+		foreach ( array( '_wfacp_post_id', 'wfacp_billing_same_as_shipping', 'billing_same_as_shipping' ) as $key ) {
+			if ( array_key_exists( $key, $raw ) ) {
+				$context[ $key ] = $raw[ $key ];
+			}
+		}
 		foreach ( array( 'billing', 'shipping' ) as $scope ) {
 			$district = 'shipping' === $scope ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
 			foreach ( array( 'kiriof_' . $scope . '_derived_address', $district, $district . '_name', $scope . '_country' ) as $key ) {
@@ -166,13 +187,13 @@ final class ClassicDistrictAddressSync {
 				}
 			}
 		}
-		if ( ! self::separate( $data ) ) {
+		if ( ! self::separate( $context ) ) {
 			unset( $context['kiriof_shipping_derived_address'] );
 		}
 		foreach ( $this->repairs( $context, $this->normalize( $context ) ) as $key => $value ) {
 			$data[ $key ] = $value;
 			// WooCommerce copies billing to shipping before this filter runs.
-			if ( ! self::separate( $data ) && 0 === strpos( $key, 'billing_' ) ) {
+			if ( ! self::separate( $context ) && 0 === strpos( $key, 'billing_' ) ) {
 				$shipping_key = 'shipping_' . substr( $key, 8 );
 				if ( ! array_key_exists( $shipping_key, $data ) || ( is_string( $data[ $shipping_key ] ) && '' === trim( $data[ $shipping_key ] ) ) ) {
 					$data[ $shipping_key ] = $value;
@@ -183,9 +204,27 @@ final class ClassicDistrictAddressSync {
 	}
 
 	public static function separate( array $data ): bool {
-		return ! ( function_exists( 'wc_ship_to_billing_address_only' ) && wc_ship_to_billing_address_only() )
-			&& ( is_string( $data['ship_to_different_address'] ?? null ) || is_bool( $data['ship_to_different_address'] ?? null ) )
-			&& ! empty( $data['ship_to_different_address'] );
+		if ( function_exists( 'wc_ship_to_billing_address_only' ) && wc_ship_to_billing_address_only() ) {
+			return false;
+		}
+		return self::shippingFirst( $data ) || ( ( is_string( $data['ship_to_different_address'] ?? null ) || is_bool( $data['ship_to_different_address'] ?? null ) )
+			&& ! empty( $data['ship_to_different_address'] ) );
+	}
+
+	/** FunnelKit form.php and its billing toggle keep shipping as the physical address. */
+	public static function shippingFirst( array $data ): bool {
+		$id = $data['_wfacp_post_id'] ?? null;
+		if ( ( ! is_string( $id ) && ! is_int( $id ) ) || ! preg_match( '/^[1-9][0-9]*$/D', (string) $id ) || ! array_key_exists( 'shipping_country', $data ) ) {
+			return false;
+		}
+		// The hidden wfacp flag is 0 for shared billing and 1 for different billing.
+		// The official xlplugins compatibility gist also supports the visible flag.
+		foreach ( array( 'wfacp_billing_same_as_shipping', 'billing_same_as_shipping' ) as $key ) {
+			if ( array_key_exists( $key, $data ) ) {
+				return in_array( $data[ $key ], array( '0', '1', 0, 1 ), true );
+			}
+		}
+		return ! array_key_exists( 'billing_address_1', $data );
 	}
 
 	private function classicHook( string $hook ): bool {

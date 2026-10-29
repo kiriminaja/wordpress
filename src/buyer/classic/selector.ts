@@ -4,7 +4,7 @@ import { SelectorState } from '../state/selector-state.svelte';
 import { searchSubdistrict } from '../api/subdistrict';
 import type { SelectorBridge, SelectorConfig, SelectorOption } from '../types/selector';
 import { syncDistrictAddress } from './district-address';
-import { usesShippingAddress } from './address-scope';
+import { isFunnelKitCheckout, usesShippingAddress } from './address-scope';
 
 type JQueryField = {
   data: (key: string, value?: unknown) => unknown;
@@ -641,6 +641,15 @@ export function startClassicSelectors(
   }
   function refresh() {
     if (stopped) return;
+    document
+      .querySelectorAll<HTMLFormElement>('form.checkout, form.woocommerce-checkout')
+      .forEach((form) => {
+        if (
+          isFunnelKitCheckout(form) ||
+          form.closest('.wfacp_main_form, #wfacp_checkout_form, .wfacp_checkout_form')
+        )
+          form.classList.add('kiriof-funnelkit-checkout');
+      });
     if (checkoutRecovery)
       document
         .querySelectorAll<HTMLFormElement>('form.checkout, form.woocommerce-checkout')

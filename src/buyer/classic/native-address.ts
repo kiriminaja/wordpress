@@ -5,7 +5,7 @@ import {
   type District,
 } from '../state/classic-pin.svelte';
 import { syncDistrictAddress } from './district-address';
-import { usesShippingAddress } from './address-scope';
+import { isFunnelKitCheckout, usesShippingAddress } from './address-scope';
 
 export function nativeAddress(form: HTMLFormElement, states: Record<string, string> = {}) {
   const field = (id: string) => form.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`);
@@ -56,11 +56,16 @@ export function placeNativePin(
   scope: AddressScope,
   contactLabel: string,
 ) {
+  const funnelkit =
+    isFunnelKitCheckout(form) ||
+    Boolean(form.closest('.wfacp_main_form, #wfacp_checkout_form, .wfacp_checkout_form'));
+  form.classList.toggle('kiriof-funnelkit-checkout', funnelkit);
   form
     .querySelectorAll(
       '.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields__field-wrapper',
     )
-    .forEach((wrapper) => wrapper.classList.add('kiriof-classic-address-layout'));
+    .forEach((wrapper) => wrapper.classList.toggle('kiriof-classic-address-layout', !funnelkit));
+  panel.classList.toggle('wfacp-col-full', funnelkit);
   const district = form.querySelector(
     `#${scope === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'}`,
   );
@@ -73,6 +78,7 @@ export function placeNativePin(
     const value = String(Number.isFinite(priority) ? priority + 0.5 : 61.5);
     if (panel.getAttribute('data-priority') !== value) panel.setAttribute('data-priority', value);
   }
+  if (funnelkit) return;
   const email = form.querySelector('#billing_email')?.closest('.form-row');
   const billing = form.querySelector('.woocommerce-billing-fields');
   const heading = billing?.querySelector('h3');

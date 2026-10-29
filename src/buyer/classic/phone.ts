@@ -1,3 +1,5 @@
+import { usesShippingAddress } from './address-scope';
+
 type PhoneWindow = Window & {
   kiriofBillingAddressConfig?: { i18n?: { invalidPhone?: string } };
   kiriofClassicPhoneValidation?: { dispose(): void };
@@ -46,9 +48,7 @@ export function startClassicPhoneValidation(root: PhoneWindow = window as PhoneW
       ),
     ].some((input) => /^kiriminaja-(official|instant)($|[_:])/.test(input.value));
   const active = (input: HTMLInputElement) =>
-    !input.disabled &&
-    (input.name === 'billing_phone' ||
-      !!form.querySelector<HTMLInputElement>('[name="ship_to_different_address"]')?.checked);
+    !input.disabled && (input.name === 'billing_phone' || usesShippingAddress(form));
   const update = (input: HTMLInputElement, show: boolean) => {
     const id = `${input.name}-kiriof-phone-error`;
     const row = input.closest('.form-row');

@@ -172,6 +172,22 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+  for (const flagValue of ['0', '1']) {
+    test(`FunnelKit shipping-first keeps shipping scope with different-billing flag ${flagValue}`, async () => {
+      const h = adapter();
+      const form = h.query('form');
+      form.insertAdjacentHTML('beforeend', `<input type="hidden" name="_wfacp_post_id" value="123"><input type="hidden" name="wfacp_billing_same_as_shipping" value="${flagValue}">`);
+      h.query('[name="ship_to_different_address"]').remove();
+      h.emit(h.window.document.body, 'updated_checkout'); h.flush();
+      expect(h.window.kiriofBuyerPin.controller.getState().scope).toBe('shipping');
+      expect(form.classList.contains('kiriof-funnelkit-checkout')).toBe(true);
+      expect(form.querySelector('.kiriof-classic-address-layout')).toBeNull();
+      expect(h.query('.kiriof-classic-pin').classList.contains('wfacp-col-full')).toBe(true);
+      h.maps.at(-1).listeners.click({ latlng: { lat: -7.75, lng: 110.4 } });
+      await h.acknowledge();
+      expect(h.payload(h.mutations().at(-1)).address_scope).toBe('shipping');
+    });
+  }
   test('restores an incomplete saved coordinate draft and acknowledges it independently', async () => {
     const h = adapter({ emptyAddress: true, savedPinDrafts: { billing: { latitude: '-7.75', longitude: '110.4' } } });
     expect(h.window.kiriofBuyerPin.controller.getState().point).toEqual({ latitude: '-7.7500000', longitude: '110.4000000' });
@@ -185,6 +201,7 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
     const flag = h.query('[name="ship_to_different_address"]');
     flag.type = 'hidden'; flag.value = '1';
     h.emit(h.window.document.body, 'updated_checkout');
+    h.flush();
     h.maps.at(-1).listeners.click({ latlng: { lat: -7.75, lng: 110.4 } });
     await h.acknowledge();
     expect(h.payload(h.mutations().at(-1)).address_scope).toBe('shipping');
