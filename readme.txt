@@ -147,12 +147,6 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
-= 3.0.7 =
-- Fix Classic checkout address synchronization when FunnelKit conditional rules clear hidden Indonesian city, province, or postcode fields.
-- Verify derived address fields against the selected KiriminAja district before restoring missing checkout values.
-- Save delivery coordinates independently of address and subdistrict requests, then verify the complete destination before quoting Instant shipping.
-- Synchronize native address fields on explicit district choices and prevent FunnelKit button colors and floating labels from overlapping plugin selectors.
-
 = 3.0.6 =
 - fix(maps): render immediately with contextual initial location (#298)
 

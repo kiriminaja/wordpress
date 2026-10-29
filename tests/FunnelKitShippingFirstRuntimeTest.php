@@ -46,4 +46,65 @@ final class FunnelKitShippingFirstRuntimeTest extends TestCase {
 			$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $result['rates'] );
 		}
 	}
+
+	private function phoneMetadata( string $scope = 'billing' ): string {
+		return json_encode( array( $scope => array( 'code' => '62', 'number' => '81229917900', 'hidden' => 'no' ) ), JSON_THROW_ON_ERROR );
+	}
+
+	public function test_official_national_widget_phone_and_shared_hidden_names_reach_real_quote_and_final_shipping(): void {
+		foreach ( array( false, true ) as $omit_names ) {
+			$override = array( 'shipping_first_name' => '', 'shipping_last_name' => '', 'billing_first_name' => 'Laksana', 'billing_last_name' => 'Adi', 'billing_phone' => '81229917900', 'wfacp_input_phone_field' => $this->phoneMetadata() );
+			$result = $this->runFixture( array( 'override' => $override, 'omit' => $omit_names ? array( 'shipping_first_name', 'shipping_last_name' ) : array(), 'final' => true ) );
+			$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $result['rates'], json_encode( $result ) );
+			$this->assertSame( 1, $result['calls'] );
+			$this->assertSame( 'Laksana', $result['customer']['shipping_first_name'] );
+			$this->assertSame( 'Adi', $result['customer']['shipping_last_name'] );
+			$this->assertSame( '6281229917900', $result['customer']['shipping_phone'] );
+			$this->assertSame( '81229917900', $result['customer']['billing_phone'] );
+			$this->assertSame( '6281229917900', $result['final']['shipping_phone'] );
+			$this->assertSame( 'Laksana', $result['final']['shipping_first_name'] );
+			$this->assertSame( '81229917900', $result['final']['billing_phone'] );
+		}
+	}
+
+	public function test_shipping_widget_uses_its_own_metadata_with_different_billing(): void {
+		$result = $this->runFixture( array( 'different_billing' => true, 'final' => true, 'override' => array( 'shipping_phone' => '81229917900', 'wfacp_input_phone_field' => $this->phoneMetadata( 'shipping' ) ) ) );
+		$this->assertSame( 1, $result['calls'], json_encode( $result ) );
+		$this->assertSame( '6281229917900', $result['final']['shipping_phone'] );
+		$this->assertSame( 'Different billing street', $result['customer']['billing_address_1'] );
+	}
+
+	public function test_national_phone_requires_matching_bounded_indonesian_widget_metadata(): void {
+		$without_metadata = $this->runFixture( array( 'override' => array( 'billing_phone' => '81229917900' ) ) );
+		$this->assertSame( 0, $without_metadata['calls'] );
+		$valid = json_decode( $this->phoneMetadata(), true );
+		$wrong_code = $valid;
+		$wrong_code['billing']['code'] = '1';
+		$mismatch = $valid;
+		$mismatch['billing']['number'] = '81200000000';
+		$invalid_number = $valid;
+		$invalid_number['billing']['number'] = '';
+		$array_number = $valid;
+		$array_number['billing']['number'] = array( '81229917900' );
+		$unknown_shape = $valid;
+		$unknown_shape['billing']['full_number'] = '+181229917900';
+		foreach ( array( '{', '{}', '[]', str_repeat( ' ', 4097 ), array( 'billing' => $valid['billing'] ), json_encode( $wrong_code ), json_encode( $mismatch ), json_encode( $invalid_number ), json_encode( $array_number ), json_encode( $unknown_shape ), $this->phoneMetadata( 'shipping' ) ) as $metadata ) {
+			$result = $this->runFixture( array( 'override' => array( 'billing_phone' => '81229917900', 'wfacp_input_phone_field' => $metadata ), 'final' => true ) );
+			$this->assertSame( 0, $result['calls'], json_encode( $metadata ) );
+			$this->assertSame( array(), $result['rates'] );
+			$this->assertSame( '', $result['final']['shipping_phone'] );
+		}
+		foreach ( array( array( 'billing_phone' => '' ), array( 'billing_phone' => array( '81229917900' ) ), array( 'billing_phone' => "+62 812\n29917900" ), array( 'shipping_country' => 'US' ), array( 'billing_country' => 'US' ), array( '_wfacp_post_id' => '123junk' ) ) as $invalid ) {
+			$result = $this->runFixture( array( 'override' => array_replace( array( 'billing_phone' => '81229917900', 'wfacp_input_phone_field' => $this->phoneMetadata() ), $invalid ) ) );
+			$this->assertSame( 0, $result['calls'], json_encode( $invalid ) );
+		}
+	}
+
+	public function test_different_billing_empty_or_missing_shipping_names_do_not_inherit_billing(): void {
+		foreach ( array( false, true ) as $omit ) {
+			$result = $this->runFixture( array( 'different_billing' => true, 'override' => array( 'shipping_first_name' => '', 'shipping_last_name' => '' ), 'omit' => $omit ? array( 'shipping_first_name', 'shipping_last_name' ) : array(), 'final' => true ) );
+			$this->assertSame( 0, $result['calls'], json_encode( $result ) );
+			$this->assertSame( '', $result['final']['shipping_first_name'] );
+		}
+	}
 }

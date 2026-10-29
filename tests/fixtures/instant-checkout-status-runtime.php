@@ -32,6 +32,7 @@ namespace {
     error_reporting( E_ALL );
     set_error_handler( static function ( $severity, $message, $file, $line ) { throw new \ErrorException( $message, 0, $severity, $file, $line ); } );
     function __( $text, $domain = '' ) { return $text; }
+    function esc_html( $text ) { return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' ); }
     function wp_json_encode( $value ) { return json_encode( $value ); }
     function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
     function do_action( $hook, ...$args ) { $GLOBALS['actions'][] = array( $hook, $args ); }
@@ -106,6 +107,7 @@ namespace {
     }
     require ABSPATH . 'inc/Utils/ServiceResponse.php';
     require ABSPATH . 'inc/Services/BuyerDestination.php';
+    require ABSPATH . 'inc/Services/AddressHierarchyResolver.php';
     require ABSPATH . 'inc/Services/CheckoutServiceFactory.php';
     require ABSPATH . 'inc/Services/InstantCheckoutStatusService.php';
     require ABSPATH . 'inc/Controllers/CheckoutController.php';

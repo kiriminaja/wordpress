@@ -33,7 +33,7 @@ $GLOBALS['refresh_hook'] = '';
 $GLOBALS['refresh_hooks'] = array();
 function current_filter() { return $GLOBALS['refresh_hook']; }
 function add_action( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['refresh_hooks'][ $name ][ $priority ][] = $callback; }
-function add_filter( ...$args ) {}
+function add_filter( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['refresh_filters'][ $name ][ $priority ][] = $callback; }
 function absint( $value ) { return abs( (int) $value ); }
 function wp_slash( $value ) { return is_array( $value ) ? array_map( 'wp_slash', $value ) : ( is_string( $value ) ? addslashes( $value ) : $value ); }
 function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : ( is_string( $value ) ? stripslashes( $value ) : $value ); }
@@ -120,7 +120,20 @@ if ( isset( $recovery_input['funnelkit'] ) ) {
 	$api->scenario = $recovery_input['courier'] ?? '';
 	$method->rates = array();
 	$method->calculate_shipping( $package );
-	echo json_encode( array( 'rates' => array_keys( $method->rates ), 'calls' => $api->calls, 'destination' => $session->get( 'kiriof_buyer_destination' ), 'package' => $package['destination'], 'customer' => WC()->customer->data, 'post' => wp_unslash( $_POST ), 'payloads' => $api->payloads, 'logs' => $GLOBALS['logs'] ), JSON_THROW_ON_ERROR );
+	$final = null;
+	if ( ! empty( $recovery_input['final'] ) ) {
+		$_POST = wp_slash( $form );
+		$GLOBALS['refresh_hook'] = 'woocommerce_checkout_process';
+		$callbacks = $GLOBALS['refresh_hooks'][ $GLOBALS['refresh_hook'] ];
+		ksort( $callbacks );
+		foreach ( $callbacks as $list ) { foreach ( $list as $callback ) { $callback(); } }
+		$GLOBALS['refresh_hook'] = 'woocommerce_checkout_posted_data';
+		$final = $form;
+		$callbacks = $GLOBALS['refresh_filters'][ $GLOBALS['refresh_hook'] ];
+		ksort( $callbacks );
+		foreach ( $callbacks as $list ) { foreach ( $list as $callback ) { $final = $callback( $final ); } }
+	}
+	echo json_encode( array( 'rates' => array_keys( $method->rates ), 'calls' => $api->calls, 'destination' => $session->get( 'kiriof_buyer_destination' ), 'package' => $package['destination'], 'customer' => WC()->customer->data, 'post' => wp_unslash( $_POST ), 'payloads' => $api->payloads, 'logs' => $GLOBALS['logs'], 'final' => $final ), JSON_THROW_ON_ERROR );
 	exit;
 }
 if ( ! empty( $recovery_input['draft_to_rate'] ) ) {
