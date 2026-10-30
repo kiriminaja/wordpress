@@ -172,6 +172,33 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+  test('single District & Zipcode checkout renders the pin without visible city province or postcode', async () => {
+    const h = adapter({ indonesiaStates: { JK: 'DKI Jakarta' } });
+    h.query('form').insertAdjacentHTML('beforeend', '<input name="_wfacp_post_id" type="hidden" value="1248"><input name="wfacp_billing_same_as_shipping" value="0" type="hidden">');
+    h.choose('123', 'Gambir, Gambir, Jakarta, DKI Jakarta, 10110', 'shipping');
+    for (const key of ['city', 'state', 'postcode']) h.query('#shipping_' + key).remove();
+    h.emit(h.window.document.body, 'updated_checkout'); h.flush();
+    expect(h.query('#shipping_city').value).toBe('Jakarta');
+    expect(h.query('#shipping_state').value).toBe('JK');
+    expect(h.query('#shipping_postcode').value).toBe('10110');
+    expect(h.query('.kiriof-classic-pin').hidden).toBe(false);
+    h.maps.at(-1).listeners.click({ latlng: { lat: -6.2, lng: 106.8 } });
+    await h.acknowledge();
+    expect(h.payload(h.mutations().at(-1)).address_scope).toBe('shipping');
+    expect(h.hidden().shipping_address.postcode).toBe('10110');
+  });
+  test('pin boot retries when a multi-step builder inserts its form after DOM ready', async () => {
+    const h = adapter();
+    const form = h.query('form');
+    form.remove();
+    await h.advance();
+    expect(h.window.kiriofBuyerPin).toBeUndefined();
+    h.window.document.body.append(form);
+    await h.advance();
+    expect(h.window.kiriofBuyerPin).toBeDefined();
+    expect(form.querySelectorAll('.kiriof-classic-pin')).toHaveLength(1);
+    expect(form.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]')).toHaveLength(1);
+  });
   test('FunnelKit pin inherits district gutters without a floating field wrapper or layout moves', () => {
     const h = adapter();
     const form = h.query('form');

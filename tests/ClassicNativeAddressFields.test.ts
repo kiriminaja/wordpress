@@ -83,6 +83,29 @@ describe('legacy Classic native address fields', () => {
 });
 
 describe('FunnelKit conditional address fields', () => {
+  test('removed fields get hidden backing values only in domestic FunnelKit and clear on foreign country', () => {
+    const window = new happy.Window();
+    try {
+      window.document.body.innerHTML = '<form><input name="_wfacp_post_id" value="1248" type="hidden"><input name="shipping_country" id="shipping_country" value="ID"><select name="kiriof_shipping_destination_area"><option value="31554">Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581</option></select></form>';
+      const form: any = window.document.querySelector('form');
+      const sync = () => syncDistrictAddress(form, { YO: 'Daerah Istimewa Yogyakarta' });
+      sync(); sync();
+      expect(form.querySelectorAll('[data-kiriof-derived-field]')).toHaveLength(3);
+      expect(form.querySelector('#shipping_city').value).toBe('Sleman');
+      expect(form.querySelector('#shipping_state').value).toBe('YO');
+      expect(form.querySelector('#shipping_postcode').value).toBe('55581');
+      expect(form.querySelector('#shipping_postcode').type).toBe('hidden');
+      form.querySelector('#shipping_country').value = 'US'; sync();
+      expect(form.querySelectorAll('[data-kiriof-derived-field]')).toHaveLength(0);
+      expect(form.querySelector('[name="kiriof_shipping_derived_address"]')).toBeNull();
+      form.insertAdjacentHTML('beforeend', '<input name="shipping_city" id="shipping_city" value="Manual city">');
+      form.querySelector('#shipping_country').value = 'ID'; sync();
+      expect(form.querySelector('#shipping_city').value).toBe('Manual city');
+      expect(form.querySelectorAll('[name="shipping_city"]')).toHaveLength(1);
+      form.querySelector('select').value = ''; sync();
+      expect(form.querySelector('#shipping_postcode').value).toBe('');
+    } finally { window.happyDOM.abort(); }
+  });
 	for (const [province, state] of [['DI Yogyakarta', 'YO'], ['D.I. Yogyakarta', 'YO'], ['DKI Jakarta', 'JK']]) {
 		test(`explicit domestic choice synchronizes visible hierarchy for ${province} without adopting hidden markers`, () => {
 			const window = new happy.Window();

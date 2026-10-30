@@ -11,6 +11,7 @@ final class ClassicDistrictAddressSync {
 	private array $lookups = array();
 	private static array $default_lookups = array();
 	private bool $checkout_verified = false;
+	private array $checkout_input = array();
 
 	public function __construct( ?callable $lookup = null ) {
 		$this->lookup = $lookup;
@@ -32,14 +33,10 @@ final class ClassicDistrictAddressSync {
 	/** The input is unslashed; client labels supply lookup postcodes, never address values. */
 	public function normalize( array $data ): array {
 		foreach ( array( 'billing', 'shipping' ) as $scope ) {
-			$marker = $data[ 'kiriof_' . $scope . '_derived_address' ] ?? null;
-			if ( ! is_string( $marker ) || ! preg_match( '/^(city|state|postcode)(,(city|state|postcode))*$/D', $marker ) || 'ID' !== ( $data[ $scope . '_country' ] ?? null ) ) {
+			if ( 'ID' !== ( $data[ $scope . '_country' ] ?? null ) ) {
 				continue;
 			}
-			$fields = explode( ',', $marker );
-			if ( count( $fields ) !== count( array_unique( $fields ) ) ) {
-				continue;
-			}
+			$fields = $this->derivedFields( $data, $scope );
 			$missing = array();
 			foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
 				$key = $scope . '_' . $field;
@@ -81,6 +78,23 @@ final class ClassicDistrictAddressSync {
 			}
 		}
 		return $data;
+	}
+
+	private function derivedFields( array $data, string $scope ): array {
+		$key = 'kiriof_' . $scope . '_derived_address';
+		if ( array_key_exists( $key, $data ) ) {
+			$marker = $data[ $key ];
+			if ( ! is_string( $marker ) || ! preg_match( '/^(city|state|postcode)(,(city|state|postcode))*$/D', $marker ) ) {
+				return array();
+			}
+			$fields = explode( ',', $marker );
+			return count( $fields ) === count( array_unique( $fields ) ) ? $fields : array();
+		}
+		if ( null === $this->districtId( $data['_wfacp_post_id'] ?? null ) ) {
+			return array();
+		}
+		// Removed FunnelKit fields are distinct from a buyer clearing a present field.
+		return array_values( array_filter( array( 'city', 'state', 'postcode' ), static fn( $field ) => ! array_key_exists( $scope . '_' . $field, $data ) ) );
 	}
 
 	private function sharedBillingDistrict( array $data ): array {
@@ -217,6 +231,7 @@ final class ClassicDistrictAddressSync {
 		$this->checkout_verified = true;
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified by WC_Checkout; normalize validates the address evidence.
 		$data = wp_unslash( $_POST );
+		$this->checkout_input = $data;
 		foreach ( $this->repairs( $data, $this->normalize( $data ) ) as $key => $value ) {
 			$_POST[ $key ] = wp_slash( $value );
 		}
@@ -248,13 +263,28 @@ final class ClassicDistrictAddressSync {
 		}
 		foreach ( array( 'billing', 'shipping' ) as $scope ) {
 			$district = 'shipping' === $scope ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
-			foreach ( array( 'kiriof_' . $scope . '_derived_address', $district, $district . '_name', $scope . '_country' ) as $key ) {
-				$context[ $key ] = $raw[ $key ] ?? null;
+			foreach ( array( $district, $district . '_name', $scope . '_country' ) as $key ) {
+				unset( $context[ $key ] );
+				if ( array_key_exists( $key, $raw ) ) {
+					$context[ $key ] = $raw[ $key ];
+				}
+			}
+			$marker = 'kiriof_' . $scope . '_derived_address';
+			unset( $context[ $marker ] );
+			if ( array_key_exists( $marker, $raw ) ) {
+				$context[ $marker ] = $raw[ $marker ];
+			}
+			$fields = $this->derivedFields( $this->checkout_input, $scope );
+			if ( ! array_key_exists( $marker, $raw ) ) {
+				$context[ $marker ] = implode( ',', $fields );
 			}
 			foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
 				$key = $scope . '_' . $field;
 				if ( array_key_exists( $key, $raw ) && ! is_string( $raw[ $key ] ) ) {
 					$context[ $key ] = $raw[ $key ];
+				} elseif ( in_array( $field, $fields, true ) && ( ! array_key_exists( $key, $data ) || ( is_string( $data[ $key ] ) && '' === trim( $data[ $key ] ) ) ) ) {
+					// Revalidate the current selection when Woo omits an unregistered field.
+					unset( $context[ $key ] );
 				}
 			}
 		}
@@ -262,6 +292,9 @@ final class ClassicDistrictAddressSync {
 			unset( $context['kiriof_shipping_derived_address'] );
 		}
 		foreach ( $this->repairs( $context, $this->normalize( $context ) ) as $key => $value ) {
+			if ( ! self::separate( $context ) && 0 === strpos( $key, 'shipping_' ) ) {
+				continue;
+			}
 			$data[ $key ] = $value;
 			// WooCommerce copies billing to shipping before this filter runs.
 			if ( ! self::separate( $context ) && 0 === strpos( $key, 'billing_' ) ) {

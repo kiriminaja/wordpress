@@ -9,6 +9,36 @@ final class FunnelKitShippingFirstRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_single_district_removed_fields_reach_real_rates_and_final_unregistered_shipping_fields(): void {
+		$keys = array( 'shipping_city', 'shipping_state', 'shipping_postcode' );
+		foreach ( array( 'absent', 'empty_marker', 'hidden_values' ) as $mode ) {
+			foreach ( array( false, true ) as $cleared ) {
+				$options = array( 'final' => true );
+				if ( 'absent' === $mode ) {
+					$options['omit'] = $keys;
+				} elseif ( 'empty_marker' === $mode ) {
+					$options['hidden'] = true;
+				} else {
+					$options['override'] = array( 'kiriof_shipping_derived_address' => 'city,state,postcode' );
+				}
+				$options[ $cleared ? 'final_override' : 'final_omit' ] = $cleared ? array_fill_keys( $keys, '' ) : $keys;
+				$result = $this->runFixture( $options );
+				$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $result['rates'], json_encode( $result ) );
+				$this->assertSame( 1, $result['calls'] );
+				foreach ( array( 'shipping_city' => 'Jakarta', 'shipping_state' => 'JK', 'shipping_postcode' => '12345' ) as $key => $value ) {
+					$this->assertSame( $value, $result['final'][ $key ], $mode );
+				}
+			}
+		}
+	}
+
+	public function test_single_district_present_manual_clears_do_not_enable_hierarchy_or_quote(): void {
+		$result = $this->runFixture( array( 'override' => array( 'shipping_city' => '', 'shipping_state' => '', 'shipping_postcode' => '' ), 'final' => true ) );
+		$this->assertSame( array(), $result['rates'] );
+		$this->assertSame( 0, $result['calls'] );
+		$this->assertSame( '', $result['final']['shipping_city'] );
+	}
+
 	public function test_shipping_first_survives_native_review_setters_and_adds_real_rates(): void {
 		foreach ( array( false, true ) as $hidden ) {
 			foreach ( array( false, true ) as $different_billing ) {

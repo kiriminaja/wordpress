@@ -152,6 +152,7 @@ for (const permissionState of ['denied', 'granted'] as const) {
 }
 
 type RecoverySettings = {
+  singleField?: boolean;
   holdCoordinates?: boolean;
   emptyAddress?: boolean;
   permissionState?: 'prompt' | 'denied' | 'granted';
@@ -162,6 +163,33 @@ type RecoverySettings = {
   shippingPostcode?: string;
   separate?: boolean;
 };
+
+test('FunnelKit single District and Zipcode derives removed native fields and renders its shipping pin', async ({ app, browser, screen }) => {
+  const row = { id: '31554', text: 'Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581' };
+  const fixture = await checkout(app, browser, true, { success: true, data: [row] }, false, false, true, { singleField: true, separate: true });
+  try {
+    await expect(screen.getByLabel('Delivery location map')).toBeVisible();
+    await browser.locator('#kiriof_shipping_destination_area_field .kiriof-buyer-combobox-trigger').tap();
+    await browser.locator('.kiriof-buyer-combobox-input').fill('Sari Harjo');
+    await screen.getByRole('option', row.text).tap();
+    await expect.poll(() => browser.evaluate(() => Object.fromEntries(['city', 'state', 'postcode'].map(key => {
+      const field = document.querySelector<HTMLInputElement>('#shipping_' + key)!;
+      return [key, { value: field.value, type: field.type, count: document.querySelectorAll('[name="shipping_' + key + '"]').length }];
+    })))).toEqual({ city: { value: 'Sleman', type: 'hidden', count: 1 }, state: { value: 'YO', type: 'hidden', count: 1 }, postcode: { value: '55581', type: 'hidden', count: 1 } });
+    await expect.poll(() => fixture.districts().length).toBe(1);
+    expect(fixture.districts()[0].body.postcode).toBe('55581');
+    fixture.releaseDistrict();
+    await screen.getByRole('button', 'Current location').tap();
+    await expect.poll(() => fixture.saves().length).toBe(1);
+    expect(JSON.parse(fixture.saves()[0].body.data).address_scope).toBe('shipping');
+    await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.inFlight)).toBe(true);
+    await browser.evaluate(() => { jQuery('#shipping_country').val('US').trigger('change'); return true; });
+    await expect.poll(() => browser.evaluate(() => document.querySelectorAll('input[data-kiriof-derived-field="shipping"]').length)).toBe(0);
+    await expect.poll(() => fixture.saves().length).toBe(2);
+    expect(JSON.parse(fixture.saves()[1].body.data).coordinates).toBeNull();
+    expect(fixture.unexpected).toEqual([]);
+  } finally { await fixture.cleanup(); }
+});
 
 test('Classic coordinates save before address or district entry, wait for acknowledgment, and clear on country or scope changes', async ({ app, browser, screen }) => {
   const fixture = await checkout(app, browser, true, { success: true, data: [district] }, false, false, true, {
@@ -263,6 +291,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
     window.wc_country_select_params = { countries: JSON.stringify({ ID: { YO: 'DI Yogyakarta', JT: 'Jawa Tengah' }, US: { CA: 'California', NY: 'New York' }, AQ: {} }), i18n_select_state_text: 'Select a state', i18n_searching: 'Searching…', i18n_no_matches: 'No matches found' };`,
     readFileSync(new URL('../fixtures/country-select.js', import.meta.url), 'utf8'),
     `window.__geoCalls = 0; window.__maps = 0; window.__checkoutUpdates = 0; window.__allowGeo = true;
+    ${recovery?.singleField ? `document.querySelector('form.checkout').insertAdjacentHTML('afterbegin','<input type="hidden" name="_wfacp_post_id" value="1248"><input type="hidden" name="wfacp_billing_same_as_shipping" value="0">');for(const scope of ['billing','shipping'])for(const key of ['city','state','postcode'])document.getElementById(scope+'_'+key+'_field').remove();` : ''}
     Object.defineProperty(navigator,'permissions',{configurable:true,value:{query:async()=>({state:${JSON.stringify(recovery?.permissionState || 'prompt')}})}});
     ${recovery?.emptyAddress ? `for(const scope of ['billing','shipping'])for(const field of ['address_1','address_2','city','postcode'])document.getElementById(scope+'_'+field).value='';` : ''}
 		window.kiriofClassicCheckoutConfig = ${JSON.stringify({
@@ -271,6 +300,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
       needsShipping: true,
       ajaxUrl: '/admin-ajax.php',
       nonce: 'fixture-pin-nonce',
+      indonesiaStates: { YO: 'Daerah Istimewa Yogyakarta', JT: 'Jawa Tengah' },
       map: {
         enabled: true,
         tiles: 'https://tiles.fixture.test/{z}/{x}/{y}.png',
@@ -279,6 +309,7 @@ function html(enabled: boolean, geometry = false, shipping: false | 'enhanced' |
       },
     })};
 		window.kiriofBillingAddressConfig = {
+			indonesiaStates: { YO: 'Daerah Istimewa Yogyakarta', JT: 'Jawa Tengah' },
 			...${JSON.stringify(recovery ? { isCheckout: '1', ...recovery } : {})},
 			isCart: false, fieldKey: 'kiriof_destination_area',
 			ajaxUrl: '/admin-ajax.php', nonce: 'fixture-search-nonce',

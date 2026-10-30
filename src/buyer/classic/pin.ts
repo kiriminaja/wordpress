@@ -58,7 +58,9 @@ export function startClassicPin(
   if (root.kiriofBuyerPin) return root.kiriofBuyerPin;
   const config = root.kiriofClassicCheckoutConfig;
   const $ = root.jQuery;
-  const form = root.document.querySelector<HTMLFormElement>('form.checkout');
+  const form = root.document.querySelector<HTMLFormElement>(
+    'form.checkout, form.woocommerce-checkout',
+  );
   if (
     !config?.enabled ||
     !config.map?.enabled ||
