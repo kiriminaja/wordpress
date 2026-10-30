@@ -78,6 +78,10 @@ export function startFunnelKitPhone(root: PhoneContextWindow = window as PhoneCo
     if (target?.matches?.('[name="billing_phone"], [name="shipping_phone"]')) sync();
   };
   const capture = () => sync(false);
+  const checkoutCapture = () => {
+    capture();
+    root.clearTimeout(timer);
+  };
   const refresh = () => sync();
   const poll = root.setInterval(() => {
     if (document.visibilityState !== 'hidden') sync();
@@ -99,7 +103,7 @@ export function startFunnelKitPhone(root: PhoneContextWindow = window as PhoneCo
   for (const name of ['input', 'change', 'focusout', 'countrychange'])
     document.addEventListener(name, event, true);
   document.addEventListener('submit', capture, true);
-  root.jQuery(document.body).on?.('update_checkout.kiriofFunnelKitPhone', capture);
+  root.jQuery(document.body).on?.('update_checkout.kiriofFunnelKitPhone', checkoutCapture);
   root
     .jQuery(document.body)
     .on?.('updated_checkout.kiriofFunnelKitPhone wfacp_intl_setup.kiriofFunnelKitPhone', refresh);

@@ -21,7 +21,12 @@ function fixture(funnelkit = true) {
   window.clearInterval = (id: number) => intervals.delete(id);
   window.wfacpIntlTelInput = { getInstance(input: unknown) { return ready && input === phone ? { getSelectedCountryData: () => country } : null; } };
   window.jQuery = () => ({
-    trigger(event: string) { events.push(event); payloads.push(JSON.parse(form.querySelector('[name="kiriof_funnelkit_phone_context"]').value)); },
+    trigger(event: string) {
+      events.push(event);
+      for (const [names, callback] of [...handlers])
+        if (names.split(' ').some(name => name.split('.')[0] === event)) callback();
+      payloads.push(JSON.parse(form.querySelector('[name="kiriof_funnelkit_phone_context"]').value));
+    },
     on(event: string, callback: () => void) { handlers.set(event, callback); },
     off(namespace: string) { for (const key of handlers.keys()) if (key.endsWith(namespace)) handlers.delete(key); },
   });
@@ -36,6 +41,34 @@ function fixture(funnelkit = true) {
 }
 
 describe('FunnelKit selected-country phone context', () => {
+  test('submit captures the latest value without treating it as a completed checkout refresh', () => {
+    const h = fixture();
+    try {
+      h.flush();
+      h.phone.value = '87777777777';
+      h.phone.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+      h.phone.value = '88888888888';
+      h.form.dispatchEvent(new h.window.Event('submit', { bubbles: true, cancelable: true }));
+      expect(JSON.parse(h.form.querySelector('[name="kiriof_funnelkit_phone_context"]').value).billing.value).toBe('88888888888');
+      expect(h.events).toHaveLength(1);
+      h.flush();
+      expect(h.events).toHaveLength(2);
+      expect(h.payloads.at(-1).billing.value).toBe('88888888888');
+    } finally { h.close(); }
+  });
+  test('checkout capture cancels a pending refresh and serializes the latest silent value', () => {
+    const h = fixture();
+    try {
+      h.flush(); h.events.length = 0;
+      h.phone.value = '87777777777';
+      h.phone.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+      h.phone.value = '89999999999';
+      h.window.jQuery(h.window.document.body).trigger('update_checkout');
+      expect(h.payloads.at(-1)).toEqual({ billing: { value: '89999999999', iso2: 'id', dialCode: '62' } });
+      h.flush(); h.poll();
+      expect(h.events).toEqual(['update_checkout']);
+    } finally { h.close(); }
+  });
   test('national autofill captures +62 without changing the visible value or FunnelKit JSON', () => {
     const h = fixture();
     try {

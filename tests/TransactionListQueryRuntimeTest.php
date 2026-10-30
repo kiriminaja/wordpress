@@ -113,6 +113,14 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertStringContainsString('ORDER BY created_at ASC LIMIT 1', $all_sql);
     }
 
+    #[Test]
+    public function failed_status_aggregate_returns_integer_zero_counts(): void {
+        $wpdb = new TransactionListQueryWpdbFake();
+        $wpdb->last_error = 'Database unavailable';
+        $counts = ( new WordPressTransactionListQuery( $wpdb ) )->getStatusCounts();
+        $this->assertSame( array_fill_keys( array( 'all', 'wc-processing', 'wc-on-hold', 'wc-pending', 'wc-cancelled', 'processed', 'order-issue' ), 0 ), $counts );
+    }
+
     private function filters(string $status): array
     {
         return array(
@@ -176,6 +184,9 @@ final class TransactionListQueryWpdbFake
     public function get_row($sql)
     {
         $this->queries[] = $sql;
+        if ( str_contains( $sql, 'AS all_count' ) ) {
+            return (object) array_fill_keys( array( 'all_count', 'processing_count', 'on_hold_count', 'pending_count', 'cancelled_count', 'processed_count', 'issue_count' ), '55' );
+        }
         $this->badge_queries[] = $sql;
         return $this->badge_result;
     }
