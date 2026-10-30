@@ -24,6 +24,32 @@ const binding = {
   country: 'ID',
 };
 
+test('same-form fragment replacement keeps the saved pin and one submit snapshot', async ({ app, browser, screen }) => {
+  const fixture = await checkout(app, browser, true);
+  try {
+    await screen.getByRole('button', 'Current location').tap();
+    await expect.poll(() => browser.evaluate(() => !window.kiriofBuyerPin.controller.getState().queue.inFlight && !window.kiriofBuyerPin.controller.getState().queue.pending)).toBe(true);
+    const writes = fixture.saves().length;
+    await browser.evaluate(() => {
+      const form = document.querySelector<HTMLFormElement>('form.checkout')!;
+      for (const input of form.querySelectorAll('input')) input.setAttribute('value', input.value);
+      form.replaceChildren(...Array.from(form.children, child => child.cloneNode(true)));
+    });
+    await expect.poll(() => browser.evaluate(() => {
+      const form = document.querySelector('form.checkout')!;
+      const fields = form.querySelectorAll<HTMLInputElement>('[name="kiriof_buyer_destination_snapshot"]');
+      const snapshot = fields[0] ? JSON.parse(fields[0].value) : null;
+      const row = form.querySelector('#kiriof_destination_area')?.closest('.form-row');
+      return { panels: form.querySelectorAll('.kiriof-classic-pin').length, snapshots: fields.length, version: snapshot?.version, latitude: snapshot?.destination_latitude, district: !!row, next: row?.nextElementSibling?.className ?? null, scope: window.kiriofBuyerPin?.controller.getState().scope ?? null };
+    })).toEqual({ panels: 1, snapshots: 1, version: 2, latitude: '-7.7000000', district: true, next: 'kiriof-classic-pin form-row form-row-wide', scope: 'billing' });
+    await browser.evaluate(() => { document.querySelector('[name="kiriof_buyer_destination_snapshot"]')!.remove(); });
+    await expect.poll(() => browser.evaluate(() => document.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]').length)).toBe(1);
+    expect(await browser.evaluate(() => jQuery('form.checkout').triggerHandler('checkout_place_order'))).not.toBe(false);
+    expect(fixture.saves()).toHaveLength(writes);
+    expect(fixture.unexpected).toEqual([]);
+  } finally { await fixture.cleanup(); }
+});
+
 test('Classic explicit district survives theme replacement without resaving its acknowledged coordinates', async ({ app, browser, screen }) => {
   const fixture = await checkout(app, browser, true, { success: true, data: [district] }, false, false, true);
   await expect(screen.getByLabel('Delivery location map')).toBeVisible();

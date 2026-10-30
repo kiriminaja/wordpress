@@ -23,7 +23,7 @@ export function startClassicPinBootstrap(root: BootstrapWindow = window as Boots
       form = next;
     }
     if (active) {
-      if (!form?.querySelector('.kiriof-classic-pin')?.isConnected) active.changed();
+      active.restore();
       return;
     }
     if (!form?.querySelector('#kiriof_destination_area, #kiriof_shipping_destination_area')) return;

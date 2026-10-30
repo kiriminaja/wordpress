@@ -199,6 +199,57 @@ describe('Classic pin-only DOM adapter with delegated Woo events', () => {
     expect(form.querySelectorAll('.kiriof-classic-pin')).toHaveLength(1);
     expect(form.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]')).toHaveLength(1);
   });
+  test('same-form replacement restores the original pin and snapshot without losing saved coordinates', async () => {
+    const h = adapter({ savedDestination: saved() });
+    await h.acknowledge();
+    const bridge = h.window.kiriofBuyerPin;
+    const form = h.form;
+    const panel = h.query('.kiriof-classic-pin');
+    const snapshot = h.query('[name="kiriof_buyer_destination_snapshot"]');
+    const point = bridge.controller.getState().point;
+    const writes = h.mutations().length;
+    // Builders can clone all children while retaining the checkout form itself.
+    for (const input of form.querySelectorAll('input')) input.setAttribute('value', input.value);
+    form.replaceChildren(...Array.from(form.children, (child: any) => child.cloneNode(true)));
+    await h.advance();
+    expect(h.window.kiriofBuyerPin).toBe(bridge);
+    expect(form.querySelectorAll('.kiriof-classic-pin')).toHaveLength(1);
+    expect(form.querySelector('.kiriof-classic-pin')).toBe(panel);
+    expect(form.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]')).toHaveLength(1);
+    expect(form.querySelector('[name="kiriof_buyer_destination_snapshot"]')).toBe(snapshot);
+    expect(h.hidden().version).toBe(2);
+    expect(h.hidden().shipping_address).toEqual(binding);
+    expect(bridge.controller.getState().point).toEqual(point);
+    expect(h.mutations()).toHaveLength(writes);
+  });
+  test('removing only the destination snapshot restores it before native checkout submission', async () => {
+    const h = adapter({ savedDestination: saved() });
+    await h.acknowledge();
+    const snapshot = h.query('[name="kiriof_buyer_destination_snapshot"]');
+    const panel = h.query('.kiriof-classic-pin');
+    snapshot.remove();
+    await h.advance();
+    expect(h.query('.kiriof-classic-pin')).toBe(panel);
+    expect(h.query('[name="kiriof_buyer_destination_snapshot"]')).toBe(snapshot);
+    expect(h.hidden().version).toBe(2);
+    h.query('input.shipping_method:checked').value = 'kiriminaja-instant:7:gosend:instant';
+    expect(h.emit(h.form, 'checkout_place_order')).toBe(true);
+    expect(h.hidden().destination_latitude).toBe('-6.2000000');
+  });
+  test('same-form replacement binds the restored snapshot to current fields rather than an old address', async () => {
+    const h = adapter({ savedDestination: saved() });
+    await h.acknowledge();
+    const bridge = h.window.kiriofBuyerPin;
+    for (const input of h.form.querySelectorAll('input')) input.setAttribute('value', input.value);
+    const children = Array.from(h.form.children, (child: any) => child.cloneNode(true));
+    h.form.replaceChildren(...children);
+    h.query('#billing_address_1').value = 'Current replacement street 27';
+    await h.advance();
+    expect(h.window.kiriofBuyerPin).toBe(bridge);
+    expect(h.hidden().shipping_address.address_1).toBe('Current replacement street 27');
+    expect(h.hidden().destination_latitude).toBe('-6.2000000');
+    expect(h.form.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]')).toHaveLength(1);
+  });
   test('FunnelKit pin inherits district gutters without a floating field wrapper or layout moves', () => {
     const h = adapter();
     const form = h.query('form');

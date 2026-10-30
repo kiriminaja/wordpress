@@ -48,6 +48,7 @@ export type ClassicPinWindow = Window & {
 export interface ClassicPinBridge {
   controller: ClassicPinController;
   changed(): void;
+  restore(): void;
   dispose(): void;
 }
 
@@ -107,6 +108,11 @@ export function startClassicPin(
     );
   const render = () => {
     if (disposed) return;
+    for (const snapshot of form.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]'))
+      if (snapshot !== hidden) snapshot.remove();
+    if (hidden.parentElement !== form) form.append(hidden);
+    for (const candidate of form.querySelectorAll('.kiriof-classic-pin'))
+      if (candidate !== panel) candidate.remove();
     hidden.value = JSON.stringify(controller.getState().destination);
     presentation.visible =
       config.needsShipping !== false && native.address().country === 'ID' && !native.collection();
@@ -242,7 +248,17 @@ export function startClassicPin(
   };
   root.addEventListener('pagehide', dispose);
   if (controller.getState().point) void controller.sync();
-  const bridge = { controller, changed, dispose };
+  const restore = () => {
+    if (disposed) return;
+    if (
+      !form.contains(hidden) ||
+      !form.contains(panel) ||
+      form.querySelector('[name="kiriof_buyer_destination_snapshot"]') !== hidden ||
+      form.querySelector('.kiriof-classic-pin') !== panel
+    )
+      changed();
+  };
+  const bridge = { controller, changed, restore, dispose };
   root.kiriofBuyerPin = bridge;
   return bridge;
 }
