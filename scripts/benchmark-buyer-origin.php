@@ -7,6 +7,8 @@
  *
  * Save HEAD:inc/Services/ShipmentLocationService.php with git show before edits
  * and pass that temporary file to measure the baseline in a separate process.
+ * This standalone CLI bootstrap intentionally runs without WordPress/ABSPATH;
+ * the CLI-only fixture establishes its own isolated bootstrap after the SAPI guard.
  */
 
 declare(strict_types=1);

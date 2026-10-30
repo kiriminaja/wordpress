@@ -25,7 +25,11 @@ wpdb transport and minimal WordPress functions. Dataset: 100 deterministic locat
 active default ID 37, five warmups and 30 measured samples for each case. Each sample
 checks every returned row field against the seeded expected row. Before/after result
 SHA-256 values match. Times exclude seeding, WordPress/WooCommerce bootstrap and network.
-Runtime: PHP 8.2.34, SQLite 3.54.0 in-memory, macOS arm64.
+Historical runtime: baseline PHP 8.2.34; after sample PHP 8.5.10. Both use SQLite
+3.54.0 in-memory on macOS arm64. These historical timings span different PHP
+versions and cannot attribute the timing difference solely to the code change.
+The SQL/read/write counts remain directly comparable. See the same-runtime
+recheck below for a controlled timing comparison.
 
 | Case | Before SQL (reads / writes) | After SQL (reads / writes) | Before median / p95 ms | After median / p95 ms |
 | --- | ---: | ---: | ---: | ---: |
@@ -194,6 +198,28 @@ Local PHP is 8.2.34, below main's newly declared minimum 8.2.35. Local verificat
 results are reported with that caveat; the installed runtime was not changed.
 
 ## Final verification
+
+### v3.1 integration
+
+Integrated current main `b1b05a3a` (v3.0.9, including #303/#304 FunnelKit fixes),
+the v3.1 base `5780240b` (#300 squash), and chunk commit `6361997d` through PR #301.
+Resolved overlapping test-script changes by retaining both FunnelKit and deferred
+dialog/calendar checks. Standalone buyer fixtures now reject non-CLI execution
+before bootstrap or source loading; the CLI launcher documents its isolated-bootstrap
+exception. Existing ABSPATH values are not redefined.
+
+Controlled recheck files `origin-same-runtime-{before,after}.json` use PHP 8.5.10
+for both implementations, the same SQLite engine/dataset and matching result hashes.
+For three independent services, SQL remains 9 to 3 and writes 3 to 0; median is
+0.560521 to 0.047479 ms and p95 2.002250 to 0.363583 ms. For one service called
+three times, SQL is 3 to 1; median 0.154355 to 0.016521 ms. These noisy, sequential,
+sub-millisecond fixture runs are not production/MySQL/checkout timing guarantees;
+the historical cross-PHP table above must not be presented as code-only speedup.
+
+Fresh integrated verification on PHP 8.5.10: 1,577 PHP tests, 18,781 assertions,
+two renderer skips, and 867 frontend tests passed plus static/style checks. ZIP
+source parity, manifest outputs and development-file exclusions passed. PHP 8.2.35
+remains the supported minimum/CI baseline, not the runtime used for this local run.
 
 Review/sync follow-up: merged `main` through `72875e9d` (#302) via the updated
 workspace branch, including its collation, alias, mount-ownership and fresh-checkout

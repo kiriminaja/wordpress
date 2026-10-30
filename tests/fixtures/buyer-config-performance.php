@@ -1,6 +1,9 @@
 <?php
 /** Isolated transport and service seams for production checkout registration. */
 namespace KiriminAjaOfficial\Base {
+	if ( 'cli' !== PHP_SAPI ) {
+		exit;
+	}
 	class BaseInit {
 		public $plugin_url = 'https://shop.example/plugin/';
 	}
@@ -28,7 +31,9 @@ namespace KiriminAjaOfficial\Services {
 	}
 }
 namespace {
-	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+	if ( ! defined( 'ABSPATH' ) ) {
+		define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+	}
 	define( 'KIRIOF_DIR', ABSPATH );
 	define( 'KIRIOF_VERSION', 'test' );
 	define( 'KIRIOF_NONCE', 'test' );

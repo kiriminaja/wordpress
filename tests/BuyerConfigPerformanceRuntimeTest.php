@@ -2,6 +2,10 @@
 
 use PHPUnit\Framework\TestCase;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 final class BuyerConfigPerformanceRuntimeTest extends TestCase {
 	/** @dataProvider checkout_modes */
 	public function test_registration_reuses_only_the_current_localization_map( string $mode, string $buyer_name ): void {

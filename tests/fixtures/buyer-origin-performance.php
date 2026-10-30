@@ -6,7 +6,12 @@ declare(strict_types=1);
 use KiriminAjaOfficial\Repositories\ShipmentLocationRepository;
 use KiriminAjaOfficial\Services\ShipmentLocationService;
 
-define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+if ( 'cli' !== PHP_SAPI ) {
+	exit;
+}
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+}
 
 function get_option( $key, $default = '' ) {
 	return $GLOBALS['buyer_origin_options'][ $key ] ?? $default;

@@ -4,6 +4,30 @@ Measured against `99c435b4bda321ad99b6a1a92bca78e7afd12747` on 2026-10-28.
 Follow-up branch: `perf/reduce-initial-workspace-chunks`. This is separate from
 PRs #300/#301; no commit or PR was created for this follow-up.
 
+Release integration update: committed as `6361997d`, then included in PR #301 for
+`v3.1` together with current main `b1b05a3a` and the already squash-merged #300.
+The sentence above describes the original measurement stage, before that commit.
+
+## Comparison with current main
+
+Built `origin/main` at `b1b05a3a` in an isolated temporary checkout with the same
+locked dependencies and production environment as the integrated candidate.
+Inventories are `main-comparison-{before,after}.json` beside the original evidence.
+
+| Initial route JS | Main gzip bytes | v3.1 candidate | Reduction | Requests main / candidate |
+| --- | ---: | ---: | ---: | ---: |
+| Transactions | 211,611 | 140,966 | 33.4% | 3 / 33 |
+| Payments | 211,611 | 116,492 | 44.9% | 3 / 21 |
+| Transaction detail | 211,611 | 109,766 | 48.1% | 3 / 19 |
+| Settings root | 211,611 | 80,662 | 61.9% | 3 / 15 |
+
+This comparison includes #300 route splitting and the later deferred features;
+the original table below isolates the incremental chunk commit. Increased request
+counts and deferred first-open costs still apply; no browser speedup is inferred.
+Fresh integrated verification: 1,577 PHP tests / 18,781 assertions (two renderer
+skips), 867 frontend tests, package/source parity and manifest checks passed on
+local PHP 8.5.10. The supported minimum/CI baseline remains PHP 8.2.35.
+
 ## Changes
 
 - Transactions, transaction detail and payments no longer import closed action,
