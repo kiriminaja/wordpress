@@ -92,7 +92,7 @@ class TransactionDetailPageData
         $cod_fee = (float) ($transaction->cod_fee ?? 0);
         $admin_fee = ShipmentDetailAmounts::adminFee( $wc_order, $transaction );
         $discount = max(0, (float) ($transaction->discount_amount ?? 0));
-        $cod_value = $cod_fee > 0 ? $shipping + $insurance + $cod_fee + (float) ($transaction->transaction_value ?? 0) : 0.0;
+        $cod_value = ShipmentDetailAmounts::expressCod( $transaction, $wc_order && method_exists( $wc_order, 'get_payment_method' ) ? (string) $wc_order->get_payment_method() : '' );
         $payment_label = $cod_fee > 0 ? __("COD", "kiriminaja-official") : __("Non-COD", "kiriminaja-official");
         $status = (string) ($transaction->status ?? "new");
         $awb = (string) ($transaction->awb ?? "");
@@ -108,7 +108,7 @@ class TransactionDetailPageData
         $order_total = $wc_order && method_exists($wc_order, 'get_total') ? (float) $wc_order->get_total() : $subtotal + max(0.0, $shipping - $discount) + $insurance + $cod_fee + $admin_fee;
         $shipping_discount = $wc_order && method_exists($wc_order, 'get_shipping_total') ? max(0.0, $shipping - (float) $wc_order->get_shipping_total()) : $discount;
         $paid_shipping = $wc_order && method_exists($wc_order, 'get_shipping_total') ? max(0.0, (float) $wc_order->get_shipping_total()) : max(0.0, $shipping - $shipping_discount);
-        $total_shipping = $shipping + $insurance + $cod_fee;
+        $total_shipping = $paid_shipping + $insurance + $cod_fee;
         try {
             $courier_name = kiriof_helper()->formatServiceName($transaction->service ?? "", $transaction->service_name ?? "");
         } catch (\Throwable $error) {
@@ -399,8 +399,8 @@ class TransactionDetailPageData
                     "paymentStatus" => $payment["status"],
                     "paymentMethod" => $payment["method"],
                     "paymentId" => $payment["id"],
-                    "costs" => ["orderTotal" => $order_total, "subtotal" => 0, "totalShipping" => $shipping + $insurance + $cod_fee, "actualShipping" => $shipping, "shippingDiscount" => $discount, "shipping" => $paid_shipping, "insurance" => $insurance, "codFee" => $cod_fee, "adminFee" => $admin_fee, "itemDiscount" => 0, "total" => $paid_shipping + $insurance + $cod_fee + $admin_fee],
-                    "codValue" => 0,
+                    "costs" => ["orderTotal" => $order_total, "subtotal" => 0, "totalShipping" => $paid_shipping + $insurance + $cod_fee, "actualShipping" => $shipping, "shippingDiscount" => $discount, "shipping" => $paid_shipping, "insurance" => $insurance, "codFee" => $cod_fee, "adminFee" => $admin_fee, "itemDiscount" => 0, "total" => $paid_shipping + $insurance + $cod_fee + $admin_fee],
+                    "codValue" => ShipmentDetailAmounts::expressCod( $transaction, '' ),
                     "printUrl" => "",
                     "liveTrackingUrl" => $is_express ? "" : InstantTrackingPresentation::trackingUrl($transaction),
                     "routeMap" => InstantDetailMapData::prepare($transaction),

@@ -15,6 +15,8 @@ import type { SelectorBridge } from '../types/selector';
 import type * as Leaflet from 'leaflet';
 
 export interface ClassicPinConfig extends ClassicPinTransportConfig {
+  savedPinDrafts?: Partial<Record<'billing' | 'shipping', Point | null>>;
+  indonesiaStates?: Record<string, string>;
   enabled?: boolean;
   needsShipping?: boolean;
   savedDestination?: PinDestination | null;
@@ -46,6 +48,7 @@ export type ClassicPinWindow = Window & {
 export interface ClassicPinBridge {
   controller: ClassicPinController;
   changed(): void;
+  restore(): void;
   dispose(): void;
 }
 
@@ -56,7 +59,9 @@ export function startClassicPin(
   if (root.kiriofBuyerPin) return root.kiriofBuyerPin;
   const config = root.kiriofClassicCheckoutConfig;
   const $ = root.jQuery;
-  const form = root.document.querySelector<HTMLFormElement>('form.checkout');
+  const form = root.document.querySelector<HTMLFormElement>(
+    'form.checkout, form.woocommerce-checkout',
+  );
   if (
     !config?.enabled ||
     !config.map?.enabled ||
@@ -66,18 +71,15 @@ export function startClassicPin(
   )
     return;
   const strings = { ...config.i18n, ...config.map.i18n };
-  const native = nativeAddress(form);
+  const native = nativeAddress(form, config.indonesiaStates);
   const panel = root.document.createElement('section');
   panel.className = 'kiriof-classic-pin form-row form-row-wide';
   const hidden = root.document.createElement('input');
   hidden.type = 'hidden';
   hidden.name = 'kiriof_buyer_destination_snapshot';
   form.append(hidden);
-  let busy = false,
-    disposed = false,
-    lastDistrict = '',
-    point: Point | null = null;
-  let pointAddress: NativeAddress | null = null;
+  let disposed = false,
+    lastDistrict = '';
   let timer: ReturnType<typeof setTimeout> | undefined;
   let editing = false;
   let contactKey = '';
@@ -106,6 +108,11 @@ export function startClassicPin(
     );
   const render = () => {
     if (disposed) return;
+    for (const snapshot of form.querySelectorAll('[name="kiriof_buyer_destination_snapshot"]'))
+      if (snapshot !== hidden) snapshot.remove();
+    if (hidden.parentElement !== form) form.append(hidden);
+    for (const candidate of form.querySelectorAll('.kiriof-classic-pin'))
+      if (candidate !== panel) candidate.remove();
     hidden.value = JSON.stringify(controller.getState().destination);
     presentation.visible =
       config.needsShipping !== false && native.address().country === 'ID' && !native.collection();
@@ -117,16 +124,7 @@ export function startClassicPin(
     address: native.address(),
     scope: native.scope(),
     savedDestination: config.savedDestination,
-    // The server accepts pins only after the district session writer commits.
-    isBlocked: () =>
-      editing ||
-      busy ||
-      Boolean(root.kiriofBuyerSelectors?.districtPending?.()) ||
-      Boolean(
-        root.kiriofClassicDistrictMutation?.active ||
-        root.kiriofClassicDistrictMutation?.pending ||
-        root.kiriofClassicDistrictMutation?.failed,
-      ),
+    savedCoordinates: config.savedPinDrafts?.[native.scope()],
     send: async (snapshot) => {
       await saveClassicPin(
         snapshot,
@@ -138,33 +136,24 @@ export function startClassicPin(
     },
     onChange: render,
   });
-  const select = (next: Point | null, expected: NativeAddress) => {
-    if (
-      next &&
-      (!expected.address_1 ||
-        !expected.city ||
-        !expected.state ||
-        !/^[0-9]{5}$/.test(expected.postcode))
-    )
-      return false;
-    point = next;
-    pointAddress = expected;
-    return native.district() ? controller.selectPoint(next, expected) : true;
-  };
+  const instantStatus = root.document.createElement('div');
+  instantStatus.className = 'kiriof-classic-instant-status';
+  instantStatus.setAttribute('role', 'status');
+  instantStatus.setAttribute('aria-live', 'polite');
+  instantStatus.hidden = true;
+  panel.append(instantStatus);
+  const select = (next: Point | null, expected: NativeAddress) =>
+    controller.selectPoint(next, expected);
   function changed() {
     if (disposed) return;
     // Woo can replace native fields before the selector's queued refresh runs.
     root.kiriofBuyerSelectors?.refresh();
-    if (controller.updateAddress(native.address(), native.scope())) {
-      point = null;
-      pointAddress = null;
-    }
+    controller.updateAddress(native.address(), native.scope());
     const selected = native.district();
     const id = selected?.id || '';
     if (id !== lastDistrict || (selected && !controller.getState().selection)) {
       lastDistrict = id;
       void controller.selectDistrict(selected);
-      if (point && selected && pointAddress) controller.selectPoint(point, pointAddress);
     }
     render();
   }
@@ -211,13 +200,10 @@ export function startClassicPin(
     );
   });
   $(root.document.body)
-    .on('update_checkout.kiriofClassicPin', () => {
-      busy = true;
-    })
+    .on('update_checkout.kiriofClassicPin', changed)
     .on(
       'updated_checkout.kiriofClassicPin checkout_error.kiriofClassicPin kiriof:classic-district-synced.kiriofClassicPin',
       (event) => {
-        busy = false;
         changed();
         if (event.type === 'kiriof:classic-district-synced' && controller.getState().queue.error)
           void controller.retry();
@@ -262,7 +248,17 @@ export function startClassicPin(
   };
   root.addEventListener('pagehide', dispose);
   if (controller.getState().point) void controller.sync();
-  const bridge = { controller, changed, dispose };
+  const restore = () => {
+    if (disposed) return;
+    if (
+      !form.contains(hidden) ||
+      !form.contains(panel) ||
+      form.querySelector('[name="kiriof_buyer_destination_snapshot"]') !== hidden ||
+      form.querySelector('.kiriof-classic-pin') !== panel
+    )
+      changed();
+  };
+  const bridge = { controller, changed, restore, dispose };
   root.kiriofBuyerPin = bridge;
   return bridge;
 }

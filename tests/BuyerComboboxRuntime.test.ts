@@ -47,6 +47,7 @@ async function bundle() {
       },
     ],
   });
+
   if (!build.success) throw new Error(build.logs.join('\n'));
   return readFileSync(join(directory, 'runtime.js'));
 }
@@ -147,6 +148,39 @@ const district =
   '<label for="district">Subdistrict</label><select id="district" name="kiriof_destination_area" required aria-describedby="help"><option value="">Select Option</option><option value="101" selected>Old district</option></select><span id="help">Search your subdistrict</span>';
 
 describe('Classic buyer selectors (compiled actual bits-ui)', () => {
+  test('FunnelKit column classes and field placement stay builder-owned', async () => {
+    const h = await fixture('<input name="_wfacp_post_id" value="123" type="hidden"><div class="wfacp-row"><p id="shipping_postcode_field" class="form-row wfacp-form-control-wrapper wfacp-col-left-half"><input name="shipping_postcode" value="55222"></p><p id="shipping_state_field" class="form-row wfacp-form-control-wrapper wfacp-col-right-half"><label for="shipping_state">Province</label><select id="shipping_state"><option value="YO">DI Yogyakarta</option></select></p></div>');
+    try {
+      const form = h.window.document.querySelector('form')!;
+      expect(form.classList.contains('kiriof-funnelkit-checkout')).toBe(true);
+      expect(h.window.document.querySelector('#shipping_state_field')!.classList.contains('wfacp-col-right-half')).toBe(true);
+      expect(h.window.document.querySelector('#shipping_postcode_field')!.classList.contains('wfacp-col-left-half')).toBe(true);
+      expect(h.window.document.querySelector('.wfacp-row')!.children).toHaveLength(2);
+      const css = readFileSync(join(root, 'assets/buyer/css/kiriof-classic-checkout.css'), 'utf8');
+      for (const selector of css.matchAll(/([^{}]+)\{([^{}]+)\}/g)) {
+        if (/#[a-z]+_(?:city|state|postcode|phone)_field/.test(selector[1]) && /(?:width|grid-column)\s*:/.test(selector[2]))
+          expect(selector[1]).toContain(':not(.kiriof-funnelkit-checkout)');
+      }
+    } finally { await h.cleanup(); }
+  });
+  test('FunnelKit fields own a scoped style hook without styling unrelated buttons', async () => {
+    const h = await fixture(
+      '<div class="wfacp-form-control-wrapper"><label for="billing_state">State</label><select id="billing_state"><option value="YO" selected>Daerah Istimewa Yogyakarta</option></select></div><button type="submit" id="place_order">Place order</button>',
+    );
+    try {
+      const row = h.window.document.querySelector('.wfacp-form-control-wrapper')!;
+      expect(row.classList.contains('kiriof-funnelkit-select-field')).toBe(true);
+      expect(h.window.document.querySelector('#place_order')!.closest('.kiriof-funnelkit-select-field')).toBeNull();
+      expect(h.trigger().getAttribute('aria-labelledby')).toBe('billing_state-buyer-selector-label');
+      const css = readFileSync(join(root, 'src/buyer/styles/selectors.css'), 'utf8');
+      expect(css).toContain('.kiriof-funnelkit-select-field label[for]');
+      expect(css).toContain('background: #fff !important');
+      expect(css).toContain('outline: 2px solid #333 !important');
+      expect(css).toContain('min-height: 44px !important');
+    } finally {
+      await h.cleanup();
+    }
+  });
   test('native authority, accessible labels, one explicit selection change and no refresh writes', async () => {
     const h = await fixture(
       '<label for="billing_state">Province</label><select id="billing_state" required><option value="">Select</option><option value="ID-JB" selected>West Java</option><option value="ID-JT">Central Java</option></select>',
@@ -451,6 +485,62 @@ const postalRows = (rows: [string, string][]) => ({
 });
 
 describe('Classic checkout postcode recovery (opt-in)', () => {
+  for (const interaction of ['combobox', 'native', 'replacement']) {
+    test(`explicit ${interaction} district choice updates native hierarchy before preserving its postcode context`, async () => {
+      let requests!: ReturnType<typeof postalRequests>;
+      const h = await fixture(
+        '<input id="billing_country" name="billing_country" value="ID"><input id="billing_city" name="billing_city" value="Yogyakarta"><input id="billing_state" name="billing_state" value="YO"><input id="billing_postcode" name="billing_postcode" value="55222"><input name="kiriof_destination_area_name"><select id="billing_district" name="kiriof_destination_area"><option value="101" selected>Old village, Old district, Yogyakarta, DI Yogyakarta, 55222</option><option value="31554">Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581</option></select>',
+        { isCheckout: true, indonesiaStates: { YO: 'Daerah Istimewa Yogyakarta' } },
+        (w) => { requests = postalRequests(w); },
+      );
+      try {
+        const document = h.window.document;
+        const value = (name: string) => (document.querySelector(`[name="${name}"]`) as any).value;
+        expect(value('billing_city')).toBe('Yogyakarta');
+        expect(value('billing_postcode')).toBe('55222');
+        let native = document.querySelector('select')!;
+        if (interaction === 'combobox') {
+          await h.open();
+          await h.choose('31554');
+        } else {
+          if (interaction === 'replacement') {
+            const replacement = native.cloneNode(true) as typeof native;
+            native.replaceWith(replacement);
+            native = replacement;
+          }
+          native.value = '31554';
+          native.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+          await h.settle();
+        }
+        expect(value('billing_city')).toBe('Sleman');
+        expect(value('billing_state')).toBe('YO');
+        expect(value('billing_postcode')).toBe('55581');
+        expect(document.querySelector('[name="kiriof_billing_derived_address"]')).toBeNull();
+        expect(h.changes).toHaveLength(1);
+        expect(requests).toHaveLength(1);
+        native.replaceChildren();
+        h.bridge.refresh();
+        await h.settle();
+        expect(native.value).toBe('31554');
+        expect(value('kiriof_destination_area_name')).toContain('Sari Harjo');
+        expect(requests).toHaveLength(1);
+        for (const [field, manual] of [['city', 'Manual city'], ['state', 'JB'], ['postcode', '40111']]) {
+          (document.querySelector(`[name="billing_${field}"]`) as any).value = manual;
+        }
+        const postcode = document.getElementById('billing_postcode')!;
+        postcode.dispatchEvent(new h.window.Event('input', { bubbles: true }));
+        h.bridge.refresh();
+        await h.settle();
+        expect(value('billing_city')).toBe('Manual city');
+        expect(value('billing_state')).toBe('JB');
+        expect(value('billing_postcode')).toBe('40111');
+        expect(h.changes).toHaveLength(1);
+      } finally {
+        await h.cleanup();
+      }
+    });
+  }
+
   test('closing an untouched dropdown does not cancel pending postcode recovery', async () => {
     let requests!: ReturnType<typeof postalRequests>;
     const h = await fixture(postalAddress(), { isCheckout: '1' }, (w) => {

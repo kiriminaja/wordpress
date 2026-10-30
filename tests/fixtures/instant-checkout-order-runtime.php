@@ -16,6 +16,7 @@ namespace Automattic\WooCommerce\StoreApi\Exceptions {
 namespace {
     function esc_html($value) { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
     function wp_unslash($value) { return $value; }
+    function wc_add_notice($message, $type = 'success') { $GLOBALS['legacy_notices'][] = array('message' => $message, 'type' => $type); }
     // Reuse the isolated live quote doubles, with output buffered, not production APIs.
     $formattedInput = json_decode($argv[1] ?? '{}', true);
     $argv[1] = json_encode(['scenario' => in_array($argv[2] ?? '', ['example_total', 'zero_admin', 'zero_price'], true) ? $argv[2] : '']);
@@ -135,7 +136,7 @@ namespace {
     }
     class OrderRequest { public array $params; public function get_param($key) { return $this->params[$key] ?? null; } }
     class OrderWC {
-        public $session; public $customer; public $cart; public array $packages;
+        public $session; public $customer; public $cart; public $shipping; public array $packages;
         public function shipping() { return $this; }
         public function get_packages() { return $this->packages; }
     }
@@ -256,6 +257,20 @@ namespace {
         if ($scenario === 'classic_clear') $_POST['kiriof_buyer_destination_snapshot'] = json_encode(array('version'=>1,'district_id'=>'','district_label'=>'','country'=>'ID','postcode'=>'12345','address_type'=>'shipping'));
         if ($scenario === 'classic_tamper') { $changed=$destination; $changed['destination_latitude']='-6.4'; $_POST['kiriof_buyer_destination_snapshot']=json_encode($changed); }
     }
+    $GLOBALS['legacy_notices'] = array();
+    if (str_starts_with($scenario, 'classic_submit_')) {
+        require_once dirname(__DIR__, 2) . '/inc/Controllers/CheckoutController.php';
+        $wc->shipping = $wc;
+        $wc->packages[0]['rates'] = array($line->get_id() => clone $line);
+        $_POST = array('ship_to_different_address' => 'on', 'shipping_country' => 'ID', 'shipping_address_1' => $address['address_1'], 'kiriof_shipping_destination_area' => $destination['district_id'], 'shipping_method' => array($line->get_id()), 'kiriof_buyer_destination_snapshot' => json_encode($destination));
+        // Native WooCommerce validation passes its error collector after verifying the nonce.
+        $legacy = (new \ReflectionClass(\KiriminAjaOfficial\Controllers\CheckoutController::class))->newInstanceWithoutConstructor();
+        $legacy->kiriof_validateOrder(array(), new \stdClass());
+        if ($scenario === 'classic_submit_expired') { foreach ($wc->session->data['kiriof_instant_checkout_quotes'] as &$entry) { $entry['expires'] = time() - 1; } unset($entry); }
+        if ($scenario === 'classic_submit_missing_pin') { $wc->session->set('kiriof_buyer_destination', null); }
+        if ($scenario === 'classic_submit_changed_pin') { $changed = $destination; $changed['destination_latitude'] = '-6.4'; $_POST['kiriof_buyer_destination_snapshot'] = json_encode($changed); }
+        if ($scenario === 'classic_submit_forged_quote') { $line->meta['kiriof_instant_quote_token'] = str_repeat('a', 64); }
+    }
     try { if ($scenario === 'classic' || strpos($scenario,'classic_') === 0) { $controller->afterCheckoutBeforeCreated($order, []); } else { $controller->afterStoreApiCheckoutUpdateOrderFromRequest($order, $request); } } catch (\Throwable $e) { $error = $e->getMessage(); $errorStatus = $e->status ?? null; }
     $validatedSnapshot = $order->get_meta($controller::SNAPSHOT_META_KEY);
     if ($error === '') {
@@ -305,5 +320,5 @@ namespace {
             if ($scenario === 'insert') { $transactions->fail = false; $wc->session->data = []; $controller->afterStoreApiCheckoutOrderProcessed($order); }
         }
     }
-    echo json_encode(['validated_snapshot' => $validatedSnapshot, 'quote' => !empty($formattedInput) ? $quote : null, 'package_phone' => $wc->packages[0]['destination']['phone'] ?? null, 'session_empty' => empty($wc->session->data), 'error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs'], 'reload' => $reloadState]);
+    echo json_encode(['legacy_notices' => $GLOBALS['legacy_notices'], 'validated_snapshot' => $validatedSnapshot, 'quote' => !empty($formattedInput) ? $quote : null, 'package_phone' => $wc->packages[0]['destination']['phone'] ?? null, 'session_empty' => empty($wc->session->data), 'error' => $error, 'error_status' => $errorStatus, 'production_quote_service' => get_class($service), 'invoice_calls' => $generator->calls, 'processed_error' => $processedError, 'rows' => $transactions->rows, 'meta' => $order->meta, 'order_address' => $order->address, 'shipping_total' => $line->total, 'cart_fees' => $cartFees->fees, 'fee_lines' => $order->get_items('fee'), 'calls' => $api->calls, 'hooks' => $GLOBALS['hooks'], 'locks' => $GLOBALS['locks'], 'logs' => $GLOBALS['logs'], 'reload' => $reloadState]);
 }

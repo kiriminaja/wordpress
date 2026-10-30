@@ -2,6 +2,35 @@
 use PHPUnit\Framework\TestCase;
 
 final class ClassicPinBackendRuntimeTest extends TestCase {
+    public function test_coordinate_draft_ajax_is_nonce_protected_and_does_not_require_an_address(): void {
+        $this->assertSame( array(), $this->runCase( 'draft-nonce' )['writes'] );
+        $result = $this->runCase( 'draft-save' );
+        $this->assertSame( array( 'success' => true, 'data' => array( 'coordinates_saved' => true ), 'status' => 200 ), $result['response'] );
+        $this->assertSame( array( 'billing' => array( 'latitude' => '-6.2', 'longitude' => '106.8' ) ), $result['session']['kiriof_classic_pin_drafts'] );
+        $this->assertSame( array( 'kiriof_classic_pin_drafts' ), $result['writes'] );
+        $this->assertSame( array(), $result['lookups'] );
+        $this->assertSame( array( 'legacy' ), $result['session']['chosen_shipping_methods'] );
+    }
+
+    public function test_coordinate_draft_ajax_clear_and_foreign_country_remove_the_bound_pin(): void {
+        foreach ( array( 'draft-clear', 'draft-foreign-clear', 'draft-foreign', 'draft-foreign-omitted', 'draft-country-missing', 'draft-country-malformed' ) as $mode ) {
+            $result = $this->runCase( $mode );
+            $this->assertNull( $result['session']['kiriof_buyer_destination'] );
+            $this->assertNull( $result['session']['kiriof_buyer_destination_coordinates'] );
+            $this->assertSame( array(), $result['session']['kiriof_instant_checkout_quotes'] );
+            $this->assertSame( array( 'legacy' ), $result['session']['chosen_shipping_methods'] );
+            $this->assertSame( array(), $result['lookups'] );
+            $success = in_array( $mode, array( 'draft-clear', 'draft-foreign-clear' ), true );
+            $this->assertSame( $success, $result['response']['success'], $mode );
+            if ( $success ) {
+                $this->assertSame( array( 'coordinates_saved' => true ), $result['response']['data'] );
+                $this->assertSame( 200, $result['response']['status'] );
+            } else {
+                $this->assertSame( 'kiriof_pin_address_mismatch', $result['response']['data']['code'], $mode );
+            }
+        }
+    }
+
     private function runCase( string $mode ): array {
         exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/classic-pin-backend-runtime.php' ) . ' ' . escapeshellarg( $mode ) . ' 2>&1', $output, $status );
         $this->assertSame( 0, $status, implode( "\n", $output ) );
