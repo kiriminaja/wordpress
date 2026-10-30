@@ -70,19 +70,36 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
         ) );
         // Fetch complete membership separately: GROUP_CONCAT is length limited and
         // can silently omit orders from the authorized payment refresh request.
+        $instant_ids = array();
         foreach ( $results as $row ) {
             $row->order_ids = array();
-            if ( 'instant' !== $row->delivery_type ) {
-                continue;
+            if ( 'instant' === $row->delivery_type ) {
+                $instant_ids[] = (string) $row->instant_payment_id;
             }
+        }
+        if ( $instant_ids ) {
+            $member_args = array();
+            foreach ( $instant_ids as $instant_id ) {
+                $member_args[] = $instant_id;
+                $member_args[] = $wpdb->prefix . 'kiriminaja_transactions';
+                $member_args[] = 'instant';
+                $member_args[] = $instant_id;
+            }
+            // Compare the column directly with literals so its collation wins even
+            // when the connection differs. Return the page identity for PHP grouping.
             $members = $wpdb->get_results( $wpdb->prepare(
-                'SELECT order_id FROM %i WHERE delivery_type = %s AND instant_payment_id = %s ORDER BY order_id ASC',
-                $wpdb->prefix . 'kiriminaja_transactions',
-                'instant',
-                $row->instant_payment_id
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Only the branch count is dynamic; each branch prepares its identifier and all values.
+                implode( ' UNION ALL ', array_fill( 0, count( $instant_ids ), 'SELECT %s AS instant_payment_id, order_id FROM %i WHERE delivery_type = %s AND instant_payment_id = %s' ) ) . ' ORDER BY order_id ASC',
+                $member_args
             ) );
+            $order_ids = array();
             foreach ( $members as $member ) {
-                $row->order_ids[] = (string) $member->order_id;
+                $order_ids[ (string) $member->instant_payment_id ][] = (string) $member->order_id;
+            }
+            foreach ( $results as $row ) {
+                if ( 'instant' === $row->delivery_type ) {
+                    $row->order_ids = $order_ids[ (string) $row->instant_payment_id ] ?? array();
+                }
             }
         }
         $this->logDatabaseError();
@@ -92,16 +109,15 @@ class WordPressPaymentListQuery implements PaymentListQueryInterface {
     /** {@inheritDoc} */
     public function getStatusCounts(): array {
         $wpdb = $this->wpdb;
-        $counts = array();
+        $counts = array( 'all' => 0, 'unpaid' => 0, 'paid' => 0, 'pending' => 0, 'refunded' => 0 );
         $groups = $this->getPaymentGroupsSql();
-        foreach ( array( 'all', 'unpaid', 'paid', 'pending', 'refunded' ) as $status ) {
-            // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups are fixed SQL with %i-prepared table identifiers, not request SQL; status values are prepared below.
-            $counts[ $status ] = (int) $wpdb->get_var( $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed aggregate with %i-prepared table identifiers, not request SQL; status values are prepared here.
-                "SELECT COUNT(*) FROM ({$groups}) payment_groups WHERE ( %s = 'all' OR status = %s )",
-                $status,
-                $status
-            ) );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Groups are fixed SQL with %i-prepared table identifiers; status literals are fixed and there are no request values.
+        $rows = $wpdb->get_results( "SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'unpaid' THEN 1 ELSE 0 END) AS unpaid, SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paid, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'refunded' THEN 1 ELSE 0 END) AS refunded FROM ({$groups}) payment_groups" );
+        if ( ! empty( $rows ) ) {
+            $counts['all'] = (int) $rows[0]->total;
+            foreach ( array( 'unpaid', 'paid', 'pending', 'refunded' ) as $status ) {
+                $counts[ $status ] = (int) $rows[0]->{$status};
+            }
         }
         $this->logDatabaseError();
         return $counts;

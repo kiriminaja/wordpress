@@ -22,18 +22,21 @@
     import * as Card from "$lib/components/ui/card";
     import StatusBadge from "$lib/admin-list/StatusBadge.svelte";
     import ActionTooltip from "$lib/ui/ActionTooltip.svelte";
-    import InstantOperationDialog from "$lib/transactions/InstantOperationDialog.svelte";
+    import DeferredDialog from "$lib/ui/DeferredDialog.svelte";
     import { type InstantOperationMode, instantStatusIcon } from "$lib/transactions/types";
     import KiriofCard from "$lib/ui/KiriofCard.svelte";
     import CopyableValue from "$lib/ui/CopyableValue.svelte";
-    import PrintPreviewDialog from "$lib/ui/PrintPreviewDialog.svelte";
     import Toolbar from "$lib/ui/Toolbar.svelte";
     import { courierImage } from "$lib/transactions/courier-images";
-    import TransactionActionDialogs, {
-        type TransactionActionDialog,
+    import type {
+        TransactionActionDialog,
     } from "$lib/transactions/TransactionActionDialogs.svelte";
     import type { TrackingResponse, TransactionDetailBootstrap } from "./types";
     import InstantRouteMap from "./InstantRouteMap.svelte";
+
+    const loadTransactionActionDialogs = () => import("$lib/transactions/TransactionActionDialogs.svelte");
+    const loadInstantOperationDialog = () => import("$lib/transactions/InstantOperationDialog.svelte");
+    const loadPrintPreviewDialog = () => import("$lib/ui/PrintPreviewDialog.svelte");
 
     let {
         bootstrap,
@@ -662,17 +665,29 @@
         </aside>
     </div>
     {#if transaction.deliveryType === 'express'}
-    <TransactionActionDialogs
-        bind:action={actionDialog}
-        locations={bootstrap.shipmentLocations}
-        locationsUrl={bootstrap.locationsUrl}
-        ajaxUrl={bootstrap.ajax.url}
-        {i18n}
-        onComplete={finishAction}
-    />
+    <DeferredDialog active={actionDialog !== null} load={loadTransactionActionDialogs} {i18n} onClose={() => (actionDialog = null)}>
+        {#snippet children({ default: DialogComponent })}
+            <DialogComponent
+                bind:action={actionDialog}
+                locations={bootstrap.shipmentLocations}
+                locationsUrl={bootstrap.locationsUrl}
+                ajaxUrl={bootstrap.ajax.url}
+                {i18n}
+                onComplete={finishAction}
+            />
+        {/snippet}
+    </DeferredDialog>
     {/if}
-    {#if instantOperation}
-        <InstantOperationDialog mode={instantOperation} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} {i18n} onClose={(completed) => { instantOperation = null; if (completed) finishAction(); }} />
-    {/if}
-    <PrintPreviewDialog deliveryType={transaction.deliveryType} bind:open={printPreviewOpen} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={transaction.deliveryType === 'instant' ? bootstrap.ajax.nonce : bootstrap.ajax.printPreviewNonce} {i18n} />
+    <DeferredDialog active={instantOperation !== null} load={loadInstantOperationDialog} {i18n} onClose={() => (instantOperation = null)}>
+        {#snippet children({ default: DialogComponent })}
+            {#if instantOperation}
+                <DialogComponent mode={instantOperation} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} {i18n} onClose={(completed) => { instantOperation = null; if (completed) finishAction(); }} />
+            {/if}
+        {/snippet}
+    </DeferredDialog>
+    <DeferredDialog active={printPreviewOpen} load={loadPrintPreviewDialog} {i18n} onClose={() => (printPreviewOpen = false)}>
+        {#snippet children({ default: DialogComponent })}
+            <DialogComponent deliveryType={transaction.deliveryType} bind:open={printPreviewOpen} orderIds={[transaction.orderId]} ajaxUrl={bootstrap.ajax.url} nonce={transaction.deliveryType === 'instant' ? bootstrap.ajax.nonce : bootstrap.ajax.printPreviewNonce} {i18n} />
+        {/snippet}
+    </DeferredDialog>
 </div>

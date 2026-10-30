@@ -778,6 +778,9 @@ class TransactionDetailPageData
             ),
             "confirm" => __("Confirm change", "kiriminaja-official"),
             "processing" => __("Processing…", "kiriminaja-official"),
+            "loading" => __("Loading…", "kiriminaja-official"),
+            "retry" => __("Retry", "kiriminaja-official"),
+            "close" => __("Close", "kiriminaja-official"),
             "actionError" => __(
                 "Unable to complete this action.",
                 "kiriminaja-official",

@@ -41,7 +41,7 @@ describe('Classic asset registration and legacy ownership', () => {
 		expect(registration).toContain("$config['enabled'] = $this->classic_instant_enabled();");
 		expect(registration).toContain("$config['ownsDistrict'] = false;");
 		expect(registration).toContain("'kiriofClassicCheckoutConfig', $config");
-		expect(registration).toContain("'kiriofMapCheckoutConfig', $this->map_checkout_config()");
+		expect(registration).toContain("'kiriofMapCheckoutConfig', isset( $config ) ? $config['map'] : $this->map_checkout_config()");
 		expect(registration).toContain('assets/buyer/css/kiriof-classic-checkout.css');
 	});
 
