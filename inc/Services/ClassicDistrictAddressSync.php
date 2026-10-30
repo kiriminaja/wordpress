@@ -21,7 +21,25 @@ final class ClassicDistrictAddressSync {
 		if ( array_key_exists( 'wfacp_billing_same_as_shipping', $data ) ) {
 			return in_array( $data['wfacp_billing_same_as_shipping'], array( '0', 0 ), true );
 		}
-		return in_array( $data['billing_same_as_shipping'] ?? null, array( '1', 1 ), true );
+		if ( array_key_exists( 'billing_same_as_shipping', $data ) ) {
+			return in_array( $data['billing_same_as_shipping'], array( '1', 1 ), true );
+		}
+		// A single-address FunnelKit form can omit both billing-toggle flags.
+		if ( ! self::shippingFirst( $data ) || 'ID' !== ( $data['shipping_country'] ?? null ) || 'ID' !== ( $data['billing_country'] ?? null ) ) {
+			return false;
+		}
+		$street = $data['shipping_address_1'] ?? null;
+		if ( ! is_string( $street ) || '' === trim( $street ) || $street !== ( $data['billing_address_1'] ?? null ) ) {
+			return false;
+		}
+		foreach ( array( 'address_2', 'city', 'state', 'postcode' ) as $field ) {
+			$billing = $data[ 'billing_' . $field ] ?? '';
+			$shipping = $data[ 'shipping_' . $field ] ?? '';
+			if ( ! is_string( $billing ) || ! is_string( $shipping ) || ( '' !== $billing && $billing !== $shipping ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public function register(): void {

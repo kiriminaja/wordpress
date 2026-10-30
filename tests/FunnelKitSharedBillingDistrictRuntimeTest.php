@@ -10,6 +10,61 @@ final class FunnelKitSharedBillingDistrictRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_pre_collection_and_final_required_validation_accept_single_address_shipping_district(): void {
+		$result = $this->runFixture( array(
+			'override' => array(
+				'wfacp_billing_same_as_shipping' => null,
+				'billing_country' => 'ID',
+				'billing_address_1' => 'Jalan Example 123',
+				'billing_postcode' => '', 'billing_city' => '', 'billing_state' => '',
+				'shipping_method' => array( 'kiriminaja-instant:7:gosend:instant' ),
+			),
+			'omit' => array( 'wfacp_billing_same_as_shipping', 'kiriof_destination_area', 'kiriof_destination_area_name' ),
+		) );
+		$this->assertSame( array(), $result['errors'] );
+		$this->assertSame( '31554', $result['pre_collection']['kiriof_destination_area'] );
+		$this->assertSame( self::LABEL, $result['data']['kiriof_destination_area_name'] );
+	}
+
+	public function test_single_address_payload_without_flags_uses_verified_shipping_district_for_billing(): void {
+		foreach ( array( 'kiriminaja-instant:7:gosend:instant', 'kiriminaja-official_jnt_EZ' ) as $method ) {
+			$result = $this->runFixture( array(
+				'omit' => array( 'wfacp_billing_same_as_shipping', 'kiriof_destination_area', 'kiriof_destination_area_name' ),
+				'override' => array(
+					'billing_country' => 'ID',
+					'billing_address_1' => 'Jalan Example 123',
+					'billing_city' => '', 'billing_state' => '', 'billing_postcode' => '',
+					'shipping_method' => array( $method ),
+				),
+				'builder_clears' => true,
+			) );
+			$this->assertSame( array(), $result['errors'] );
+			$this->assertSame( '31554', $result['sanitized_billing'] );
+			$this->assertSame( '31554', $result['data']['kiriof_destination_area'] );
+			$this->assertSame( self::LABEL, $result['data']['kiriof_destination_area_name'] );
+			$this->assertSame( array( '55581' ), $result['calls'] );
+		}
+	}
+
+	public function test_no_flag_different_or_conflicting_billing_address_is_not_repaired(): void {
+		foreach ( array(
+			array( 'billing_address_1' => 'Different billing street' ),
+			array( 'billing_city' => 'Different city' ),
+			array( 'billing_postcode' => '11111' ),
+			array( 'billing_country' => 'US' ),
+			array( 'billing_address_2' => 'Different unit' ),
+			array( 'billing_state' => array( 'YO' ) ),
+		) as $override ) {
+			$result = $this->runFixture( array(
+				'omit' => array( 'wfacp_billing_same_as_shipping' ),
+				'override' => array_replace( array( 'billing_country' => 'ID', 'billing_address_1' => 'Jalan Example 123' ), $override ),
+			) );
+			$this->assertArrayHasKey( 'kiriof_destination_area_required', $result['errors'] );
+			$this->assertSame( '', $result['sanitized_billing'] );
+			$this->assertSame( array(), $result['calls'] );
+		}
+	}
+
 	public function test_shared_missing_empty_and_stale_billing_are_bound_before_collection_and_required_validation(): void {
 		foreach ( array(
 			array(),
