@@ -8,6 +8,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 /** Shared recipient context for quotes, native rate caching and final checkout. */
 final class InstantCheckoutRecipient {
 	public const FIELDS = array( 'first_name', 'last_name', 'phone' );
+	private static $classic_customer = null;
+	private static ?string $classic_phone = null;
+	private static ?array $classic_contact = null;
+
+	public static function classicContact( $customer, ?array $contact ): void {
+		self::$classic_customer = $customer;
+		self::$classic_contact = $contact;
+	}
+
+	/** Retain explicit phone clears for this verified review only, never in session history. */
+	public static function classicPhone( $customer, ?string $phone ): void {
+		self::$classic_customer = $customer;
+		self::$classic_phone = $phone;
+		self::$classic_contact = null;
+	}
 
 	/** Present package values (including empty/malformed values) are authoritative. */
 	public static function resolve( array $package, $customer ): array {
@@ -29,6 +44,14 @@ final class InstantCheckoutRecipient {
 		}
 		foreach ( self::FIELDS as $field ) {
 			if ( array_key_exists( $field, $address ) ) {
+				continue;
+			}
+			if ( $customer === self::$classic_customer && null !== self::$classic_contact ) {
+				$address[ $field ] = self::$classic_contact[ $field ];
+				continue;
+			}
+			if ( 'phone' === $field && $customer === self::$classic_customer && null !== self::$classic_phone ) {
+				$address[ $field ] = self::$classic_phone;
 				continue;
 			}
 			$value = self::get( $customer, 'shipping', $field );

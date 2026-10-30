@@ -26,7 +26,9 @@ final class CourierServiceRateRuntimeTest extends TestCase {
 		}
 		// A pre-policy cache must be recalculated, even when the pair remains enabled.
 		$this->assertSame( array(), $result['allowed_legacy_context']['fees'] );
-		$this->assertArrayNotHasKey( 'courier_services', $result['allowed_legacy_context']['context'] );
+		$this->assertNull( $result['allowed_legacy_context']['context'] );
+		$this->assertSame( 0, $result['allowed_legacy_context']['insurance'] );
+		$this->assertSame( 0, $result['allowed_legacy_context']['cod'] );
 		$this->assertSame( 0, $result['network_calls'] );
 	}
 

@@ -4,24 +4,22 @@ import {
   type AddressScope,
   type District,
 } from '../state/classic-pin.svelte';
+import { syncDistrictAddress } from './district-address';
+import { isFunnelKitCheckout, usesShippingAddress } from './address-scope';
 
-export function nativeAddress(form: HTMLFormElement) {
+export function nativeAddress(form: HTMLFormElement, states: Record<string, string> = {}) {
   const field = (id: string) => form.querySelector<HTMLInputElement | HTMLSelectElement>(`#${id}`);
-  const scope = (): AddressScope =>
-    (
-      form.querySelector<HTMLInputElement>('#ship-to-different-address-checkbox') ||
-      form.querySelector<HTMLInputElement>('[name="ship_to_different_address"]')
-    )?.checked
-      ? 'shipping'
-      : 'billing';
+  const scope = (): AddressScope => (usesShippingAddress(form) ? 'shipping' : 'billing');
   const district = (): District | null => {
     const id =
       scope() === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
     const node = field(id);
-    const label = field(`${id}_name`);
+    const label = form.querySelector<HTMLInputElement>(`[name="${id}_name"]`);
     const text =
       label?.value ||
-      (node instanceof HTMLSelectElement ? node.selectedOptions[0]?.text : '') ||
+      (node instanceof HTMLSelectElement
+        ? Array.from(node.options).find((option) => option.value === node.value)?.text
+        : '') ||
       '';
     return node && /^[1-9][0-9]*$/.test(node.value) && text
       ? { id: node.value, label: text }
@@ -30,12 +28,14 @@ export function nativeAddress(form: HTMLFormElement) {
   return {
     scope,
     district,
-    address: () =>
-      address(
+    address: () => {
+      syncDistrictAddress(form, states);
+      return address(
         Object.fromEntries(
           addressFields.map((key) => [key, field(`${scope()}_${key}`)?.value || '']),
         ),
-      ),
+      );
+    },
     collection: () => {
       const inputs = [
         ...form.querySelectorAll<HTMLInputElement>(
@@ -56,11 +56,16 @@ export function placeNativePin(
   scope: AddressScope,
   contactLabel: string,
 ) {
+  const funnelkit =
+    isFunnelKitCheckout(form) ||
+    Boolean(form.closest('.wfacp_main_form, #wfacp_checkout_form, .wfacp_checkout_form'));
+  form.classList.toggle('kiriof-funnelkit-checkout', funnelkit);
   form
     .querySelectorAll(
       '.woocommerce-billing-fields__field-wrapper, .woocommerce-shipping-fields__field-wrapper',
     )
-    .forEach((wrapper) => wrapper.classList.add('kiriof-classic-address-layout'));
+    .forEach((wrapper) => wrapper.classList.toggle('kiriof-classic-address-layout', !funnelkit));
+  panel.classList.toggle('wfacp-col-full', funnelkit);
   const district = form.querySelector(
     `#${scope === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area'}`,
   );
@@ -72,7 +77,18 @@ export function placeNativePin(
       row.getAttribute('data-priority') === null ? 61 : Number(row.getAttribute('data-priority'));
     const value = String(Number.isFinite(priority) ? priority + 0.5 : 61.5);
     if (panel.getAttribute('data-priority') !== value) panel.setAttribute('data-priority', value);
+    if (funnelkit) {
+      const style = form.ownerDocument.defaultView?.getComputedStyle(row);
+      for (const [property, padding] of [
+        ['--kiriof-pin-padding-left', style?.paddingLeft],
+        ['--kiriof-pin-padding-right', style?.paddingRight],
+      ]) {
+        if (padding && panel.style.getPropertyValue(property!) !== padding)
+          panel.style.setProperty(property!, padding);
+      }
+    }
   }
+  if (funnelkit) return;
   const email = form.querySelector('#billing_email')?.closest('.form-row');
   const billing = form.querySelector('.woocommerce-billing-fields');
   const heading = billing?.querySelector('h3');

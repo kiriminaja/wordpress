@@ -8,6 +8,98 @@ final class ClassicCheckoutRecipientSyncRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_autofilled_national_phone_uses_verified_funnelkit_selected_country_context(): void {
+		$form = array_replace( $this->funnelContact(), array( 'billing_phone' => '81229917900', 'kiriof_funnelkit_phone_context' => json_encode( array( 'billing' => array( 'value' => '81229917900', 'iso2' => 'id', 'dialCode' => '62' ) ), JSON_THROW_ON_ERROR ) ) );
+		$result = $this->runFixture( array( 'forms' => array( $form, $form ) ) );
+		$this->assertSame( '6281229917900', $result['steps'][1]['recipient']['phone'] );
+		$this->assertSame( array( 'kiriminaja-instant:11:gosend:instant' ), $result['rates'] );
+	}
+
+	public function test_current_widget_context_does_not_reuse_wrong_prefix_mismatched_or_cleared_number(): void {
+		$valid = array_replace( $this->funnelContact(), array(
+			'billing_phone' => '81229917900',
+			'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"id","dialCode":"62"}}',
+		) );
+		foreach ( array(
+			array( 'billing_phone' => '' ),
+			array( 'billing_phone' => '81229917901' ),
+			array( 'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"au","dialCode":"61"}}' ),
+			array( 'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"id","dialCode":"1"}}' ),
+			array( 'kiriof_funnelkit_phone_context' => '[]' ),
+			array( 'kiriof_funnelkit_phone_context' => '{' ),
+		) as $override ) {
+			$result = $this->runFixture( array( 'forms' => array( $valid, array_replace( $valid, $override ) ) ) );
+			$this->assertSame( '6281229917900', $result['steps'][0]['recipient']['phone'] );
+			$this->assertSame( '', $result['steps'][1]['recipient']['phone'] );
+			$this->assertSame( array(), $result['rates'] );
+		}
+		$result = $this->runFixture( array( 'forms' => array( array_replace( $valid, array( 'billing_phone' => '+6281229917900' ) ) ) ) );
+		$this->assertSame( '6281229917900', $result['steps'][0]['recipient']['phone'] );
+	}
+
+	public function test_prefixed_phone_survives_uninitialized_funnelkit_metadata_and_repeated_refreshes(): void {
+		$form = $this->funnelContact() + array( 'wfacp_input_phone_field' => '{}' );
+		$result = $this->runFixture( array( 'forms' => array( $form, $form ) ) );
+		$this->assertSame( '081234567890', $result['steps'][1]['recipient']['phone'] );
+		$this->assertSame( array( 'kiriminaja-instant:11:gosend:instant' ), $result['rates'] );
+
+		$empty_scope = $this->funnelContact() + array( 'wfacp_input_phone_field' => '{"billing":{"code":"","number":"","hidden":""},"shipping":{"code":"","number":"","hidden":""}}' );
+		$result = $this->runFixture( array( 'forms' => array( $empty_scope, $empty_scope ) ) );
+		$this->assertSame( '081234567890', $result['steps'][1]['recipient']['phone'] );
+		$this->assertSame( array( 'kiriminaja-instant:11:gosend:instant' ), $result['rates'] );
+	}
+
+	public function test_initialized_phone_metadata_requires_current_number_and_rejects_wrong_code_or_mismatch(): void {
+		$valid = $this->funnelContact() + array( 'wfacp_input_phone_field' => '{"billing":{"code":"62","number":"81234567890","hidden":"no"},"shipping":{"code":"","number":"","hidden":""}}' );
+		$result = $this->runFixture( array( 'forms' => array( $valid, $valid ) ) );
+		$this->assertSame( '6281234567890', $result['steps'][1]['recipient']['phone'] );
+		$this->assertSame( array( 'kiriminaja-instant:11:gosend:instant' ), $result['rates'] );
+
+		foreach ( array(
+			array( 'code' => '61', 'number' => '81234567890', 'hidden' => 'no' ),
+			array( 'code' => '62', 'number' => '81234567891', 'hidden' => 'no' ),
+			array( 'code' => '62', 'number' => '', 'hidden' => '' ),
+		) as $phone ) {
+			$invalid = $this->funnelContact() + array( 'wfacp_input_phone_field' => json_encode( array( 'billing' => $phone, 'shipping' => array( 'code' => '', 'number' => '', 'hidden' => '' ) ) ) );
+			$result = $this->runFixture( array( 'forms' => array( $valid, $invalid ) ) );
+			$this->assertSame( '', $result['steps'][1]['recipient']['phone'] );
+			$this->assertSame( array(), $result['rates'] );
+		}
+	}
+
+	public function test_national_phone_uses_updated_metadata_and_clear_does_not_reuse_prior_phone(): void {
+		$first = $this->funnelContact() + array( 'wfacp_input_phone_field' => '{"billing":{"code":"62","number":"81234567890","hidden":"no"},"shipping":{"code":"","number":"","hidden":""}}' );
+		$updated = array_replace( $first, array( 'billing_phone' => '087777777777', 'wfacp_input_phone_field' => '{"billing":{"code":"62","number":"87777777777","hidden":"no"},"shipping":{"code":"","number":"","hidden":""}}' ) );
+		$cleared = array_replace( $updated, array( 'billing_phone' => '', 'wfacp_input_phone_field' => '{"billing":{"code":"","number":"","hidden":""},"shipping":{"code":"","number":"","hidden":""}}' ) );
+		$result = $this->runFixture( array( 'forms' => array( $first, $updated, $cleared ) ) );
+		$this->assertSame( '6281234567890', $result['steps'][0]['recipient']['phone'] );
+		$this->assertSame( '6287777777777', $result['steps'][1]['recipient']['phone'] );
+		$this->assertSame( '', $result['steps'][2]['recipient']['phone'] );
+		$this->assertSame( array(), $result['rates'] );
+	}
+
+	private function funnelContact(): array {
+		return $this->billing() + array( '_wfacp_post_id' => '123', 'wfacp_billing_same_as_shipping' => '0', 'shipping_country' => 'ID' );
+	}
+
+	public function test_visible_funnelkit_flag_uses_shared_billing_semantics_when_hidden_flag_is_absent(): void {
+		$form = array( '_wfacp_post_id' => '123', 'billing_same_as_shipping' => '1', 'shipping_country' => 'ID', 'shipping_first_name' => '', 'billing_first_name' => 'Laksana', 'billing_last_name' => 'Adi', 'billing_phone' => '081234567890' );
+		$result = $this->runFixture( array( 'forms' => array( $form ) ) );
+		$this->assertSame( 'Laksana', $result['steps'][0]['recipient']['first_name'] );
+		$this->assertSame( '081234567890', $result['steps'][0]['recipient']['phone'] );
+	}
+
+	public function test_funnelkit_current_contact_clears_do_not_reuse_prior_review_or_billing_names(): void {
+		$form = array( '_wfacp_post_id' => '123', 'wfacp_billing_same_as_shipping' => '0', 'shipping_country' => 'ID', 'shipping_first_name' => '', 'billing_first_name' => 'Laksana', 'billing_last_name' => 'Adi', 'billing_phone' => '81229917900', 'wfacp_input_phone_field' => '{"billing":{"code":"62","number":"81229917900","hidden":"no"},"shipping":{"code":"","number":"","hidden":""}}' );
+		$empty = array_replace( $form, array( 'billing_phone' => '', 'wfacp_billing_same_as_shipping' => '1' ) );
+		$result = $this->runFixture( array( 'forms' => array( $form, $empty ) ) );
+		$this->assertSame( 'Laksana', $result['steps'][0]['recipient']['first_name'] );
+		$this->assertSame( '6281229917900', $result['steps'][0]['recipient']['phone'] );
+		$this->assertSame( '', $result['steps'][1]['recipient']['first_name'] );
+		$this->assertSame( '', $result['steps'][1]['recipient']['phone'] );
+		$this->assertSame( '', $result['steps'][1]['customer']['shipping_phone'] );
+	}
+
 	private function billing(): array {
 		return array( 'billing_first_name' => 'Fresh', 'billing_last_name' => "O'Neil", 'billing_phone' => '081234567890' );
 	}

@@ -71,4 +71,22 @@ final class ClassicInstantRateRefreshRuntimeTest extends TestCase {
 			$this->assertTrue( $result['steps'][1]['invalidated'], $status );
 		}
 	}
+
+	public function test_hidden_address_repair_preserves_exact_pin_comparison(): void {
+		foreach ( array( false, true ) as $separate ) {
+			$this->assertTrue( $this->runFixture( array( 'hidden' => true, 'separate' => $separate ) )['steps'][0]['invalidated'] );
+			$this->assertFalse( $this->runFixture( array( 'hidden' => true, 'separate' => $separate, 'canonical_mismatch' => true ) )['steps'][0]['invalidated'] );
+			$this->assertFalse( $this->runFixture( array( 'hidden' => true, 'tamper' => true ) )['steps'][0]['invalidated'] );
+		}
+	}
+
+	public function test_fixed_seven_decimal_draft_and_promoted_coordinates_share_the_recovery_comparison(): void {
+		$result = $this->runFixture( array( 'draft' => true ) );
+		$coordinates = array( 'latitude' => '-7.74', 'longitude' => '110.37' );
+		$this->assertSame( $coordinates, $result['before']['kiriof_classic_pin_drafts']['billing'] );
+		$this->assertSame( $coordinates, $result['before']['kiriof_buyer_destination_coordinates'] );
+		$this->assertSame( '-7.74', $result['before']['kiriof_buyer_destination']['destination_latitude'] );
+		$this->assertSame( '110.37', $result['before']['kiriof_buyer_destination']['destination_longitude'] );
+		$this->assertTrue( $result['steps'][0]['invalidated'] );
+	}
 }

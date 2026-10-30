@@ -44,6 +44,15 @@ class CheckoutServiceFactory
         $this->api_repository              = $api_repository;
         $this->cod_fee_repository          = $cod_fee_repository;
         $this->shipment_location_service   = $shipment_location_service;
+        if ( function_exists( 'add_action' ) && function_exists( 'has_action' ) && ! has_action( AddressHierarchyResolver::REFRESH_HOOK ) ) {
+            add_action( AddressHierarchyResolver::REFRESH_HOOK, array( $this, 'refreshAddressHierarchy' ) );
+        }
+    }
+
+    public function refreshAddressHierarchy( $postcode ): void {
+        if ( is_string( $postcode ) && 1 === preg_match( '/\A[0-9]{5}\z/', $postcode ) ) {
+            $this->districtSearch( $postcode, true );
+        }
     }
 
     public function districtSearch( string $search, bool $revalidate = false ): ServiceResponse
@@ -52,30 +61,14 @@ class CheckoutServiceFactory
         $cache_key = preg_match( '/^\d{5}$/D', $search ) === 1
             ? 'kiriof_district_search_v4_' . md5( $search )
             : null;
-        // Only share bounded, usable options. In particular, a successful zero
-        // match must remain live so a subsequent lookup can recover immediately.
+        // Legacy ID/label-only entries cannot establish an official hierarchy.
         $cacheable = static function ( $rows ) use ( $search ): bool {
-            if ( ! is_array( $rows ) || ! array_is_list( $rows ) || empty( $rows ) || count( $rows ) > 500 ) {
-                return false;
-            }
-            foreach ( $rows as $row ) {
-                if ( ! is_array( $row ) && ! is_object( $row ) ) {
-                    return false;
-                }
-                $row = (array) $row;
-                $id = $row['id'] ?? null;
-                if ( ( ! is_int( $id ) && ! is_string( $id ) )
-                    || false === filter_var( $id, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) )
-                    || ! is_string( $row['text'] ?? null ) || '' === trim( $row['text'] ) || strlen( $row['text'] ) > 1000
-                    || ( isset( $row['zip_code'] ) && $search !== $row['zip_code'] ) ) {
-                    return false;
-                }
-            }
-            return true;
+            return AddressHierarchyResolver::rememberCachedRows( $rows, $search );
         };
         if ( ! $revalidate && null !== $cache_key && function_exists( 'get_transient' ) ) {
             $cached = get_transient( $cache_key );
             if ( $cacheable( $cached ) ) {
+                AddressHierarchyResolver::scheduleRefresh( $search );
                 return new ServiceResponse( $cached, 'success', 200 );
             }
         }

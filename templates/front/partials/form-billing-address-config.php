@@ -35,6 +35,7 @@ return array(
     'courierLogos'            => \KiriminAjaOfficial\Services\CourierLogoAssets::urls(),
     'billingCountry'          => $kiriof_countries['billing'],
     'shippingCountry'         => $kiriof_countries['shipping'],
+    'indonesiaStates'         => $kiriof_wc && isset( $kiriof_wc->countries ) && is_callable( array( $kiriof_wc->countries, 'get_states' ) ) ? (array) $kiriof_wc->countries->get_states( 'ID' ) : array(),
     'savedDistrictByPostcode' => is_array( $kiriof_saved_destination_map ) ? $kiriof_saved_destination_map : array(),
     'savedCheckoutPostcode'   => (string) $kiriof_saved_checkout_postcode,
     'billingDistrict'         => array(

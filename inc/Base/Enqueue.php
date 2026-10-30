@@ -228,6 +228,7 @@ class Enqueue extends BaseInit{
             'districtPostcode' => $customer ? (string) $customer->get_shipping_postcode() : '',
             'billingCountry' => $customer && method_exists( $customer, 'get_billing_country' ) ? (string) $customer->get_billing_country() : '',
             'shippingCountry' => $customer && method_exists( $customer, 'get_shipping_country' ) ? (string) $customer->get_shipping_country() : '',
+            'indonesiaStates' => $wc && isset( $wc->countries ) && is_callable( array( $wc->countries, 'get_states' ) ) ? (array) $wc->countries->get_states( 'ID' ) : array(),
             'i18n' => array(
                 'district' => __( 'Subdistrict', 'kiriminaja-official' ),
                 'districtNotSet' => __( 'Subdistrict Not Set', 'kiriminaja-official' ),
@@ -362,13 +363,17 @@ class Enqueue extends BaseInit{
             wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/buyer/css/kiriof-buyer-checkout.css', $this->map_style_dependencies(), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
         }
         if ( $localize ) {
-            $map_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
-            if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
-            }
             $data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
-            if ( ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+            $needs_map = ! is_string( $data ) || false === strpos( $data, 'kiriofMapCheckoutConfig' );
+            $needs_buyer = ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' );
+            if ( $needs_buyer ) {
+                $buyer_config = $this->buyer_checkout_config();
+            }
+            if ( $needs_map ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofMapCheckoutConfig', $needs_buyer ? $buyer_config['map'] : $this->map_checkout_config() );
+            }
+            if ( $needs_buyer ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig', $buyer_config );
             }
             $coupon_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
             if ( ! is_string( $coupon_data ) || false === strpos( $coupon_data, 'kiriofBlockCheckoutStrings' ) ) {
@@ -412,8 +417,12 @@ class Enqueue extends BaseInit{
                 // Classic checkout does not require Store API registration support.
                 $config['enabled'] = $this->classic_instant_enabled();
                 $config['ownsDistrict'] = false;
+                $session = function_exists( 'WC' ) && WC() ? WC()->session : null;
+                $config['savedPinDrafts'] = $session ? (array) $session->get( \KiriminAjaOfficial\Services\ClassicPinDraftService::SESSION_KEY, array() ) : array();
                 $config['i18n']['pinSaveFailed'] = __( 'Could not save the delivery pin. Please retry.', 'kiriminaja-official' );
                 $config['i18n']['pinSaving'] = __( 'Saving delivery pin…', 'kiriminaja-official' );
+                $config['i18n']['pinCompleteAddress'] = __( 'Pin saved. Complete your address and subdistrict to check shipping.', 'kiriminaja-official' );
+                $config['i18n']['pinOutsideCoverage'] = __( 'Pin saved. This location is outside the 40 km Instant delivery area. You can still use regular shipping.', 'kiriminaja-official' );
                 $config['i18n']['pinPostcodeRequired'] = __( 'Enter a 5-digit postcode to save the delivery pin.', 'kiriminaja-official' );
                 $config['i18n']['pinDistrictRequired'] = __( 'Select a subdistrict to save the delivery pin.', 'kiriminaja-official' );
                 $config['i18n']['pinAddressRequired'] = __( 'Complete the street, city and province to save the delivery pin.', 'kiriminaja-official' );
@@ -436,7 +445,7 @@ class Enqueue extends BaseInit{
             }
             $map_data = wp_scripts()->get_data( 'kiriof-classic-checkout', 'data' );
             if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-classic-checkout', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+                wp_localize_script( 'kiriof-classic-checkout', 'kiriofMapCheckoutConfig', isset( $config ) ? $config['map'] : $this->map_checkout_config() );
             }
         }
     }

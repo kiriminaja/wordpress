@@ -14,6 +14,7 @@ namespace {
 	function WC() { return $GLOBALS['wc']; }
 	function current_filter() { return $GLOBALS['input']['hook'] ?? 'woocommerce_checkout_update_order_review'; }
 	function sanitize_text_field( $value ) { return trim( strip_tags( $value ) ); }
+	function wp_slash( $value ) { return addslashes( $value ); }
 	$address = array( 'address_1' => 'Jalan Nakulo 27 Sariharjo Ngaglik', 'address_2' => '', 'city' => 'Sleman', 'state' => 'YO', 'postcode' => '55581', 'country' => 'ID' );
 	$pin = array( 'version' => 2, 'district_id' => '31554', 'district_label' => 'Sari Harjo', 'postcode' => '55581', 'country' => 'ID', 'address_type' => 'shipping', 'destination_latitude' => '-7.7400000', 'destination_longitude' => '110.3700000', 'shipping_address' => $address );
 	$rate = new class( $input ) {
@@ -66,8 +67,33 @@ namespace {
 	if ( ! empty( $input['tamper'] ) ) { $changed_pin = $pin; $changed_pin['destination_latitude'] = '-7.7500000'; $form['kiriof_buyer_destination_snapshot'] = json_encode( $changed_pin ); }
 	if ( ! empty( $input['clear'] ) ) { $form['kiriof_buyer_destination_snapshot'] = '{}'; }
 	if ( ! empty( $input['cod'] ) ) { $form['payment_method'] = 'cod'; }
-	$service = new \KiriminAjaOfficial\Services\ClassicInstantRateRefresh();
+	$sync = new \KiriminAjaOfficial\Services\ClassicDistrictAddressSync( static function ( $postcode ) use ( $input ) {
+		return (object) array( 'status' => 200, 'data' => array( array( 'id' => 31554, 'text' => 'Sari Harjo, Ngaglik, ' . ( ! empty( $input['canonical_mismatch'] ) ? 'Other city' : 'Sleman' ) . ', DI Yogyakarta, 55581' ) ) );
+	} );
+	if ( ! empty( $input['hidden'] ) ) {
+		$scope = ! empty( $input['separate'] ) ? 'shipping' : 'billing';
+		$key = 'shipping' === $scope ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+		$form[ 'kiriof_' . $scope . '_derived_address' ] = 'city,state,postcode';
+		$form[ $key ] = '31554';
+		$form[ $key . '_name' ] = 'Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581';
+		foreach ( array( 'city', 'state', 'postcode' ) as $field ) { $form[ $scope . '_' . $field ] = ''; }
+		$GLOBALS['wc']->countries = new class() {
+			public function get_states( $country ) { return array( 'YO' => 'DI Yogyakarta' ); }
+		};
+	}
+	$service = new \KiriminAjaOfficial\Services\ClassicInstantRateRefresh( $sync );
 	$service->register();
+	if ( ! empty( $input['draft'] ) ) {
+		$cache = $session->data['shipping_for_package_0'];
+		$draft = new \KiriminAjaOfficial\Services\ClassicPinDraftService( $sync, static function ( $postcode ) {
+			return (object) array( 'status' => 200, 'data' => array( array( 'id' => 31554, 'text' => 'Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581' ) ) );
+		} );
+		$draft->save( array( 'address_scope' => 'billing', 'country' => 'ID', 'coordinates' => array( 'latitude' => $pin['destination_latitude'], 'longitude' => $pin['destination_longitude'] ) ) );
+		$form['kiriof_destination_area'] = '31554';
+		unset( $form['kiriof_buyer_destination_snapshot'] );
+		$draft->review( http_build_query( $form ) );
+		$session->data['shipping_for_package_0'] = $cache;
+	}
 	$before = $session->data;
 	$steps = array();
 	for ( $step = 0; $step < ( $input['repeat'] ?? 1 ); ++$step ) {

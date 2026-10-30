@@ -121,6 +121,41 @@ final class ShipmentLocationServiceRuntimeTest extends TestCase {
     }
 
 	#[Test]
+	public function buyer_origin_reads_and_repairs_use_the_real_repository_on_sqlite(): void {
+		if ( ! extension_loaded( 'pdo_sqlite' ) ) {
+			$this->markTestSkipped( 'PDO SQLite is required for the buyer origin database fixture.' );
+		}
+
+		$output = array();
+		$status = 1;
+		exec(
+			escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( PLUGIN_DIR . '/tests/fixtures/buyer-origin-performance.php' ) . ' 2>&1',
+			$output,
+			$status
+		);
+		$this->assertSame( 0, $status, implode( "\n", $output ) );
+		$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+		$this->assertTrue( $result['ok'] );
+		$this->assertSame( 'SQLite', $result['engine'] );
+		$this->assertCount( 10, $result['checks'] );
+	}
+
+	#[Test]
+	public function failed_default_repair_returns_cached_null_without_seeding(): void {
+		$locations = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\ShipmentLocationRepository::class )->disableOriginalConstructor()->getMock();
+		$locations->expects( $this->once() )->method( 'getDefault' )->willReturn( null );
+		$locations->expects( $this->once() )->method( 'ensureDefaultExists' )->willReturn( false );
+		$locations->expects( $this->never() )->method( 'count' );
+		$locations->expects( $this->never() )->method( 'insert' );
+		$settings = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\SettingRepository::class )->disableOriginalConstructor()->getMock();
+		$settings->expects( $this->never() )->method( 'getSettingByArray' );
+		$service = new ShipmentLocationService( $locations, $settings );
+
+		$this->assertNull( $service->getDefaultLocation() );
+		$this->assertNull( $service->getDefaultLocation() );
+	}
+
+	#[Test]
 	public function legacy_default_seed_preserves_the_full_label_for_automatic_identity_repair(): void {
 		$label = 'Sari Harjo, Ngaglik, Sleman, DI Yogyakarta, 55581';
 		$settings = $this->getMockBuilder( \KiriminAjaOfficial\Repositories\SettingRepository::class )->disableOriginalConstructor()->getMock();

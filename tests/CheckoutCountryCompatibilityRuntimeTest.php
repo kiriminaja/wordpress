@@ -18,6 +18,42 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
         $this->assertSame( array(), $result['checkout_reads'], 'Posted countries must take precedence over checkout defaults.' );
     }
 
+    #[Test]
+    public function final_submit_instant_selection_does_not_require_legacy_calculation_token(): void {
+        $result = $this->runFixture( array(
+            'action' => 'validate',
+            'post' => array(
+                'billing_country' => 'ID',
+                'shipping_country' => 'ID',
+                'shipping_address_1' => '456 Long shipping street address',
+                'shipping_method' => array( 'kiriminaja-instant:4:gosend:GO-INSTANT' ),
+                'checkout_kiriminaja_nonce_field' => 'valid-country-nonce',
+            ),
+            'session' => array( 'chosen_shipping_methods' => array( 'kiriminaja-official:stale' ) ),
+            'rate_method_id' => 'kiriminaja-instant',
+        ) );
+
+        $this->assertSame( array( '<strong>Subdistrict</strong> is a required field' ), array_column( $result['notices'], 'message' ) );
+    }
+
+    #[Test]
+    public function final_submit_legacy_selection_still_requires_calculation_token(): void {
+        $result = $this->runFixture( array(
+            'action' => 'validate',
+            'post' => array(
+                'billing_country' => 'ID',
+                'shipping_country' => 'ID',
+                'shipping_address_1' => '456 Long shipping street address',
+                'shipping_method' => array( 'kiriminaja-official:4' ),
+                'checkout_kiriminaja_nonce_field' => 'valid-country-nonce',
+            ),
+            'session' => array( 'chosen_shipping_methods' => array( 'kiriminaja-official:4' ) ),
+            'rate_method_id' => 'kiriminaja-official',
+        ) );
+
+        $this->assertContains( '<strong>Checkout Calculation</strong> is not finished yet', array_column( $result['notices'], 'message' ) );
+    }
+
     public static function countryPairs(): array {
         return array(
             'both Indonesian' => array( 'ID', 'ID' ),
