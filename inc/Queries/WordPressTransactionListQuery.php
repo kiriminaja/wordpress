@@ -515,14 +515,57 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
     }
 
     public function getStatusCounts(): array {
+        $wpdb = $this->wpdb;
+        $o = $this->getOrdersTable();
+        $table = $wpdb->prefix . 'kiriminaja_transactions';
+        $payments = $wpdb->prefix . 'kiriminaja_payments';
+        $phone_issue_ids = $this->getPhoneIssueIds();
+        $regular_clause = $this->getDeliveryTypeClause( 't' );
+        if ( 'express' === $this->delivery_type ) {
+            $regular_clause .= ' AND t.is_deficit = 0' . $this->getPhoneIssueClause( 't', false, $phone_issue_ids );
+        }
+        $issue_clause = $this->getPhoneIssueClause( 't', true, $phone_issue_ids );
+        $express_clause = $this->getDeliveryTypeClause( 't', 'express' );
+        $shippable_clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
+        $not_trash = "p.{$o['trash_field']} NOT IN ('trash','auto-draft')";
+        $processed_clause = 'instant' === $this->delivery_type
+            ? $this->getInstantProcessedClause( 't' )
+            : "t.status != 'canceled' AND EXISTS (SELECT 1 FROM {$payments} pay WHERE pay.pickup_number = t.pickup_number)";
+
+        // Tabs overlap and intentionally differ in order-type and trash restrictions.
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT
+                COUNT(DISTINCT CASE WHEN p.{$o['type_col']} = %s AND {$not_trash} {$regular_clause} THEN p.{$o['id']} END) AS all_count,
+                COUNT(DISTINCT CASE WHEN p.{$o['status']} = %s AND t.status = %s {$regular_clause} THEN p.{$o['id']} END) AS processing_count,
+                COUNT(DISTINCT CASE WHEN p.{$o['status']} = %s AND t.status = %s {$regular_clause} THEN p.{$o['id']} END) AS on_hold_count,
+                COUNT(DISTINCT CASE WHEN p.{$o['status']} = %s AND t.status = %s {$regular_clause} THEN p.{$o['id']} END) AS pending_count,
+                COUNT(DISTINCT CASE WHEN p.{$o['status']} = %s {$regular_clause} THEN p.{$o['id']} END) AS cancelled_count,
+                COUNT(DISTINCT CASE WHEN {$not_trash} AND {$processed_clause} {$regular_clause} THEN p.{$o['id']} END) AS processed_count,
+                COUNT(DISTINCT CASE WHEN {$not_trash} AND (t.is_deficit = 1 {$issue_clause}) {$express_clause} THEN p.{$o['id']} END) AS issue_count
+            FROM {$o['table']} p
+            INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id
+            WHERE 1 = 1 {$shippable_clause}",
+            $o['type_value'],
+            'wc-processing',
+            'new',
+            'wc-on-hold',
+            'new',
+            'wc-pending',
+            'new',
+            'wc-cancelled'
+        ) );
+        $this->logDatabaseError();
+        if ( ! empty( $wpdb->last_error ) ) {
+            $row = null;
+        }
         return array(
-            'all'           => $this->getCountByPostStatus( null ),
-            'wc-processing' => $this->getCountByPostStatus( 'wc-processing' ),
-            'wc-on-hold'    => $this->getCountByPostStatus( 'wc-on-hold' ),
-            'wc-pending'    => $this->getCountByPostStatus( 'wc-pending' ),
-            'wc-cancelled'  => $this->getCountCancelled(),
-            'processed'     => $this->getCountProcessed(),
-            'order-issue'   => $this->getCountDeficit(),
+            'all'           => (int) ( $row->all_count ?? 0 ),
+            'wc-processing' => (int) ( $row->processing_count ?? 0 ),
+            'wc-on-hold'    => (int) ( $row->on_hold_count ?? 0 ),
+            'wc-pending'    => (int) ( $row->pending_count ?? 0 ),
+            'wc-cancelled'  => (int) ( $row->cancelled_count ?? 0 ),
+            'processed'     => (int) ( $row->processed_count ?? 0 ),
+            'order-issue'   => (int) ( $row->issue_count ?? 0 ),
         );
     }
 
@@ -553,56 +596,6 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         return null === $created_at || '' === (string) $created_at ? null : (string) $created_at;
     }
 
-    private function getCountByPostStatus( ?string $status ): int {
-        $o = $this->getOrdersTable();
-        $table = $this->wpdb->prefix . 'kiriminaja_transactions';
-        $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $delivery_clause = $this->getDeliveryTypeClause( 't' );
-        if ( null === $status || '' === $status || 'all' === $status ) {
-            $count = $this->wpdb->get_var( $this->wpdb->prepare(
-                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['type_col']} = %s AND p.{$o['trash_field']} NOT IN ('trash','auto-draft') {$this->getRegularIssueClause()} {$delivery_clause} {$clause}",
-                $o['type_value']
-            ) );
-        } else {
-            $count = $this->wpdb->get_var( $this->wpdb->prepare(
-                "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s AND t.status = %s {$this->getRegularIssueClause()} {$delivery_clause} {$clause}",
-                $status,
-                'new'
-            ) );
-        }
-        $this->logDatabaseError();
-        return (int) $count;
-    }
-    private function getCountProcessed(): int {
-        $o = $this->getOrdersTable();
-        $table = $this->wpdb->prefix . 'kiriminaja_transactions';
-        $payments = $this->wpdb->prefix . 'kiriminaja_payments';
-        $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $payment_join = 'instant' === $this->delivery_type ? '' : "INNER JOIN {$payments} pay ON t.pickup_number = pay.pickup_number";
-        $processed_clause = 'instant' === $this->delivery_type ? $this->getInstantProcessedClause( 't' ) : "t.status != 'canceled'";
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id {$payment_join} WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND {$processed_clause} {$this->getRegularIssueClause()} {$this->getDeliveryTypeClause( 't' )} {$clause}" );
-        $this->logDatabaseError();
-        return (int) $count;
-    }
-
-    private function getCountCancelled(): int {
-        $o = $this->getOrdersTable();
-        $table = $this->wpdb->prefix . 'kiriminaja_transactions';
-        $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['status']} = %s {$this->getRegularIssueClause()} {$this->getDeliveryTypeClause( 't' )} {$clause}", 'wc-cancelled' ) );
-        $this->logDatabaseError();
-        return (int) $count;
-    }
-
-    private function getCountDeficit(): int {
-        $o = $this->getOrdersTable();
-        $table = $this->wpdb->prefix . 'kiriminaja_transactions';
-        $clause = $this->getShippableOrderExistsSql( "p.{$o['id']}" );
-        $count = $this->wpdb->get_var( "SELECT COUNT(DISTINCT p.{$o['id']}) FROM {$o['table']} p INNER JOIN {$table} t ON p.{$o['id']} = t.wp_wc_order_stat_order_id WHERE p.{$o['trash_field']} NOT IN ('trash','auto-draft') AND (t.is_deficit = 1 {$this->getPhoneIssueClause( 't', true )}) {$this->getDeliveryTypeClause( 't', 'express' )} {$clause}" );
-        $this->logDatabaseError();
-        return (int) $count;
-    }
-
     private function getOrdersTable(): array {
         $prefix = $this->wpdb->prefix;
         if ( class_exists( \Automattic\WooCommerce\Utilities\OrderUtil::class ) && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
@@ -629,12 +622,8 @@ class WordPressTransactionListQuery implements TransactionListQueryInterface {
         return "{$alias}.status IN ('request_pickup','shipped','finished','return','returned','rejected') AND {$alias}.instant_payment_id IS NOT NULL AND {$alias}.instant_payment_id != '' AND {$alias}.instant_status_code IS NOT NULL";
     }
 
-    private function getRegularIssueClause(): string {
-        return 'express' === $this->delivery_type ? 'AND t.is_deficit = 0' . $this->getPhoneIssueClause( 't', false ) : '';
-    }
-
-    private function getPhoneIssueClause( string $alias, bool $include ): string {
-        $ids = $this->getPhoneIssueIds();
+    private function getPhoneIssueClause( string $alias, bool $include, ?array $ids = null ): string {
+        $ids = $ids ?? $this->getPhoneIssueIds();
         if ( ! $ids ) {
             return '';
         }

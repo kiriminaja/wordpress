@@ -11,7 +11,7 @@ const root = resolve(import.meta.dir, '..');
 const directory = mkdtempSync(join(root, 'node_modules/.classic-pin-test-'));
 let pinSource: string;
 try {
-	writeFileSync(join(directory, 'entry.ts'), `import {createClassicPin} from ${JSON.stringify(join(root, 'src/buyer/state/classic-pin.svelte.ts'))}; import {flushSync} from 'svelte'; window.__classicPinTest = {createClassicPin, flushSync}; import ${JSON.stringify(join(root, 'src/buyer/entries/pin.ts'))};`);
+	writeFileSync(join(directory, 'entry.ts'), `import {createClassicPin} from ${JSON.stringify(join(root, 'src/buyer/state/classic-pin.svelte.ts'))}; import {startFunnelKitPhone} from ${JSON.stringify(join(root, 'src/buyer/classic/funnelkit-phone.ts'))}; import {flushSync} from 'svelte'; window.__classicPinTest = {createClassicPin, startFunnelKitPhone, flushSync}; import ${JSON.stringify(join(root, 'src/buyer/entries/pin.ts'))};`);
 	const result = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], target: 'browser', conditions: ['browser'], format: 'iife', plugins: [{ name: 'classic-pin-svelte', setup(builder) {
 		builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
 		builder.onLoad({ filter: /\.svelte\.ts$/ }, ({ path }) => ({ contents: compileModule(new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(path, 'utf8')), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
@@ -38,6 +38,12 @@ function runtime() {
 	const setTimeout = (callback: () => void, delay = 0) => { const id = ++sequence; timers.set(id, { at: now + delay, callback }); return id; };
 	const clearTimeout = (id: number) => timers.delete(id);
 	window.setTimeout = setTimeout; window.clearTimeout = clearTimeout;
+	window.setInterval = (callback: () => void, delay: number) => {
+		const id = ++sequence;
+		const tick = () => { timers.set(id, { at: now + delay, callback: tick }); callback(); };
+		timers.set(id, { at: now + delay, callback: tick }); return id;
+	};
+	window.clearInterval = clearTimeout;
 	// happy-dom omits the browser Option convenience constructor.
 	window.Option = function(text = '', value = '') { const option = window.document.createElement('option'); option.textContent = text; option.value = value; return option; };
 	const context = buyerBrowserContext(window, { setTimeout, clearTimeout, URLSearchParams, AbortController, Option: window.Option, HTMLInputElement: window.HTMLInputElement, HTMLSelectElement: window.HTMLSelectElement, console });
@@ -66,6 +72,10 @@ function adapter(options: any = {}) {
 	const h = runtime(), { window } = h; const document = window.document;
 	document.body.innerHTML = `<form class="checkout"><div class="woocommerce-billing-fields__field-wrapper"></div><div class="woocommerce-shipping-fields__field-wrapper"></div><input id="ship-to-different-address-checkbox" type="checkbox" name="ship_to_different_address"><input name="payment_method" type="radio" value="bacs" checked><input id="kiriof_insurance" type="checkbox"><input class="shipping_method" type="radio" name="shipping_method[0]" value="kiriminaja:regular" checked><input class="shipping_method" type="radio" name="shipping_method[0]" value="kiriminaja-instant:gosend"><input class="shipping_method" type="hidden" name="shipping_method[1]" value="flat_rate:2"></form>`;
 	const form: any = document.querySelector('form');
+	if (options.funnelkit) {
+		form.insertAdjacentHTML('beforeend', '<input name="_wfacp_post_id" type="hidden" value="1248"><input id="billing_phone" name="billing_phone" value="81229917900">');
+		window.wfacpIntlTelInput = { getInstance: () => ({ getSelectedCountryData: () => ({ iso2: 'id', dialCode: '62' }) }) };
+	}
 	for (const scope of ['billing', 'shipping']) {
 		for (const key of ['first_name', 'last_name', 'company', ...Object.keys(binding)]) { const input = document.createElement('input'); input.id = `${scope}_${key}`; input.name = input.id; input.value = (binding as any)[key] || ''; form.querySelector(`.woocommerce-${scope}-fields__field-wrapper`).append(input); }
 		const id = scope === 'billing' ? 'kiriof_destination_area' : 'kiriof_shipping_destination_area';
@@ -94,9 +104,10 @@ function adapter(options: any = {}) {
 		(document.querySelector('#kiriof_destination_area') as HTMLSelectElement).selectedIndex = -1;
 	}
 	h.load();
+	if (options.funnelkit) window.__classicPinTest.startFunnelKitPhone(window);
 	const query = (selector: string): any => document.querySelector(selector);
 	const hidden = () => JSON.parse(query('[name="kiriof_buyer_destination_snapshot"]').value);
-	const change = (id: string, value: any, kind = 'change') => { const input = query(`#${id}`); if (typeof value === 'boolean') input.checked = value; else input.value = value; emit(form, kind, input); };
+	const change = (id: string, value: any, kind = 'change') => { const input = query(`#${id}`); if (typeof value === 'boolean') input.checked = value; else input.value = value; input.dispatchEvent(new window.Event(kind, { bubbles: true })); emit(form, kind, input); };
 	const respond = async (request: any, data: any = { coordinates_saved: true }, success = true) => { request.resolve({ ok: true, json: async () => ({ success, data }) }); await settle(); h.flush(); };
 	const mutations = () => requests.filter(r => r.body.get('action') === 'kiriof-session-save');
 	const payload = (request: any) => JSON.parse(request.body.get('data'));
@@ -172,6 +183,84 @@ describe('Typed Classic pin controller with real shared session queue', () => {
 });
 
 describe('Classic pin-only DOM adapter with delegated Woo events', () => {
+  test('FunnelKit phone and pin contact timers share the current checkout refresh', async () => {
+    const h = adapter({ funnelkit: true });
+    await h.advance(200); h.events.length = 0;
+    h.change('billing_phone', '87777777777', 'input');
+    await h.advance(199);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(0);
+    await h.advance(1);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+    expect(JSON.parse(h.query('[name="kiriof_funnelkit_phone_context"]').value).billing.value).toBe('87777777777');
+    await h.advance(500);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+    expect(h.mutations()).toHaveLength(0);
+  });
+  test('an unrelated checkout refresh captures pending FunnelKit input without another timer refresh', async () => {
+    const h = adapter({ funnelkit: true });
+    await h.advance(200); h.events.length = 0;
+    h.change('billing_phone', '87777777777', 'input');
+    h.emit(h.window.document.body, 'update_checkout');
+    expect(JSON.parse(h.query('[name="kiriof_funnelkit_phone_context"]').value).billing.value).toBe('87777777777');
+    await h.advance(200);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+    await h.advance(500);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+  });
+  test('FunnelKit phone change keeps the existing 200ms deadline and independent price refreshes', async () => {
+    const h = adapter({ funnelkit: true });
+    await h.advance(200); h.events.length = 0;
+    h.change('billing_phone', '87777777777');
+    await h.advance(199);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(0);
+    await h.advance(1);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+    h.change('kiriof_insurance', true);
+    h.emit(h.window.document.body, 'update_checkout');
+    await h.advance(700);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(2);
+    expect(h.query('#kiriof_insurance').checked).toBe(true);
+  });
+  test('a newer contact key still refreshes while an earlier checkout update is outstanding', async () => {
+    const h = adapter({ funnelkit: true });
+    await h.advance(200); h.events.length = 0;
+    h.change('billing_phone', '87777777777', 'input');
+    await h.advance(200);
+    h.change('billing_first_name', 'New recipient', 'input');
+    await h.advance(699);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+    await h.advance(1);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(2);
+    h.emit(h.window.document.body, 'updated_checkout');
+    await h.advance(700);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(2);
+  });
+  test('coalescing contact refreshes preserves queued pin writes and their final refreshes', async () => {
+    const h = adapter({ funnelkit: true });
+    await h.advance(200); h.events.length = 0;
+    h.change('billing_phone', '87777777777', 'input');
+    await h.advance(200);
+    h.window.kiriofBuyerPin.controller.selectPoint({ latitude: -6.2, longitude: 106.8 });
+    await h.advance();
+    expect(h.mutations()).toHaveLength(1);
+    h.window.kiriofBuyerPin.controller.selectPoint({ latitude: -7.2, longitude: 107.8 });
+    await h.advance(500);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+    await h.respond(h.mutations()[0]); await h.advance();
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(2);
+    expect(h.mutations()).toHaveLength(2);
+    expect(h.payload(h.mutations()[1]).coordinates.latitude).toBe('-7.2000000');
+    await h.respond(h.mutations()[1]); await h.advance(700);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(3);
+  });
+  test('ordinary Classic contact input keeps its 700ms refresh without FunnelKit', async () => {
+    const h = adapter(); h.events.length = 0;
+    h.change('billing_first_name', 'New recipient', 'input');
+    await h.advance(699);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(0);
+    await h.advance(1);
+    expect(h.events.filter(event => event === 'update_checkout')).toHaveLength(1);
+  });
   test('single District & Zipcode checkout renders the pin without visible city province or postcode', async () => {
     const h = adapter({ indonesiaStates: { JK: 'DKI Jakarta' } });
     h.query('form').insertAdjacentHTML('beforeend', '<input name="_wfacp_post_id" type="hidden" value="1248"><input name="wfacp_billing_same_as_shipping" value="0" type="hidden">');

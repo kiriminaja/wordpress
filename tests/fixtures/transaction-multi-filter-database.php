@@ -92,6 +92,7 @@ namespace {
             catch (PDOException $error) { $this->last_error = $error->getMessage(); throw $error; }
         }
         public function get_var($sql) { return $this->execute($sql)->fetchColumn(); }
+        public function get_row($sql) { return $this->execute($sql)->fetchObject(); }
         public function get_results($sql): array { return $this->execute($sql)->fetchAll(PDO::FETCH_OBJ); }
 
         private function insert(string $table, array $values): void {

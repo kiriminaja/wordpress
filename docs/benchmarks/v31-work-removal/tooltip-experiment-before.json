@@ -1,0 +1,81 @@
+{
+  "measurement": "Compiled production Svelte components and real Bits UI in happy-dom, mount + microtask flush and unmount. Not browser FCP or rendering timing. Build, runtime import and Window setup excluded.",
+  "variant": "before",
+  "runtime": "Bun 1.4.4",
+  "component": "ActionTooltip",
+  "count": 200,
+  "warmup": 3,
+  "iterations": 15,
+  "mountedScrollListeners": 200,
+  "destroyedScrollListeners": 0,
+  "mountMs": {
+    "median": 39.74041699999998,
+    "p95": 74.58320800000001
+  },
+  "destroyMs": {
+    "median": 4.948957999999948,
+    "p95": 9.373458000000028
+  },
+  "samples": [
+    {
+      "mountMs": 39.88266599999997,
+      "destroyMs": 6.489500000000135
+    },
+    {
+      "mountMs": 40.07620799999995,
+      "destroyMs": 5.123542000000043
+    },
+    {
+      "mountMs": 41.849958000000015,
+      "destroyMs": 4.603749999999991
+    },
+    {
+      "mountMs": 37.816417,
+      "destroyMs": 4.876625000000104
+    },
+    {
+      "mountMs": 33.82345899999996,
+      "destroyMs": 4.324000000000069
+    },
+    {
+      "mountMs": 38.021458000000166,
+      "destroyMs": 5.120874999999842
+    },
+    {
+      "mountMs": 39.80095899999992,
+      "destroyMs": 4.779250000000047
+    },
+    {
+      "mountMs": 35.58583300000009,
+      "destroyMs": 9.373458000000028
+    },
+    {
+      "mountMs": 51.50712499999986,
+      "destroyMs": 5.431082999999944
+    },
+    {
+      "mountMs": 74.58320800000001,
+      "destroyMs": 5.6209170000001905
+    },
+    {
+      "mountMs": 39.74041699999998,
+      "destroyMs": 4.928542000000107
+    },
+    {
+      "mountMs": 41.30270799999971,
+      "destroyMs": 4.948957999999948
+    },
+    {
+      "mountMs": 37.987125000000106,
+      "destroyMs": 5.907874999999876
+    },
+    {
+      "mountMs": 38.95079200000009,
+      "destroyMs": 4.902332999999999
+    },
+    {
+      "mountMs": 38.27649999999994,
+      "destroyMs": 4.522209000000203
+    }
+  ]
+}

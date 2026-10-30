@@ -1,0 +1,58 @@
+{
+    "php": "8.5.10",
+    "source": "\/Users\/user1\/Kerjaa\/worktrees\/wordpress\/olive-storm\/wordpress\/inc\/Repositories\/SettingRepository.php",
+    "source_sha256": "41c9cbbccf9cac45967e9f187ffbb3d5112bd54ed2de684da1081b722ba8e6e8",
+    "scope": "CPU only; fake wpdb, real catalog; no MySQL or browser timing",
+    "samples": 15,
+    "warmups": 2,
+    "iterations": 50,
+    "rates_per_iteration": 200,
+    "selected_service_codes": 30,
+    "database_reads": 1,
+    "decision_sha256": "61c3d706b980bd022d7146eca2d2268ad90e688c356da3747ac392c05c938289",
+    "selection_sha256": "5a888a18f66a8795717af8a19294eccac217c8556a3703de425a95b91efa4d83",
+    "workloads": {
+        "selection": {
+            "cpu_ms_samples": [
+                2.25,
+                2.2409999999999997,
+                2.2450000000000045,
+                2.2409999999999997,
+                2.2420000000000044,
+                2.2319999999999993,
+                2.2279999999999944,
+                2.2240000000000038,
+                2.2209999999999894,
+                2.2139999999999986,
+                2.228999999999999,
+                2.219999999999999,
+                2.2210000000000036,
+                2.225999999999999,
+                2.216000000000008
+            ],
+            "median_cpu_ms": 2.2279999999999944,
+            "p95_cpu_ms": 2.25
+        },
+        "rate_policy": {
+            "cpu_ms_samples": [
+                76.56299999999999,
+                76.48500000000001,
+                76.64100000000002,
+                76.24099999999999,
+                77.56100000000004,
+                77.19400000000007,
+                75.7879999999999,
+                75.00599999999997,
+                75.35800000000006,
+                75.55399999999997,
+                84.55799999999988,
+                86.82100000000014,
+                84.17800000000011,
+                83.60900000000015,
+                85.02099999999996
+            ],
+            "median_cpu_ms": 76.64100000000002,
+            "p95_cpu_ms": 86.82100000000014
+        }
+    }
+}
