@@ -15,6 +15,28 @@ final class ClassicCheckoutRecipientSyncRuntimeTest extends TestCase {
 		$this->assertSame( array( 'kiriminaja-instant:11:gosend:instant' ), $result['rates'] );
 	}
 
+	public function test_current_widget_context_does_not_reuse_wrong_prefix_mismatched_or_cleared_number(): void {
+		$valid = array_replace( $this->funnelContact(), array(
+			'billing_phone' => '81229917900',
+			'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"id","dialCode":"62"}}',
+		) );
+		foreach ( array(
+			array( 'billing_phone' => '' ),
+			array( 'billing_phone' => '81229917901' ),
+			array( 'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"au","dialCode":"61"}}' ),
+			array( 'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"id","dialCode":"1"}}' ),
+			array( 'kiriof_funnelkit_phone_context' => '[]' ),
+			array( 'kiriof_funnelkit_phone_context' => '{' ),
+		) as $override ) {
+			$result = $this->runFixture( array( 'forms' => array( $valid, array_replace( $valid, $override ) ) ) );
+			$this->assertSame( '6281229917900', $result['steps'][0]['recipient']['phone'] );
+			$this->assertSame( '', $result['steps'][1]['recipient']['phone'] );
+			$this->assertSame( array(), $result['rates'] );
+		}
+		$result = $this->runFixture( array( 'forms' => array( array_replace( $valid, array( 'billing_phone' => '+6281229917900' ) ) ) ) );
+		$this->assertSame( '6281229917900', $result['steps'][0]['recipient']['phone'] );
+	}
+
 	public function test_prefixed_phone_survives_uninitialized_funnelkit_metadata_and_repeated_refreshes(): void {
 		$form = $this->funnelContact() + array( 'wfacp_input_phone_field' => '{}' );
 		$result = $this->runFixture( array( 'forms' => array( $form, $form ) ) );

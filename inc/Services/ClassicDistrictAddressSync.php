@@ -332,6 +332,10 @@ final class ClassicDistrictAddressSync {
 				return in_array( $data[ $key ], array( '0', '1', 0, 1 ), true );
 			}
 		}
+		$separate = $data['ship_to_different_address'] ?? null;
+		if ( ( is_string( $separate ) || is_bool( $separate ) ) && ! empty( $separate ) ) {
+			return true;
+		}
 		return ! array_key_exists( 'billing_address_1', $data );
 	}
 

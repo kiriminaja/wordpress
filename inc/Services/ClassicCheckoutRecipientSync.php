@@ -87,7 +87,9 @@ final class ClassicCheckoutRecipientSync {
 		if ( array_key_exists( 'wfacp_billing_same_as_shipping', $data ) ) {
 			$shared = in_array( $data['wfacp_billing_same_as_shipping'], array( '0', 0 ), true );
 		} else {
-			$shared = in_array( $data['billing_same_as_shipping'] ?? null, array( '1', 1 ), true );
+			$shared = array_key_exists( 'billing_same_as_shipping', $data )
+				? in_array( $data['billing_same_as_shipping'], array( '1', 1 ), true )
+				: ! array_key_exists( 'shipping_first_name', $data ) && ! array_key_exists( 'shipping_last_name', $data );
 		}
 		$contact = array();
 		foreach ( InstantCheckoutRecipient::FIELDS as $field ) {
