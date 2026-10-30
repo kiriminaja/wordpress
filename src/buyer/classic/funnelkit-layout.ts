@@ -1,4 +1,7 @@
+import { isFunnelKitCheckout } from './address-scope';
+
 const regionClass = 'kiriof-funnelkit-region-field';
+const streetClass = 'kiriof-funnelkit-street-field';
 const widthProperty = '--kiriof-region-width';
 const heightProperty = '--kiriof-control-height';
 const borderProperty = '--kiriof-control-border-color';
@@ -41,8 +44,45 @@ function syncNativeBorder(form: HTMLFormElement) {
   }
 }
 
-/** Reclaim only the adjacent address thirds occupied by our enhanced state field. */
+function syncStreetLayout(form: HTMLFormElement) {
+  const desired = new Set<HTMLElement>();
+  for (const scope of ['billing', 'shipping']) {
+    const street = form.querySelector<HTMLElement>(`#${scope}_address_1_field`);
+    if (!street?.classList.contains('wfacp-col-left-half') || !street.parentElement) continue;
+    const city = form.querySelector<HTMLElement>(`#${scope}_city_field`);
+    if (city) {
+      if (
+        city.parentElement !== street.parentElement ||
+        street.nextElementSibling !== city ||
+        !city.classList.contains('wfacp-col-left-half')
+      )
+        continue;
+      // Only the row's own visibility counts; an inactive checkout step can hide both rows.
+      if (
+        !city.hidden &&
+        !city.matches('.fkcf-hidden, .wfacp_hidden_class') &&
+        form.ownerDocument.defaultView!.getComputedStyle(city).display !== 'none'
+      )
+        continue;
+    } else if (
+      !form.classList.contains('kiriof-funnelkit-checkout') &&
+      !isFunnelKitCheckout(form)
+    ) {
+      continue;
+    }
+    desired.add(street);
+  }
+  for (const row of form.querySelectorAll<HTMLElement>(`.${streetClass}`)) {
+    if (!desired.has(row)) row.classList.remove(streetClass);
+  }
+  for (const row of desired) {
+    if (!row.classList.contains(streetClass)) row.classList.add(streetClass);
+  }
+}
+
+/** Reclaim only adjacent FunnelKit address columns. */
 export function syncFunnelKitLayout(form: HTMLFormElement) {
+  syncStreetLayout(form);
   syncNativeBorder(form);
   const desired = new Map<HTMLElement, string>();
   for (const scope of ['billing', 'shipping']) {
@@ -101,9 +141,9 @@ export function syncFunnelKitLayout(form: HTMLFormElement) {
 
 export function clearFunnelKitLayout(form: HTMLFormElement) {
   for (const row of form.querySelectorAll<HTMLElement>(
-    `.${regionClass}, [style*="${heightProperty}"], [style*="${borderProperty}"]`,
+    `.${regionClass}, .${streetClass}, [style*="${heightProperty}"], [style*="${borderProperty}"]`,
   )) {
-    row.classList.remove(regionClass);
+    row.classList.remove(regionClass, streetClass);
     row.style.removeProperty(widthProperty);
     row.style.removeProperty(heightProperty);
     row.style.removeProperty(borderProperty);

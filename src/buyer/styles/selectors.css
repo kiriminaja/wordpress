@@ -11,6 +11,14 @@
   border: 0 !important;
 }
 
+.kiriof-funnelkit-street-field {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 /* Hidden country rows must not leave an unused third beside postcode and state. */
 .kiriof-funnelkit-checkout .form-row.kiriof-funnelkit-region-field {
   width: var(--kiriof-region-width) !important;

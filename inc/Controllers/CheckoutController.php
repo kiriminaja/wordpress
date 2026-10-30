@@ -1824,6 +1824,29 @@ class CheckoutController
             )
         );
     }
+
+    /** Instant has its own quote validator; unresolved selections keep the legacy guard. */
+    private function kiriof_requires_legacy_checkout_token( array $packages ): bool {
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies final checkout; review rendering verifies the plugin nonce.
+        $methods = array_key_exists( 'shipping_method', $_POST ) ? wp_unslash( $_POST['shipping_method'] ) : WC()->session->get( 'chosen_shipping_methods', array() );
+        if ( empty( $packages ) || ! is_array( $methods ) || count( $methods ) !== count( $packages ) ) {
+            return true;
+        }
+
+        foreach ( $packages as $index => $package ) {
+            $method = $methods[ $index ] ?? null;
+            $rate = is_string( $method ) ? ( $package['rates'][ $method ] ?? null ) : null;
+            if ( ! is_object( $rate ) || ! is_callable( array( $rate, 'get_method_id' ) ) || ! is_callable( array( $rate, 'get_id' ) ) || $method !== $rate->get_id() ) {
+                return true;
+            }
+            if ( 'kiriminaja-instant' !== $rate->get_method_id() ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function kiriof_validateOrder($posted = array(), $errors = null){
         $packages = WC()->shipping->get_packages();
         
@@ -1857,7 +1880,7 @@ class CheckoutController
                 if ( empty( $_POST['shipping_method'][0] ) && ! $kiriof_address_too_short ) {
                     wc_add_notice( __( '<strong>Shipping</strong> is a required field', 'kiriminaja-official' ), 'error' );
                 }
-                if ( empty( $_POST['kiriof_checkout_token'] ) ) {
+                if ( $this->kiriof_requires_legacy_checkout_token( is_array( $packages ) ? $packages : array() ) && empty( $_POST['kiriof_checkout_token'] ) ) {
                     wc_add_notice( __( '<strong>Checkout Calculation</strong> is not finished yet', 'kiriminaja-official' ), 'error' );
                 }
             }

@@ -8,6 +8,72 @@ final class ClassicDistrictAddressSyncRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_country_roundtrip_does_not_reuse_indonesian_hierarchy_for_foreign_forms(): void {
+		$form = $this->form( 'shipping' );
+		unset( $form['kiriof_shipping_derived_address'], $form['shipping_city'], $form['shipping_state'], $form['shipping_postcode'] );
+		$form['_wfacp_post_id'] = '123';
+		$foreign = array_replace( $form, array( 'shipping_country' => 'US' ) );
+		$result = $this->runFixture( array( 'sequence' => array( $foreign, $form, $foreign ) ) );
+		$this->assertSame( $foreign, $result['data'][0] );
+		$this->assertSame( 'Sleman', $result['data'][1]['shipping_city'] );
+		$this->assertSame( $foreign, $result['data'][2] );
+		$this->assertSame( array( '55581' ), $result['calls'] );
+	}
+
+	public function test_funnelkit_removed_native_fields_require_explicit_country_and_valid_current_selection(): void {
+		$form = $this->form( 'shipping' );
+		unset( $form['kiriof_shipping_derived_address'], $form['shipping_city'], $form['shipping_state'], $form['shipping_postcode'] );
+		$form['_wfacp_post_id'] = '123';
+		$result = $this->runFixture( array( 'form' => $form ) );
+		$this->assertSame( 'Sleman', $result['data']['shipping_city'] );
+		$this->assertSame( 'YO', $result['data']['shipping_state'] );
+		$this->assertSame( '55581', $result['data']['shipping_postcode'] );
+		foreach ( array(
+			array( '_wfacp_post_id' => '123junk' ), array( '_wfacp_post_id' => array( '123' ) ),
+			array( 'shipping_country' => 'US' ), array( 'shipping_country' => null ),
+			array( 'shipping_country' => array( 'ID' ) ), array( 'shipping_city' => array( '' ) ),
+			array( 'kiriof_shipping_destination_area' => array( '31554' ) ),
+			array( 'kiriof_shipping_destination_area_name' => array( '55581' ) ),
+			array( 'kiriof_shipping_derived_address' => array( 'city' ) ),
+		) as $override ) {
+			$candidate = array_replace( $form, $override );
+			$result = $this->runFixture( array( 'form' => $candidate ) );
+			$this->assertSame( $candidate, $result['data'] );
+			$this->assertSame( array(), $result['calls'] );
+		}
+		$form['shipping_city'] = '';
+		$result = $this->runFixture( array( 'form' => $form ) );
+		$this->assertSame( '', $result['data']['shipping_city'] );
+		$this->assertSame( 'YO', $result['data']['shipping_state'] );
+	}
+
+	public function test_final_removed_woocommerce_fields_are_revalidated_without_trusting_client_values(): void {
+		foreach ( array( 'absent', 'empty_marker', 'populated_marker' ) as $mode ) {
+			$form = $this->form();
+			$form['_wfacp_post_id'] = '123';
+			if ( 'absent' === $mode ) {
+				unset( $form['kiriof_billing_derived_address'], $form['billing_city'], $form['billing_state'], $form['billing_postcode'] );
+			} elseif ( 'populated_marker' === $mode ) {
+				$form['billing_city'] = 'Untrusted city';
+				$form['billing_state'] = 'JK';
+				$form['billing_postcode'] = '11111';
+			}
+			foreach ( array( array(), array( 'billing_city' => '', 'billing_state' => '', 'billing_postcode' => '' ) ) as $posted ) {
+				$result = $this->runFixture( array( 'mode' => 'checkout', 'form' => $form, 'posted' => $posted ) );
+				$this->assertSame( 'Sleman', $result['data']['billing_city'], $mode );
+				$this->assertSame( 'YO', $result['data']['billing_state'] );
+				$this->assertSame( '55581', $result['data']['billing_postcode'] );
+				$this->assertSame( 'Sleman', $result['data']['shipping_city'] );
+			}
+		}
+		$form = $this->form();
+		unset( $form['kiriof_billing_derived_address'] );
+		$form['_wfacp_post_id'] = '123';
+		$result = $this->runFixture( array( 'mode' => 'checkout', 'form' => $form, 'posted' => array() ) );
+		$this->assertArrayNotHasKey( 'billing_city', $result['data'] );
+		$this->assertSame( array(), $result['calls'] );
+	}
+
 	public function test_billing_only_setting_overrides_separate_flag_for_shipping_aliases(): void {
 		$form = $this->form() + array( 'ship_to_different_address' => '1' );
 		$result = $this->runFixture( array( 'form' => $form, 'mode' => 'review', 'billing_only' => true ) );

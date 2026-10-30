@@ -1,3 +1,5 @@
+import { isFunnelKitCheckout } from './address-scope';
+
 type AddressField = 'city' | 'state' | 'postcode';
 const fields: AddressField[] = ['city', 'state', 'postcode'];
 
@@ -8,6 +10,16 @@ export function syncDistrictAddress(
   explicitScope?: string,
 ) {
   for (const scope of ['billing', 'shipping']) {
+    const owned = () =>
+      form.querySelectorAll<HTMLInputElement>(`input[data-kiriof-derived-field="${scope}"]`);
+    for (const input of owned()) {
+      if (
+        Array.from(form.querySelectorAll(`[name="${input.name}"]`)).some(
+          (field) => field !== input && !field.hasAttribute('data-kiriof-derived-field'),
+        )
+      )
+        input.remove();
+    }
     const markerName = `kiriof_${scope}_derived_address`;
     let marker = form.querySelector<HTMLInputElement>(`input[name="${markerName}"]`);
     const country = form.querySelector<HTMLInputElement | HTMLSelectElement>(
@@ -15,10 +27,15 @@ export function syncDistrictAddress(
     );
     const hidden = fields.filter((key) => {
       const field = form.querySelector(`[name="${scope}_${key}"], #${scope}_${key}`);
-      return Boolean(field?.closest('.fkcf-hidden'));
+      return Boolean(
+        field?.closest('.fkcf-hidden') ||
+        field?.hasAttribute('data-kiriof-derived-field') ||
+        (!field && isFunnelKitCheckout(form)),
+      );
     });
     if (country?.value !== 'ID') {
       marker?.remove();
+      owned().forEach((input) => input.remove());
       continue;
     }
     if (hidden.length) {
@@ -38,7 +55,12 @@ export function syncDistrictAddress(
     const districtKey =
       scope === 'shipping' ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
     const district = form.querySelector<HTMLSelectElement>(`select[name="${districtKey}"]`);
-    if (!district || !/^[1-9][0-9]*$/.test(district.value)) continue;
+    if (!district || !/^[1-9][0-9]*$/.test(district.value)) {
+      owned().forEach((input) => {
+        input.value = '';
+      });
+      continue;
+    }
     const label =
       Array.from(district.options).find((option) => option.value === district.value)?.text || '';
     const parts = label.split(',').map((part) => part.trim());
@@ -49,8 +71,12 @@ export function syncDistrictAddress(
       // oxlint-disable-next-line no-control-regex
       parts.some((part) => !part || /[<>\x00-\x1f\x7f]/.test(part)) ||
       !/^[0-9]{5}$/.test(parts[4])
-    )
+    ) {
+      owned().forEach((input) => {
+        input.value = '';
+      });
       continue;
+    }
     const stateField = form.querySelector<HTMLSelectElement | HTMLInputElement>(
       `[name="${scope}_state"], #${scope}_state`,
     );
@@ -83,9 +109,18 @@ export function syncDistrictAddress(
       state: matches.length === 1 ? matches[0][0] : '',
     };
     for (const key of targets) {
-      const field = form.querySelector<HTMLInputElement | HTMLSelectElement>(
+      let field = form.querySelector<HTMLInputElement | HTMLSelectElement>(
         `[name="${scope}_${key}"], #${scope}_${key}`,
       );
+      if (!field && isFunnelKitCheckout(form)) {
+        const input = form.ownerDocument.createElement('input');
+        input.type = 'hidden';
+        input.name = `${scope}_${key}`;
+        input.id = input.name;
+        input.setAttribute('data-kiriof-derived-field', scope);
+        form.append(input);
+        field = input;
+      }
       // Unknown province mappings remain invalid; never invent a WooCommerce state code.
       if (field && field.value !== values[key]) field.value = values[key];
     }

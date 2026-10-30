@@ -129,6 +129,8 @@ if ( isset( $recovery_input['funnelkit'] ) ) {
 		foreach ( $callbacks as $list ) { foreach ( $list as $callback ) { $callback(); } }
 		$GLOBALS['refresh_hook'] = 'woocommerce_checkout_posted_data';
 		$final = $form;
+		foreach ( $recovery_input['final_omit'] ?? array() as $key ) { unset( $final[ $key ] ); }
+		foreach ( $recovery_input['final_override'] ?? array() as $key => $value ) { $final[ $key ] = $value; }
 		$callbacks = $GLOBALS['refresh_filters'][ $GLOBALS['refresh_hook'] ];
 		ksort( $callbacks );
 		foreach ( $callbacks as $list ) { foreach ( $list as $callback ) { $final = $callback( $final ); } }

@@ -71,11 +71,34 @@ describe('FunnelKit adjacent address thirds', () => {
     expect(row('shipping_district_field').classList.contains('kiriof-funnelkit-region-field')).toBe(
       false,
     );
-    expect(row('shipping_address_1_field').className).toBe('wfacp-col-left-half');
+    expect(row('shipping_address_1_field').classList.contains('wfacp-col-left-half')).toBe(true);
+    expect(row('shipping_address_1_field').classList.contains('kiriof-funnelkit-street-field')).toBe(true);
     row('billing_country_field').style.display = 'none';
     clearFunnelKitLayout(form);
     expect(Array.from(form.querySelectorAll('[id]'), (node) => node.id)).toEqual(order);
     expect(form.querySelector('.kiriof-funnelkit-region-field')).toBeNull();
+    expect(form.querySelector('.kiriof-funnelkit-street-field')).toBeNull();
+  });
+
+  test('street expands only for its missing or hidden paired city and restores when city returns', () => {
+    const { form, row } = fixture();
+    const street = row('shipping_address_1_field');
+    const city = form.ownerDocument.createElement('p');
+    city.id = 'shipping_city_field';
+    city.className = 'wfacp-col-left-half';
+    street.after(city);
+    syncFunnelKitLayout(form);
+    expect(street.classList.contains('kiriof-funnelkit-street-field')).toBe(false);
+    city.classList.add('fkcf-hidden');
+    syncFunnelKitLayout(form);
+    expect(street.classList.contains('kiriof-funnelkit-street-field')).toBe(true);
+    city.classList.remove('fkcf-hidden');
+    syncFunnelKitLayout(form);
+    expect(street.classList.contains('kiriof-funnelkit-street-field')).toBe(false);
+    city.remove();
+    syncFunnelKitLayout(form);
+    expect(street.classList.contains('kiriof-funnelkit-street-field')).toBe(true);
+    expect(street.classList.contains('wfacp-col-left-half')).toBe(true);
   });
 
   test('recounts visibility and is mutation-idempotent', () => {

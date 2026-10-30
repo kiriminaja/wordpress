@@ -1,5 +1,3 @@
-import { startClassicPin } from '../classic/pin';
+import { startClassicPinBootstrap } from '../classic/pin-bootstrap';
 
-if (document.readyState === 'loading')
-  document.addEventListener('DOMContentLoaded', () => startClassicPin(), { once: true });
-else startClassicPin();
+startClassicPinBootstrap();

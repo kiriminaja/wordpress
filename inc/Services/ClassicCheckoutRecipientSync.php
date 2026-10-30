@@ -87,7 +87,9 @@ final class ClassicCheckoutRecipientSync {
 		if ( array_key_exists( 'wfacp_billing_same_as_shipping', $data ) ) {
 			$shared = in_array( $data['wfacp_billing_same_as_shipping'], array( '0', 0 ), true );
 		} else {
-			$shared = in_array( $data['billing_same_as_shipping'] ?? null, array( '1', 1 ), true );
+			$shared = array_key_exists( 'billing_same_as_shipping', $data )
+				? in_array( $data['billing_same_as_shipping'], array( '1', 1 ), true )
+				: ! array_key_exists( 'shipping_first_name', $data ) && ! array_key_exists( 'shipping_last_name', $data );
 		}
 		$contact = array();
 		foreach ( InstantCheckoutRecipient::FIELDS as $field ) {
@@ -110,27 +112,89 @@ final class ClassicCheckoutRecipientSync {
 		if ( array_key_exists( $scope . '_country', $data ) && 'ID' !== $data[ $scope . '_country' ] ) {
 			return '';
 		}
+		$normalized = InstantPhoneNumber::normalize( $value );
+		if ( array_key_exists( 'kiriof_funnelkit_phone_context', $data ) ) {
+			$raw_context = $data['kiriof_funnelkit_phone_context'];
+			if ( ! is_string( $raw_context ) || strlen( $raw_context ) > 2048 ) {
+				return '';
+			}
+			$context = json_decode( $raw_context, false, 4 );
+			if ( ! $context instanceof \stdClass || JSON_ERROR_NONE !== json_last_error() || array_diff( array_keys( (array) $context ), array( 'billing', 'shipping' ) ) ) {
+				return '';
+			}
+			if ( property_exists( $context, $scope ) ) {
+				return $this->widgetPhone( $context->$scope, $value );
+			}
+		}
+		$prefixed = (bool) preg_match( '/\A(?:08|628)[0-9]{6,12}\z/', $normalized );
 		if ( ! array_key_exists( 'wfacp_input_phone_field', $data ) ) {
-			return InstantPhoneNumber::normalize( $value );
+			return $prefixed ? $normalized : '';
 		}
 		$json = $data['wfacp_input_phone_field'];
 		if ( ! is_string( $json ) || strlen( $json ) > 4096 ) {
 			return '';
 		}
-		$metadata = json_decode( $json, true, 4 );
-		if ( ! is_array( $metadata ) || JSON_ERROR_NONE !== json_last_error() || ! is_array( $metadata[ $scope ] ?? null ) ) {
+		$metadata = json_decode( $json, false, 4 );
+		if ( ! $metadata instanceof \stdClass || JSON_ERROR_NONE !== json_last_error() ) {
 			return '';
 		}
-		$phone = $metadata[ $scope ];
-		if ( array_diff( array_keys( $phone ), array( 'code', 'number', 'hidden' ) ) || '62' !== ( $phone['code'] ?? null ) || ! is_string( $phone['number'] ?? null ) || ! preg_match( '/\A8[0-9]{6,12}\z/', $phone['number'] ) || ! in_array( $phone['hidden'] ?? null, array( 'yes', 'no' ), true ) ) {
+		$metadata = (array) $metadata;
+		if ( array_diff( array_keys( $metadata ), array( 'billing', 'shipping' ) ) ) {
+			return '';
+		}
+		// FunnelKit emits an empty object, or an all-empty scope, while its
+		// asynchronous phone widget is still initializing. In that window only
+		// an explicitly Indonesian-prefixed value is safe to accept.
+		if ( ! array_key_exists( $scope, $metadata ) ) {
+			return $prefixed ? $normalized : '';
+		}
+		if ( ! $metadata[ $scope ] instanceof \stdClass ) {
+			return '';
+		}
+		$phone = (array) $metadata[ $scope ];
+		if ( array_diff( array_keys( $phone ), array( 'code', 'number', 'hidden' ) ) ) {
+			return '';
+		}
+		if ( '' === ( $phone['code'] ?? null ) && '' === ( $phone['number'] ?? null ) && '' === ( $phone['hidden'] ?? null ) ) {
+			return $prefixed ? $normalized : '';
+		}
+		if ( '62' !== ( $phone['code'] ?? null ) || ! is_string( $phone['number'] ?? null ) || ! preg_match( '/\A8[0-9]{6,12}\z/', $phone['number'] ) || ! in_array( $phone['hidden'] ?? null, array( 'yes', 'no' ), true ) ) {
 			return '';
 		}
 		$canonical = '62' . $phone['number'];
-		$normalized = InstantPhoneNumber::normalize( $value );
 		if ( $value === $phone['number'] || $normalized === $canonical || $normalized === '0' . $phone['number'] ) {
 			return $canonical;
 		}
 		return '';
+	}
+
+	/** The current widget selection must be bound to the exact submitted input. */
+	private function widgetPhone( $context, string $value ): string {
+		if ( ! $context instanceof \stdClass ) {
+			return '';
+		}
+		$row = (array) $context;
+		if ( array_diff( array_keys( $row ), array( 'value', 'iso2', 'dialCode' ) ) || ! is_string( $row['value'] ?? null ) || strlen( $row['value'] ) > 64 || 'id' !== ( $row['iso2'] ?? null ) || '62' !== ( $row['dialCode'] ?? null ) ) {
+			return '';
+		}
+		$widget_value = $row['value'];
+		if ( preg_match( '/\A8[0-9]{6,12}\z/', $widget_value ) ) {
+			$canonical = '62' . $widget_value;
+		} else {
+			$canonical = InstantPhoneNumber::normalize( $widget_value );
+			if ( str_starts_with( $canonical, '08' ) ) {
+				$canonical = '62' . substr( $canonical, 1 );
+			}
+		}
+		if ( ! preg_match( '/\A628[0-9]{6,12}\z/', $canonical ) ) {
+			return '';
+		}
+		// FunnelKit may add +62 during final checkout after this context was captured.
+		$normalized = InstantPhoneNumber::normalize( $value );
+		if ( str_starts_with( $normalized, '08' ) ) {
+			$normalized = '62' . substr( $normalized, 1 );
+		}
+		return $widget_value === $value || $normalized === $canonical ? $canonical : '';
 	}
 
 	private function value( array $data, string $key ): ?string {

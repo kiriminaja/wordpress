@@ -9,6 +9,97 @@ final class FunnelKitShippingFirstRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_reported_single_contact_payload_without_billing_flags_reaches_instant_and_final_contact(): void {
+		$input = array(
+			'final' => true,
+			'omit' => array( 'wfacp_billing_same_as_shipping', 'shipping_first_name', 'shipping_last_name', 'shipping_phone' ),
+			'override' => array(
+				'ship_to_different_address' => 'on',
+				'billing_first_name' => 'Fixture Buyer',
+				'billing_last_name' => '',
+				'billing_phone' => '81229917900',
+				'billing_address_1' => 'Fixture shipping street',
+				'billing_country' => 'ID',
+				'billing_city' => '',
+				'billing_state' => '',
+				'billing_postcode' => '',
+				'wfacp_input_phone_field' => $this->phoneMetadata(),
+				'kiriof_funnelkit_phone_context' => json_encode( array( 'billing' => array( 'value' => '81229917900', 'iso2' => 'id', 'dialCode' => '62' ) ), JSON_THROW_ON_ERROR ),
+			),
+		);
+		foreach ( array( true, false ) as $with_context ) {
+			if ( ! $with_context ) {
+				unset( $input['override']['kiriof_funnelkit_phone_context'] );
+			}
+			$result = $this->runFixture( $input );
+			$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $result['rates'] );
+			$this->assertSame( 1, $result['calls'] );
+			$this->assertSame( 'Fixture Buyer', $result['customer']['shipping_first_name'] );
+			$this->assertSame( '6281229917900', $result['customer']['shipping_phone'] );
+			$this->assertSame( '81229917900', $result['customer']['billing_phone'] );
+			$this->assertSame( 'Fixture Buyer', $result['final']['shipping_first_name'] );
+			$this->assertSame( '', $result['final']['shipping_last_name'] );
+			$this->assertSame( '6281229917900', $result['final']['shipping_phone'] );
+		}
+	}
+
+	public function test_absent_billing_flags_do_not_repair_posted_empty_or_malformed_shipping_names(): void {
+		foreach ( array( '', array( 'Buyer' ) ) as $name ) {
+			$result = $this->runFixture( array(
+				'omit' => array( 'wfacp_billing_same_as_shipping' ),
+				'override' => array(
+					'ship_to_different_address' => 'on',
+					'billing_first_name' => 'Billing Buyer',
+					'billing_address_1' => 'Separate billing street',
+					'shipping_first_name' => $name,
+					'shipping_last_name' => '',
+				),
+				'final' => true,
+			) );
+			$this->assertSame( array(), $result['rates'] );
+			$this->assertSame( 0, $result['calls'] );
+			$this->assertSame( '', $result['final']['shipping_first_name'] );
+		}
+		$result = $this->runFixture( array(
+			'different_billing' => true,
+			'omit' => array( 'shipping_first_name', 'shipping_last_name' ),
+			'final' => true,
+		) );
+		$this->assertSame( array(), $result['rates'] );
+		$this->assertSame( 0, $result['calls'] );
+		$this->assertSame( '', $result['final']['shipping_first_name'] );
+	}
+
+	public function test_single_district_removed_fields_reach_real_rates_and_final_unregistered_shipping_fields(): void {
+		$keys = array( 'shipping_city', 'shipping_state', 'shipping_postcode' );
+		foreach ( array( 'absent', 'empty_marker', 'hidden_values' ) as $mode ) {
+			foreach ( array( false, true ) as $cleared ) {
+				$options = array( 'final' => true );
+				if ( 'absent' === $mode ) {
+					$options['omit'] = $keys;
+				} elseif ( 'empty_marker' === $mode ) {
+					$options['hidden'] = true;
+				} else {
+					$options['override'] = array( 'kiriof_shipping_derived_address' => 'city,state,postcode' );
+				}
+				$options[ $cleared ? 'final_override' : 'final_omit' ] = $cleared ? array_fill_keys( $keys, '' ) : $keys;
+				$result = $this->runFixture( $options );
+				$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $result['rates'], json_encode( $result ) );
+				$this->assertSame( 1, $result['calls'] );
+				foreach ( array( 'shipping_city' => 'Jakarta', 'shipping_state' => 'JK', 'shipping_postcode' => '12345' ) as $key => $value ) {
+					$this->assertSame( $value, $result['final'][ $key ], $mode );
+				}
+			}
+		}
+	}
+
+	public function test_single_district_present_manual_clears_do_not_enable_hierarchy_or_quote(): void {
+		$result = $this->runFixture( array( 'override' => array( 'shipping_city' => '', 'shipping_state' => '', 'shipping_postcode' => '' ), 'final' => true ) );
+		$this->assertSame( array(), $result['rates'] );
+		$this->assertSame( 0, $result['calls'] );
+		$this->assertSame( '', $result['final']['shipping_city'] );
+	}
+
 	public function test_shipping_first_survives_native_review_setters_and_adds_real_rates(): void {
 		foreach ( array( false, true ) as $hidden ) {
 			foreach ( array( false, true ) as $different_billing ) {

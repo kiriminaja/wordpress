@@ -40,6 +40,8 @@ if ( 'review' === ( $input['mode'] ?? '' ) ) {
 	if ( empty( $input['skip_process'] ) ) { $service->process(); }
 	$hook = 'woocommerce_checkout_posted_data';
 	$result = $service->posted( $input['posted'] ?? wp_unslash( $_POST ) );
+} elseif ( isset( $input['sequence'] ) ) {
+	foreach ( $input['sequence'] as $candidate ) { $result[] = $service->normalize( $candidate ); }
 } else {
 	$result = $service->normalize( $form );
 	$service->normalize( $form );
