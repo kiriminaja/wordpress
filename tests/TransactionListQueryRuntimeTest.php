@@ -62,9 +62,30 @@ final class TransactionListQueryRuntimeTest extends TestCase
         $this->assertCount( 1, $sql );
         // Executed database tests pin pending scope and partition predicates.
         // This fake checks that requesting badges does not mutate instance scope.
-        $before_status = count( $wpdb->queries );
+        $before_status = count( $wpdb->status_queries );
         $query->getStatusCounts();
-        $this->assertStringContainsString( "delivery_type = 'instant'", $wpdb->queries[$before_status] );
+        $status_queries = array_slice( $wpdb->status_queries, $before_status );
+        $this->assertCount( 1, $status_queries );
+        $this->assertStringContainsString( "delivery_type = 'instant'", $status_queries[0] );
+    }
+
+    #[Test]
+    public function status_partition_is_preserved_with_cold_and_warm_phone_issue_caches(): void {
+        foreach ( array( 'cold' => 1, 'warm' => 0 ) as $mode => $expected_scans ) {
+            $output = array();
+            $status = 1;
+            exec(
+                escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/transaction-count-partition-runtime.php' ) . ' ' . escapeshellarg( $mode ) . ' 2>&1',
+                $output,
+                $status
+            );
+            $this->assertSame( 0, $status, implode( "\n", $output ) );
+            $result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+            $this->assertSame( $expected_scans, $result['phone_scans'], $mode );
+            $this->assertCount( 1, $result['status_queries'], $mode );
+            $this->assertStringContainsString( "delivery_type = 'instant'", $result['status_queries'][0], $mode );
+            $this->assertStringContainsString( "delivery_type = 'express'", $result['status_queries'][0], 'Issue counts remain Express-only.' );
+        }
     }
 
 
@@ -143,6 +164,7 @@ final class TransactionListQueryWpdbFake
     public array $badge_queries = array();
     public array $list_queries = array();
     public array $phone_queries = array();
+    public array $status_queries = array();
     public array $list_results;
     public ?object $badge_result;
 
@@ -185,6 +207,7 @@ final class TransactionListQueryWpdbFake
     {
         $this->queries[] = $sql;
         if ( str_contains( $sql, 'AS all_count' ) ) {
+            $this->status_queries[] = $sql;
             return (object) array_fill_keys( array( 'all_count', 'processing_count', 'on_hold_count', 'pending_count', 'cancelled_count', 'processed_count', 'issue_count' ), '55' );
         }
         $this->badge_queries[] = $sql;
