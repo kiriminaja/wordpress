@@ -30,7 +30,9 @@ export function startFunnelKitPhone(root: PhoneContextWindow = window as PhoneCo
   let lastValue = '';
   const sync = (refresh = true) => {
     if (disposed) return;
-    const form = document.querySelector<HTMLFormElement>('form.checkout, form.woocommerce-checkout');
+    const form = document.querySelector<HTMLFormElement>(
+      'form.checkout, form.woocommerce-checkout',
+    );
     if (!form || !isFunnelKitCheckout(form)) return;
     const context: Record<string, { value: string; iso2: string; dialCode: string }> = {};
     for (const scope of ['billing', 'shipping']) {
@@ -85,7 +87,8 @@ export function startFunnelKitPhone(root: PhoneContextWindow = window as PhoneCo
       disposed = true;
       root.clearTimeout(timer);
       root.clearInterval(poll);
-      for (const name of ['input', 'change', 'focusout', 'countrychange']) document.removeEventListener(name, event, true);
+      for (const name of ['input', 'change', 'focusout', 'countrychange'])
+        document.removeEventListener(name, event, true);
       document.removeEventListener('submit', capture, true);
       root.jQuery?.(document.body).off?.('.kiriofFunnelKitPhone');
       root.removeEventListener('pagehide', bridge.dispose);
@@ -93,10 +96,13 @@ export function startFunnelKitPhone(root: PhoneContextWindow = window as PhoneCo
       if (root.kiriofFunnelKitPhone === bridge) delete root.kiriofFunnelKitPhone;
     },
   };
-  for (const name of ['input', 'change', 'focusout', 'countrychange']) document.addEventListener(name, event, true);
+  for (const name of ['input', 'change', 'focusout', 'countrychange'])
+    document.addEventListener(name, event, true);
   document.addEventListener('submit', capture, true);
   root.jQuery(document.body).on?.('update_checkout.kiriofFunnelKitPhone', capture);
-  root.jQuery(document.body).on?.('updated_checkout.kiriofFunnelKitPhone wfacp_intl_setup.kiriofFunnelKitPhone', refresh);
+  root
+    .jQuery(document.body)
+    .on?.('updated_checkout.kiriofFunnelKitPhone wfacp_intl_setup.kiriofFunnelKitPhone', refresh);
   root.addEventListener('pagehide', bridge.dispose);
   root.kiriofFunnelKitPhone = bridge;
   sync();

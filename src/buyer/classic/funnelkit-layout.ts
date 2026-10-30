@@ -64,7 +64,10 @@ function syncStreetLayout(form: HTMLFormElement) {
         form.ownerDocument.defaultView!.getComputedStyle(city).display !== 'none'
       )
         continue;
-    } else if (!form.classList.contains('kiriof-funnelkit-checkout') && !isFunnelKitCheckout(form)) {
+    } else if (
+      !form.classList.contains('kiriof-funnelkit-checkout') &&
+      !isFunnelKitCheckout(form)
+    ) {
       continue;
     }
     desired.add(street);
