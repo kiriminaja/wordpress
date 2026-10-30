@@ -6,6 +6,26 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantCheckoutOrderRuntimeTest extends TestCase {
+    #[Test]
+    public function classic_submit_uses_its_own_quote_validation_without_an_express_token(): void {
+        $valid = $this->fixture('classic_submit_valid');
+        $this->assertSame([], $valid['legacy_notices']);
+        $this->assertSame('', $valid['error']);
+        $this->assertSame('', $valid['processed_error']);
+        $this->assertNotEmpty($valid['validated_snapshot']);
+        $this->assertCount(1, $valid['rows']);
+        $this->assertSame(1, $valid['calls']);
+        foreach (['classic_submit_expired', 'classic_submit_missing_pin', 'classic_submit_changed_pin', 'classic_submit_forged_quote'] as $scenario) {
+            $invalid = $this->fixture($scenario);
+            $this->assertSame([], $invalid['legacy_notices'], $scenario);
+            $this->assertNotEmpty($invalid['error'], $scenario);
+            $this->assertSame('', $invalid['validated_snapshot'], $scenario);
+            $this->assertSame([], $invalid['rows'], $scenario);
+            $this->assertSame(0, $invalid['invoice_calls'], $scenario);
+            $this->assertSame(1, $invalid['calls'], $scenario);
+        }
+    }
+
     private function fixture(string $scenario = ''): array {
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(PLUGIN_DIR . '/tests/fixtures/instant-checkout-order-runtime.php') . ' ' . escapeshellarg('{}') . ' ' . escapeshellarg($scenario));
         return json_decode((string) $output, true, 512, JSON_THROW_ON_ERROR);

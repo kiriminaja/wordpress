@@ -72,7 +72,10 @@ final class CheckoutCountryWooCommerce {
         }
         $this->cart = new CheckoutCountryCart( $input['needs_shipping'] ?? true, $items );
         $selected = $input['post']['shipping_method'][0] ?? ( $input['session']['chosen_shipping_methods'][0] ?? '' );
-        $this->shipping = new CheckoutCountryShipping( array( array( 'rates' => array( $selected => new CheckoutCountryRate( $input['rate_method_id'] ?? '', $selected ) ) ) ) );
+        $rates = is_string( $selected ) && '' !== $selected
+            ? array( $selected => new CheckoutCountryRate( $input['rate_method_id'] ?? '', $selected ) )
+            : array();
+        $this->shipping = new CheckoutCountryShipping( array( array( 'rates' => $rates ) ) );
         $this->checkout = new CheckoutCountryCheckout( $input['checkout_values'] ?? array() );
     }
     public function checkout(): CheckoutCountryCheckout { return $this->checkout; }

@@ -149,10 +149,12 @@ final class ClassicDistrictAddressSync {
 			}
 		}
 		$data = $this->normalize( $data );
+		if ( array_key_exists( 'kiriof_shipping_destination_area_name', $data ) && ! is_string( $data['kiriof_shipping_destination_area_name'] ) ) {
+			return array();
+		}
 		$id = $this->districtId( $data['kiriof_shipping_destination_area'] ?? null );
-		$label = $this->parts( $data['kiriof_shipping_destination_area_name'] ?? null );
 		$postcode = $data['shipping_postcode'] ?? null;
-		if ( null === $id || null === $label || ! is_string( $postcode ) || $postcode !== $label[4] ) {
+		if ( null === $id || ! is_string( $postcode ) || ! preg_match( '/\A[0-9]{5}\z/', $postcode ) ) {
 			return array();
 		}
 		$matches = array();
