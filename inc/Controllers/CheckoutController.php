@@ -1825,7 +1825,7 @@ class CheckoutController
         );
     }
 
-    /** Instant has its own quote validator; unresolved selections keep the legacy guard. */
+    /** Native Express and Instant rates have final quote validators at order creation. */
     private function kiriof_requires_legacy_checkout_token( array $packages ): bool {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- WooCommerce verifies final checkout; review rendering verifies the plugin nonce.
         $methods = array_key_exists( 'shipping_method', $_POST ) ? wp_unslash( $_POST['shipping_method'] ) : WC()->session->get( 'chosen_shipping_methods', array() );
@@ -1839,7 +1839,18 @@ class CheckoutController
             if ( ! is_object( $rate ) || ! is_callable( array( $rate, 'get_method_id' ) ) || ! is_callable( array( $rate, 'get_id' ) ) || $method !== $rate->get_id() ) {
                 return true;
             }
-            if ( 'kiriminaja-instant' !== $rate->get_method_id() ) {
+            $method_id = $rate->get_method_id();
+            if ( 'kiriminaja-instant' === $method_id ) {
+                continue;
+            }
+            if ( 'kiriminaja-official' !== $method_id || ! is_callable( array( $rate, 'get_meta_data' ) ) ) {
+                return true;
+            }
+            $meta = $rate->get_meta_data();
+            $service = is_array( $meta ) ? ( $meta['kiriof_rate_service'] ?? null ) : null;
+            $type = is_array( $meta ) ? ( $meta['kiriof_rate_service_type'] ?? null ) : null;
+            if ( ! is_string( $service ) || '' === $service || ! is_string( $type ) || '' === $type
+                || 'kiriminaja-official_' . $service . '_' . $type !== $method ) {
                 return true;
             }
         }
