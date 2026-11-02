@@ -54,6 +54,47 @@ final class CheckoutCountryCompatibilityRuntimeTest extends TestCase {
         $this->assertContains( '<strong>Checkout Calculation</strong> is not finished yet', array_column( $result['notices'], 'message' ) );
     }
 
+    #[Test]
+    public function native_express_rate_reaches_final_quote_validation_without_legacy_token(): void {
+        foreach ( array( null, '', '0' ) as $token ) {
+            $post = array(
+                'billing_country' => 'ID',
+                'billing_address_1' => '456 Long shipping street address',
+                'kiriof_destination_area' => '123',
+                'shipping_method' => array( 'kiriminaja-official_jne_REG' ),
+                'checkout_kiriminaja_nonce_field' => 'valid-country-nonce',
+            );
+            if ( null !== $token ) { $post['kiriof_checkout_token'] = $token; }
+            $result = $this->runFixture( array(
+                'action' => 'validate', 'post' => $post,
+                'session' => array( 'chosen_shipping_methods' => array( 'kiriminaja-instant:4:gosend:instant' ) ),
+                'rate_method_id' => 'kiriminaja-official',
+                'rate_meta' => array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG' ),
+            ) );
+            $this->assertSame( array(), $result['notices'] );
+            $this->assertArrayNotHasKey( '_kiriof_express_validated', $result['session'] );
+        }
+    }
+
+    #[Test]
+    public function forged_or_incomplete_express_rates_cannot_bypass_the_legacy_token(): void {
+        foreach ( array(
+            array( 'rate_method_id' => 'flat_rate' ),
+            array( 'rate_meta' => array() ),
+            array( 'rate_meta' => array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'YES' ) ),
+            array( 'rate_meta' => array( 'kiriof_rate_service' => array( 'jne' ), 'kiriof_rate_service_type' => 'REG' ) ),
+            array( 'rate_id' => 'kiriminaja-official_jne_YES' ),
+        ) as $override ) {
+            $result = $this->runFixture( array_replace( array(
+                'action' => 'validate',
+                'post' => array( 'billing_country' => 'ID', 'kiriof_destination_area' => '123', 'shipping_method' => array( 'kiriminaja-official_jne_REG' ), 'checkout_kiriminaja_nonce_field' => 'valid-country-nonce' ),
+                'rate_method_id' => 'kiriminaja-official',
+                'rate_meta' => array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG' ),
+            ), $override ) );
+            $this->assertContains( '<strong>Checkout Calculation</strong> is not finished yet', array_column( $result['notices'], 'message' ) );
+        }
+    }
+
     public static function countryPairs(): array {
         return array(
             'both Indonesian' => array( 'ID', 'ID' ),

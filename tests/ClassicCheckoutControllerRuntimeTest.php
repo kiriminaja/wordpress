@@ -8,6 +8,31 @@ final class ClassicCheckoutControllerRuntimeTest extends TestCase {
         return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
     }
 
+    public function test_native_express_submit_without_legacy_token_reaches_final_validation(): void {
+        foreach ( array( 'valid', 'coupon', 'tax', 'custom-origin' ) as $mode ) {
+            $result = $this->runCase( 'submit-' . $mode );
+            $this->assertSame( array(), $result['submit_notices'], $mode );
+            $this->assertSame( 0, $result['calls_after_submit_gate'], $mode );
+            $this->assertArrayNotHasKey( 'error', $result, $mode );
+            $this->assertSame( 1, $result['calls'], $mode );
+            $this->assertCount( 1, $result['transactions'], $mode );
+            $this->assertTrue( $result['transactions'][0]['blocks_validated'] );
+            $this->assertSame( $result['amount_before'], $result['amount_after'] );
+        }
+    }
+
+    public function test_native_express_submit_without_token_still_rejects_invalid_final_quote(): void {
+        foreach ( array( 'price', 'fee', 'total', 'disabled', 'disconnected', 'unknown', 'zone', 'street', 'country', 'missing-field', 'malformed-origin', 'duplicate' ) as $mode ) {
+            $result = $this->runCase( 'submit-' . $mode );
+            $this->assertSame( array(), $result['submit_notices'], $mode );
+            $this->assertSame( 0, $result['calls_after_submit_gate'], $mode );
+            $this->assertSame( 'kiriof_invalid_express_quote', $result['error']['code'], $mode );
+            $this->assertSame( 400, $result['error']['status'], $mode );
+            $this->assertCount( 0, $result['transactions'], $mode );
+            $this->assertArrayNotHasKey( '_kiriof_express_validated', $result['meta'], $mode );
+        }
+    }
+
     public function test_native_classic_hooks_validate_effective_address_without_plugin_nonce(): void {
         foreach ( array( 'success', 'billing', 'shipping', 'pin', 'session-pin' ) as $mode ) {
             $result = $this->runCase( $mode );

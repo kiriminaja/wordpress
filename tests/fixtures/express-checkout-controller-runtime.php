@@ -31,6 +31,8 @@ namespace {
     $GLOBALS['wp'] = (object) array( 'query_vars' => array( 'rest_route' => '/wc/store/v1/checkout' ) );
     function wp_unslash( $value ) { return $value; }
     function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
+    function did_action( $hook ) { return 1; }
+    function wc_add_notice( $message, $type = 'success' ) { $GLOBALS['submit_notices'][] = array( 'message' => $message, 'type' => $type ); }
     function add_action( $hook, $callback, $priority = 10, $accepted = 1 ) { $GLOBALS['hooks'][$hook][] = array( $callback, $accepted ); }
     function do_action( $hook, ...$args ) {
         foreach ( $GLOBALS['hooks'][$hook] ?? array() as [$callback, $accepted] ) { $callback( ...array_slice( $args, 0, $accepted ) ); }
@@ -74,7 +76,11 @@ namespace {
     };
     WC()->cart = new class {
         public array $cart_contents = array();
-        public function get_cart() { return array(); }
+        public function get_cart() {
+            return str_starts_with( $GLOBALS['scenario'], 'submit-' )
+                ? array( array( 'quantity' => 1, 'data' => new class { public function needs_shipping() { return true; } } ) )
+                : array();
+        }
         public function get_discount_total() { return 0; }
         public function get_discount_tax() { return 0; }
         public function get_coupons() { return array(); }
@@ -121,11 +127,36 @@ namespace {
             $_POST['kiriof_buyer_destination_snapshot'] = json_encode( $destination );
         }
         if ( 'fee' === $scenario ) { $GLOBALS['mode'] = 'fee'; }
+        if ( str_starts_with( $scenario, 'submit-' ) ) {
+            $GLOBALS['mode'] = substr( $scenario, 7 );
+            if ( 'unknown' === $GLOBALS['mode'] ) {
+                WC()->session->set( 'chosen_shipping_methods', array( 'kiriminaja-official_unknown' ) );
+            }
+            WC()->shipping = WC()->shipping();
+            $_POST['shipping_method'] = array( 'kiriminaja-official_jne_REG' );
+            $_POST['ship_to_different_address'] = 'on';
+            $_POST['kiriof_shipping_destination_area'] = '123';
+            foreach ( \KiriminAjaOfficial\Services\BuyerDestination::ADDRESS_FIELDS as $field ) {
+                $_POST[ 'shipping_' . $field ] = $order->{'get_shipping_' . $field}();
+            }
+            // Explicitly absent/empty legacy token, as in native FunnelKit submit.
+            $_POST['kiriof_checkout_token'] = '';
+            $GLOBALS['submit_notices'] = array();
+            add_action( 'woocommerce_after_checkout_validation', array( $controller, 'kiriof_validateOrder' ), 10, 2 );
+        }
         add_action( 'woocommerce_checkout_create_order', array( $controller, 'afterCheckoutBeforeCreated' ), 10, 2 );
         add_action( 'woocommerce_checkout_order_processed', array( $controller, 'afterCheckoutAfterCreated' ), 10, 3 );
     }
     try {
         if ( defined( 'CLASSIC_CONTROLLER_INTEGRATION' ) ) {
+            if ( str_starts_with( $scenario, 'submit-' ) ) {
+                do_action( 'woocommerce_after_checkout_validation', array(), new \stdClass() );
+                $result['submit_notices'] = $GLOBALS['submit_notices'];
+                $result['calls_after_submit_gate'] = $GLOBALS['calls'];
+                if ( ! empty( $GLOBALS['submit_notices'] ) ) {
+                    throw new \RuntimeException( 'Legacy checkout validation rejected submit.' );
+                }
+            }
             do_action( 'woocommerce_checkout_create_order', $order, array() );
         } else {
             do_action( 'woocommerce_store_api_checkout_update_order_from_request', $order, $request );
