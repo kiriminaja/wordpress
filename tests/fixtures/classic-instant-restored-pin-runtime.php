@@ -57,6 +57,8 @@ function get_post_meta( $id, $key, $single = true ) { return ''; }
 function metadata_exists( ...$args ) { return false; }
 function wc_get_price_decimals() { return 0; }
 function wc_format_decimal( $value, $dp = false ) { return (string) round( $value ); }
+function wc_price( $value ) { return (string) $value; }
+function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 require $root . '/wc/KiriminajaInstantShippingMethod.php';
 kiriof_instant_shipping_method();
 $quote_service = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService( $settings, $locations, $api );
@@ -174,6 +176,36 @@ if ( ! empty( $recovery_input['draft_to_rate'] ) ) {
 		);
 	}
 	echo json_encode( array( 'before_review' => $before_review, 'rounds' => $rounds, 'lookup_calls' => $lookup_calls, 'legacy_district' => $session->get( 'kiriof_destination' ), 'payloads' => $api->payloads, 'logs' => $GLOBALS['logs'] ), JSON_THROW_ON_ERROR );
+	exit;
+}
+if ( ! empty( $recovery_input['partial_draft_to_rate'] ) ) {
+	$scope = ! empty( $recovery_input['shipping_scope'] ) ? 'shipping' : 'billing';
+	$session->set( 'kiriof_buyer_destination', null );
+	$session->set( 'kiriof_buyer_destination_coordinates', null );
+	$lookup = static fn( $postcode ) => (object) array( 'status' => 200, 'data' => array( array( 'id' => 42, 'text' => 'Village, District, Jakarta, DKI Jakarta, 12345', 'zip_code' => '12345' ) ) );
+	$drafts = new \KiriminAjaOfficial\Services\ClassicPinDraftService( new \KiriminAjaOfficial\Services\ClassicDistrictAddressSync( $lookup ), $lookup );
+	$drafts->save( array( 'address_scope' => $scope, 'country' => 'ID', 'coordinates' => array( 'latitude' => '-6.3', 'longitude' => '106.9' ) ) );
+	$key = 'shipping' === $scope ? 'kiriof_shipping_destination_area' : 'kiriof_destination_area';
+	$form = array( 'payment_method' => 'bacs', $key => '42', 'ship_to_different_address' => 'shipping' === $scope ? 'on' : '' );
+	foreach ( $package['destination'] as $field => $value ) { $form[ $scope . '_' . $field ] = $value; }
+	$rounds = array();
+	foreach ( array( $form, array( '_wfacp_post_id' => '1248', 'payment_method' => 'bacs' ), $form ) as $review ) {
+		$GLOBALS['refresh_hook'] = 'woocommerce_checkout_update_order_review';
+		$_POST = array( 'post_data' => wp_slash( http_build_query( $review ) ) );
+		$drafts->review( http_build_query( $review ) );
+		$method->rates = array();
+		$method->calculate_shipping( $package );
+		$statuses = $session->get( 'kiriof_instant_checkout_status', array() );
+		$rounds[] = array(
+			'destination' => $session->get( 'kiriof_buyer_destination' ),
+			'drafts' => $session->get( 'kiriof_classic_pin_drafts' ),
+			'coordinates' => $session->get( 'kiriof_buyer_destination_coordinates' ),
+			'rates' => array_keys( $method->rates ),
+			'code' => ( end( $statuses ) ?: array() )['code'] ?? '',
+			'calls' => $api->calls,
+		);
+	}
+	echo json_encode( array( 'rounds' => $rounds, 'logs' => $GLOBALS['logs'] ), JSON_THROW_ON_ERROR );
 	exit;
 }
 $form = array( 'payment_method' => 'bacs', 'kiriof_buyer_destination_snapshot' => json_encode( $destination ) );

@@ -3,6 +3,32 @@ use PHPUnit\Framework\TestCase;
 
 /** Run the real WooCommerce method in isolated, network-free PHP fixtures. */
 final class InstantCheckoutShippingRuntimeTest extends TestCase {
+	public function test_instant_rates_return_after_partial_step_without_selecting_the_saved_pin_again(): void {
+		foreach ( array( false, true ) as $shipping_scope ) {
+			$output = array();
+			exec( kiriof_test_fixture_php_shell( array( __DIR__ . '/fixtures/classic-instant-restored-pin-runtime.php', json_encode( array( 'partial_draft_to_rate' => true, 'shipping_scope' => $shipping_scope ), JSON_THROW_ON_ERROR ) ) ) . ' 2>&1', $output, $status );
+			$this->assertSame( 0, $status, implode( "\n", $output ) );
+			$result = json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+			$scope = $shipping_scope ? 'shipping' : 'billing';
+			$this->assertCount( 3, $result['rounds'] );
+			foreach ( array( 0, 2 ) as $index ) {
+				$round = $result['rounds'][ $index ];
+				$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $round['rates'] );
+				$this->assertSame( 'available', $round['code'] );
+				$this->assertSame( 2, $round['destination']['version'] );
+				$this->assertSame( array( 'latitude' => '-6.3', 'longitude' => '106.9' ), $round['coordinates'] );
+			}
+			$partial = $result['rounds'][1];
+			$this->assertSame( array(), $partial['rates'] );
+			$this->assertSame( 'destination_required', $partial['code'] );
+			$this->assertNull( $partial['destination'] );
+			$this->assertSame( array( 'latitude' => '-6.3', 'longitude' => '106.9' ), $partial['drafts'][ $scope ] );
+			$this->assertSame( 1, $partial['calls'] );
+			$this->assertSame( 2, $result['rounds'][2]['calls'] );
+			$this->assertSame( array(), $result['logs'] );
+		}
+	}
+
 	public function test_draft_review_promotes_current_district_and_rebinds_coordinates_to_a_new_rate(): void {
 		$output = array();
 		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/classic-instant-restored-pin-runtime.php' ) . ' ' . escapeshellarg( json_encode( array( 'draft_to_rate' => true ) ) ) . ' 2>&1', $output, $status );
