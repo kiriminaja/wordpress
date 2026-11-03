@@ -8,6 +8,66 @@ final class ClassicPinDraftServiceRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_partial_step_review_keeps_saved_coordinates_for_the_next_complete_address(): void {
+		foreach ( array( 'billing', 'shipping' ) as $scope ) {
+			$complete = $this->form( $scope );
+			$partial = array( 'payment_method' => 'bacs' );
+			if ( 'shipping' === $scope ) {
+				$partial['_wfacp_post_id'] = '1248';
+			}
+			$result = $this->runFixture( array(
+				'saves' => array( $this->save( $scope ) ),
+				'reviews' => array( $complete, $partial, $complete ),
+			) );
+			$this->assertSame( 2, $result['reviews'][0]['kiriof_buyer_destination']['version'] );
+			$this->assertNull( $result['reviews'][1]['kiriof_buyer_destination'] );
+			$this->assertNull( $result['reviews'][1]['kiriof_buyer_destination_coordinates'] );
+			$this->assertSame( $this->save( $scope )['coordinates'], $result['reviews'][1]['kiriof_classic_pin_drafts'][ $scope ] );
+			$this->assertSame( $scope, $result['reviews'][1]['kiriof_classic_pin_scope'] );
+			$this->assertSame( 2, $result['reviews'][2]['kiriof_buyer_destination']['version'] );
+			$this->assertSame( $this->save( $scope )['coordinates'], $result['reviews'][2]['kiriof_buyer_destination_coordinates'] );
+		}
+	}
+
+	public function test_partial_step_before_first_complete_review_does_not_discard_acknowledged_pin(): void {
+		$result = $this->runFixture( array(
+			'saves' => array( $this->save( 'shipping' ) ),
+			'reviews' => array( array( '_wfacp_post_id' => '1248', 'payment_method' => 'bacs' ), $this->form( 'shipping' ) ),
+		) );
+		$this->assertSame( $this->save( 'shipping' )['coordinates'], $result['reviews'][0]['kiriof_classic_pin_drafts']['shipping'] );
+		$this->assertNull( $result['reviews'][0]['kiriof_buyer_destination'] ?? null );
+		$this->assertSame( 2, $result['reviews'][1]['kiriof_buyer_destination']['version'] );
+		$this->assertSame( array( '55581' ), $result['calls'] );
+	}
+
+	public function test_explicit_country_clear_or_foreign_country_cannot_be_recovered_by_a_later_partial_step(): void {
+		foreach ( array( '', 'US', array( 'ID' ) ) as $country ) {
+			$changed = array_replace( $this->form(), array( 'billing_country' => $country ) );
+			$result = $this->runFixture( array(
+				'saves' => array( $this->save() ),
+				'reviews' => array( $this->form(), $changed, array( 'payment_method' => 'bacs' ), $this->form() ),
+			) );
+			foreach ( array( 1, 2, 3 ) as $index ) {
+				$this->assertNull( $result['reviews'][ $index ]['kiriof_classic_pin_drafts'] );
+				$this->assertNull( $result['reviews'][ $index ]['kiriof_buyer_destination'] );
+				$this->assertNull( $result['reviews'][ $index ]['kiriof_buyer_destination_coordinates'] );
+			}
+		}
+	}
+
+	public function test_partial_step_drops_old_submitted_snapshot_without_reconstructing_an_address_from_it(): void {
+		$partial = array( 'payment_method' => 'bacs', 'kiriof_buyer_destination_snapshot' => '{"version":2,"district_id":"31554"}' );
+		$result = $this->runFixture( array(
+			'saves' => array( $this->save() ),
+			'reviews' => array( $this->form(), $partial ),
+		) );
+		parse_str( $result['post']['post_data'], $posted );
+		$this->assertArrayNotHasKey( 'kiriof_buyer_destination_snapshot', $posted );
+		$this->assertNull( $result['session']['kiriof_buyer_destination'] );
+		$this->assertSame( $this->save()['coordinates'], $result['session']['kiriof_classic_pin_drafts']['billing'] );
+		$this->assertSame( array( '55581' ), $result['calls'] );
+	}
+
 	public function test_foreign_null_clear_succeeds_and_a_later_indonesian_save_can_promote(): void {
 		$clear = array( 'address_scope' => 'billing', 'country' => 'US', 'coordinates' => null );
 		$session = array(
