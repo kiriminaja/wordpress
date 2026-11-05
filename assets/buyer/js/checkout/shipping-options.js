@@ -37,6 +37,30 @@
         reviewed.choose(index,target.value,current);reconcileSelection(form);
     }
     var layoutObserver, observedParent, observedReview;
+    function alignSummary(table) {
+        var reference = table.querySelector('tr.cart-subtotal, tr.fee, tr.order-total');
+        if (!reference) { return; }
+        var label = reference.querySelector('th');
+        var value = reference.querySelector('td');
+        if (!label || !value) { return; }
+        var rowStyle = window.getComputedStyle(reference);
+        var rowProperties = ['display', 'width', 'grid-template-columns', 'align-items', 'justify-content'];
+        var cellProperties = ['display', 'width', 'min-width', 'max-width', 'flex', 'grid-column', 'text-align', 'float', 'box-sizing'];
+        function copyLayout(target, source, properties) {
+            properties.forEach(function(property) {
+                var next = source.getPropertyValue(property);
+                if (next && target.style.getPropertyValue(property) !== next) { target.style.setProperty(property, next); }
+            });
+        }
+        table.querySelectorAll('tr.kiriof-classic-shipping-summary').forEach(function(row) {
+            copyLayout(row, rowStyle, rowProperties);
+            [[row.querySelector('th'), label], [row.querySelector('td'), value]].forEach(function(pair) {
+                if (!pair[0]) { return; }
+                copyLayout(pair[0], window.getComputedStyle(pair[1]), cellProperties);
+                if (pair[0].colSpan !== pair[1].colSpan) { pair[0].colSpan = pair[1].colSpan; }
+            });
+        });
+    }
     function align(review) {
         var css = window.getComputedStyle(review);
         var float = css.cssFloat;
@@ -65,6 +89,7 @@
         var form = document.querySelector('form.checkout');
         var table = form.querySelector('table.kiriof-classic-order-review');
         if (!table) { return; }
+        alignSummary(table);
         var rows = Array.from(table.querySelectorAll('tr.woocommerce-shipping-totals'));
         if (!rows.length) {
             var originalInsurance = document.getElementById('kiriof-classic-insurance-field');
@@ -128,9 +153,10 @@
         if (window.jQuery) { window.jQuery(document.body).on('updated_checkout.kiriofShippingOptions init_checkout.kiriofShippingOptions', refresh); }
         document.addEventListener('change',choose,true);
         document.addEventListener('click',choose,true);
+        window.addEventListener('resize',refresh);
         if(window.jQuery)window.jQuery(document.querySelector('form.checkout')).on('checkout_place_order.kiriofShippingOptions',function(){reconcileSelection(this);return !reviewed || reviewed.matches(choices(this));});
     }
     window.kiriofClassicShippingOptions = {refresh: place};
-    window.addEventListener('pagehide', function () { stopped = true;if(observer)observer.disconnect();if(layoutObserver)layoutObserver.disconnect();document.removeEventListener('change',choose,true);document.removeEventListener('click',choose,true);if(window.jQuery){window.jQuery(document.body).off('.kiriofShippingOptions');window.jQuery('form.checkout').off('.kiriofShippingOptions');} }, {once: true});
+    window.addEventListener('pagehide', function () { stopped = true;if(observer)observer.disconnect();if(layoutObserver)layoutObserver.disconnect();window.removeEventListener('resize',refresh);document.removeEventListener('change',choose,true);document.removeEventListener('click',choose,true);if(window.jQuery){window.jQuery(document.body).off('.kiriofShippingOptions');window.jQuery('form.checkout').off('.kiriofShippingOptions');} }, {once: true});
     if(document.readyState === 'loading')document.addEventListener('DOMContentLoaded', start, {once: true});else start();
 })(window, document);
