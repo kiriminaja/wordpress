@@ -148,6 +148,131 @@ const district =
   '<label for="district">Subdistrict</label><select id="district" name="kiriof_destination_area" required aria-describedby="help"><option value="">Select Option</option><option value="101" selected>Old district</option></select><span id="help">Search your subdistrict</span>';
 
 describe('Classic buyer selectors (compiled actual bits-ui)', () => {
+  test('district uses a decorative search icon, other selectors use chevrons, and no clear button is rendered', async () => {
+    const h = await fixture(district + '<select id="billing_state"><option value="YO">Yogyakarta</option></select>');
+    try {
+      const document = h.window.document;
+      const search = document.querySelector('#district')!.closest('.kiriof-buyer-selector')!.querySelector('svg.kiriof-buyer-combobox-search')!;
+      expect(search).not.toBeNull();
+      expect(search.getAttribute('aria-hidden')).toBe('true');
+      expect(search.getAttribute('focusable')).toBe('false');
+      expect(search.querySelector('circle')).not.toBeNull();
+      expect(document.querySelector('#billing_state')!.closest('.kiriof-buyer-selector')!.querySelector('svg.kiriof-buyer-combobox-chevron')).not.toBeNull();
+      expect(document.querySelector('.kiriof-buyer-combobox-clear')).toBeNull();
+      await h.open();
+      expect(document.querySelector('[data-combobox-input]')).not.toBeNull();
+      expect(document.querySelector('select')!.value).toBe('101');
+      expect(h.changes).toHaveLength(0);
+    } finally { await h.cleanup(); }
+  });
+
+  test('address selectors borrow local native styles without styling couriers or native inputs', async () => {
+    const h = await fixture(
+      '<input name="billing_address_1" style="height: 56px; border: 2px solid #d8d8d8; border-radius: 28px; padding: 12px 24px; background: #fafafa; color: #252525; font-size: 18px">' +
+        district +
+        '<label for="billing_state">Province</label><select id="billing_state"><option value="YO">Yogyakarta</option></select>' +
+        '<input name="shipping_address_1" style="height: 48px; border: 1px solid #777; border-radius: 8px">' +
+        '<label for="shipping_state">Shipping province</label><select id="shipping_state"><option value="YO">Yogyakarta</option></select>' +
+        '<select name="kiriof_shipping_destination_area"><option value="101">Shipping district</option></select>' +
+        '<select class="kiriof-classic-shipping-method-select"><option value="jne_REG">JNE REG</option></select>' +
+        '<button id="place_order">Place order</button>',
+      {},
+      (w) => {
+        for (const input of w.document.querySelectorAll('input')) {
+          input.style.visibility = 'visible';
+          Object.defineProperty(input, 'offsetHeight', { get: () => parseFloat(input.style.height) });
+          input.getClientRects = () => [{ height: input.offsetHeight }] as any;
+        }
+      },
+    );
+    try {
+      const document = h.window.document;
+      const billing = document.querySelector('input[name="billing_address_1"]')!;
+      const style = h.window.getComputedStyle(billing);
+      for (const selector of ['#district', '#billing_state']) {
+        const wrapper = document.querySelector(selector)!.closest<HTMLElement>('.kiriof-classic-address-selector')!;
+        expect(wrapper.style.getPropertyValue('--kiriof-field-height')).toBe('56px');
+        for (const property of ['border-radius', 'border-width', 'border-color', 'background-color', 'color', 'font-size'])
+          expect(wrapper.style.getPropertyValue(`--kiriof-field-${property}`)).toBe(style.getPropertyValue(property));
+      }
+      for (const selector of ['#shipping_state', '[name="kiriof_shipping_destination_area"]']) {
+        const wrapper = document.querySelector(selector)!.closest<HTMLElement>('.kiriof-classic-address-selector')!;
+        expect(wrapper.style.getPropertyValue('--kiriof-field-height')).toBe('48px');
+        expect(wrapper.style.getPropertyValue('--kiriof-field-border-radius')).toBe('8px');
+      }
+      const nativeStyle = billing.getAttribute('style');
+      h.bridge.refresh();
+      await h.settle();
+      expect(billing.getAttribute('style')).toBe(nativeStyle);
+      expect(document.querySelector('.kiriof-classic-shipping-method-select')!.closest('.kiriof-classic-address-selector')).toBeNull();
+      expect(document.querySelector('#place_order')!.getAttribute('style')).toBeNull();
+      expect(h.changes).toHaveLength(0);
+      h.bridge.dispose();
+      await h.settle();
+      expect(document.querySelector('.kiriof-classic-address-selector')).toBeNull();
+      expect(billing.getAttribute('style')).toBe(nativeStyle);
+    } finally { await h.cleanup(); }
+  });
+
+  test('theme sampling skips hidden, disabled, focused and validated inputs and resamples responsive replacements', async () => {
+    const h = await fixture(
+      '<input name="billing_address_1" style="border-radius: 99px" aria-invalid="true">' +
+        '<input name="billing_city" style="border-radius: 88px">' +
+        '<input name="billing_postcode" type="hidden">' +
+        '<input name="billing_first_name" disabled>' +
+        '<p class="woocommerce-validated"><input name="billing_last_name" style="border-radius: 77px"></p>' +
+        '<input name="billing_phone" style="height: 50px; border: 1px solid #777; border-radius: 25px">' + district,
+      {},
+      (w) => {
+        for (const input of w.document.querySelectorAll('input')) {
+          input.style.visibility = 'visible';
+          Object.defineProperty(input, 'offsetHeight', { get: () => parseFloat(input.style.height) || 50 });
+          input.getClientRects = () => [{ height: input.offsetHeight }] as any;
+        }
+        (w.document.querySelector('[name="billing_city"]') as any).focus();
+      },
+    );
+    try {
+      const document = h.window.document;
+      const wrapper = document.querySelector<HTMLElement>('.kiriof-classic-address-selector')!;
+      const phone = document.querySelector<HTMLElement>('[name="billing_phone"]')!;
+      expect(wrapper.style.getPropertyValue('--kiriof-field-border-radius')).toBe('25px');
+      phone.style.height = '44px';
+      phone.style.borderRadius = '4px';
+      h.window.dispatchEvent(new h.window.Event('resize'));
+      await h.settle();
+      expect(wrapper.style.getPropertyValue('--kiriof-field-height')).toBe('44px');
+      expect(wrapper.style.getPropertyValue('--kiriof-field-border-radius')).toBe('4px');
+      phone.setAttribute('aria-invalid', 'true');
+      h.bridge.refresh();
+      await h.settle();
+      expect(wrapper.style.getPropertyValue('--kiriof-field-border-radius')).toBe('4px');
+      const replacement = document.createElement('input');
+      replacement.name = 'billing_address_1';
+      replacement.style.cssText = 'height: 60px; border: 2px solid #888; border-radius: 30px; visibility: visible';
+      Object.defineProperty(replacement, 'offsetHeight', { value: 60 });
+      replacement.getClientRects = () => [{ height: 60 }] as any;
+      document.querySelector('[name="billing_address_1"]')!.replaceWith(replacement);
+      document.body.dispatchEvent(new h.window.Event('updated_checkout'));
+      await h.settle();
+      expect(wrapper.style.getPropertyValue('--kiriof-field-height')).toBe('60px');
+      expect(wrapper.style.getPropertyValue('--kiriof-field-border-radius')).toBe('30px');
+      expect(h.trigger().getAttribute('aria-labelledby')).toBe('district-buyer-selector-label');
+      expect(h.changes).toHaveLength(0);
+    } finally { await h.cleanup(); }
+  });
+
+  test('hidden ancestor inputs leave address selectors on their fallback styling', async () => {
+    const h = await fixture('<div hidden><input name="billing_address_1" style="border-radius: 99px"></div>' + district, {}, (w) => {
+      const input = w.document.querySelector('input')!;
+      input.getClientRects = () => [{ height: 50 }] as any;
+    });
+    try {
+      expect(h.window.document.querySelector<HTMLElement>('.kiriof-classic-address-selector')!.style.length).toBe(0);
+      expect(h.trigger().getAttribute('aria-required')).toBe('true');
+    } finally { await h.cleanup(); }
+  });
+
   test('FunnelKit column classes and field placement stay builder-owned', async () => {
     const h = await fixture('<input name="_wfacp_post_id" value="123" type="hidden"><div class="wfacp-row"><p id="shipping_postcode_field" class="form-row wfacp-form-control-wrapper wfacp-col-left-half"><input name="shipping_postcode" value="55222"></p><p id="shipping_state_field" class="form-row wfacp-form-control-wrapper wfacp-col-right-half"><label for="shipping_state">Province</label><select id="shipping_state"><option value="YO">DI Yogyakarta</option></select></p></div>');
     try {
@@ -176,7 +301,8 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
       expect(css).toContain('.kiriof-funnelkit-select-field label[for]');
       expect(css).toContain('background: #fff !important');
       expect(css).toContain('outline: 2px solid #333 !important');
-      expect(css).toContain('min-height: 44px !important');
+      expect(css).toContain('min-height: var(--kiriof-field-height, var(--kiriof-control-height, 47px)) !important');
+      expect(css).not.toContain('.kiriof-buyer-combobox-clear');
     } finally {
       await h.cleanup();
     }
@@ -229,7 +355,8 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
       await h.open();
       await h.choose('third-party');
       expect(h.trigger().querySelector('img')).toBeNull();
-      expect(h.trigger().querySelector('svg')).toBeNull();
+      expect(h.trigger().querySelector('.kiriof-buyer-courier svg')).toBeNull();
+      expect(h.trigger().querySelector('svg.kiriof-buyer-combobox-chevron')).not.toBeNull();
       expect(h.changes).toHaveLength(1);
       expect((h.changes[0] as CustomEvent).detail.reviewedShipping).toBe(true);
     } finally {
@@ -341,10 +468,13 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
       }
     });
 
-    test(`${type} explicit clear survives replacement defaults`, async () => {
+    test(`${type} native reset survives replacement defaults without a clear button`, async () => {
       const h = await fixture(context + field);
       try {
-        (h.window.document.querySelector('.kiriof-buyer-combobox-clear') as any).click();
+        expect(h.window.document.querySelector('.kiriof-buyer-combobox-clear')).toBeNull();
+        const native = h.window.document.querySelector('select')!;
+        native.value = '';
+        native.dispatchEvent(new h.window.Event('change', { bubbles: true }));
         await h.settle();
         const old = h.window.document.querySelector('select')!;
         const replacement = old.cloneNode(false) as typeof old;
@@ -454,7 +584,10 @@ describe('Classic buyer selectors (compiled actual bits-ui)', () => {
       await h.choose('303');
       expect(h.window.document.querySelector('select')!.value).toBe('303');
       expect(h.changes).toHaveLength(1);
-      (h.window.document.querySelector('.kiriof-buyer-combobox-clear') as any).click();
+      expect(h.window.document.querySelector('.kiriof-buyer-combobox-clear')).toBeNull();
+      const native = h.window.document.querySelector('select')!;
+      native.value = '';
+      native.dispatchEvent(new h.window.Event('change', { bubbles: true }));
       await h.settle();
       expect(h.window.document.querySelector('select')!.value).toBe('');
       expect(h.changes).toHaveLength(2);
@@ -727,8 +860,11 @@ describe('Classic checkout postcode recovery (opt-in)', () => {
         },
       );
       try {
-        if (action === 'clear')
-          (h.window.document.querySelector('.kiriof-buyer-combobox-clear') as any).click();
+        if (action === 'clear') {
+          const native = h.window.document.querySelector('select')!;
+          native.value = '';
+          native.dispatchEvent(new h.window.Event('change', { bubbles: true }));
+        }
         else if (action === 'choose') {
           const native = h.window.document.querySelector('select')!;
           const option = h.window.document.createElement('option');

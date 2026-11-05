@@ -6,6 +6,7 @@ import type { SelectorBridge, SelectorConfig, SelectorOption } from '../types/se
 import { syncDistrictAddress } from './district-address';
 import { isFunnelKitCheckout, usesShippingAddress } from './address-scope';
 import { clearFunnelKitLayout, syncFunnelKitLayout } from './funnelkit-layout';
+import { syncClassicFieldStyle } from './field-style';
 
 type JQueryField = {
   data: (key: string, value?: unknown) => unknown;
@@ -547,6 +548,10 @@ export function startClassicSelectors(
       'Select Option';
     const wrapper = document.createElement('div');
     wrapper.className = 'kiriof-buyer-selector';
+    if (!shipping(select)) {
+      wrapper.classList.add('kiriof-classic-address-selector');
+      syncClassicFieldStyle(select, wrapper);
+    }
     const funnelkitRow =
       select.closest('.wfacp-form-control-wrapper') ||
       (select.closest('.wfacp_main_form, #wfacp_checkout_form, .wfacp_checkout_form')
@@ -661,6 +666,7 @@ export function startClassicSelectors(
         continue;
       }
       destroyWoo(record.select);
+      if (!shipping(record.select)) syncClassicFieldStyle(record.select, record.wrapper);
       const scope = addressScope(record.select);
       if (scope !== record.scope) {
         cancel(record);
@@ -725,7 +731,7 @@ export function startClassicSelectors(
         if (['class', 'style', 'hidden'].includes(mutation.attributeName || ''))
           return Boolean(
             target?.matches(
-              '#billing_city_field, #billing_state_field, #billing_postcode_field, #billing_country_field, #shipping_city_field, #shipping_state_field, #shipping_postcode_field, #shipping_country_field',
+              '[id^="billing_"][id$="_field"], [id^="shipping_"][id$="_field"], input[name^="billing_"], input[name^="shipping_"]',
             ),
           );
         if (target?.closest('select')) return true;
@@ -734,7 +740,7 @@ export function startClassicSelectors(
           (node) =>
             node instanceof Element &&
             (node.matches('select, input, form, .wc-block-checkout, .select2-container') ||
-              !!node.querySelector('select, form, .wc-block-checkout')),
+              !!node.querySelector('select, input, form, .wc-block-checkout')),
         );
       });
       if (relevant) queueRefresh();
@@ -760,10 +766,12 @@ export function startClassicSelectors(
     });
     document.addEventListener('change', addressChange, true);
     document.addEventListener('input', addressInput, true);
+    document.addEventListener('focusout', queueRefresh);
     document.body.addEventListener('updated_checkout', queueRefresh);
     document.body.addEventListener('kiriof:classic-district-ready', queueRefresh);
     document.body.addEventListener('country_to_state_changed', queueRefresh);
     root.addEventListener('resize', queueRefresh);
+    root.addEventListener('load', queueRefresh);
     root
       .jQuery?.(document.body)
       .on(
@@ -801,10 +809,12 @@ export function startClassicSelectors(
       document.removeEventListener('DOMContentLoaded', start);
       document.removeEventListener('change', addressChange, true);
       document.removeEventListener('input', addressInput, true);
+      document.removeEventListener('focusout', queueRefresh);
       document.body.removeEventListener('updated_checkout', queueRefresh);
       document.body.removeEventListener('kiriof:classic-district-ready', queueRefresh);
       document.body.removeEventListener('country_to_state_changed', queueRefresh);
       root.removeEventListener('resize', queueRefresh);
+      root.removeEventListener('load', queueRefresh);
       root.jQuery?.(document.body).off('.kiriofBuyerSelectors');
       root.removeEventListener('pagehide', bridge.dispose!);
       records.forEach(destroy);

@@ -11,33 +11,33 @@ const manifest = JSON.parse(read('package.json'));
 
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-
-  test.each(['release', 'publish', 'zip', 'frontend'])(
-    '%s reports missing dependencies before running release or build commands',
-    (target) => {
-      const root = mkdtempSync(path.join(tmpdir(), 'kiriof-dependency-preflight-'));
-      roots.push(root);
-      writeFileSync(path.join(root, 'Makefile'), read('Makefile'));
-      writeFileSync(
-        path.join(root, 'kiriminaja.php'),
-        "<?php define( 'KIRIOF_VERSION', '3.0.10' );\n",
-      );
-      mkdirSync(path.join(root, 'scripts'));
-      writeFileSync(
-        path.join(root, 'scripts/changelog.php'),
-        '<?php file_put_contents("mutated", "yes");',
-      );
-      const result = spawnSync('make', ['-j4', target], { cwd: root, encoding: 'utf8' });
-      expect(result.status).not.toBe(0);
-      expect(result.stdout).toContain('Node dependencies is unavailable');
-      expect(result.stdout).toContain('Composer vendor is unavailable');
-      expect(result.stdout).toContain('Run composer install & bun install first');
-      expect(result.stdout).not.toContain('run build');
-      expect(existsSync(path.join(root, 'mutated'))).toBe(false);
-      expect(readFileSync(path.join(root, 'kiriminaja.php'), 'utf8')).toContain('3.0.10');
-    },
-  );
 });
+
+test.each(['release', 'publish', 'zip', 'frontend'])(
+  '%s reports missing dependencies before running release or build commands',
+  (target) => {
+    const root = mkdtempSync(path.join(tmpdir(), 'kiriof-dependency-preflight-'));
+    roots.push(root);
+    writeFileSync(path.join(root, 'Makefile'), read('Makefile'));
+    writeFileSync(
+      path.join(root, 'kiriminaja.php'),
+      "<?php define( 'KIRIOF_VERSION', '3.0.10' );\n",
+    );
+    mkdirSync(path.join(root, 'scripts'));
+    writeFileSync(
+      path.join(root, 'scripts/changelog.php'),
+      '<?php file_put_contents("mutated", "yes");',
+    );
+    const result = spawnSync('make', ['-j4', target], { cwd: root, encoding: 'utf8' });
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toContain('Node dependencies is unavailable');
+    expect(result.stdout).toContain('Composer vendor is unavailable');
+    expect(result.stdout).toContain('Run composer install & bun install first');
+    expect(result.stdout).not.toContain('run build');
+    expect(existsSync(path.join(root, 'mutated'))).toBe(false);
+    expect(readFileSync(path.join(root, 'kiriminaja.php'), 'utf8')).toContain('3.0.10');
+  },
+);
 
 test('hotfix releases do not require prior validation or run tests', () => {
   const workflow = read('.github/workflows/release.yml');

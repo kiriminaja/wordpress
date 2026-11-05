@@ -1158,12 +1158,16 @@ for (const width of [1200, 390]) {
     });
     for (const id of ['kiriof_destination_area', 'billing_state']) {
       const prefix = `#${id}_field`;
-      expect(await browser.evaluate((selector: string) => {
+      const geometry = await browser.evaluate((selector: string) => {
         const item = document.querySelector(`${selector} .kiriof-buyer-combobox-trigger > span:first-child`)!;
         const inner = document.querySelector(`${selector} .kiriof-buyer-combobox-trigger`)!;
+        const reference = document.querySelector('input[name="billing_address_1"]')!;
         const css = getComputedStyle(item);
-        return { nowrap: css.whiteSpace, overflow: css.overflow, ellipsis: css.textOverflow, clipped: item.scrollWidth > item.clientWidth, itemHeight: item.getBoundingClientRect().height, controlHeight: inner.getBoundingClientRect().height };
-      }, prefix)).toEqual({ nowrap: 'nowrap', overflow: 'hidden', ellipsis: 'ellipsis', clipped: true, itemHeight: 24, controlHeight: 46 });
+        return { nowrap: css.whiteSpace, overflow: css.overflow, ellipsis: css.textOverflow, clipped: item.scrollWidth > item.clientWidth, lineHeight: css.lineHeight, controlHeight: inner.getBoundingClientRect().height, nativeHeight: reference.getBoundingClientRect().height, nativeLineHeight: getComputedStyle(reference).lineHeight };
+      }, prefix);
+      expect({ nowrap: geometry.nowrap, overflow: geometry.overflow, ellipsis: geometry.ellipsis, clipped: geometry.clipped }).toEqual({ nowrap: 'nowrap', overflow: 'hidden', ellipsis: 'ellipsis', clipped: true });
+      expect(geometry.controlHeight).toBe(geometry.nativeHeight);
+      expect(geometry.lineHeight).toBe(geometry.nativeLineHeight);
       await browser.locator(`${prefix} .kiriof-buyer-combobox-trigger`).tap();
       await expect(browser.locator(`.kiriof-buyer-combobox-content`)).toBeVisible();
       await expect.poll(() => browser.evaluate((selector: string) => document.activeElement === document.querySelector(`.kiriof-buyer-combobox-input`), prefix)).toBe(true);
@@ -1381,7 +1385,7 @@ test('Classic courier radios remain selectable when Choices is unavailable', asy
   expect(fixture.unexpected).toEqual([]);
 });
 
-test('Classic Choices uses PHP unified Sariharjo results, cancels stale searches and clears one native change', async ({ app, browser, screen }) => {
+test('Classic Choices uses PHP unified Sariharjo results, cancels stale searches and keeps selection without a clear button', async ({ app, browser, screen }) => {
   const unified = php('subdistrict-sdk-runtime.php', {});
   const result = unified.sari.response.data[0];
   let release: (() => void) | undefined;
@@ -1417,10 +1421,11 @@ test('Classic Choices uses PHP unified Sariharjo results, cancels stale searches
   await screen.getByRole('option', result.text).tap();
   await expect(browser.locator('#kiriof_destination_area')).toHaveValue(String(result.id));
   await expect(browser.locator('#kiriof_destination_area_name')).toHaveValue(result.text);
-  await browser.locator('#kiriof_destination_area_field .kiriof-buyer-combobox-clear').tap();
-  await expect(browser.locator('#kiriof_destination_area')).toHaveValue('');
-  await expect(browser.locator('#kiriof_destination_area_name')).toHaveValue('');
-  expect(await browser.evaluate(() => (window as any).__changes)).toEqual([{ id: String(result.id), label: result.text }, { id: '', label: '' }]);
+  expect(await browser.evaluate(() => ({
+    clear: !!document.querySelector('#kiriof_destination_area_field .kiriof-buyer-combobox-clear'),
+    search: !!document.querySelector('#kiriof_destination_area_field svg.kiriof-buyer-combobox-search'),
+  }))).toEqual({ clear: false, search: true });
+  expect(await browser.evaluate(() => (window as any).__changes)).toEqual([{ id: String(result.id), label: result.text }]);
   expect(fixture.unexpected).toEqual([]);
 });
 
