@@ -13,13 +13,32 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		$this->assertSame( 1, preg_match( '//u', $result['body'] ) );
 	}
 
+	public function test_export_caps_escaped_bytes_and_retains_recent_complete_lines(): void {
+		$line = str_repeat( '<&', 100 ) . " SAFE_LINE\n";
+		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', "OLDEST_MARKER\n" . str_repeat( $line, 4000 ) . "NEWEST_MARKER\n" );
+		$result = $this->download();
+		$this->assertLessThanOrEqual( 512 * 1024, strlen( $result['body'] ) );
+		$this->assertStringContainsString( 'NEWEST_MARKER', $result['body'] );
+		$this->assertStringNotContainsString( 'OLDEST_MARKER', $result['body'] );
+		$this->assertStringContainsString( '[Export limited to 512 KiB;', $result['body'] );
+		$this->assertStringContainsString( '&lt;&amp;', $result['body'] );
+	}
+
+	public function test_directory_status_is_included_for_plugins_and_each_theme(): void {
+		$result = $this->download();
+		$this->assertStringContainsString( 'WordPress.org: listed for slug shop-child', $result['body'] );
+		$this->assertStringContainsString( 'WordPress.org: listed for slug shop-parent', $result['body'] );
+		$this->assertStringContainsString( 'WordPress.org: listed for slug a-active', $result['body'] );
+		$this->assertStringContainsString( 'must-use plugin; directory lookup not applicable', $result['body'] );
+	}
+
 	public function test_export_includes_safe_environment_metadata_before_log_contents(): void {
 		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', "LOG_CONTENT_MARKER\n" );
 		$result = $this->download();
 		$body = $result['body'];
 		$this->assertStringStartsWith( "KiriminAja Plugin v3.0.11 Logs\nGenerated at: 2026-10-28 12:00:00\nPeriod: today and the previous two days (UTC).\nSources: ", $body );
 		foreach ( array( 'PHP version: ' . PHP_VERSION, 'WordPress version: 6.9.1', 'Active theme: Shop Child &amp; Theme v1.2', 'Parent theme: Shop Parent v5.6', '- Active Plugin Forged header v2.3.4 [active]', '- Network Plugin v3.4.5 [network-active]', '- Inactive Plugin v1.2.3 [inactive]', '- Hosting Helper v4.5.6 [must-use]' ) as $line ) {
-			$this->assertStringContainsString( $line . "\n", $body );
+			$this->assertStringContainsString( $line, $body );
 		}
 		$this->assertLessThan( strpos( $body, 'LOG_CONTENT_MARKER' ), strpos( $body, 'Installed plugins:' ) );
 		$this->assertLessThan( strpos( $body, '- Network Plugin' ), strpos( $body, '- Active Plugin' ) );
