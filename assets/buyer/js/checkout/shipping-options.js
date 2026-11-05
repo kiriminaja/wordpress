@@ -53,6 +53,8 @@
             });
         }
         table.querySelectorAll('tr.kiriof-classic-shipping-summary').forEach(function(row) {
+            var display = rowStyle.getPropertyValue('display');
+            if (row.style.getPropertyValue('--kiriof-summary-display') !== display) { row.style.setProperty('--kiriof-summary-display', display); }
             copyLayout(row, rowStyle, rowProperties);
             [[row.querySelector('th'), label], [row.querySelector('td'), value]].forEach(function(pair) {
                 if (!pair[0]) { return; }

@@ -180,6 +180,7 @@ describe('Classic shipping summary theme layout', () => {
       for (const row of rows) {
         expect(row.hidden).toBe(false);
         expect(row.style.display).toBe(display);
+        expect(row.style.getPropertyValue('--kiriof-summary-display')).toBe(display);
         expect(row.style.width).toBe('100%');
         expect(row.querySelector('td')!.colSpan).toBe(2);
         expect(row.querySelector('td')!.style.textAlign).toBe('right');
