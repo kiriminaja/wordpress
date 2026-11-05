@@ -7,6 +7,7 @@ namespace KiriminAjaOfficial\Controllers {
 }
 namespace {
 	define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' );
+	define( 'KIRIOF_VERSION', '3.0.11' );
 	require ABSPATH . 'vendor/autoload.php';
 	$scenario = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );
 	define( 'WC_LOG_DIR', $scenario['directory'] . '/logs/' );
@@ -22,6 +23,39 @@ namespace {
 	function trailingslashit( $value ) { return rtrim( $value, '/\\' ) . '/'; }
 	function nocache_headers() {}
 	function current_time( $type ) { return '2026-10-28 12:00:00'; }
+	function sanitize_text_field( $value ) { return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $value ) ) ); }
+	function get_bloginfo( $field ) { return '6.9.1'; }
+	function get_transient( $key ) { return $GLOBALS['directory_cache'][ $key ] ?? false; }
+	function set_transient( $key, $value, $ttl ) { $GLOBALS['directory_cache'][ $key ] = $value; return true; }
+	function wp_remote_get( $url, $args ) {
+		parse_str( parse_url( $url, PHP_URL_QUERY ), $query );
+		return array( 'response' => array( 'code' => 200 ), 'body' => json_encode( array( 'slug' => $query['request']['slug'], 'name' => 'Directory entry', 'version' => '1' ) ) );
+	}
+	function is_wp_error( $response ) { return false; }
+	function wp_remote_retrieve_response_code( $response ) { return $response['response']['code']; }
+	function wp_remote_retrieve_body( $response ) { return $response['body']; }
+	function get_plugins() {
+		return array(
+			'z-inactive/main.php' => array( 'Name' => 'Inactive Plugin', 'Version' => '1.2.3', 'Description' => 'PRIVATE_DESCRIPTION', 'PluginURI' => 'https://PRIVATE_URL.test' ),
+			'a-active/main.php' => array( 'Name' => "<b>Active Plugin</b>\nForged header", 'Version' => '2.3.4' ),
+			'n-network/main.php' => array( 'Name' => 'Network Plugin', 'Version' => '3.4.5' ),
+		);
+	}
+	function is_plugin_active_for_network( $file ) { return 'n-network/main.php' === $file; }
+	function is_plugin_active( $file ) { return 'a-active/main.php' === $file; }
+	function get_mu_plugins() { return empty( $GLOBALS['scenario']['no_mu'] ) ? array( 'mu.php' => array( 'Name' => 'Hosting Helper', 'Version' => '4.5.6' ) ) : array(); }
+	function wp_get_theme() {
+		return new class {
+			public function get( $field ) { return 'Name' === $field ? 'Shop Child & Theme' : ( 'Version' === $field ? '1.2' : '' ); }
+			public function get_stylesheet() { return 'shop-child'; }
+			public function parent() {
+				return empty( $GLOBALS['scenario']['no_parent'] ) ? new class {
+					public function get( $field ) { return 'Name' === $field ? 'Shop Parent' : ( 'Version' === $field ? '5.6' : '' ); }
+					public function get_stylesheet() { return 'shop-parent'; }
+				} : false;
+			}
+		};
+	}
 	function wp_check_invalid_utf8( $value, $strip = false ) {
 		$value = (string) $value;
 		return 1 === preg_match( '//u', $value ) ? $value : '';
