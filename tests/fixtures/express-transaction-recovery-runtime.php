@@ -36,6 +36,9 @@ namespace {
     define( 'ABSPATH', __DIR__ );
     function __( $text, $domain ) { return $text; }
     function absint( $value ) { return abs( (int) $value ); }
+    function wc_get_price_decimals() { return $GLOBALS['decimals'] ?? 2; }
+    function wc_format_decimal( $value, $dp = false ) { return number_format( (float) $value, false === $dp ? wc_get_price_decimals() : $dp, '.', '' ); }
+    function kiriof_log( ...$args ) { $GLOBALS['save_logs'][] = $args; }
     function wp_json_encode( $value ) { return json_encode( $value ); }
     function maybe_serialize( $value ) { return serialize( $value ); }
     function wp_cache_delete( $key, $group ) {}
@@ -49,7 +52,7 @@ namespace {
         public function query( $query ) { list( $key, $value ) = $query[1]; if ( isset( $GLOBALS['options'][$key] ) && serialize( $GLOBALS['options'][$key] ) === $value ) { unset( $GLOBALS['options'][$key] ); return 1; } return 0; }
     }
     class Order {
-        public $meta; public $notes = array(); public $total = 110;
+        public $meta; public $notes = array(); public $total = 110; public $tax = 0;
         public function __construct() { $this->meta = array( '_kiriof_express_validated' => array( 'expedition' => 'jne_REG', 'destination_id' => 123, 'payment_method' => 'bacs', 'is_insurance' => false, 'origin_snapshot' => array( 'location_id' => 4, 'origin_name' => 'Validated store', 'origin_phone' => '08123456789', 'origin_address' => 'Validated address', 'origin_sub_district_id' => 456 ), 'validated_calculation' => array( 'calculation_result' => array( 'cart_total_amt' => 100, 'cart_total_after_discount' => 100, 'ongkir_fee_raw' => 10, 'calc_total_amt' => 110, 'insurance_amt' => 0, 'cod_amt' => 0, 'selected_expedition' => array( 'service' => 'jne', 'service_type' => 'REG', 'force_insurance' => false ) ), 'carts_attribute' => array( 'weight' => 1000, 'length' => 1, 'width' => 1, 'height' => 1 ) ) ) ); }
         public function get_meta( $key, $single = true ) { return $this->meta[$key] ?? ''; }
         public function update_meta_data( $key, $value ) { $this->meta[$key] = $value; }
@@ -60,7 +63,7 @@ namespace {
         public function get_items( $type ) { return array(); }
         public function get_total() { return $this->total; }
         public function get_total_fees() { return 0; }
-        public function get_total_tax() { return 0; }
+        public function get_total_tax() { return $this->tax; }
         public function get_payment_method() { return 'bacs'; }
         public function get_shipping_postcode() { return '12345'; }
         public function calculate_totals() { throw new \RuntimeException( 'No amount mutation' ); }
@@ -99,5 +102,37 @@ namespace {
     $GLOBALS['order']->total = 110;
     unset( $GLOBALS['order']->meta['_kiriof_express_validated']['origin_snapshot'] );
     $assert( 503 === $make()->call()->status && 2 === $repo->attempts, 'Legacy missing origin rejects without fallback or insert' );
-    echo json_encode( array( 'ok' => true, 'attempts' => $repo->attempts, 'invoices' => $generator->calls, 'rows' => count( $repo->rows ), 'race_status' => $race_status ) );
+    $original_attempts = $repo->attempts;
+    $original_invoices = $generator->calls;
+    $rounding_cases = array(
+        array( 0, 69819.81982 + 5700 + 200, 7680, 83400, true ),
+        array( 0, 69819.81982 + 5700 + 200, 7680, 83401, false ),
+        array( 0, 69819.81982 + 5700 + 200, 7680, 83399, false ),
+        array( 2, 110.004, 0, 110, true ),
+        array( 2, 110.004, 0, 110.01, false ),
+    );
+    $rounding_results = array();
+    foreach ( $rounding_cases as list( $precision, $net, $tax, $total, $accepted ) ) {
+        $GLOBALS['order'] = new Order();
+        $GLOBALS['order']->total = $total;
+        $GLOBALS['order']->tax = $tax;
+        $GLOBALS['decimals'] = $precision;
+        $GLOBALS['order']->meta['_kiriof_express_validated']['validated_calculation']['calculation_result']['calc_total_amt'] = $net;
+        $saved_rows = $repo->rows;
+        $repo->rows = array();
+        $GLOBALS['save_logs'] = array();
+        $before = $repo->attempts;
+        $reply = $make()->call();
+        $assert( ( $accepted ? 200 : 503 ) === $reply->status, 'Saved quote total must use Woo currency precision without changing buyer amount' );
+        $assert( $total === $GLOBALS['order']->total, 'Persistence must not mutate buyer amount' );
+        if ( $accepted ) {
+            $assert( $before + 1 === $repo->attempts, 'Rounded quote inserts once' );
+            $assert( 200 === $make()->call()->status && $before + 1 === $repo->attempts, 'Rounded quote retry never duplicates or reprices' );
+        } else {
+            $assert( $before === $repo->attempts, 'Real total mismatch never inserts' );
+        }
+        $rounding_results[] = array( 'accepted' => $accepted, 'status' => $reply->status, 'total' => $GLOBALS['order']->total, 'logs' => $GLOBALS['save_logs'] );
+        $repo->rows = $saved_rows;
+    }
+    echo json_encode( array( 'ok' => true, 'rounding_cases' => $rounding_results, 'attempts' => $original_attempts, 'invoices' => $original_invoices, 'rows' => count( $repo->rows ), 'race_status' => $race_status ) );
 }

@@ -27,6 +27,7 @@ class CreateTransactionService extends BaseService{
     private CheckoutServiceFactory $checkout_service_factory;
     private $expressLease;
     private $expressLock;
+    private string $expressFailureStage = 'lock_unavailable';
     
     
     /**
@@ -262,6 +263,7 @@ class CreateTransactionService extends BaseService{
     private function callVerifiedExpress() {
         $order = null;
         $acquired = false;
+        $this->expressFailureStage = 'lock_unavailable';
         try {
             $this->expressLock = '_kiriof_express_order_lock_' . absint( $this->payload['order_id'] );
             $this->expressLease = array( 'owner' => bin2hex( random_bytes( 16 ) ), 'expires' => time() + 180 );
@@ -276,16 +278,20 @@ class CreateTransactionService extends BaseService{
                 return $this->expressFailure();
             }
             // Read order metadata after the lock: a waiting retry must not use stale data.
+            $this->expressFailureStage = 'order_unavailable';
             $order = wc_get_order( $this->payload['order_id'] );
             if ( ! $order ) { return $this->expressFailure(); }
             $order->read_meta_data( true );
             $context = $order->get_meta( '_kiriof_express_validated', true );
+            $this->expressFailureStage = 'validated_context_invalid';
             $calculation = $context['validated_calculation'] ?? null;
             if ( ! is_array( $context ) || ! is_array( $calculation ) || empty( $calculation['calculation_result'] ) || empty( $calculation['carts_attribute'] ) ) {
                 return $this->expressFailure( $order );
             }
             // Old contexts without an origin cannot safely reconstruct a shipment.
+            $this->expressFailureStage = 'validated_origin_invalid';
             $this->payload['express_origin_snapshot'] = \KiriminAjaOfficial\Services\ExpressCheckoutValidationService::normalizeOriginSnapshot( $context['origin_snapshot'] ?? null );
+            $this->expressFailureStage = 'validated_context_invalid';
             $calc = $calculation['calculation_result'];
             if ( ! isset( $calc['calc_total_amt'] ) || ! is_array( $calc['selected_expedition'] ?? null ) ) { return $this->expressFailure( $order ); }
             $this->payload['kiriof_expedition'] = $context['expedition'];
@@ -300,12 +306,18 @@ class CreateTransactionService extends BaseService{
                 }
             }
             $expected = (float) $calc['calc_total_amt'] + (float) $order->get_total_tax() + (float) $order->get_total_fees() - $logistics_fees;
-            if ( ! $this->equalExpressAmount( $order->get_total(), $expected ) || (string) $order->get_payment_method() !== (string) $context['payment_method'] ) {
+            $this->expressFailureStage = 'order_amount_mismatch';
+            if ( ! \KiriminAjaOfficial\Services\ExpressCheckoutValidationService::equalOrderTotal( $order->get_total(), $expected ) ) {
+                return $this->expressFailure( $order );
+            }
+            $this->expressFailureStage = 'payment_method_mismatch';
+            if ( (string) $order->get_payment_method() !== (string) $context['payment_method'] ) {
                 return $this->expressFailure( $order );
             }
             $calculation['calculation_result']['selected_expedition'] = (object) $calc['selected_expedition'];
             $this->checkoutCalcCache = array( 'status' => true, 'data' => $calculation );
             $invoice = (string) $order->get_meta( '_kiriof_express_invoice', true );
+            $this->expressFailureStage = 'invoice_save_failed';
             if ( '' === $invoice ) {
                 $invoice = (string) $this->order_id_generator->call();
                 if ( '' === $invoice ) { return $this->expressFailure( $order ); }
@@ -313,8 +325,10 @@ class CreateTransactionService extends BaseService{
                 $order->save_meta_data();
             }
             $this->payload['express_invoice'] = $invoice;
+            $this->expressFailureStage = 'transaction_save_failed';
             $result = $this->callTransaction();
             if ( 200 !== $result->status ) { return $this->expressFailure( $order ); }
+            $this->expressFailureStage = 'completion_metadata_failed';
             $order->delete_meta_data( '_kiriof_express_transaction_error' );
             $order->save_meta_data();
             return $result;
@@ -350,6 +364,11 @@ class CreateTransactionService extends BaseService{
     }
 
     private function expressFailure( $order = null ) {
+        if ( function_exists( 'kiriof_log' ) ) {
+            try {
+                kiriof_log( 'warning', 'Express shipment persistence failed.', array( 'operation' => 'save_express_transaction', 'code' => $this->expressFailureStage, 'backtrace' => false ), 'kiriminaja_checkout' );
+            } catch ( \Throwable $error ) { /* Diagnostics must not prevent the fixed failure response. */ }
+        }
         $message = __( 'Express shipment could not be saved. Please retry checkout or contact the store.', 'kiriminaja-official' );
         if ( $order ) {
             try {

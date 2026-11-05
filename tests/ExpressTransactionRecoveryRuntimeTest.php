@@ -14,5 +14,15 @@ final class ExpressTransactionRecoveryRuntimeTest extends TestCase {
         $this->assertSame( 1, $result['invoices'] );
         $this->assertSame( 1, $result['rows'] );
         $this->assertSame( 503, $result['race_status'] );
+        $this->assertCount( 5, $result['rounding_cases'] );
+        foreach ( $result['rounding_cases'] as $case ) {
+            if ( $case['accepted'] ) {
+                $this->assertSame( 200, $case['status'] );
+                $this->assertSame( array(), $case['logs'] );
+            } else {
+                $this->assertSame( 503, $case['status'] );
+                $this->assertSame( array( array( 'warning', 'Express shipment persistence failed.', array( 'operation' => 'save_express_transaction', 'code' => 'order_amount_mismatch', 'backtrace' => false ), 'kiriminaja_checkout' ) ), $case['logs'] );
+            }
+        }
     }
 }
