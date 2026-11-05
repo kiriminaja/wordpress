@@ -153,7 +153,10 @@ final class ExpressCheckoutValidationService {
         $other_fees = (float) $order->get_total_fees() - array_sum( $fees['insurance'] ) - array_sum( $fees['cod_fee'] );
         $expected_total = $items_total + $shipping + (float) $calc['insurance_amt'] + (float) $calc['cod_amt'] + $other_fees + (float) $order->get_total_tax();
         $this->validation_stage = 'order_amount_mismatch';
-        if ( ! $this->equal( $order->get_total(), $expected_total ) ) { $this->fail(); }
+        // Woo keeps fractional net line amounts but rounds the buyer's grand total to store precision.
+        $decimals = wc_get_price_decimals();
+        if ( ! is_numeric( $order->get_total() ) || ! is_finite( (float) $order->get_total() ) || ! is_finite( $expected_total )
+            || wc_format_decimal( $order->get_total(), $decimals ) !== wc_format_decimal( $expected_total, $decimals ) ) { $this->fail(); }
         $calc['ongkir_fee_amt'] = $shipping;
         $calc['calc_total_amt'] = $items_total + $shipping + (float) $calc['insurance_amt'] + (float) $calc['cod_amt'];
         $calc['discount_amt'] = max( 0, (float) $calc['ongkir_fee_raw'] - $shipping );
