@@ -12,6 +12,7 @@ final class ExpressCheckoutValidationService {
     public const META_KEY = '_kiriof_express_validated';
     private SettingRepository $settings;
     private CheckoutServiceFactory $factory;
+    private string $validation_stage = 'selection_invalid';
 
     public function __construct( SettingRepository $settings, CheckoutServiceFactory $factory ) {
         $this->settings = $settings;
@@ -20,6 +21,7 @@ final class ExpressCheckoutValidationService {
 
     /** Returns only durable, JSON-safe calculation data, never API payloads or secrets. */
     public function validate( $order, int $district, string $payment, bool $insurance ): array {
+        $this->validation_stage = 'selection_invalid';
         $lines = array();
         foreach ( $order->get_items( 'shipping' ) as $line ) {
             $method = (string) $line->get_method_id();
@@ -54,12 +56,23 @@ final class ExpressCheckoutValidationService {
         }
         $package_key = array_key_first( $packages );
         $package = $packages[$package_key];
+        $this->validation_stage = 'destination_mismatch';
         foreach ( BuyerDestination::ADDRESS_FIELDS as $field ) {
             $getter = 'get_shipping_' . $field;
-            if ( ! is_callable( array( $order, $getter ) ) || ! array_key_exists( $field, $package['destination'] ?? array() ) || (string) $order->$getter() !== (string) $package['destination'][$field] ) {
+            if ( ! is_callable( array( $order, $getter ) ) || ! array_key_exists( $field, $package['destination'] ?? array() ) ) {
+                $this->fail();
+            }
+            $order_value = (string) $order->$getter();
+            $package_value = (string) $package['destination'][$field];
+            if ( 'postcode' === $field ) {
+                $order_value = BuyerDestination::postcode( $order_value );
+                $package_value = BuyerDestination::postcode( $package_value );
+            }
+            if ( $order_value !== $package_value ) {
                 $this->fail();
             }
         }
+        $this->validation_stage = 'rate_mismatch';
         $rate = $package['rates'][$rate_id] ?? null;
         if ( ! $rate || ( $chosen[$package_key] ?? '' ) !== $rate_id || $rate->get_id() !== $rate_id || 'kiriminaja-official' !== $rate->get_method_id() || (int) $line->get_instance_id() !== (int) $rate->get_instance_id() ) {
             $this->fail();
@@ -81,6 +94,7 @@ final class ExpressCheckoutValidationService {
             $this->fail();
         }
         // Duplicate logistics fees are rejected before any pricing call.
+        $this->validation_stage = 'duplicate_fees';
         $fees = array( 'insurance' => array(), 'cod_fee' => array() );
         foreach ( $order->get_items( 'fee' ) as $fee ) {
             $kind = (string) $fee->get_meta( '_kiriof_fee_type', true );
@@ -98,10 +112,16 @@ final class ExpressCheckoutValidationService {
             $locations = new ShipmentLocationService( null, $this->settings );
             $origin = $locations->locationToOrigin( $locations->getDefaultLocation() );
         }
-        $origin = self::normalizeOriginSnapshot( $origin );
+        $this->validation_stage = 'origin_invalid';
+        try {
+            $origin = self::normalizeOriginSnapshot( $origin );
+        } catch ( \InvalidArgumentException $error ) {
+            $this->fail();
+        }
+        $this->validation_stage = 'pricing_unavailable';
         $response = $this->factory->calculation( array(
             'destination_area_id' => $district,
-            'destination_postcode' => (string) ( $package['destination']['postcode'] ?? '' ),
+            'destination_postcode' => BuyerDestination::postcode( (string) ( $package['destination']['postcode'] ?? '' ) ),
             'expedition' => $expedition,
             'is_insurance' => $insurance,
             'is_cod' => 'cod' === $payment,
@@ -111,23 +131,28 @@ final class ExpressCheckoutValidationService {
         ) )->call();
         if ( 200 !== $response->status || empty( $response->data['calculation_result'] ) || empty( $response->data['carts_attribute'] ) ) { $this->fail(); }
         $calc = $response->data['calculation_result'];
+        $this->validation_stage = 'service_unavailable';
         $selected = $calc['selected_expedition'] ?? null;
         if ( ! is_object( $selected ) || $service !== (string) ( $selected->service ?? '' ) || $type !== (string) ( $selected->service_type ?? '' ) ) { $this->fail(); }
         if ( 'cod' === $payment && ! in_array( $selected->cod ?? null, array( true, 1, '1', 'yes', 'true' ), true ) && ! in_array( $selected->setting->cod ?? null, array( true, 1, '1', 'yes', 'true' ), true ) ) { $this->fail(); }
         $insurance = $insurance || ! empty( $selected->force_insurance ) || (float) ( $calc['insurance_amt'] ?? 0 ) > 0;
         $adjusted = ( new ShippingDiscountCouponService() )->getAdjustedRatePricing( $selected, (float) $calc['ongkir_fee_amt'] );
         $shipping = (float) $adjusted['cost'];
+        $this->validation_stage = 'shipping_amount_mismatch';
         if ( ! $this->equal( $line->get_total(), $shipping ) ) { $this->fail(); }
+        $this->validation_stage = 'fee_amount_mismatch';
         foreach ( array( 'insurance' => 'insurance_amt', 'cod_fee' => 'cod_amt' ) as $kind => $key ) {
             $expected = (float) ( $calc[$key] ?? 0 );
             if ( ! $this->equal( array_sum( $fees[$kind] ), $expected ) || ( $expected <= 0 && count( $fees[$kind] ) > 0 ) ) { $this->fail(); }
         }
         $items_total = 0.0;
+        $this->validation_stage = 'items_amount_mismatch';
         foreach ( $order->get_items( 'line_item' ) as $item ) { $items_total += (float) $item->get_total(); }
         if ( ! $this->equal( $items_total, $calc['cart_total_after_discount'] ?? $calc['cart_total_amt'] ) ) { $this->fail(); }
         // Tax and unrelated merchant fees remain WooCommerce's responsibility.
         $other_fees = (float) $order->get_total_fees() - array_sum( $fees['insurance'] ) - array_sum( $fees['cod_fee'] );
         $expected_total = $items_total + $shipping + (float) $calc['insurance_amt'] + (float) $calc['cod_amt'] + $other_fees + (float) $order->get_total_tax();
+        $this->validation_stage = 'order_amount_mismatch';
         if ( ! $this->equal( $order->get_total(), $expected_total ) ) { $this->fail(); }
         $calc['ongkir_fee_amt'] = $shipping;
         $calc['calc_total_amt'] = $items_total + $shipping + (float) $calc['insurance_amt'] + (float) $calc['cod_amt'];
@@ -170,6 +195,9 @@ final class ExpressCheckoutValidationService {
     }
 
     private function fail(): void {
+        if ( function_exists( 'kiriof_log' ) ) {
+            kiriof_log( 'warning', 'Express checkout quote validation failed.', array( 'operation' => 'validate_express_quote', 'code' => $this->validation_stage, 'backtrace' => false ), 'kiriminaja_checkout' );
+        }
         throw new \InvalidArgumentException( 'Invalid Express checkout quote.' );
     }
 }

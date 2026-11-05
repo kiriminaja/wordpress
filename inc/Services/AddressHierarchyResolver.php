@@ -116,7 +116,11 @@ final class AddressHierarchyResolver {
         if ( ( ! is_int( $village ) && ! is_string( $village ) ) || false === filter_var( $village, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) ) {
             return null;
         }
-        if ( ! is_string( $postcode ) || ( '' !== $postcode && 1 !== preg_match( '/\A[0-9]{5}\z/', $postcode ) ) ) {
+        if ( ! is_string( $postcode ) ) {
+            return null;
+        }
+        $postcode = BuyerDestination::postcode( $postcode );
+        if ( '' !== $postcode && 1 !== preg_match( '/\A[0-9]{5}\z/', $postcode ) ) {
             return null;
         }
         $key = self::key( (int) $village );

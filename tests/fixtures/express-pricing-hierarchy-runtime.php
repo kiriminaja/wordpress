@@ -23,7 +23,7 @@ $repository = new class() extends \KiriminAjaOfficial\Repositories\KiriminajaApi
     }
 };
 $payload = array( 'subdistrict_origin' => 46310, 'subdistrict_destination' => 31483, 'origin_postcode' => '61475', 'destination_postcode' => '55791', 'weight' => 1000, 'length' => 1, 'width' => 2, 'height' => 3, 'insurance' => 1, 'item_value' => 100000, 'courier' => array( 'jne' ) );
-$result['first'] = $repository->getPricing( $payload );
+$result['first'] = $repository->getPricing( array_replace( $payload, array( 'origin_postcode' => ' 614 75 ', 'destination_postcode' => ' 557 91 ' ) ) );
 $result['repeat'] = $repository->getPricing( $payload );
 $result['wrong_postcode'] = $repository->getPricing( array_replace( $payload, array( 'destination_postcode' => '61475' ) ) );
 $result['missing_origin'] = $repository->getPricing( array_replace( $payload, array( 'subdistrict_origin' => 0 ) ) );

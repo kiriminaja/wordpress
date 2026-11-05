@@ -183,7 +183,7 @@ namespace {
 	kiriof_shipping_method();
 	$method = new \Kiriof_Shipping_Method_Controller( 7 );
 	// No subclass/filter override: exercise production coupon metadata and add_rate.
-	$method->calculate_shipping( array( 'contents' => array(), 'destination' => $address ) );
+	$method->calculate_shipping( array( 'origin' => array( 'origin_sub_district_id' => 123, 'origin_name' => 'Warehouse', 'origin_phone' => '081234567890', 'origin_address' => 'Jalan Gudang 123', 'origin_zip_code' => '' ), 'contents' => array(), 'destination' => $address ) );
 	// Also exercise the other production Express rate consumer's private filter.
 	$pricing = new \KiriminAjaOfficial\Services\CheckoutServices\OngkirPricingService(
 		array( 'is_cod' => (bool) $input['flags'], 'destination_area_id' => 456 ),

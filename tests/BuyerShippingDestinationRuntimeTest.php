@@ -4,12 +4,60 @@ use PHPUnit\Framework\TestCase;
 
 /** Production calculate_shipping exercised with subprocess-isolated Woo stubs. */
 final class BuyerShippingDestinationRuntimeTest extends TestCase {
-	private function run_fixture( string $action ): array {
+	private function run_fixture( string $action, $invalid_origin = null ): array {
 		$output = array();
 		$status = 0;
-		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/buyer-shipping-destination-runtime.php' ) . ' ' . escapeshellarg( $action ) . ' 2>&1', $output, $status );
+		exec( escapeshellarg( PHP_BINARY ) . ' ' . escapeshellarg( __DIR__ . '/fixtures/buyer-shipping-destination-runtime.php' ) . ' ' . escapeshellarg( $action ) . ' ' . escapeshellarg( json_encode( $invalid_origin, JSON_THROW_ON_ERROR ) ) . ' 2>&1', $output, $status );
 		$this->assertSame( 0, $status, implode( "\n", $output ) );
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
+	}
+
+	public function test_pricing_uses_canonical_default_instead_of_legacy_global_origin(): void {
+		$result = $this->run_fixture( 'origin_default' );
+		$this->assertSame( '123', $result['legacy_origin'] );
+		$this->assertSame( 987, $result['pricing_payloads'][0]['subdistrict_origin'] );
+		$this->assertSame( '55281', $result['pricing_payloads'][0]['origin_postcode'] );
+		$this->assertGreaterThan( 0, $result['location_reads'] );
+		$this->assertCount( 1, $result['rates'] );
+		$this->assertSame( array(), $result['warnings'] );
+	}
+
+	public function test_explicit_origin_is_authoritative_and_optional_postcode_stays_optional(): void {
+		foreach ( array( 'origin_explicit' => '54321', 'origin_explicit_optional_postcode' => '' ) as $action => $postcode ) {
+			$result = $this->run_fixture( $action );
+			$this->assertSame( 654, $result['pricing_payloads'][0]['subdistrict_origin'] );
+			$this->assertSame( $postcode, $result['pricing_payloads'][0]['origin_postcode'] );
+			$this->assertSame( 0, $result['location_reads'] );
+			$this->assertCount( 1, $result['rates'] );
+			$this->assertSame( array(), $result['warnings'] );
+		}
+	}
+
+	public function test_malformed_explicit_origins_fail_closed_without_default_fallback(): void {
+		$invalid_origins = array( null, false, '123', array() );
+		foreach ( array( '123abc', '-123', 0, 1.5, array( 123 ) ) as $district ) {
+			$invalid_origins[] = array( 'field' => 'origin_sub_district_id', 'value' => $district );
+		}
+		foreach ( array( 'origin_name', 'origin_phone', 'origin_address' ) as $field ) {
+			$invalid_origins[] = array( 'field' => $field, 'value' => '  ' );
+		}
+		$invalid_origins[] = array( 'field' => 'origin_zip_code', 'value' => array( '12345' ) );
+		foreach ( $invalid_origins as $origin ) {
+			$result = $this->run_fixture( 'origin_invalid', $origin );
+			$this->assertSame( array(), $result['pricing_payloads'] );
+			$this->assertSame( array(), $result['rates'] );
+			$this->assertSame( 0, $result['location_reads'] );
+			$this->assertSame( array( 'error' ), $result['notices'] );
+			$this->assertSame( array(), $result['warnings'] );
+		}
+	}
+
+	public function test_default_origin_contact_validation_is_not_bypassed(): void {
+		$result = $this->run_fixture( 'origin_invalid_default' );
+		$this->assertSame( array(), $result['pricing_payloads'] );
+		$this->assertSame( array(), $result['rates'] );
+		$this->assertSame( array( 'error' ), $result['notices'] );
+		$this->assertSame( array(), $result['warnings'] );
 	}
 
 	public function test_free_coupon_respects_enabled_service_codes(): void {

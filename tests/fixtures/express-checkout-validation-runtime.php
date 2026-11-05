@@ -32,6 +32,7 @@ namespace {
     $GLOBALS['mode'] = $argv[1] ?? 'valid'; $GLOBALS['calls'] = 0;
     function __( $text, $domain ) { return $text; }
     function wp_json_encode( $data ) { return json_encode( $data ); }
+    function kiriof_log( ...$args ) { $GLOBALS['validation_logs'][] = $args; }
     class Line {
         public function get_method_id() { return 'kiriminaja-official'; }
         public function get_instance_id() { return 4; }
@@ -70,6 +71,8 @@ namespace {
             $destination = array( 'address_1' => 'Main street number 123', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID' );
             if ( 'street' === $GLOBALS['mode'] ) { $destination['address_1'] = 'Tampered street'; }
             if ( 'country' === $GLOBALS['mode'] ) { $destination['country'] = 'US'; }
+            if ( 'formatted-postcode' === $GLOBALS['mode'] ) { $destination['postcode'] = ' 123 45 '; }
+            if ( 'postcode-mismatch' === $GLOBALS['mode'] ) { $destination['postcode'] = '54321'; }
             if ( 'missing-field' === $GLOBALS['mode'] ) { unset( $destination['address_2'] ); }
             $package = array( 'destination' => $destination, 'rates' => array( 'kiriminaja-official_jne_REG' => new Rate() ) );
             if ( 'custom-origin' === $GLOBALS['mode'] ) { $package['origin'] = array( 'location_id' => 8, 'origin_name' => 'Custom store', 'origin_phone' => '08123456789', 'origin_address' => 'Custom address', 'origin_sub_district_id' => 789 ); }
@@ -85,6 +88,6 @@ namespace {
         $service = new \KiriminAjaOfficial\Services\ExpressCheckoutValidationService( new \KiriminAjaOfficial\Repositories\SettingRepository(), new \KiriminAjaOfficial\Services\CheckoutServiceFactory() );
         $data = $service->validate( new Order(), 123, 'cod' === $GLOBALS['mode'] ? 'cod' : 'bacs', true );
         if ( $data['origin_snapshot'] !== $GLOBALS['calculation_payload']['origin'] || ( 'custom-origin' === $GLOBALS['mode'] && 789 !== $data['origin_snapshot']['origin_sub_district_id'] ) ) { throw new \RuntimeException( 'Pricing and durable origin differ' ); }
-        echo json_encode( array( 'ok' => true, 'calls' => $GLOBALS['calls'], 'snapshot' => $data, 'pricing_origin' => $GLOBALS['calculation_payload']['origin'] ) );
-    } catch ( \Throwable $e ) { echo json_encode( array( 'ok' => false, 'calls' => $GLOBALS['calls'], 'error' => $e->getMessage() ) ); }
+        echo json_encode( array( 'ok' => true, 'calls' => $GLOBALS['calls'], 'snapshot' => $data, 'pricing_origin' => $GLOBALS['calculation_payload']['origin'], 'pricing_postcode' => $GLOBALS['calculation_payload']['destination_postcode'], 'logs' => $GLOBALS['validation_logs'] ?? array() ) );
+    } catch ( \Throwable $e ) { echo json_encode( array( 'ok' => false, 'calls' => $GLOBALS['calls'], 'error' => $e->getMessage(), 'logs' => $GLOBALS['validation_logs'] ?? array() ) ); }
 }

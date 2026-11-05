@@ -52,6 +52,26 @@ final class ExpressCheckoutValidationRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function normalizes_only_equivalent_postcode_formatting_before_pricing(): void {
+        $result = $this->runCase( 'formatted-postcode' );
+        $this->assertTrue( $result['ok'] );
+        $this->assertSame( '12345', $result['pricing_postcode'] );
+        $this->assertSame( array(), $result['logs'] );
+        $result = $this->runCase( 'postcode-mismatch' );
+        $this->assertFalse( $result['ok'] );
+        $this->assertSame( 0, $result['calls'] );
+    }
+
+    #[Test]
+    public function logs_fixed_failure_stages_without_private_checkout_values(): void {
+        foreach ( array( 'street' => 'destination_mismatch', 'unknown' => 'rate_mismatch', 'malformed-origin' => 'origin_invalid', 'fee' => 'fee_amount_mismatch', 'total' => 'order_amount_mismatch' ) as $mode => $code ) {
+            $result = $this->runCase( $mode );
+            $this->assertFalse( $result['ok'] );
+            $this->assertSame( array( array( 'warning', 'Express checkout quote validation failed.', array( 'operation' => 'validate_express_quote', 'code' => $code, 'backtrace' => false ), 'kiriminaja_checkout' ) ), $result['logs'] );
+        }
+    }
+
+    #[Test]
     public function leaves_tax_and_currency_to_woocommerce(): void {
         // The quote is compared in Woo's current monetary unit, not converted/repriced.
         $result = $this->runCase( 'tax' );
