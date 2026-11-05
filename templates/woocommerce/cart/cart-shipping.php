@@ -44,6 +44,33 @@ $kiriof_is_cart_totals_shipping  = is_cart() || ! empty( $GLOBALS['kiriof_render
 $kiriof_package_title            = $kiriof_is_cart_totals_shipping ? esc_html__( 'Ship To', 'kiriminaja-official' ) : $package_name;
 $kiriof_shipment_title           = $kiriof_is_cart_totals_shipping ? esc_html__( 'Shipment', 'kiriminaja-official' ) : $package_name;
 $kiriof_cart_has_destination     = ! $kiriof_is_cart_totals_shipping || ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session && WC()->session->get( 'destination_id' ) );
+if ( $kiriof_is_cart_totals_shipping ) {
+	$kiriof_cart_presentation = array();
+	$kiriof_cart_rate_meta = ( function_exists( 'WC' ) && WC() && isset( WC()->session ) && WC()->session )
+		? (array) WC()->session->get( 'kiriof_shipping_coupon_rate_meta', array() ) : array();
+	if ( $kiriof_cart_has_destination ) {
+		foreach ( (array) $available_methods as $kiriof_cart_rate ) {
+			if ( $kiriof_cart_rate->id === $chosen_method ) {
+				$kiriof_cart_presentation = \KiriminAjaOfficial\Services\RateChoicePresentation::forRate( $kiriof_cart_rate, $kiriof_cart_rate_meta );
+				break;
+			}
+		}
+	}
+	?>
+<tr class="woocommerce-shipping-totals shipping kiriof-cart-shipment-row">
+	<th scope="row"><?php esc_html_e( 'Shipment', 'kiriminaja-official' ); ?></th>
+	<td data-title="<?php esc_attr_e( 'Shipment', 'kiriminaja-official' ); ?>">
+		<?php if ( $kiriof_cart_presentation ) : ?>
+			<span class="kiriof-cart-shipment-label"><?php echo esc_html( $kiriof_cart_presentation['label'] ); ?></span>
+			<span class="kiriof-cart-shipment-price"><?php echo esc_html( $kiriof_cart_presentation['price'] ); ?></span>
+		<?php else : ?>
+			<?php esc_html_e( 'Choose shipping at checkout.', 'kiriminaja-official' ); ?>
+		<?php endif; ?>
+	</td>
+</tr>
+	<?php
+	return;
+}
 ?>
 <tr data-kiriof-package-index="<?php echo esc_attr( $index ); ?>" class="woocommerce-shipping-totals shipping">
 	<th><?php echo wp_kses_post( $kiriof_package_title ); ?></th>

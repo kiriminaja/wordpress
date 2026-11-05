@@ -215,6 +215,35 @@ tr.woocommerce-shipping-totals {
   display: none !important;
 }
 
+.woocommerce-cart .kj-cart-total {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.woocommerce-cart .kj-cart-total > table.shop_table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+
+.woocommerce-cart .kj-cart-total > table.shop_table th {
+  width: 30%;
+  overflow-wrap: anywhere;
+}
+
+.woocommerce-cart .kj-cart-total > table.shop_table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.woocommerce-cart .kj-cart-total .kiriof-cart-shipment-label,
+.woocommerce-cart .kj-cart-total .kiriof-cart-shipment-price {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .kj-cart-total .shipping-calculator-form {
   margin: 0 !important;
   padding: 0 !important;

@@ -135,46 +135,26 @@ final class ClassicShippingPresentationRuntimeTest extends TestCase {
 		) );
 	}
 
-	public function test_cart_dropdown_requires_destination_and_explicit_buyer_selection(): void {
-		$input = array( 'cart' => true, 'chosen' => 'b', 'session' => array( 'destination_id' => 123 ), 'rates' => array( array( 'id' => 'a', 'label' => 'A' ), array( 'id' => 'b', 'label' => 'B' ) ) );
+	public function test_cart_shipment_is_read_only_and_shows_only_current_available_rate(): void {
+		$input = array( 'cart' => true, 'chosen' => 'b', 'session' => array( 'destination_id' => 123 ), 'rates' => array( array( 'id' => 'a', 'label' => 'Other courier' ), array( 'id' => 'b', 'label' => 'AnterAja Regular Flat', 'cost' => 27000 ) ) );
 		$result = $this->render( $input );
-		$this->assertSame( array(
-			'contains select' => true,
-			'contains kiriof-cart-shipment-row' => true,
-			'enhanced list' => true,
-			'contains Select Option' => true,
-			'excludes checked checked' => false,
-			'hooks' => array( array( 'a', 0 ), array( 'b', 0 ) ),
-		), array(
-			'contains select' => str_contains( $result['html'], '<select' ),
-			'contains kiriof-cart-shipment-row' => str_contains( $result['html'], 'kiriof-cart-shipment-row' ),
-			'enhanced list' => str_contains( $result['html'], 'kiriof-shipping-methods-list--enhanced' ),
-			'contains Select Option' => str_contains( $result['html'], '<option value="" selected="selected" disabled="disabled">Select Option</option>' ),
-			'excludes checked checked' => str_contains( $result['html'], 'checked="checked"' ),
-			'hooks' => $result['hooks'],
-		) );
-		$input['session']['kiriof_chosen_shipping_methods'] = array( 'b' );
-		$selected = $this->render( $input );
-		$this->assertSame( array(
-			'selected buyer option' => 1,
-			'native radio checked' => true,
-			'placeholder present' => false,
-		), array(
-			'selected buyer option' => preg_match( '/value="b"[^>]*selected="selected"/', $selected['html'] ),
-			'native radio checked' => str_contains( $selected['html'], 'checked="checked"' ),
-			'placeholder present' => str_contains( $selected['html'], '<option value=""' ),
-		) );
-		unset( $input['session']['destination_id'] );
-		$missing = $this->render( $input );
-		$this->assertSame( array(
-			'excludes select' => false,
-			'excludes type radio' => false,
-			'hooks' => array(),
-		), array(
-			'excludes select' => str_contains( $missing['html'], '<select' ),
-			'excludes type radio' => str_contains( $missing['html'], 'type="radio"' ),
-			'hooks' => $missing['hooks'],
-		) );
+		$this->assertStringContainsString( 'AnterAja Regular Flat', $result['html'] );
+		$this->assertStringContainsString( 'Rp 27000', $result['html'] );
+		foreach ( array( '<select', '<input', 'Ship To', 'Other courier', 'shipping-calculator', 'kiriof-classic-shipping-summary' ) as $excluded ) {
+			$this->assertStringNotContainsString( $excluded, $result['html'] );
+		}
+		$this->assertSame( array(), $result['hooks'] );
+		foreach ( array( 'missing-destination', 'unavailable-rate', 'no-selection', 'no-rates' ) as $case ) {
+			$invalid = $input;
+			if ( 'missing-destination' === $case ) { $invalid['session'] = array(); }
+			if ( 'unavailable-rate' === $case ) { $invalid['chosen'] = 'stale'; }
+			if ( 'no-selection' === $case ) { $invalid['chosen'] = ''; }
+			if ( 'no-rates' === $case ) { $invalid['rates'] = array(); }
+			$html = $this->render( $invalid )['html'];
+			$this->assertStringContainsString( 'Choose shipping at checkout.', $html, $case );
+			$this->assertStringNotContainsString( 'AnterAja', $html, $case );
+			$this->assertStringNotContainsString( '<select', $html, $case );
+		}
 	}
 
 	public function test_unselected_checkout_preserves_placeholder_and_ignores_description_eta_metadata(): void {
