@@ -158,3 +158,47 @@ describe('shipping selection buyer intent', () => {
 		expect(other.matches(express)).toBe(true);
 	});
 });
+
+
+describe('Classic shipping summary theme layout', () => {
+  test.each(['table-row', 'flex', 'grid'])('matches native totals using %s without changing values', async (display) => {
+    const { happy } = await import('./helpers/ui-runtime');
+    const window = new happy.Window();
+    try {
+      window.document.body.innerHTML = `<div class="woocommerce"><form class="checkout"><div id="order_review"><table class="kiriof-classic-order-review"><tbody>
+        <tr class="cart-subtotal" style="display:${display};width:100%;grid-template-columns:1fr 1fr;justify-content:space-between"><th style="width:40%;text-align:left">Subtotal</th><td colspan="2" style="width:60%;text-align:right">Rp819,000</td></tr>
+        <tr class="woocommerce-shipping-totals" data-kiriof-package-index="0"><th>Shipping</th><td><input class="shipping_method" type="hidden" name="shipping_method[0]" value="flat_rate:1"></td></tr>
+        <tr class="kiriof-classic-shipping-summary" data-kiriof-summary-package="0" hidden><th>Shipping Options</th><td>AnterAja Regular Flat</td></tr>
+        <tr class="kiriof-classic-shipping-summary" data-kiriof-summary-package="0" hidden><th>Shipping Cost</th><td>Rp9,000</td></tr>
+      </tbody></table></div></form></div>`;
+      (window as any).kiriofBillingAddressConfig = { i18n: {} };
+      const { readFileSync } = await import('node:fs');
+      window.eval(readFileSync(new URL('../assets/buyer/js/checkout/shipping-options.js', import.meta.url), 'utf8'));
+      window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
+      const reference = window.document.querySelector('.cart-subtotal')!;
+      const rows = Array.from(window.document.querySelectorAll('.kiriof-classic-shipping-summary')) as HTMLElement[];
+      for (const row of rows) {
+        expect(row.hidden).toBe(false);
+        expect(row.style.display).toBe(display);
+        expect(row.style.getPropertyValue('--kiriof-summary-display')).toBe(display);
+        expect(row.style.width).toBe('100%');
+        expect(row.querySelector('td')!.colSpan).toBe(2);
+        expect(row.querySelector('td')!.style.textAlign).toBe('right');
+        expect(row.querySelector('td')!.style.width).toBe('60%');
+      }
+      expect(rows[0].textContent).toContain('AnterAja Regular Flat');
+      expect(rows[1].textContent).toContain('Rp9,000');
+      (reference as HTMLElement).style.display = 'flex';
+      window.dispatchEvent(new window.Event('resize'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(rows[0].style.display).toBe('flex');
+      window.dispatchEvent(new window.Event('pagehide'));
+      (reference as HTMLElement).style.display = 'grid';
+      window.dispatchEvent(new window.Event('resize'));
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(rows[0].style.display).toBe('flex');
+    } finally {
+      await window.happyDOM.close();
+    }
+  });
+});
