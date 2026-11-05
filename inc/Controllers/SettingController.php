@@ -1642,31 +1642,31 @@ class SettingController{
         $text = static function ( $value ): string {
             return sanitize_text_field( is_scalar( $value ) ? (string) $value : '' );
         };
-        $directory = new \KiriminAjaOfficial\Services\LogDirectoryStatus();
         $theme = wp_get_theme();
         $lines = array(
             'PHP version: ' . PHP_VERSION,
-            'WordPress version: ' . $text( get_bloginfo( 'version' ) ),
-            'WordPress.org status uses installed path slugs only; a listing match does not verify installed code authenticity. Unknown means unverified, not absent.',
-            'Active theme: ' . $text( $theme->get( 'Name' ) ) . ' v' . $text( $theme->get( 'Version' ) ) . ' [' . $directory->describe_theme( $theme->get_stylesheet(), (string) $theme->get( 'UpdateURI' ) ) . ']',
+            'WP: ' . $text( get_bloginfo( 'version' ) ),
+            'Active theme: ' . $text( $theme->get( 'Name' ) ) . ' v' . $text( $theme->get( 'Version' ) ),
         );
         $parent = $theme->parent();
         if ( $parent ) {
-            $lines[] = 'Parent theme: ' . $text( $parent->get( 'Name' ) ) . ' v' . $text( $parent->get( 'Version' ) ) . ' [' . $directory->describe_theme( $parent->get_stylesheet(), (string) $parent->get( 'UpdateURI' ) ) . ']';
+            $lines[] = 'Parent theme: ' . $text( $parent->get( 'Name' ) ) . ' v' . $text( $parent->get( 'Version' ) );
         }
         $plugins = get_plugins();
         ksort( $plugins, SORT_STRING );
-        $lines[] = 'Installed plugins:';
+        $lines[] = 'Plugins:';
         foreach ( $plugins as $file => $plugin ) {
             $status = is_plugin_active_for_network( $file ) ? 'network-active' : ( is_plugin_active( $file ) ? 'active' : 'inactive' );
-            $lines[] = '- ' . $text( $plugin['Name'] ?? '' ) . ' v' . $text( $plugin['Version'] ?? '' ) . ' [' . $status . '] [' . $directory->describe_plugin( (string) $file, (string) ( $plugin['UpdateURI'] ?? '' ) ) . ']';
+            $slug = dirname( $file );
+            $slug = '.' === $slug ? basename( $file, '.php' ) : $slug;
+            $lines[] = '- ' . $text( $slug ) . ' (v' . $text( $plugin['Version'] ?? '' ) . ') [' . $status . ']';
         }
         $must_use = get_mu_plugins();
         if ( $must_use ) {
             ksort( $must_use, SORT_STRING );
             $lines[] = 'Must-use plugins:';
             foreach ( $must_use as $file => $plugin ) {
-                $lines[] = '- ' . $text( $plugin['Name'] ?? '' ) . ' v' . $text( $plugin['Version'] ?? '' ) . ' [must-use] [' . $directory->describe_plugin( (string) $file, (string) ( $plugin['UpdateURI'] ?? '' ), true ) . ']';
+                $lines[] = '- ' . $text( basename( $file, '.php' ) ) . ' (v' . $text( $plugin['Version'] ?? '' ) . ') [must-use]';
             }
         }
         return implode( "\n", $lines );
@@ -1679,10 +1679,6 @@ class SettingController{
         if ( false === $export ) {
             return false;
         }
-        $limit = 512 * 1024;
-        $notice = "\n[Export limited to 512 KiB; older content or oversized lines omitted.]\n";
-        $written = 0;
-        $truncated = false;
         $escape = static function ( string $text ): string {
             if ( '' !== $text && '' === wp_check_invalid_utf8( $text ) ) {
                 // Preserve readable diagnostics around malformed bytes, then escape normally.
@@ -1690,30 +1686,26 @@ class SettingController{
             }
             return esc_html( $text );
         };
-        $write = static function ( string $text ) use ( $export, $escape, $limit, $notice, &$written, &$truncated ): bool {
+        $write = static function ( string $text ) use ( $export, $escape ): bool {
             $text = $escape( $text );
-            if ( strlen( $text ) > $limit - strlen( $notice ) - $written ) {
-                $truncated = true;
-                return true;
-            }
-            $written += strlen( $text );
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Write one bounded escaped segment to the temporary stream.
             return strlen( $text ) === fwrite( $export, $text );
         };
         $version = defined( 'KIRIOF_VERSION' ) ? sanitize_text_field( (string) KIRIOF_VERSION ) : 'unknown';
         $success = true;
-        $header = 'KiriminAja Plugin v' . $version . " Logs\nGenerated at: " . current_time( 'mysql' ) . "\nPeriod: today and the previous two days (UTC).\nSources: " . implode( ', ', $this->getPluginLogSources() ) . "\nSize limit: 512 KiB (including environment and escaped log content).\n\n" . $this->getPluginLogEnvironment() . "\n\n";
+        $now = time();
+        $generated = gmdate( 'Y-m-d H:i:s', $now );
+        $range_start = gmdate( 'Y-m-d', $now - 4 * 86400 ) . ' 00:00:00';
+        $header = 'KiriminAja Plugin v' . $version . " Logs\nGenerated at: " . $generated . "\nRange: " . $range_start . ' to ' . $generated . " (UTC)\nSources: kiriminaja*, shipping_discount_coupon\n" . $this->getPluginLogEnvironment() . "\n\n";
         foreach ( explode( "\n", $header ) as $header_line ) {
             $success = $success && $write( $header_line . "\n" );
         }
-        $remaining = $limit;
 
         if ( empty( $files ) ) {
             $success = $success && $write( "No KiriminAja plugin logs found.\n" );
         }
-        foreach ( $files as $file_index => $file_record ) {
-            if ( ! $success || $remaining <= 0 ) {
-                $truncated = $truncated || $file_index < count( $files );
+        foreach ( $files as $file_record ) {
+            if ( ! $success ) {
                 break;
             }
             $file = $file_record['path'];
@@ -1732,26 +1724,9 @@ class SettingController{
                 $success = $success && $write( "[Log file changed during export; skipped.]\n" );
                 continue;
             }
-            $size = min( (int) $stat['size'], $remaining );
-            $offset = (int) $stat['size'] - $size;
-            $truncated = $truncated || $offset > 0;
-            if ( $offset > 0 && 0 !== fseek( $input, $offset - 1 ) ) {
-                // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Release the log stream after a failed seek.
-                fclose( $input );
-                $success = $write( "Unable to seek log file.\n" );
-                continue;
-            }
+            $size = (int) $stat['size'];
             $read = 0;
-            $lines = new \SplQueue();
-            $line_bytes = 0;
-            $line_budget = max( 0, $limit - strlen( $notice ) - $written - 1 );
-            // A partial first line may begin inside a credential: omit it in full.
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fread -- Read one boundary byte; WP_Filesystem cannot perform bounded stream reads.
-            $oversized = $offset > 0 && "\n" !== fread( $input, 1 );
-            if ( $oversized ) {
-                $success = $write( "[Oversized or incomplete log line omitted for safe export.]\n" );
-                $line_budget = max( 0, $limit - strlen( $notice ) - $written - 1 );
-            }
+            $oversized = false;
             while ( $success && $read < $size ) {
                 $line = fgets( $input, min( 1048577, $size - $read + 1 ) );
                 if ( false === $line ) {
@@ -1769,34 +1744,11 @@ class SettingController{
                     $oversized = ! $complete;
                     continue;
                 }
-                $line = $this->redactLogContent( $line );
-                $escaped_size = strlen( $escape( $line ) );
-                if ( $escaped_size > $line_budget ) {
-                    $truncated = true;
-                    continue;
-                }
-                $lines->enqueue( array( $line, $escaped_size ) );
-                $line_bytes += $escaped_size;
-                while ( $line_bytes > $line_budget ) {
-                    $omitted = $lines->dequeue();
-                    $line_bytes -= $omitted[1];
-                    $truncated = true;
-                }
-            }
-            foreach ( $lines as $entry ) {
-                $success = $success && $write( $entry[0] );
+                $success = $write( $this->redactLogContent( $line ) );
             }
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close each bounded log input before opening the next file.
             fclose( $input );
-            $remaining -= $read;
             $success = $success && $write( "\n" );
-        }
-        if ( $remaining <= 0 ) {
-            $truncated = true;
-        }
-        if ( $truncated ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Reserved notice bytes are included in the attachment size limit.
-            $success = $success && strlen( $notice ) === fwrite( $export, $notice );
         }
         if ( ! $success || ! rewind( $export ) ) {
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Release the failed temporary export stream.
@@ -1835,7 +1787,7 @@ class SettingController{
         $files = array();
         $now = time();
         $today = gmdate( 'Y-m-d', $now );
-        $earliest = gmdate( 'Y-m-d', $now - 2 * 86400 );
+        $earliest = gmdate( 'Y-m-d', $now - 4 * 86400 );
         foreach ( $this->getPluginLogSources() as $source ) {
             $paths = array_merge(
                 glob( trailingslashit( $log_dir_real ) . $source . '-*.log' ) ?: array(),

@@ -25,15 +25,7 @@ namespace {
 	function current_time( $type ) { return '2026-10-28 12:00:00'; }
 	function sanitize_text_field( $value ) { return trim( preg_replace( '/[\r\n\t ]+/', ' ', strip_tags( (string) $value ) ) ); }
 	function get_bloginfo( $field ) { return '6.9.1'; }
-	function get_transient( $key ) { return $GLOBALS['directory_cache'][ $key ] ?? false; }
-	function set_transient( $key, $value, $ttl ) { $GLOBALS['directory_cache'][ $key ] = $value; return true; }
-	function wp_remote_get( $url, $args ) {
-		parse_str( parse_url( $url, PHP_URL_QUERY ), $query );
-		return array( 'response' => array( 'code' => 200 ), 'body' => json_encode( array( 'slug' => $query['request']['slug'], 'name' => 'Directory entry', 'version' => '1' ) ) );
-	}
-	function is_wp_error( $response ) { return false; }
-	function wp_remote_retrieve_response_code( $response ) { return $response['response']['code']; }
-	function wp_remote_retrieve_body( $response ) { return $response['body']; }
+	function wp_remote_get( $url, $args ) { throw new \RuntimeException( 'Log exports must not make HTTP requests.' ); }
 	function get_plugins() {
 		return array(
 			'z-inactive/main.php' => array( 'Name' => 'Inactive Plugin', 'Version' => '1.2.3', 'Description' => 'PRIVATE_DESCRIPTION', 'PluginURI' => 'https://PRIVATE_URL.test' ),
