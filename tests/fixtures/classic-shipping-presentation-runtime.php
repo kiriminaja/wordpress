@@ -9,6 +9,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function esc_attr( $value ) { return esc_html( $value ); }
 function esc_html__( $value, $domain ) { return esc_html( $value ); }
 function esc_html_e( $value, $domain ) { echo esc_html( $value ); }
+function esc_attr_e( $value, $domain ) { echo esc_attr( $value ); }
 function __( $value, $domain ) { return $value; }
 function wp_kses_post( $value ) { return $value; }
 function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
