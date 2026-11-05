@@ -1,0 +1,105 @@
+{
+  "measurement": "Unique production JS in entry + selected route static dependency graph; excludes deferred dialogs, CSS, images and HTML. Per-file gzip level 9. Not browser timing.",
+  "entry": {
+    "bytes": 792306,
+    "gzipBytes": 211611,
+    "requests": 3,
+    "files": [
+      "assets/ActionTooltip-BpGp4LdK.js",
+      "assets/disclose-version-D6cpFBGQ.js",
+      "kiriminaja-admin-workspace.js"
+    ]
+  },
+  "routes": {
+    "transactions": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "payments": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "transaction-detail": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "pickup-detail": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "settings": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "account": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "couriers": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "tracking": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    "technical": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ]
+    }
+  }
+}

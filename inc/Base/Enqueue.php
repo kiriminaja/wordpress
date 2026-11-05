@@ -13,6 +13,7 @@ class Enqueue extends BaseInit{
         /** enqueue js & CSS */
         /* admin */
         add_action('admin_enqueue_scripts', array($this,'enqueueAdmin'));
+        add_action( 'admin_head', array( $this, 'preload_workspace_modules' ) );
         add_action( 'admin_footer', array( $this, 'renderOrderPreviewTemplate' ) );
         add_filter( 'script_loader_tag', array( $this, 'filter_module_script_tag' ), 10, 3 );
         /* WP */
@@ -46,6 +47,30 @@ class Enqueue extends BaseInit{
 			true
 		);
 		wp_script_add_data( 'kiriof-admin-workspace', 'type', 'module' );
+	}
+
+	/** Preload only the current route and its static dependencies, never other pages. */
+	public function preload_workspace_modules(): void {
+		if ( ! wp_script_is( 'kiriof-admin-workspace', 'enqueued' ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only asset routing.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only asset routing.
+		$section = isset( $_GET['section'] ) ? sanitize_key( wp_unslash( $_GET['section'] ) ) : '';
+		$assets = new \KiriminAjaOfficial\Services\WorkspaceAssets();
+		$files  = $assets->modules( KIRIOF_DIR . 'assets/admin/dist/workspace-manifest.json', $page, $section );
+		foreach ( $files as $file ) {
+			$url = $this->plugin_url . 'assets/admin/dist/' . $file;
+			if ( 'kiriminaja-admin-workspace.js' === $file ) {
+				$path = KIRIOF_DIR . 'assets/admin/dist/' . $file;
+				if ( file_exists( $path ) ) {
+					$url = add_query_arg( 'ver', (string) filemtime( $path ), $url );
+				}
+			}
+			echo '<link rel="modulepreload" crossorigin href="' . esc_url( $url ) . '">' . "\n";
+		}
 	}
 
 	/**
@@ -338,13 +363,17 @@ class Enqueue extends BaseInit{
             wp_register_style( 'kiriof-buyer-checkout', $this->plugin_url . 'assets/buyer/css/kiriof-buyer-checkout.css', $this->map_style_dependencies(), file_exists( $style_path ) ? (string) filemtime( $style_path ) : KIRIOF_VERSION );
         }
         if ( $localize ) {
-            $map_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
-            if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
-            }
             $data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
-            if ( ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig', $this->buyer_checkout_config() );
+            $needs_map = ! is_string( $data ) || false === strpos( $data, 'kiriofMapCheckoutConfig' );
+            $needs_buyer = ! is_string( $data ) || false === strpos( $data, 'kiriofBuyerCheckoutConfig' );
+            if ( $needs_buyer ) {
+                $buyer_config = $this->buyer_checkout_config();
+            }
+            if ( $needs_map ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofMapCheckoutConfig', $needs_buyer ? $buyer_config['map'] : $this->map_checkout_config() );
+            }
+            if ( $needs_buyer ) {
+                wp_localize_script( 'kiriof-buyer-blocks', 'kiriofBuyerCheckoutConfig', $buyer_config );
             }
             $coupon_data = wp_scripts()->get_data( 'kiriof-buyer-blocks', 'data' );
             if ( ! is_string( $coupon_data ) || false === strpos( $coupon_data, 'kiriofBlockCheckoutStrings' ) ) {
@@ -416,7 +445,7 @@ class Enqueue extends BaseInit{
             }
             $map_data = wp_scripts()->get_data( 'kiriof-classic-checkout', 'data' );
             if ( ! is_string( $map_data ) || false === strpos( $map_data, 'kiriofMapCheckoutConfig' ) ) {
-                wp_localize_script( 'kiriof-classic-checkout', 'kiriofMapCheckoutConfig', $this->map_checkout_config() );
+                wp_localize_script( 'kiriof-classic-checkout', 'kiriofMapCheckoutConfig', isset( $config ) ? $config['map'] : $this->map_checkout_config() );
             }
         }
     }

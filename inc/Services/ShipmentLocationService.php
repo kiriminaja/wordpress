@@ -153,8 +153,15 @@ class ShipmentLocationService
             return $this->defaultCache ?: null;
         }
 
-        $this->repository->ensureDefaultExists();
+        // Healthy checkout reads must not issue the default-repair UPDATE.
         $default = $this->repository->getDefault();
+        if ( ! $default ) {
+            if ( ! $this->repository->ensureDefaultExists() ) {
+                $this->defaultCache = false;
+                return null;
+            }
+            $default = $this->repository->getDefault();
+        }
         if (!$default) {
             $this->seedDefaultFromGlobalOrigin();
             $default = $this->repository->getDefault();

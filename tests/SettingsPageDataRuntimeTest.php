@@ -7,6 +7,7 @@ use KiriminAjaOfficial\Services\ProductVolumetricReadinessService;
 use KiriminAjaOfficial\Services\SettingsPageData;
 use KiriminAjaOfficial\Services\ShippingDiscountRegionCacheService;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -44,7 +45,40 @@ require_once PLUGIN_DIR . '/inc/Services/RevampAnnouncementService.php';
 if ( ! function_exists( 'current_user_can' ) ) {
 	function current_user_can( $capability ) {
 		unset( $capability );
-		return false;
+		return $GLOBALS['kiriof_settings_page_allowed'] ?? false;
+	}
+}
+if ( ! defined( 'KIRIOF_DIR' ) ) {
+	define( 'KIRIOF_DIR', PLUGIN_DIR . '/' );
+}
+if ( ! function_exists( 'sanitize_key' ) ) {
+	function sanitize_key( $value ) {
+		return preg_replace( '/[^a-z0-9_-]/', '', strtolower( $value ) );
+	}
+}
+if ( ! function_exists( 'wp_unslash' ) ) {
+	function wp_unslash( $value ) {
+		return stripslashes( $value );
+	}
+}
+if ( ! function_exists( 'esc_html' ) ) {
+	function esc_html( $value ) {
+		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'esc_attr__' ) ) {
+	function esc_attr__( $value ) {
+		return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
+	}
+}
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $value, $flags = 0 ) {
+		return json_encode( $value, $flags );
+	}
+}
+if ( ! function_exists( 'kiriof_get_published_tracking_content' ) ) {
+	function kiriof_get_published_tracking_content() {
+		return array();
 	}
 }
 if ( ! defined( 'KIRIOF_NONCE' ) ) {
@@ -95,6 +129,71 @@ if ( ! function_exists( 'wp_date' ) ) {
 }
 
 final class SettingsPageDataRuntimeTest extends TestCase {
+	public static function settings_sections(): array {
+		$cases = array();
+		foreach ( array( '', 'unknown', 'account', 'couriers', 'tracking', 'technical', 'cache', 'webhooks', 'TECHNICAL' ) as $section ) {
+			$cases[ 'connected-' . $section ] = array( $section, true );
+			$cases[ 'disconnected-' . $section ] = array( $section, false );
+		}
+		return $cases;
+	}
+
+	#[Test]
+	#[DataProvider( 'settings_sections' )]
+	public function settings_dispatch_only_loads_readiness_for_connected_root( string $section, bool $connected ): void {
+		$settings = $this->createMock( SettingRepository::class );
+		$settings->method( 'getSettingByArray' )->willReturn( array() );
+		$settings->method( 'getSettingByKey' )->willReturnCallback(
+			static function ( $key ) use ( $connected ) {
+				return (object) array( 'value' => 'setup_key' === $key && $connected ? 'setup-123' : '' );
+			}
+		);
+		$is_root = $connected && in_array( $section, array( '', 'unknown' ), true );
+		$is_account = $connected && 'account' === $section;
+		$is_technical = $connected && in_array( $section, array( 'technical', 'cache', 'webhooks', 'TECHNICAL' ), true );
+		$readiness = $this->createMock( ProductVolumetricReadinessService::class );
+		$readiness->expects( $this->exactly( $is_root ? 1 : 0 ) )->method( 'getReadiness' )
+			->willReturn( array( 'total' => 4, 'configured' => 3, 'ready' => false ) );
+		$api = $this->createMock( KiriminajaApiService::class );
+		$api->expects( $this->exactly( $is_account ? 1 : 0 ) )->method( 'getProfile' )
+			->willReturn( (object) array( 'status' => 200, 'data' => (object) array( 'name' => 'Merchant' ) ) );
+		$api->expects( $this->exactly( $is_technical ? 1 : 0 ) )->method( 'get_couriers' )
+			->willReturn( (object) array( 'status' => 200, 'data' => array() ) );
+		$cache = $this->createMock( ShippingDiscountRegionCacheService::class );
+		$cache->method( 'getStatus' )->willReturn( array( 'state' => 'ready' ) );
+		$settingsPageData = new SettingsPageData(
+			$settings,
+			$readiness,
+			$api,
+			$this->createMock( ShippingDiscountRegionRepository::class ),
+			$cache
+		);
+		$shared = $settingsPageData->prepare( false );
+		$productVolumetricReadiness = $shared['productVolumetricReadiness'];
+		$this->assertSame( array(), $productVolumetricReadiness );
+		$this->assertStringContainsString( '->prepare( false )', file_get_contents( PLUGIN_DIR . '/templates/setting/index.php' ) );
+
+		$previous_get = $_GET;
+		$_GET['section'] = $section;
+		$GLOBALS['kiriof_settings_page_allowed'] = true;
+		ob_start();
+		try {
+			include PLUGIN_DIR . '/templates/setting/' . ( $connected ? 'setuped' : 'unsetuped' ) . '/index.php';
+		} finally {
+			ob_end_clean();
+			$_GET = $previous_get;
+			unset( $GLOBALS['kiriof_settings_page_allowed'] );
+		}
+		$this->assertSame( $connected ? 'setup-123' : '', $shared['approvedSetupKey']->value );
+		if ( $is_root ) {
+			$this->assertSame( '3 / 4 Need Action', $kiriof_settings_bootstrap['productAlert']['status'] );
+		} elseif ( ! $connected ) {
+			$this->assertSame( 'unconfigured', $kiriof_settings_bootstrap['mode'] );
+		} else {
+			$this->assertSame( $is_technical ? 'technical' : $section, $kiriof_settings_bootstrap['view'] );
+		}
+	}
+
 	#[Test]
 	public function courier_bootstrap_uses_shared_count_translation_without_context(): void {
 		$provider = new SettingsPageData(
@@ -135,7 +234,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 		);
 
 		$readiness = $this->createMock( ProductVolumetricReadinessService::class );
-		$readiness->method( 'getReadiness' )->willReturn( array( 'total' => 4, 'configured' => 3, 'ready' => false ) );
+		$readiness->expects( $this->once() )->method( 'getReadiness' )->willReturn( array( 'total' => 4, 'configured' => 3, 'ready' => false ) );
 		$api = $this->createMock( KiriminajaApiService::class );
 		$api->method( 'getProfile' )->willReturn( (object) array( 'status' => 200, 'data' => (object) array( 'name' => 'Merchant' ) ) );
 		$api->method( 'get_couriers' )->willReturn(
@@ -162,7 +261,7 @@ final class SettingsPageDataRuntimeTest extends TestCase {
 				'kiriof_default_address_ready'    => true,
 				'kiriof_enabled_courier_count'    => 4,
 			),
-			array( 'total' => 4, 'configured' => 3, 'ready' => false )
+			$shared['productVolumetricReadiness']
 		);
 
 		$this->assertSame( $setup_key, $shared['approvedSetupKey'] );

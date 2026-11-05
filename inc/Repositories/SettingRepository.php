@@ -11,6 +11,8 @@ class SettingRepository{
     public $table;
     private static array $setting_cache = array();
     private static array $whitelist_expedition_ids_cache = array();
+    private static int $courier_policy_generation = 0;
+    private ?array $courier_policy_snapshot = null;
 
     public function __construct(){
         global $wpdb;
@@ -26,6 +28,7 @@ class SettingRepository{
     public function clearCache(): void {
         self::$setting_cache                    = array();
         self::$whitelist_expedition_ids_cache  = array();
+        ++self::$courier_policy_generation;
     }
     
     public function getIntegrationData(){
@@ -328,15 +331,29 @@ class SettingRepository{
     /** Missing policy uses the legacy whitelist; corrupt stored policy fails closed. */
     public function getCourierServiceSelection(): ?array {
         $row = $this->getSettingByKey( 'origin_whitelist_expedition_services' );
-        if ( ! $row || null === $row->value ) {
-            return null;
+        $present = (bool) $row;
+        $raw = $present ? $row->value : null;
+        $snapshot = $this->courier_policy_snapshot;
+        if ( null !== $snapshot && $snapshot['table'] === $this->table && $snapshot['generation'] === self::$courier_policy_generation && $snapshot['present'] === $present && $snapshot['raw'] === $raw ) {
+            return $snapshot['selection'];
         }
-        try {
-            $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $row->value );
-            return \KiriminAjaOfficial\Services\CourierServiceCatalog::filterSelection( $selection );
-        } catch ( \InvalidArgumentException $e ) {
-            return array();
+        $selection = null;
+        if ( $present && null !== $raw ) {
+            try {
+                $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::parseSelection( $raw );
+                $selection = \KiriminAjaOfficial\Services\CourierServiceCatalog::filterSelection( $selection );
+            } catch ( \InvalidArgumentException $e ) {
+                $selection = array();
+            }
         }
+        $this->courier_policy_snapshot = array(
+            'table'      => $this->table,
+            'generation' => self::$courier_policy_generation,
+            'present'    => $present,
+            'raw'        => $raw,
+            'selection'  => $selection,
+        );
+        return $selection;
     }
 
     public function isCourierServiceEnabled( string $courier, string $service ): bool {
@@ -494,6 +511,7 @@ class SettingRepository{
                 unset( self::$setting_cache[ $this->table . '|' . $key ] );
             }
             unset( self::$whitelist_expedition_ids_cache[ $this->table . '|origin_whitelist_expedition_id' ] );
+            ++self::$courier_policy_generation;
         }
         return true;
     }

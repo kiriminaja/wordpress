@@ -28,8 +28,9 @@ async function buildBundle(): Promise<Buffer> {
   put('button.ts', `export {default as Button} from './Button.svelte'; export const buttonVariants = () => '';`);
   put('Icon.svelte', `<script>let props = $props();</script><svg aria-hidden="true" {...props}></svg>`);
   put('icons.ts', `export {default as IconCalendar, default as IconChevronDown, default as IconChevronLeft, default as IconChevronRight} from './Icon.svelte';`);
+  put('panel-load.ts', `let next; export let panelLoadCount = 0; export function delayPanel(){let resolve, reject; next = new Promise((yes, no) => {resolve = yes; reject = no}); return {resolve, reject};} export function loadPanel(loader){panelLoadCount++; const gate = next ?? Promise.resolve(); next = undefined; return gate.then(loader);}`);
   put('Host.svelte', `<script>import Production from '${join(root, 'src/lib/ui/DateRangeFilter.svelte')}'; let {props} = $props(); let current = $state(props); export function update(next){current = {...current, ...next};}</script><Production {...current} />`);
-  put('entry.ts', `export {mount, unmount, flushSync} from 'svelte'; export {default as Host} from './Host.svelte';`);
+  put('entry.ts', `export {mount, unmount, flushSync} from 'svelte'; export {default as Host} from './Host.svelte'; export {delayPanel, panelLoadCount} from './panel-load.ts';`);
   const build = await Bun.build({ entrypoints: [join(directory, 'entry.ts')], outdir: directory, naming: 'runtime.js', target: 'browser', conditions: ['browser'], plugins: [{ name: 'date-range-svelte-runtime', setup(builder) {
     builder.onResolve({ filter: /^\$lib\/components\/ui\/popover(?:\/index\.js)?$/ }, () => ({ path: join(directory, 'popover.ts') }));
     builder.onResolve({ filter: /^\$lib\/components\/ui\/button(?:\/index\.js)?$/ }, () => ({ path: join(directory, 'button.ts') }));
@@ -38,7 +39,13 @@ async function buildBundle(): Promise<Buffer> {
     builder.onResolve({ filter: /^\$lib\/components\/ui\/range-calendar$/ }, () => ({ path: join(root, 'src/lib/components/ui/range-calendar/index.ts') }));
     builder.onResolve({ filter: /^svelte$/ }, () => ({ path: join(root, 'node_modules/svelte/src/index-client.js') }));
     builder.onLoad({ filter: /\.svelte\.[jt]s$/ }, ({ path }) => ({ contents: compileModule(path.endsWith('.ts') ? new Bun.Transpiler({ loader: 'ts' }).transformSync(readFileSync(path, 'utf8')) : readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
-    builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => ({ contents: compile(readFileSync(path, 'utf8'), { filename: path, generate: 'client' }).js.code, loader: 'js' }));
+    builder.onLoad({ filter: /\.svelte$/ }, ({ path }) => {
+      let source = readFileSync(path, 'utf8');
+      if (path === join(root, 'src/lib/ui/DateRangeFilter.svelte')) {
+        source = source.replace('<script lang="ts">', `<script lang="ts">import {loadPanel} from '${join(directory, 'panel-load.ts')}';`).replace("panelPromise = import('./DateRangePanel.svelte');", "panelPromise = loadPanel(() => import('./DateRangePanel.svelte'));");
+      }
+      return { contents: compile(source, { filename: path, generate: 'client' }).js.code, loader: 'js' };
+    });
   } }] });
   if (!build.success) throw new Error(build.logs.join('\n'));
   return readFileSync(join(directory, 'runtime.js'));
@@ -92,7 +99,7 @@ async function fixture(props: Record<string, unknown> = {}) {
     }
     // Count actual selected dates, not weeks/grid padding. Both ends are inclusive.
     const numberDays = () => new Set([...target.querySelectorAll('[data-range-calendar-day][data-selected]')].map((element) => element.getAttribute('data-value'))).size;
-    return { target, changes, settle, cleanup, trigger, button, day, toggle, select, navigate, numberDays, update: async (next: Record<string, unknown>) => { host.update(next); await settle(); } };
+    return { target, changes, settle, cleanup, trigger, button, day, toggle, select, navigate, numberDays, delayPanel: () => runtime.delayPanel(), panelLoadCount: () => runtime.panelLoadCount, update: async (next: Record<string, unknown>) => { host.update(next); await settle(); } };
   } catch (error) { await cleanup(); throw error; }
 }
 
@@ -103,6 +110,86 @@ function expectRange(actual: Range[], dateFrom: string, dateTo: string) {
 }
 
 describe('DateRangeFilter (compiled official shadcn RangeCalendar / bits-ui)', () => {
+  test('does not request the panel while closed and shows the loading label only after opening', async () => {
+    const h = await fixture({ dateFrom: '2024-02-10', dateTo: '2024-02-14', loadingLabel: 'Loading dates' }); try {
+      expect(h.panelLoadCount()).toBe(0);
+      expect(h.target.querySelector('[data-slot="popover-content"]')).toBeNull();
+      const pending = h.delayPanel();
+      await h.toggle();
+      expect(h.panelLoadCount()).toBe(1);
+      expect(h.target.querySelector('[role="status"]')?.textContent).toBe('Loading dates');
+      expect(h.target.querySelector('[data-range-calendar-root]')).toBeNull();
+      pending.resolve(); await h.settle();
+      expect(h.numberDays()).toBe(5);
+      expect(h.target.querySelector('[role="status"]')).toBeNull();
+    } finally { await h.cleanup(); }
+  });
+
+  test('closing during loading ignores completion and reopening reads the latest props', async () => {
+    const h = await fixture({ dateFrom: '2024-02-10', dateTo: '2024-02-14' }); try {
+      const pending = h.delayPanel();
+      await h.toggle(); await h.toggle();
+      await h.update({ dateFrom: '2024-03-04', dateTo: '2024-03-06' });
+      pending.resolve(); await h.settle();
+      expect(h.target.querySelector('[data-slot="popover-content"]')).toBeNull();
+      await h.toggle();
+      expect(h.day('2024-03-04').hasAttribute('data-range-start')).toBe(true);
+      expect(h.day('2024-03-06').hasAttribute('data-range-end')).toBe(true);
+      expect(h.changes).toEqual([]);
+    } finally { await h.cleanup(); }
+  });
+
+  test('resolving a panel import after destruction does not mount a calendar', async () => {
+    const h = await fixture();
+    const pending = h.delayPanel();
+    await h.toggle();
+    await h.cleanup();
+    pending.resolve(); await h.settle();
+    expect(h.target.querySelector('[data-range-calendar-root]')).toBeNull();
+    expect(h.changes).toEqual([]);
+  });
+
+  test('a late import cannot restore a closed panel or stale dates after reopening', async () => {
+    const h = await fixture({ dateFrom: '2024-02-10', dateTo: '2024-02-14' }); try {
+      const pending = h.delayPanel();
+      await h.toggle(); await h.toggle();
+      await h.update({ dateFrom: '2024-03-04', dateTo: '2024-03-06' });
+      await h.toggle();
+      expect(h.numberDays()).toBe(3);
+      pending.resolve(); await h.settle();
+      expect(h.day('2024-03-04').hasAttribute('data-range-start')).toBe(true);
+      expect(h.day('2024-03-06').hasAttribute('data-range-end')).toBe(true);
+      expect(h.numberDays()).toBe(3);
+      await h.toggle();
+      expect(h.target.querySelector('[data-slot="popover-content"]')).toBeNull();
+      expect(h.changes).toEqual([]);
+    } finally { await h.cleanup(); }
+  });
+
+  test('a failed panel load offers an explicit retry and restores the current range', async () => {
+    const h = await fixture({ dateFrom: '2024-02-10', dateTo: '2024-02-14', errorLabel: 'Dates unavailable', retryLabel: 'Try dates again' }); try {
+      const pending = h.delayPanel();
+      await h.toggle(); pending.reject(new Error('chunk unavailable')); await h.settle();
+      expect(h.target.querySelector('[role="alert"]')?.textContent).toBe('Dates unavailable');
+      expect(h.changes).toEqual([]);
+      h.button('Try dates again').click(); await h.settle();
+      expect(h.panelLoadCount()).toBe(2);
+      expect(h.numberDays()).toBe(5);
+      expect(h.target.querySelector('[role="alert"]')).toBeNull();
+    } finally { await h.cleanup(); }
+  });
+
+  test('parent reactivity while open does not overwrite an uncommitted selection', async () => {
+    const h = await fixture({ dateFrom: '2024-02-10', dateTo: '2024-02-14' }); try {
+      await h.toggle(); await h.select('2024-02-18'); await h.select('2024-02-20');
+      await h.update({ dateFrom: '2024-03-04', dateTo: '2024-03-06', applyLabel: 'Use dates' });
+      expect(h.panelLoadCount()).toBe(1);
+      expect(h.numberDays()).toBe(3);
+      h.button('Use dates').click(); await h.settle();
+      expectRange(h.changes, '2024-02-18', '2024-02-20');
+    } finally { await h.cleanup(); }
+  });
+
   test('restores the initial applied range and submits inclusive plain dates, clearing legacy month', async () => {
     const h = await fixture({ dateFrom: '2024-02-10', dateTo: '2024-02-14', month: '2024-01' }); try {
       expect(h.trigger().textContent).toBe('2024-02-10 – 2024-02-14');

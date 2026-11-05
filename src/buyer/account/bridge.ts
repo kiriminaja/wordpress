@@ -80,7 +80,7 @@ export function bootAccountShipping(root: AccountRoot) {
       state.pin = null;
       if (changedLookup) state.selection = null;
       publish();
-      district.lookup();
+      if (changedLookup) district.lookup();
     }
     function select(point: Point | null, expected: Address) {
       if (disposed || addressKey(expected) !== addressKey(readAddress(form!))) return false;

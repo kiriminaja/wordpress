@@ -200,7 +200,10 @@ export function startClassicPin(
     );
   });
   $(root.document.body)
-    .on('update_checkout.kiriofClassicPin', changed)
+    .on('update_checkout.kiriofClassicPin', () => {
+      changed();
+      contactKey = currentContactKey();
+    })
     .on(
       'updated_checkout.kiriofClassicPin checkout_error.kiriofClassicPin kiriof:classic-district-synced.kiriofClassicPin',
       (event) => {

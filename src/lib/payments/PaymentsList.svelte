@@ -12,11 +12,13 @@
   import ActionTooltip from '$lib/ui/ActionTooltip.svelte';
   import AutoRefresh, { AUTO_REFRESH_INTERVALS } from '$lib/ui/AutoRefresh.svelte';
   import DateRangeFilter from '$lib/ui/DateRangeFilter.svelte';
-  import PaymentScheduleDialog from './PaymentScheduleDialog.svelte';
-  import ScanToPayDialog from './ScanToPayDialog.svelte';
-  import InstantScanToPayDialog from './InstantScanToPayDialog.svelte';
+  import DeferredDialog from '$lib/ui/DeferredDialog.svelte';
   import { paymentDeepLink } from './payment-deep-link';
   import type { PaymentsBootstrap, PaymentRow } from './types';
+
+  const loadPaymentScheduleDialog = () => import('./PaymentScheduleDialog.svelte');
+  const loadScanToPayDialog = () => import('./ScanToPayDialog.svelte');
+  const loadInstantScanToPayDialog = () => import('./InstantScanToPayDialog.svelte');
 
   let {
     initialBootstrap,
@@ -135,10 +137,11 @@
               <InputGroup.Input id="kiriof-svelte-payment-search" type="search" bind:value={search} placeholder={bootstrap.i18n.search} disabled={refreshing} oninput={scheduleSearch} />
             </InputGroup.Root>
           </form>
-          <DateRangeFilter dateFrom={bootstrap.filters.date_from} dateTo={bootstrap.filters.date_to} month={bootstrap.filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.allDates} onChange={(range) => { month = ''; void navigate({ ...range, date_range_invalid: '' }); }} />
+          <DateRangeFilter dateFrom={bootstrap.filters.date_from} dateTo={bootstrap.filters.date_to} month={bootstrap.filters.month} disabled={refreshing} label={bootstrap.i18n.allDates} applyLabel={bootstrap.i18n.apply ?? 'Apply'} clearLabel={bootstrap.i18n.allDates} loadingLabel={bootstrap.i18n.loading} errorLabel={bootstrap.i18n.actionError} retryLabel={bootstrap.i18n.retry} onChange={(range) => { month = ''; void navigate({ ...range, date_range_invalid: '' }); }} />
           <AutoRefresh
             storageKey="kiriof-payments-refresh-interval"
             loading={refreshing}
+            disabled={scheduleDialogOpen || paymentDialogOpen || instantPaymentDialogOpen}
             hint={bootstrap.i18n.autoRefresh}
             options={AUTO_REFRESH_INTERVALS.map((option) => ({ ...option, label: bootstrap.i18n.refreshLabels[String(option.value)] ?? option.label }))}
             onRefresh={refreshList}
@@ -206,7 +209,19 @@
       onPageChange={(page) => void navigate({ cpage: String(page) })}
     />
   </KiriofCard>
-  <PaymentScheduleDialog bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
-  <ScanToPayDialog bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
-  <InstantScanToPayDialog bind:open={instantPaymentDialogOpen} paymentId={instantPaymentId} orderIds={instantOrderIds} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+  <DeferredDialog active={scheduleDialogOpen} load={loadPaymentScheduleDialog} i18n={bootstrap.i18n} onClose={() => scheduleDialogOpen = false}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent bind:open={scheduleDialogOpen} pickupNumber={schedulePickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+    {/snippet}
+  </DeferredDialog>
+  <DeferredDialog active={paymentDialogOpen} load={loadScanToPayDialog} i18n={bootstrap.i18n} onClose={() => paymentDialogOpen = false}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent bind:open={paymentDialogOpen} pickupNumber={paymentPickupNumber} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+    {/snippet}
+  </DeferredDialog>
+  <DeferredDialog active={instantPaymentDialogOpen} load={loadInstantScanToPayDialog} i18n={bootstrap.i18n} onClose={() => instantPaymentDialogOpen = false}>
+    {#snippet children({ default: DialogComponent })}
+      <DialogComponent bind:open={instantPaymentDialogOpen} paymentId={instantPaymentId} orderIds={instantOrderIds} ajaxUrl={bootstrap.ajax.url} nonce={bootstrap.ajax.nonce} i18n={bootstrap.modals} onComplete={refreshList} />
+    {/snippet}
+  </DeferredDialog>
 </div>

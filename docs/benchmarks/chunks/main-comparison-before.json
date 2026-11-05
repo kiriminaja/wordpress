@@ -1,0 +1,474 @@
+{
+  "measurement": "Unique production JS in entry + selected route static dependency graph; excludes deferred dialogs, CSS, images and HTML. Per-file gzip level 9. Not browser timing.",
+  "entry": {
+    "bytes": 792306,
+    "gzipBytes": 211611,
+    "requests": 3,
+    "files": [
+      "assets/ActionTooltip-BpGp4LdK.js",
+      "assets/disclose-version-D6cpFBGQ.js",
+      "kiriminaja-admin-workspace.js"
+    ],
+    "css": {
+      "bytes": 91104,
+      "gzipBytes": 11454,
+      "requests": 1,
+      "files": [
+        "kiriminaja-admin-workspace.css"
+      ]
+    }
+  },
+  "routes": {
+    "transactions": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "payments": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "transaction-detail": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "pickup-detail": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "settings": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "account": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "couriers": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "tracking": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "technical": {
+      "bytes": 792306,
+      "gzipBytes": 211611,
+      "requests": 3,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js",
+        "assets/disclose-version-D6cpFBGQ.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 91104,
+        "gzipBytes": 11454,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    }
+  },
+  "interactions": {
+    "transactions:instant-process": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "transactions:request-pickup": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "transactions:action": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "transactions:calendar": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "payments:scan-to-pay": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "payments:instant-scan-to-pay": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "payments:calendar": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    },
+    "transaction-detail:action": {
+      "additional": {
+        "bytes": 0,
+        "gzipBytes": 0,
+        "requests": 0,
+        "files": []
+      },
+      "total": {
+        "bytes": 792306,
+        "gzipBytes": 211611,
+        "requests": 3,
+        "files": [
+          "assets/ActionTooltip-BpGp4LdK.js",
+          "assets/disclose-version-D6cpFBGQ.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91104,
+          "gzipBytes": 11454,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      }
+    }
+  },
+  "emittedJavaScript": {
+    "bytes": 834370,
+    "gzipBytes": 225462,
+    "requests": 7,
+    "files": [
+      "assets/ActionTooltip-BpGp4LdK.js",
+      "assets/disclose-version-D6cpFBGQ.js",
+      "kiriminaja-admin-theme.js",
+      "kiriminaja-admin-workspace.js",
+      "kiriminaja-coupon-panels.js",
+      "kiriminaja-onboarding-progress.js",
+      "kiriminaja-order-metabox.js"
+    ]
+  },
+  "largestChunks": [
+    {
+      "file": "kiriminaja-admin-workspace.js",
+      "bytes": 462249,
+      "gzipBytes": 112216,
+      "requests": 1,
+      "files": [
+        "kiriminaja-admin-workspace.js"
+      ]
+    },
+    {
+      "file": "assets/ActionTooltip-BpGp4LdK.js",
+      "bytes": 276078,
+      "gzipBytes": 79154,
+      "requests": 1,
+      "files": [
+        "assets/ActionTooltip-BpGp4LdK.js"
+      ]
+    },
+    {
+      "file": "assets/disclose-version-D6cpFBGQ.js",
+      "bytes": 53979,
+      "gzipBytes": 20241,
+      "requests": 1,
+      "files": [
+        "assets/disclose-version-D6cpFBGQ.js"
+      ]
+    },
+    {
+      "file": "kiriminaja-onboarding-progress.js",
+      "bytes": 38775,
+      "gzipBytes": 12015,
+      "requests": 1,
+      "files": [
+        "kiriminaja-onboarding-progress.js"
+      ]
+    },
+    {
+      "file": "kiriminaja-admin-theme.js",
+      "bytes": 2271,
+      "gzipBytes": 1177,
+      "requests": 1,
+      "files": [
+        "kiriminaja-admin-theme.js"
+      ]
+    },
+    {
+      "file": "kiriminaja-coupon-panels.js",
+      "bytes": 527,
+      "gzipBytes": 350,
+      "requests": 1,
+      "files": [
+        "kiriminaja-coupon-panels.js"
+      ]
+    },
+    {
+      "file": "kiriminaja-order-metabox.js",
+      "bytes": 491,
+      "gzipBytes": 309,
+      "requests": 1,
+      "files": [
+        "kiriminaja-order-metabox.js"
+      ]
+    }
+  ]
+}

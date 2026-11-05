@@ -1,0 +1,375 @@
+{
+  "description": "Actual old/current production query classes in separate processes using same SQLite fixtures; not live MySQL equivalence",
+  "transaction_count_combinations": 32,
+  "payment_output_checks": 8,
+  "checks": [
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 40,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 40,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 2000,
+      "duplicates": false,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": false,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_express",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "posts_instant",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_express",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "transaction_counts",
+      "scope": "hpos_instant",
+      "orders": 2000,
+      "duplicates": true,
+      "empty_phone_cache": true,
+      "samples": 1,
+      "warmups": 0,
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "BINARY",
+      "field": "counts",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "BINARY",
+      "field": "oldest",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "BINARY",
+      "field": "pages",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "BINARY",
+      "field": "bootstrap",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "NOCASE",
+      "field": "counts",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "NOCASE",
+      "field": "oldest",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "NOCASE",
+      "field": "pages",
+      "equal": true
+    },
+    {
+      "area": "payments",
+      "collation": "NOCASE",
+      "field": "bootstrap",
+      "equal": true
+    }
+  ]
+}

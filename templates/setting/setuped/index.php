@@ -51,6 +51,7 @@ switch ( $kiriof_section ) {
 		);
 		break;
 	case '':
+	default:
 		$kiriof_list_data = $settingsPageData->prepareList();
 		$kiriof_settings_bootstrap = $settingsPageData->prepareRootBootstrap(
 			true,
@@ -63,9 +64,6 @@ switch ( $kiriof_section ) {
 			),
 			$productVolumetricReadiness
 		);
-		break;
-	default:
-		$kiriof_settings_bootstrap = $settingsPageData->prepareRootBootstrap( true );
 		break;
 }
 

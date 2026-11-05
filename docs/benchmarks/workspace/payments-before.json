@@ -1,0 +1,213 @@
+{
+    "environment": {
+        "php": "8.2.34",
+        "sqlite": "3.54.0",
+        "os": "Darwin Yanuar-MacBook-Air.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1\/RELEASE_ARM64_T8132 arm64",
+        "opcache_cli": "0"
+    },
+    "dataset": {
+        "groups": 2000,
+        "express_groups": 1000,
+        "instant_groups": 1000,
+        "members_per_group": 3,
+        "page_size": 20,
+        "indexes": "none",
+        "storage": "SQLite in-memory",
+        "warmups": 3,
+        "iterations": 15
+    },
+    "query_source": "\/private\/tmp\/payment-list-baseline.php",
+    "summary": {
+        "page": {
+            "median_ms": 12.131375,
+            "p95_ms": 12.342417
+        },
+        "status": {
+            "median_ms": 23.158875,
+            "p95_ms": 27.148208
+        },
+        "oldest": {
+            "median_ms": 4.816833,
+            "p95_ms": 5.009709
+        },
+        "combined": {
+            "median_ms": 40.057042,
+            "p95_ms": 44.296083
+        }
+    },
+    "query_counts": [
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        },
+        {
+            "page": 12,
+            "status": 5,
+            "oldest": 1,
+            "combined": 18
+        }
+    ],
+    "samples_ms": {
+        "page": [
+            11.934834,
+            12.342417,
+            12.16325,
+            12.132916,
+            11.968708,
+            12.191625,
+            12.038542,
+            12.331042,
+            11.945167,
+            12.301792,
+            12.008292,
+            12.158875,
+            12.000458,
+            12.06725,
+            12.131375
+        ],
+        "status": [
+            23.071958,
+            23.602291,
+            22.964084,
+            22.992667,
+            25.6325,
+            23.684459,
+            23.104166,
+            27.148208,
+            23.318958,
+            23.222083,
+            23.196125,
+            23.158875,
+            23.126542,
+            23.080084,
+            23.113792
+        ],
+        "oldest": [
+            4.782375,
+            5.009709,
+            4.859166,
+            4.726167,
+            4.943292,
+            4.742875,
+            4.904292,
+            4.816833,
+            4.956792,
+            4.833083,
+            4.852625,
+            4.802625,
+            4.79375,
+            4.770166,
+            4.791667
+        ],
+        "combined": [
+            39.789167,
+            40.954417,
+            39.9865,
+            39.85175,
+            42.5445,
+            40.618959,
+            40.047,
+            44.296083,
+            40.220917,
+            40.356958,
+            40.057042,
+            40.120375,
+            39.92075,
+            39.9175,
+            40.036834
+        ]
+    },
+    "result": {
+        "total": 2000,
+        "rows": 20,
+        "counts": {
+            "all": 2000,
+            "unpaid": 500,
+            "paid": 500,
+            "pending": 500,
+            "refunded": 500
+        },
+        "oldest": "2025-03-01 00:00:00"
+    },
+    "caveat": "SQLite fixture timings are not MySQL production timings; no network, WordPress bootstrap, rendering or seed time is measured."
+}

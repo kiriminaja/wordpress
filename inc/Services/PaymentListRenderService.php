@@ -112,6 +112,10 @@ class PaymentListRenderService {
 			'pagination'   => array( 'page' => $page, 'totalPages' => $total_pages, 'total' => $total, 'perPage' => $items_per_page ),
 			'ajax'         => array( 'url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( KIRIOF_NONCE ) ),
 			'i18n'         => array(
+				'loading' => __( 'Loading…', 'kiriminaja-official' ),
+				'actionError' => __( 'Unable to complete this action.', 'kiriminaja-official' ),
+				'retry' => __( 'Retry', 'kiriminaja-official' ),
+				'close' => __( 'Close', 'kiriminaja-official' ),
 				'search'        => __( 'Search payment…', 'kiriminaja-official' ),
 				'allDates'      => __( 'All Dates', 'kiriminaja-official' ),
 				'apply'         => __( 'Apply', 'kiriminaja-official' ),
