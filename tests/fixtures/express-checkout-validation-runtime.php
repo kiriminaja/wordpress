@@ -21,7 +21,12 @@ namespace KiriminAjaOfficial\Services {
             } };
         }
         public function calculation( $payload ) { $GLOBALS['calculation_payload'] = $payload; ++$GLOBALS['calls']; return new class {
-            public function call() { return (object) array( 'status' => 200, 'data' => array( 'calculation_result' => array( 'selected_expedition' => (object) array( 'service' => 'jne', 'service_type' => 'REG', 'force_insurance' => false, 'api_key' => 'private-selected-secret' ), 'cart_total_amt' => 100, 'cart_total_after_discount' => 100, 'insurance_amt' => 2, 'cod_amt' => 0, 'ongkir_fee_amt' => 10, 'ongkir_fee_raw' => 10, 'payload' => array( 'api_key' => 'private-calc-secret' ) ), 'carts_attribute' => array( 'weight' => 1000, 'length' => 1, 'width' => 1, 'height' => 1, 'private_token' => 'private-attribute-secret' ) ) ); }
+            public function call() { $response = (object) array( 'status' => 200, 'data' => array( 'calculation_result' => array( 'selected_expedition' => (object) array( 'service' => 'jne', 'service_type' => 'REG', 'force_insurance' => false, 'api_key' => 'private-selected-secret' ), 'cart_total_amt' => 100, 'cart_total_after_discount' => 100, 'insurance_amt' => 2, 'cod_amt' => 0, 'ongkir_fee_amt' => 10, 'ongkir_fee_raw' => 10, 'payload' => array( 'api_key' => 'private-calc-secret' ) ), 'carts_attribute' => array( 'weight' => 1000, 'length' => 1, 'width' => 1, 'height' => 1, 'private_token' => 'private-attribute-secret' ) ) );
+                $amounts = $GLOBALS['amounts'];
+                foreach ( array( 'cart_total_amt' => 'items', 'cart_total_after_discount' => 'items', 'insurance_amt' => 'insurance', 'ongkir_fee_amt' => 'shipping', 'ongkir_fee_raw' => 'shipping' ) as $key => $input ) {
+                    if ( isset( $amounts[$input] ) ) { $response->data['calculation_result'][$key] = $amounts[$input]; }
+                }
+                return $response; }
         }; }
     }
     class ShippingDiscountCouponService { public function getAdjustedRatePricing( $selected, $cost ) { return array( 'cost' => 'coupon' === $GLOBALS['mode'] ? 5 : $cost ); } }
@@ -30,34 +35,38 @@ namespace KiriminAjaOfficial\Services {
 namespace {
     define( 'ABSPATH', __DIR__ );
     $GLOBALS['mode'] = $argv[1] ?? 'valid'; $GLOBALS['calls'] = 0;
+    $GLOBALS['amounts'] = isset( $argv[2] ) ? json_decode( $argv[2], true, 512, JSON_THROW_ON_ERROR ) : array();
     function __( $text, $domain ) { return $text; }
+    function wc_get_price_decimals() { return $GLOBALS['amounts']['decimals'] ?? 2; }
+    function wc_format_decimal( $value, $dp = false ) { return number_format( (float) $value, false === $dp ? wc_get_price_decimals() : $dp, '.', '' ); }
     function wp_json_encode( $data ) { return json_encode( $data ); }
     function kiriof_log( ...$args ) { $GLOBALS['validation_logs'][] = $args; }
     class Line {
         public function get_method_id() { return 'kiriminaja-official'; }
         public function get_instance_id() { return 4; }
         public function get_meta( $key, $single = true ) { return array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG', 'kiriof_rate_cod_available' => 'no' )[$key] ?? ''; }
-        public function get_total() { return 'price' === $GLOBALS['mode'] ? 9 : ( 'coupon' === $GLOBALS['mode'] ? 5 : 10 ); }
+        public function get_total() { if ( isset( $GLOBALS['amounts']['shipping'] ) ) { return $GLOBALS['amounts']['line_shipping'] ?? $GLOBALS['amounts']['shipping']; } return 'price' === $GLOBALS['mode'] ? 9 : ( 'coupon' === $GLOBALS['mode'] ? 5 : 10 ); }
     }
-    class Fee { public function get_meta( $key, $single = true ) { return 'insurance'; } public function get_name() { return 'Insurance'; } public function get_total() { return 'fee' === $GLOBALS['mode'] ? 3 : 2; } }
+    class Fee { public function get_meta( $key, $single = true ) { return 'insurance'; } public function get_name() { return 'Insurance'; } public function get_total() { if ( isset( $GLOBALS['amounts']['insurance'] ) ) { return $GLOBALS['amounts']['line_insurance'] ?? $GLOBALS['amounts']['insurance']; } return 'fee' === $GLOBALS['mode'] ? 3 : 2; } }
     class Order {
         public function get_items( $type ) {
             if ( 'shipping' === $type ) { return array( new Line() ); }
             if ( 'fee' === $type ) { return 'duplicate' === $GLOBALS['mode'] ? array( new Fee(), new Fee() ) : array( new Fee() ); }
-            return array( new class { public function get_total() { return 100; } } );
+            return array( new class { public function get_total() { return $GLOBALS['amounts']['items'] ?? 100; } } );
         }
-        public function get_total_fees() { return 'fee' === $GLOBALS['mode'] ? 3 : 2; }
-        public function get_total_tax() { return 'tax' === $GLOBALS['mode'] ? 7 : 0; }
-        public function get_currency() { return 'USD'; }
+        public function get_total_fees() { if ( isset( $GLOBALS['amounts']['insurance'] ) ) { return $GLOBALS['amounts']['insurance'] + ( $GLOBALS['amounts']['other_fees'] ?? 0 ); } return 'fee' === $GLOBALS['mode'] ? 3 : 2; }
+        public function get_total_tax() { if ( isset( $GLOBALS['amounts']['tax'] ) ) { return $GLOBALS['amounts']['tax']; } return 'tax' === $GLOBALS['mode'] ? 7 : 0; }
+        public function get_currency() { return 0 === wc_get_price_decimals() ? 'IDR' : 'USD'; }
+        public function set_total( $value ) { throw new \RuntimeException( 'Validation must not change the buyer total.' ); }
         public function get_shipping_address_1() { return 'Main street number 123'; }
         public function get_shipping_address_2() { return ''; }
         public function get_shipping_city() { return 'Jakarta'; }
         public function get_shipping_state() { return 'JK'; }
         public function get_shipping_postcode() { return '12345'; }
         public function get_shipping_country() { return 'ID'; }
-        public function get_total() { if ( 'tax' === $GLOBALS['mode'] ) { return 119; } return 'total' === $GLOBALS['mode'] ? 113 : ( 'coupon' === $GLOBALS['mode'] ? 107 : 112 ); }
+        public function get_total() { if ( isset( $GLOBALS['amounts']['total'] ) ) { return $GLOBALS['amounts']['total']; } if ( 'tax' === $GLOBALS['mode'] ) { return 119; } return 'total' === $GLOBALS['mode'] ? 113 : ( 'coupon' === $GLOBALS['mode'] ? 107 : 112 ); }
     }
-    class Rate extends Line { public function get_id() { return 'kiriminaja-official_jne_REG'; } public function get_cost() { return 'coupon' === $GLOBALS['mode'] ? 5 : 10; } public function get_meta_data() { return array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG', 'kiriof_rate_cod_available' => 'no' ); } }
+    class Rate extends Line { public function get_id() { return 'kiriminaja-official_jne_REG'; } public function get_cost() { if ( isset( $GLOBALS['amounts']['shipping'] ) ) { return $GLOBALS['amounts']['shipping']; } return 'coupon' === $GLOBALS['mode'] ? 5 : 10; } public function get_meta_data() { return array( 'kiriof_rate_service' => 'jne', 'kiriof_rate_service_type' => 'REG', 'kiriof_rate_cod_available' => 'no' ); } }
     class WC_Shipping_Zones {
         public static function get_zone_matching_package( $p ) { return new class { public function get_shipping_methods( $enabled ) { return array( new class { public $id = 'kiriminaja-official'; public $enabled = 'yes'; public function get_instance_id() { return 'zone' === $GLOBALS['mode'] ? 5 : 4; } } ); } }; }
     }
@@ -88,6 +97,6 @@ namespace {
         $service = new \KiriminAjaOfficial\Services\ExpressCheckoutValidationService( new \KiriminAjaOfficial\Repositories\SettingRepository(), new \KiriminAjaOfficial\Services\CheckoutServiceFactory() );
         $data = $service->validate( new Order(), 123, 'cod' === $GLOBALS['mode'] ? 'cod' : 'bacs', true );
         if ( $data['origin_snapshot'] !== $GLOBALS['calculation_payload']['origin'] || ( 'custom-origin' === $GLOBALS['mode'] && 789 !== $data['origin_snapshot']['origin_sub_district_id'] ) ) { throw new \RuntimeException( 'Pricing and durable origin differ' ); }
-        echo json_encode( array( 'ok' => true, 'calls' => $GLOBALS['calls'], 'snapshot' => $data, 'pricing_origin' => $GLOBALS['calculation_payload']['origin'], 'pricing_postcode' => $GLOBALS['calculation_payload']['destination_postcode'], 'logs' => $GLOBALS['validation_logs'] ?? array() ) );
+        echo json_encode( array( 'ok' => true, 'calls' => $GLOBALS['calls'], 'snapshot' => $data, 'pricing_origin' => $GLOBALS['calculation_payload']['origin'], 'pricing_postcode' => $GLOBALS['calculation_payload']['destination_postcode'], 'order_total' => ( new Order() )->get_total(), 'logs' => $GLOBALS['validation_logs'] ?? array() ) );
     } catch ( \Throwable $e ) { echo json_encode( array( 'ok' => false, 'calls' => $GLOBALS['calls'], 'error' => $e->getMessage(), 'logs' => $GLOBALS['validation_logs'] ?? array() ) ); }
 }
