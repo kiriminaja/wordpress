@@ -13,35 +13,34 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		$this->assertSame( 1, preg_match( '//u', $result['body'] ) );
 	}
 
-	public function test_export_caps_escaped_bytes_and_retains_recent_complete_lines(): void {
+	public function test_export_preserves_all_escaped_content_above_previous_size_cap(): void {
 		$line = str_repeat( '<&', 100 ) . " SAFE_LINE\n";
 		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', "OLDEST_MARKER\n" . str_repeat( $line, 4000 ) . "NEWEST_MARKER\n" );
 		$result = $this->download();
-		$this->assertLessThanOrEqual( 512 * 1024, strlen( $result['body'] ) );
+		$this->assertGreaterThan( 512 * 1024, strlen( $result['body'] ) );
 		$this->assertStringContainsString( 'NEWEST_MARKER', $result['body'] );
-		$this->assertStringNotContainsString( 'OLDEST_MARKER', $result['body'] );
-		$this->assertStringContainsString( '[Export limited to 512 KiB;', $result['body'] );
+		$this->assertStringContainsString( 'OLDEST_MARKER', $result['body'] );
+		$this->assertStringNotContainsString( 'Export limited', $result['body'] );
 		$this->assertStringContainsString( '&lt;&amp;', $result['body'] );
 	}
 
-	public function test_directory_status_is_included_for_plugins_and_each_theme(): void {
+	public function test_export_has_no_directory_lookup_metadata(): void {
 		$result = $this->download();
-		$this->assertStringContainsString( 'WordPress.org: listed for slug shop-child', $result['body'] );
-		$this->assertStringContainsString( 'WordPress.org: listed for slug shop-parent', $result['body'] );
-		$this->assertStringContainsString( 'WordPress.org: listed for slug a-active', $result['body'] );
-		$this->assertStringContainsString( 'must-use plugin; directory lookup not applicable', $result['body'] );
+		$this->assertStringNotContainsString( 'WordPress.org', $result['body'] );
+		$this->assertStringNotContainsString( 'lookup budget', $result['body'] );
+		$this->assertStringNotContainsString( 'Size limit:', $result['body'] );
 	}
 
 	public function test_export_includes_safe_environment_metadata_before_log_contents(): void {
 		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', "LOG_CONTENT_MARKER\n" );
 		$result = $this->download();
 		$body = $result['body'];
-		$this->assertStringStartsWith( "KiriminAja Plugin v3.0.11 Logs\nGenerated at: 2026-10-28 12:00:00\nPeriod: today and the previous two days (UTC).\nSources: ", $body );
-		foreach ( array( 'PHP version: ' . PHP_VERSION, 'WordPress version: 6.9.1', 'Active theme: Shop Child &amp; Theme v1.2', 'Parent theme: Shop Parent v5.6', '- Active Plugin Forged header v2.3.4 [active]', '- Network Plugin v3.4.5 [network-active]', '- Inactive Plugin v1.2.3 [inactive]', '- Hosting Helper v4.5.6 [must-use]' ) as $line ) {
+		$this->assertStringStartsWith( "KiriminAja Plugin v3.0.11 Logs\nGenerated at: 2026-10-28 12:00:00\nRange: 2026-10-24 00:00:00 to 2026-10-28 12:00:00 (UTC)\nSources: kiriminaja*, shipping_discount_coupon\n", $body );
+		foreach ( array( 'PHP version: ' . PHP_VERSION, 'WP: 6.9.1', 'Active theme: Shop Child &amp; Theme v1.2', 'Parent theme: Shop Parent v5.6', '- a-active (v2.3.4) [active]', '- n-network (v3.4.5) [network-active]', '- z-inactive (v1.2.3) [inactive]', '- mu (v4.5.6) [must-use]' ) as $line ) {
 			$this->assertStringContainsString( $line, $body );
 		}
-		$this->assertLessThan( strpos( $body, 'LOG_CONTENT_MARKER' ), strpos( $body, 'Installed plugins:' ) );
-		$this->assertLessThan( strpos( $body, '- Network Plugin' ), strpos( $body, '- Active Plugin' ) );
+		$this->assertLessThan( strpos( $body, 'LOG_CONTENT_MARKER' ), strpos( $body, 'Plugins:' ) );
+		$this->assertLessThan( strpos( $body, '- n-network' ), strpos( $body, '- a-active' ) );
 		foreach ( array( 'PRIVATE_DESCRIPTION', 'PRIVATE_URL', 'a-active/main.php', '<b>', "\nForged header" ) as $excluded ) {
 			$this->assertStringNotContainsString( $excluded, $body );
 		}
@@ -85,17 +84,17 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		mkdir( $this->directory . '/logs' );
 	}
 
-	public function test_only_today_and_previous_two_utc_log_dates_are_exported(): void {
-		foreach ( array( '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29' ) as $date ) {
+	public function test_only_today_and_previous_four_utc_log_dates_are_exported(): void {
+		foreach ( array( '2026-10-23', '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29' ) as $date ) {
 			file_put_contents( $this->directory . '/logs/kiriminaja_api-' . $date . '-hash.log', 'LOG_DATE_' . $date . "\n" );
 			file_put_contents( $this->directory . '/logs/kiriminaja_api.0-' . $date . '-hash.log', 'ROTATED_DATE_' . $date . "\n" );
 		}
 		$result = $this->download();
-		foreach ( array( '2026-10-26', '2026-10-27', '2026-10-28' ) as $date ) {
+		foreach ( array( '2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28' ) as $date ) {
 			$this->assertStringContainsString( 'LOG_DATE_' . $date, $result['body'] );
 			$this->assertStringContainsString( 'ROTATED_DATE_' . $date, $result['body'] );
 		}
-		foreach ( array( '2026-10-25', '2026-10-29' ) as $date ) {
+		foreach ( array( '2026-10-23', '2026-10-29' ) as $date ) {
 			$this->assertStringNotContainsString( $date, $result['body'] );
 		}
 	}
@@ -206,7 +205,7 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		$this->assertSame( 500, substr_count( $result['body'], 'ORDER-FIXTURE' ) );
 	}
 
-	public function test_size_limit_exports_the_tail_not_the_oldest_part_of_a_large_file(): void {
+	public function test_large_export_preserves_oldest_and_latest_entries_without_total_size_limit(): void {
 		$file = fopen( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', 'wb' );
 		fwrite( $file, "OLDEST_ENTRY\n" );
 		$line = str_repeat( 'diagnostic ', 800 ) . "\n";
@@ -214,9 +213,9 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		fwrite( $file, "LATEST_ENTRY\n" );
 		fclose( $file );
 		$result = $this->download( array(), 0, true );
-		$this->assertStringNotContainsString( 'OLDEST_ENTRY', $result['body'] );
+		$this->assertStringContainsString( 'OLDEST_ENTRY', $result['body'] );
 		$this->assertStringContainsString( 'LATEST_ENTRY', $result['body'] );
-		$this->assertStringContainsString( 'Export limited', $result['body'] );
+		$this->assertStringNotContainsString( 'Export limited', $result['body'] );
 	}
 
 	public function test_plugin_named_symlink_cannot_export_a_file_outside_log_directory(): void {
