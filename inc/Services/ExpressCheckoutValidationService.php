@@ -153,10 +153,7 @@ final class ExpressCheckoutValidationService {
         $other_fees = (float) $order->get_total_fees() - array_sum( $fees['insurance'] ) - array_sum( $fees['cod_fee'] );
         $expected_total = $items_total + $shipping + (float) $calc['insurance_amt'] + (float) $calc['cod_amt'] + $other_fees + (float) $order->get_total_tax();
         $this->validation_stage = 'order_amount_mismatch';
-        // Woo keeps fractional net line amounts but rounds the buyer's grand total to store precision.
-        $decimals = wc_get_price_decimals();
-        if ( ! is_numeric( $order->get_total() ) || ! is_finite( (float) $order->get_total() ) || ! is_finite( $expected_total )
-            || wc_format_decimal( $order->get_total(), $decimals ) !== wc_format_decimal( $expected_total, $decimals ) ) { $this->fail(); }
+        if ( ! self::equalOrderTotal( $order->get_total(), $expected_total ) ) { $this->fail(); }
         $calc['ongkir_fee_amt'] = $shipping;
         $calc['calc_total_amt'] = $items_total + $shipping + (float) $calc['insurance_amt'] + (float) $calc['cod_amt'];
         $calc['discount_amt'] = max( 0, (float) $calc['ongkir_fee_raw'] - $shipping );
@@ -167,6 +164,15 @@ final class ExpressCheckoutValidationService {
         $data = json_decode( wp_json_encode( array( 'calculation_result' => $calc, 'carts_attribute' => $attributes ) ), true );
         if ( ! is_array( $data ) ) { $this->fail(); }
         return array( 'version' => 1, 'rate_id' => $rate_id, 'instance_id' => (int) $rate->get_instance_id(), 'expedition' => $expedition, 'payment_method' => $payment, 'destination_id' => $district, 'is_insurance' => $insurance, 'validated_calculation' => $data, 'origin_snapshot' => $origin );
+    }
+
+    /** Woo rounds the grand total, not every fractional net line amount. Never mutates either value. */
+    public static function equalOrderTotal( $actual, $expected ): bool {
+        if ( ! is_numeric( $actual ) || ! is_numeric( $expected ) || ! is_finite( (float) $actual ) || ! is_finite( (float) $expected ) ) {
+            return false;
+        }
+        $decimals = wc_get_price_decimals();
+        return wc_format_decimal( $actual, $decimals ) === wc_format_decimal( $expected, $decimals );
     }
 
     /** Courier address/contact fields are required; Express does not require coordinates. */
