@@ -61,7 +61,7 @@ RSYNC_EXCLUDES := \
 	--exclude=.paratest.cache/ \
 	--exclude=.wordpress-org/
 
-.PHONY: frontend zip clean changelog release test test-force tag publish dev stg plain
+.PHONY: check-dependencies frontend zip clean changelog release test test-force tag publish dev stg plain
 
 # BUMP: patch (default), minor, major
 BUMP ?= patch
@@ -112,10 +112,29 @@ test:
 test-force:
 	php scripts/test-cache.php --force -- vendor/bin/paratest --configuration paratest.xml --testdox
 
-frontend:
+check-dependencies:
+	@missing=0; \
+	if [ ! -x node_modules/.bin/vite ] || [ ! -f node_modules/vite/bin/vite.js ]; then \
+		echo "Node dependencies is unavailable"; \
+		missing=1; \
+	fi; \
+	if [ ! -f vendor/autoload.php ] || [ ! -f vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php ]; then \
+		echo "Composer vendor is unavailable"; \
+		missing=1; \
+	fi; \
+	if [ "$$missing" -ne 0 ]; then \
+		printf '\nRun composer install & bun install first\n'; \
+		exit 1; \
+	fi
+
+frontend: check-dependencies
 	@test -x "$(BUN)" || (echo "Bun is required to build frontend assets." && exit 127)
 	$(BUN) run build
 
+# Release prerequisites must stop before changelog mutates versioned files, even with make -j.
+ifneq ($(filter release publish,$(MAKECMDGOALS)),)
+changelog: check-dependencies
+endif
 changelog:
 	@php scripts/changelog.php "$(V)" "$(FROM)" "$(BUMP)"
 

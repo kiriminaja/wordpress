@@ -7,6 +7,23 @@ const root=resolve(import.meta.dir,'..');
 let buildDir: string | undefined;
 let bundle: Promise<Buffer> | undefined;
 afterAll(()=>{if(buildDir)rmSync(buildDir,{recursive:true,force:true});});
+for(const staleStatus of ['unpaid','paid'])test(`retained dialog reopens for a different payment and ignores late ${staleStatus} response`,async()=>{
+ const h=await fixture();try{
+ await h.advance(6500);expect(h.requests).toHaveLength(1);const old=h.requests[0];expect(old.args[1]).toEqual({payment_id:'PAY-1',order_ids:'["KA-1","KA-2"]'});
+ await h.close();expect(old.args[2].signal.aborted).toBe(true);await h.reopen('PAY-2',['KA-9','KA-10']);await h.advance(6500);expect(h.requests).toHaveLength(2);expect(h.requests[1].args[1]).toEqual({payment_id:'PAY-2',order_ids:'["KA-9","KA-10"]'});expect(h.requests[1].args[2].signal.aborted).toBe(false);
+ old.resolve({status:200,data:{id:'PAY-1',status:staleStatus,amount:1,qr_content:'old-booking-qr'}});await h.settle();expect(h.target.querySelector('[data-dialog]')).not.toBeNull();expect(h.target.querySelector('svg[data-qr]')).toBeNull();expect(h.target.textContent).not.toContain('PAY-1');expect(h.completed()).toBe(0);
+ await h.reply({id:'PAY-2',status:'unpaid',amount:34000,qr_content:'new-booking-qr'});expect(h.target.querySelector('svg[data-qr]')?.getAttribute('data-qr')).toBe('new-booking-qr');expect(h.target.textContent).toContain('Code: PAY-2');expect(h.target.textContent).toContain('Rp34.000');expect(h.completed()).toBe(0);
+ await h.advance(15000);expect(h.requests).toHaveLength(3);expect(h.requests[2].args[1]).toEqual({payment_id:'PAY-2',order_ids:'["KA-9","KA-10"]'});await h.reply({id:'PAY-2',status:'paid',amount:34000,qr_content:''});expect(h.target.querySelector('[data-dialog]')).toBeNull();expect(h.completed()).toBe(1);await h.advance(30000);expect(h.requests).toHaveLength(3);
+ }finally{await h.cleanup();}
+});
+test('changing payment identity while open aborts the previous lookup and resets its QR',async()=>{
+ const h=await fixture();try{
+ await h.advance(6500);await h.reply({id:'PAY-1',status:'unpaid',amount:12000,qr_content:'original-qr'});expect(h.target.querySelector('svg[data-qr]')).not.toBeNull();await h.advance(15000);expect(h.requests).toHaveLength(2);const old=h.requests[1];
+ await h.identity('PAY-2',['KA-9']);expect(old.args[2].signal.aborted).toBe(true);expect(h.target.querySelector('svg[data-qr]')).toBeNull();await h.advance(6500);expect(h.requests).toHaveLength(3);expect(h.requests[2].args[1]).toEqual({payment_id:'PAY-2',order_ids:'["KA-9"]'});
+ old.resolve({status:200,data:{id:'PAY-1',status:'paid',amount:12000,qr_content:'original-qr'}});await h.settle();expect(h.target.querySelector('[data-dialog]')).not.toBeNull();expect(h.target.querySelector('svg[data-qr]')).toBeNull();expect(h.completed()).toBe(0);
+ await h.reply({id:'PAY-2',status:'unpaid',amount:34000,qr_content:'replacement-qr'});expect(h.target.querySelector('svg[data-qr]')?.getAttribute('data-qr')).toBe('replacement-qr');expect(h.target.textContent).toContain('Code: PAY-2');expect(h.completed()).toBe(0);
+ }finally{await h.cleanup();}
+});
 async function build(){
  const dir=buildDir=mkdtempSync(join(root,'node_modules','.instant-pay-build-'));
  const put=(name:string,source:string)=>writeFileSync(join(dir,name),source);
@@ -14,7 +31,7 @@ async function build(){
  put('ajax.ts',`export async function postWordPressAction(...args){return globalThis.__paymentRequest(...args);}`);
  put('qr.ts',`export function qr(node,options){node.setAttribute('data-qr',options.data);return {update(next){node.setAttribute('data-qr',next.data);},destroy(){}};}`);
  put('Production.svelte',readFileSync(join(root,'src/lib/payments/InstantScanToPayDialog.svelte'),'utf8').replace("'$lib/ui/KiriofDialog.svelte'","'./Dialog.svelte'").replace("'$lib/wordpress/ajax'","'./ajax.ts'").replace("'@svelte-put/qr/svg'","'./qr.ts'"));
- put('Host.svelte',`<script>import Production from './Production.svelte';let open=$state(true);export function close(){open=false;}</script><Production bind:open paymentId="PAY-1" orderIds={['KA-1','KA-2']} ajaxUrl="/ajax" nonce="nonce" i18n={{}} />`);
+ put('Host.svelte',`<script>import Production from './Production.svelte';let open=$state(true),paymentId=$state('PAY-1'),orderIds=$state(['KA-1','KA-2']);let completions=0;export function setOpen(next){open=next;}export function setPaymentId(next){paymentId=next;}export function setOrderIds(next){orderIds=next;}export function completed(){return completions;}</script><Production bind:open {paymentId} {orderIds} ajaxUrl="/ajax" nonce="nonce" i18n={{}} onComplete={()=>completions++} />`);
  put('entry.ts',`export {mount,unmount,flushSync} from 'svelte'; export {default as Host} from './Host.svelte';`);
  const result=await Bun.build({entrypoints:[join(dir,'entry.ts')],outdir:dir,naming:'runtime.js',target:'browser',conditions:['browser'],plugins:[{name:'svelte',setup(b){
  b.onResolve({filter:/^\$lib\/utils(?:\.js)?$/},()=>({path:join(root,'src/lib/utils.ts')}));
@@ -37,7 +54,8 @@ async function fixture(){
  const r=await import(join(dir,'runtime.js'));const target=win.document.createElement('main');win.document.body.append(target);const host=r.mount(r.Host,{target});
  async function settle(){for(let i=0;i<20;i++){await Promise.resolve();r.flushSync();}}
  async function advance(ms:number){const end=now+ms;for(let i=0;i<100;i++){const next=[...timers].filter(([,v])=>v.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;now=next[1].at;timers.delete(next[0]);next[1].fn();await settle();}now=end;await settle();}
- await settle();return {target,requests,settle,advance,close:async()=>{host.close();await settle();},reply:async(data:any)=>{requests.at(-1).resolve({status:200,data});await settle();},cleanup:async()=>{await r.unmount(host);await settle();await advance(0);expect(timers.size).toBe(0);Date.now=oldNow;win.happyDOM.abort();for(const[k,d]of saved){if(d)Object.defineProperty(globalThis,k,d);else delete(globalThis as any)[k];}rmSync(dir,{recursive:true,force:true});}};
+  async function identity(payment:string,ids:string[]){host.setPaymentId(payment);host.setOrderIds(ids);await settle();}
+  await settle();return {target,requests,settle,advance,completed:()=>host.completed(),close:async()=>{host.setOpen(false);await settle();},reopen:async(payment:string,ids:string[])=>{host.setPaymentId(payment);host.setOrderIds(ids);host.setOpen(true);await settle();},identity,reply:async(data:any)=>{requests.at(-1).resolve({status:200,data});await settle();},cleanup:async()=>{await r.unmount(host);await settle();await advance(0);expect(timers.size).toBe(0);Date.now=oldNow;win.happyDOM.abort();for(const[k,d]of saved){if(d)Object.defineProperty(globalThis,k,d);else delete(globalThis as any)[k];}rmSync(dir,{recursive:true,force:true});}};
 }
 test('Instant Scan to Pay loads its own authenticated group, retains QR on refresh and closes on paid',async()=>{
  const h=await fixture();try{

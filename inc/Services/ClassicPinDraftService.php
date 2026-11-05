@@ -156,6 +156,12 @@ final class ClassicPinDraftService {
 			return false;
 		}
 		$scope = ClassicDistrictAddressSync::separate( $data ) ? 'shipping' : 'billing';
+		if ( ! array_key_exists( $scope . '_country', $data ) ) {
+			// A multi-step refresh can omit address fields. Retain only the draft;
+			// no old address binding or quote may authorize rates for this request.
+			$this->destination( null );
+			return false;
+		}
 		$previous = $wc->session->get( self::SCOPE_KEY, null );
 		if ( null !== $previous && $previous !== $scope && is_array( $drafts ) ) {
 			unset( $drafts[ $previous ] );

@@ -61,7 +61,7 @@ namespace {
         public static function get_zone_matching_package( $p ) { return new class { public function get_shipping_methods( $enabled ) { return array( new class { public $id = 'kiriminaja-official'; public $enabled = 'yes'; public function get_instance_id() { return 'zone' === $GLOBALS['mode'] ? 5 : 4; } } ); } }; }
     }
     class Woo {
-        public $session; public $cart; public $customer;
+        public $session; public $cart; public $customer; public $shipping;
         public function __construct() {
             $this->session = new class { public function get( $key, $default ) { return array( 'unknown' === $GLOBALS['mode'] ? 'kiriminaja-official_unknown' : 'kiriminaja-official_jne_REG' ); } };
             $this->cart = new class { public function get_cart() { return array(); } };

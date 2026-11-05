@@ -133,11 +133,12 @@ These are avoided-query counts, not measured settings-page milliseconds.
 
 ## Remaining query hotspots and live validation
 
-The transaction list still issues seven overlapping global status-count queries
-in `WordPressTransactionListQuery::getStatusCounts`, repeating joins and shippable-item
-checks. They are not mutually exclusive categories. Combining them requires
-preserving HPOS/legacy storage, DISTINCT order semantics, Express payment evidence,
-Instant booking evidence and phone-issue exclusions. It was not changed speculatively.
+The seven overlapping transaction status counts now run as one conditional aggregate
+in `WordPressTransactionListQuery::getStatusCounts` (see
+`docs/v31-work-removal-performance.md`). The tabs remain non-exclusive, with
+HPOS/legacy storage, DISTINCT order semantics, Express payment evidence, Instant
+booking evidence and phone-issue exclusions covered by regression fixtures.
+The aggregate query plan on MySQL/MariaDB has not been validated.
 Cold-cache invalid-phone discovery also scans eligible transactions in batches and
 can call `wc_get_order()` for each candidate, not merely displayed rows.
 
@@ -158,6 +159,45 @@ browser, without exposing credentials or customer data in artifacts:
 No local WordPress/dev server was started. DOM routing tests replace component
 imports/mount boundaries and are not browser E2E or real component render benchmarks.
 The existing component-runtime suites separately exercise compiled production components.
+
+## PR #306 business-rule recheck
+
+The original PHP CI failure was a test selecting the first query after a baseline:
+a cold phone-issue cache legitimately runs an Express discovery scan before the
+Instant status aggregate. The test now records aggregate queries separately and
+checks exactly one aggregate; isolated cold/warm-cache regressions preserve the
+Instant partition and Express-only issue counts. Production SQL was not changed
+to accommodate that test.
+
+A later PR merge run failed frontend validation because newer main registered
+dependency-preflight tests inside `afterEach`. The local integration retains main's
+preflight behavior and moves those tests to suite scope. Current-main checkout
+fixes from `02fcafba` ancestry, including native Express verification and saved pin
+recovery, are retained without modification.
+
+Direct execution of old and current query classes in separate processes matched
+32 transaction-count combinations (storage, delivery partition, duplicates and
+phone-cache states) plus eight payment-output comparisons (BINARY/NOCASE counts,
+oldest date, pages, amounts, memberships and available actions). The comparison
+summary is in `docs/benchmarks/v31-work-removal/pr306-business-parity.json`.
+Additional compiled real payment-dialog regressions verify retained close/reopen
+and identity changes: an old payment's late unpaid/paid response cannot render its
+QR, close a new payment session, or invoke completion for that new session.
+
+Fresh local integrated validation: 1,591 PHP tests / 19,222 assertions with two
+environment-dependent renderer skips, 882 frontend tests plus static checks, and
+94 focused business-rule tests / 1,094 assertions on PHP 8.2.34. Full-suite local
+PHP is 8.5.10; CI's supported minimum remains 8.2.35. ZIP source/dependency parity
+and development-file exclusion passed. These results describe the integrated
+main and review-fix tree; remote PR checks must be evaluated against its published
+commit rather than an earlier PR head.
+
+These checks found no unintended change in the covered business rules, but they
+do not prove universal equivalence. The intentional read-only default-origin path
+still leaves duplicate-default repair to explicit maintenance. Actual MySQL
+collation/query plans, arbitrary third-party checkout integrations and all live
+interrupted payment scenarios remain staging-validation limits. No guarantee of
+zero business impact is inferred from fixture or E2E passes alone.
 
 ## Review follow-up (2026-10-28)
 

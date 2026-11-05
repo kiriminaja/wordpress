@@ -52,9 +52,10 @@ final class CheckoutCountryShipping {
 }
 
 final class CheckoutCountryRate {
-    public function __construct( private string $methodId, private string $id = '' ) {}
+    public function __construct( private string $methodId, private string $id = '', private array $meta = array() ) {}
     public function get_method_id(): string { return $this->methodId; }
     public function get_id(): string { return $this->id; }
+    public function get_meta_data(): array { return $this->meta; }
 }
 
 final class CheckoutCountryWooCommerce {
@@ -73,7 +74,7 @@ final class CheckoutCountryWooCommerce {
         $this->cart = new CheckoutCountryCart( $input['needs_shipping'] ?? true, $items );
         $selected = $input['post']['shipping_method'][0] ?? ( $input['session']['chosen_shipping_methods'][0] ?? '' );
         $rates = is_string( $selected ) && '' !== $selected
-            ? array( $selected => new CheckoutCountryRate( $input['rate_method_id'] ?? '', $selected ) )
+            ? array( $selected => new CheckoutCountryRate( $input['rate_method_id'] ?? '', $input['rate_id'] ?? $selected, $input['rate_meta'] ?? array() ) )
             : array();
         $this->shipping = new CheckoutCountryShipping( array( array( 'rates' => $rates ) ) );
         $this->checkout = new CheckoutCountryCheckout( $input['checkout_values'] ?? array() );
