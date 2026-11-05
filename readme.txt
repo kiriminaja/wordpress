@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 8.2.35
-Stable tag: 3.0.11
+Stable tag: 3.0.12
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.5
@@ -147,6 +147,15 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 3.0.12 =
+- perf: enhance client and server performance improvements (#306)
+- fix(checkout): match address selectors to native theme fields (#309)
+- fix(checkout): align shipping summary with theme totals layout (#310)
+- feat(logs): include environment and directory metadata in bounded exports (#311)
+- feat(logs): compact header and export five days without size cap (#312)
+
+Full Changelog: https://github.com/kiriminaja/wordpress/compare/v3.0.11...v3.0.12
+
 = 3.0.11 =
 - fix(checkout): retain saved pins during partial checkout refreshes (#308)
 
