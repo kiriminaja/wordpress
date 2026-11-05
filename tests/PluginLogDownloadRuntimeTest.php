@@ -13,6 +13,28 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		$this->assertSame( 1, preg_match( '//u', $result['body'] ) );
 	}
 
+	public function test_export_includes_safe_environment_metadata_before_log_contents(): void {
+		file_put_contents( $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log', "LOG_CONTENT_MARKER\n" );
+		$result = $this->download();
+		$body = $result['body'];
+		$this->assertStringStartsWith( "KiriminAja Plugin v3.0.11 Logs\nGenerated at: 2026-10-28 12:00:00\nPeriod: today and the previous two days (UTC).\nSources: ", $body );
+		foreach ( array( 'PHP version: ' . PHP_VERSION, 'WordPress version: 6.9.1', 'Active theme: Shop Child &amp; Theme v1.2', 'Parent theme: Shop Parent v5.6', '- Active Plugin Forged header v2.3.4 [active]', '- Network Plugin v3.4.5 [network-active]', '- Inactive Plugin v1.2.3 [inactive]', '- Hosting Helper v4.5.6 [must-use]' ) as $line ) {
+			$this->assertStringContainsString( $line . "\n", $body );
+		}
+		$this->assertLessThan( strpos( $body, 'LOG_CONTENT_MARKER' ), strpos( $body, 'Installed plugins:' ) );
+		$this->assertLessThan( strpos( $body, '- Network Plugin' ), strpos( $body, '- Active Plugin' ) );
+		foreach ( array( 'PRIVATE_DESCRIPTION', 'PRIVATE_URL', 'a-active/main.php', '<b>', "\nForged header" ) as $excluded ) {
+			$this->assertStringNotContainsString( $excluded, $body );
+		}
+	}
+
+	public function test_environment_omits_absent_parent_and_must_use_sections(): void {
+		$result = $this->download( array( 'no_parent' => true, 'no_mu' => true ) );
+		$this->assertStringContainsString( 'Active theme:', $result['body'] );
+		$this->assertStringNotContainsString( 'Parent theme:', $result['body'] );
+		$this->assertStringNotContainsString( 'Must-use plugins:', $result['body'] );
+	}
+
 	public function test_file_replaced_after_discovery_is_never_exported(): void {
 		foreach ( array( 'regular', 'symlink' ) as $swap ) {
 			$path = $this->directory . '/logs/kiriminaja_api-2026-10-28-hash.log';
@@ -114,7 +136,7 @@ final class PluginLogDownloadRuntimeTest extends TestCase {
 		}
 		$this->assertStringContainsString( 'ROTATED_PLUGIN_LOG', $result['body'] );
 		$this->assertStringContainsString( 'END_OF_LOG', $result['body'] );
-		$this->assertStringStartsWith( 'KiriminAja Plugin Logs', $result['body'] );
+		$this->assertStringStartsWith( 'KiriminAja Plugin v3.0.11 Logs', $result['body'] );
 		$this->assertContains( 'Content-Type: text/plain; charset=utf-8', $result['meta']['headers'] );
 		$this->assertContains( 'Content-Length: ' . strlen( $result['body'] ), $result['meta']['headers'] );
 		$this->assertContains( 'X-Content-Type-Options: nosniff', $result['meta']['headers'] );

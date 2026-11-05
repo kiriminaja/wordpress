@@ -1635,6 +1635,41 @@ class SettingController{
         exit;
     }
 
+    private function getPluginLogEnvironment(): string {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+        $text = static function ( $value ): string {
+            return sanitize_text_field( is_scalar( $value ) ? (string) $value : '' );
+        };
+        $theme = wp_get_theme();
+        $lines = array(
+            'PHP version: ' . PHP_VERSION,
+            'WordPress version: ' . $text( get_bloginfo( 'version' ) ),
+            'Active theme: ' . $text( $theme->get( 'Name' ) ) . ' v' . $text( $theme->get( 'Version' ) ),
+        );
+        $parent = $theme->parent();
+        if ( $parent ) {
+            $lines[] = 'Parent theme: ' . $text( $parent->get( 'Name' ) ) . ' v' . $text( $parent->get( 'Version' ) );
+        }
+        $plugins = get_plugins();
+        ksort( $plugins, SORT_STRING );
+        $lines[] = 'Installed plugins:';
+        foreach ( $plugins as $file => $plugin ) {
+            $status = is_plugin_active_for_network( $file ) ? 'network-active' : ( is_plugin_active( $file ) ? 'active' : 'inactive' );
+            $lines[] = '- ' . $text( $plugin['Name'] ?? '' ) . ' v' . $text( $plugin['Version'] ?? '' ) . ' [' . $status . ']';
+        }
+        $must_use = get_mu_plugins();
+        if ( $must_use ) {
+            ksort( $must_use, SORT_STRING );
+            $lines[] = 'Must-use plugins:';
+            foreach ( $must_use as $plugin ) {
+                $lines[] = '- ' . $text( $plugin['Name'] ?? '' ) . ' v' . $text( $plugin['Version'] ?? '' ) . ' [must-use]';
+            }
+        }
+        return implode( "\n", $lines );
+    }
+
     /** Spill to disk after 1 MiB; never load an entire log into PHP memory. */
     private function preparePluginLogExport( array $files ) {
         // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- php://temp provides bounded memory and disk spill; WP_Filesystem only supports whole-file buffers.
@@ -1651,7 +1686,8 @@ class SettingController{
             // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Write one bounded escaped segment to the temporary stream.
             return strlen( $text ) === fwrite( $export, $text );
         };
-        $success = $write( "KiriminAja Plugin Logs\nGenerated at: " . current_time( 'mysql' ) . "\nPeriod: today and the previous two days (UTC).\nSources: " . implode( ', ', $this->getPluginLogSources() ) . "\n\n" );
+        $version = defined( 'KIRIOF_VERSION' ) ? sanitize_text_field( (string) KIRIOF_VERSION ) : 'unknown';
+        $success = $write( 'KiriminAja Plugin v' . $version . " Logs\nGenerated at: " . current_time( 'mysql' ) . "\nPeriod: today and the previous two days (UTC).\nSources: " . implode( ', ', $this->getPluginLogSources() ) . "\n\n" . $this->getPluginLogEnvironment() . "\n\n" );
         $remaining = 64 * 1024 * 1024;
 
         if ( empty( $files ) ) {
