@@ -19,7 +19,7 @@ Versions are pinned in this project's package/lock files independently of the pl
 - Seller-disabled Instant adds no pin UI, map or location request.
 - Pin mutation uses only canonical address/pin fields, leaving the original district input visible.
 - Editing the delivery address invalidates the pin and blocks an Instant checkout attempt.
-- District search exercises array/nested/bounded envelopes, minimum input, pending/error/empty distinctions, cancellation and stale response protection, native ID/hidden label synchronization and a single clear change. A typed `sari harjo` request renders production PHP unified-address service fixture results.
+- District search exercises array/nested/bounded envelopes, minimum input, pending/error/empty distinctions, cancellation and stale response protection, native ID/hidden label synchronization, and selection without a separate clear button. A typed `sari harjo` request renders production PHP unified-address service fixture results.
 - Woo native ID/US state options, text and hidden state replacement round trips retain one Svelte selector wrapper, while country controls keep Select2. District/province geometry and typography are compared under adverse theme input CSS, with desktop/mobile screenshots and keyboard search.
 - The runner also executes existing PHP production-service fixtures: accepted QRIS stays unpaid and cannot book twice; uncertain outcomes retain duplicate protection and do not resubmit.
 

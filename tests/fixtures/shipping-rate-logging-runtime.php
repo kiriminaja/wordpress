@@ -9,6 +9,8 @@ namespace {
     // WooCommerce's stub permits legacy dynamic method properties.
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
     define('ABSPATH', dirname(__DIR__, 2) . '/');
+    require ABSPATH . 'inc/Services/BuyerDestination.php';
+    require ABSPATH . 'inc/Services/ExpressCheckoutValidationService.php';
     $GLOBALS['scenario'] = $argv[1] ?? 'success';
     $GLOBALS['logs'] = [];
     function kiriof_log(...$args) { $GLOBALS['logs'][] = $args; }
@@ -59,6 +61,7 @@ namespace {
         };
     }
     $package = ['destination' => ['country' => 'foreign' === $scenario ? 'US' : 'ID', 'address_1' => 'short' === $scenario ? 'tiny' : 'Private buyer full street address'], 'contents' => []];
+    $package['origin'] = array( 'origin_sub_district_id' => 123, 'origin_name' => 'Warehouse', 'origin_phone' => '081234567890', 'origin_address' => 'Jalan Gudang 123' );
     $method = new LoggingRateMethod();
     $method->calculate_shipping($package);
     echo json_encode(['logs' => $GLOBALS['logs'], 'rates' => $method->rates]);

@@ -166,7 +166,7 @@ namespace {
 		}
 		// Each calculation is a fresh Woo rate collection, not stale add_rate entries.
 		$method = new \Kiriof_Shipping_Method_Controller( 7 );
-		$method->calculate_shipping( array( 'contents' => array(), 'destination' => $address ) );
+		$method->calculate_shipping( array( 'origin' => array( 'origin_sub_district_id' => 123, 'origin_name' => 'Warehouse', 'origin_phone' => '081234567890', 'origin_address' => 'Jalan Gudang 123', 'origin_zip_code' => '' ), 'contents' => array(), 'destination' => $address ) );
 		$history[] = array( 'rates' => $method->rates, 'session' => WC()->session->values, 'api_calls' => count( $GLOBALS['buyer_switch_requests'] ) );
 	}
 	// Invalid producer graphs must never poison another payload/cache entry.

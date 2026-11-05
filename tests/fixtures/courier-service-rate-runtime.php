@@ -317,7 +317,7 @@ switch ( $argv[1] ?? '' ) {
 				WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'kiriminaja-official_ninja_STANDARD' => array( 'cost' => 12000 ) ) );
 				WC()->cart->coupon_reads = 0;
 				$method = ( new ReflectionClass( 'Kiriof_Shipping_Method_Controller' ) )->newInstanceWithoutConstructor();
-				$method->calculate_shipping( array( 'contents' => array(), 'destination' => $destination ) );
+				$method->calculate_shipping( array( 'origin' => array( 'origin_sub_district_id' => 123, 'origin_name' => 'Warehouse', 'origin_phone' => '081234567890', 'origin_address' => 'Jalan Gudang 123', 'origin_zip_code' => '' ), 'contents' => array(), 'destination' => $destination ) );
 				$result[ $free_shipping ? 'free' : 'paid' ][ $name ] = array(
 					'rates' => array_values( $method->rates ),
 					'meta' => WC()->session->get( 'kiriof_shipping_coupon_rate_meta' ),
@@ -329,7 +329,7 @@ switch ( $argv[1] ?? '' ) {
 		$method = ( new ReflectionClass( 'Kiriof_Shipping_Method_Controller' ) )->newInstanceWithoutConstructor();
 		foreach ( array( 'ID', 'IE', 'ID' ) as $country ) {
 			$method->rates = array();
-			$method->calculate_shipping( array( 'contents' => array(), 'destination' => array( 'country' => $country, 'address_1' => 'Jalan Jakarta Nomor 123' ) ) );
+			$method->calculate_shipping( array( 'origin' => array( 'origin_sub_district_id' => 123, 'origin_name' => 'Warehouse', 'origin_phone' => '081234567890', 'origin_address' => 'Jalan Gudang 123', 'origin_zip_code' => '' ), 'contents' => array(), 'destination' => array( 'country' => $country, 'address_1' => 'Jalan Jakarta Nomor 123' ) ) );
 			$result['transition'][] = array_keys( $method->rates );
 		}
 		$result['network_calls'] = $GLOBALS['rate_network_calls'];

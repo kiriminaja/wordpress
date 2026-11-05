@@ -46,11 +46,10 @@
   <div class="kiriof-buyer-combobox" class:is-open={open} class:is-disabled={model.disabled}>
     <Combobox.Trigger bind:ref={anchor} class="kiriof-buyer-combobox-trigger" aria-labelledby={model.labelId} aria-label={model.labelId ? undefined : model.label} aria-required={model.required as 'true' | 'false' | undefined} aria-invalid={model.invalid as 'true' | 'false' | undefined} aria-describedby={model.describedBy}>
       {#if shipping && selected && selected.value}<CourierOption option={selected} {logos} />{:else}<span>{selected?.label || strings.selectOption || 'Select Option'}</span>{/if}
-      <span class="kiriof-buyer-combobox-arrow" aria-hidden="true"></span>
+      <svg class="kiriof-buyer-combobox-icon" class:kiriof-buyer-combobox-search={district} class:kiriof-buyer-combobox-chevron={!district} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        {#if district}<circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" />{:else}<path d="m6 9 6 6 6-6" />{/if}
+      </svg>
     </Combobox.Trigger>
-    {#if district && model.value}
-      <button type="button" class="kiriof-buyer-combobox-clear" disabled={model.disabled} aria-label={strings.clearSelection || 'Clear selection'} onclick={() => onChoose('')}>×</button>
-    {/if}
     <div class="kiriof-buyer-combobox-status" role="status" aria-live="polite">{model.status}</div>
   </div>
   <Combobox.Portal>

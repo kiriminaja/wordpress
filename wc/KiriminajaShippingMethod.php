@@ -159,15 +159,19 @@ function kiriof_shipping_method(){
                 }
 
                 $settingRepository = kiriof_setting_repository();
-                $settingRepo = $settingRepository->getSettingByKey('origin_sub_district_id');
-                $locationOrigin = isset($package['origin']) && is_array($package['origin']) ? $package['origin'] : array();
-                $originSubdistrictId = array_key_exists( 'origin', $package )
-                    ? (int) ( $locationOrigin['origin_sub_district_id'] ?? 0 )
-                    : (int) ($settingRepo ? $settingRepo->value : 0);
-                if(!$originSubdistrictId){
+                if ( array_key_exists( 'origin', $package ) ) {
+                    $locationOrigin = $package['origin'];
+                } else {
+                    $locations = new \KiriminAjaOfficial\Services\ShipmentLocationService();
+                    $locationOrigin = $locations->locationToOrigin( $locations->getDefaultLocation() );
+                }
+                try {
+                    $locationOrigin = \KiriminAjaOfficial\Services\ExpressCheckoutValidationService::normalizeOriginSnapshot( $locationOrigin );
+                } catch ( \InvalidArgumentException $exception ) {
                     wc_add_notice(__("Silahkan Input Terlebih dahulu Origin di Plugin Kiriminaja",'kiriminaja-official'), "error");
                     return;
                 }
+                $originSubdistrictId = $locationOrigin['origin_sub_district_id'];
                 $courier_filter = $settingRepository->getWhitelistExpeditionIds();
 
                 /** convert unit weight */
@@ -176,8 +180,8 @@ function kiriof_shipping_method(){
                 ])->call();
 
                 $payload = [
-                    'origin_postcode' => (string) ( array_key_exists( 'origin', $package ) ? ( $locationOrigin['origin_zip_code'] ?? '' ) : ( $settingRepository->getSettingByKey( 'origin_zip_code' )->value ?? '' ) ),
-                    'destination_postcode' => (string) ( $package['destination']['postcode'] ?? '' ),
+                    'origin_postcode' => $locationOrigin['origin_zip_code'],
+                    'destination_postcode' => \KiriminAjaOfficial\Services\BuyerDestination::postcode( (string) ( $package['destination']['postcode'] ?? '' ) ),
                     'subdistrict_origin' => $originSubdistrictId,
                     'subdistrict_destination'=>$destination_id,
                     'weight' => $cartAttributes->data['weight'],

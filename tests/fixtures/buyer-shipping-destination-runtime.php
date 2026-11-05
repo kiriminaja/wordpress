@@ -15,10 +15,17 @@ set_error_handler( static function ( $severity, $message ) {
 
 final class BuyerShippingDb {
 	public $settings = array( 'origin_whitelist_expedition_id' => 'jne', 'origin_sub_district_id' => '123' );
+	public $location;
+	public $location_reads = 0;
 	public $prefix = 'buyer_shipping_';
 	public $last_error = '';
-	public function prepare( $sql, $key ) { return $key; }
+	public function prepare( $sql, ...$args ) { return str_contains( $sql, 'is_default = 1 AND is_active = 1' ) ? 'default_location' : $args[0]; }
+	public function query( $sql ) { return 0; }
 	public function get_row( $key ) {
+		if ( 'default_location' === $key ) {
+			++$this->location_reads;
+			return $this->location;
+		}
 		$settings = $this->settings;
 		return isset( $settings[ $key ] ) ? (object) array( 'key' => $key, 'value' => $settings[ $key ] ) : null;
 	}
@@ -56,6 +63,7 @@ function get_transient( $key ) { return false; }
 function set_transient( ...$args ) { return true; }
 function kiriof_log( ...$args ) {}
 function wc_price( $value ) { return (string) $value; }
+function wc_add_notice( $message, $type ) { $GLOBALS['buyer_shipping_notices'][] = $type; }
 function wp_strip_all_tags( $value ) { return strip_tags( $value ); }
 function kiriof_setting_repository() { return new \KiriminAjaOfficial\Repositories\SettingRepository(); }
 function kiriof_helper() {
@@ -86,6 +94,8 @@ function wp_remote_post( ...$args ) { throw new RuntimeException( 'Unexpected ne
 function wp_remote_get( ...$args ) { throw new RuntimeException( 'Unexpected network request' ); }
 
 $wpdb = new BuyerShippingDb();
+$wpdb->location = (object) array( 'id' => 7, 'name' => 'Warehouse', 'phone' => '081234567890', 'address' => 'Jalan Gudang 123', 'sub_district_id' => 123, 'zip_code' => '55791', 'latitude' => '', 'longitude' => '' );
+$GLOBALS['buyer_shipping_notices'] = array();
 $GLOBALS['buyer_shipping_pricing'] = array();
 $GLOBALS['buyer_shipping_response'] = array( 'status' => true, 'data' => (object) array( 'results' => array( (object) array( 'service' => 'jne', 'service_type' => 'REG', 'service_name' => 'REG', 'cost' => 10000, 'discount_amount' => 1000, 'cod' => true, 'etd' => '2-3', 'insurance' => true, 'insurance_cost' => 500 ) ) ) );
 $GLOBALS['buyer_shipping_wc'] = (object) array(
@@ -118,6 +128,32 @@ WC()->session->set( 'shipping_destination_id', '111' );
 WC()->session->set( 'destination_id', '222' );
 WC()->session->set( 'kiriof_shipping_coupon_rate_meta', array( 'kiriminaja-official_ninja_STANDARD' => array( 'cost' => 9000 ) ) );
 switch ( $argv[1] ?? '' ) {
+	case 'origin_default':
+		$wpdb->location->sub_district_id = 987;
+		$wpdb->location->zip_code = '55281';
+		$wpdb->settings['origin_zip_code'] = '11111';
+		break;
+	case 'origin_explicit':
+	case 'origin_explicit_optional_postcode':
+	case 'origin_invalid':
+		$package['origin'] = \KiriminAjaOfficial\Services\ExpressCheckoutValidationService::normalizeOriginSnapshot( array(
+			'origin_sub_district_id' => '654',
+			'origin_zip_code' => '54321',
+			'origin_name' => 'Selected warehouse',
+			'origin_phone' => '081234567890',
+			'origin_address' => 'Jalan Pilihan 123',
+		) );
+		if ( 'origin_explicit_optional_postcode' === $argv[1] ) {
+			unset( $package['origin']['origin_zip_code'] );
+		} elseif ( 'origin_invalid' === $argv[1] ) {
+			$invalid = json_decode( $argv[2], true, 512, JSON_THROW_ON_ERROR );
+			$package['origin'] = is_array( $invalid ) && isset( $invalid['field'] )
+				? array_replace( $package['origin'], array( $invalid['field'] => $invalid['value'] ) ) : $invalid;
+		}
+		break;
+	case 'origin_invalid_default':
+		$wpdb->location->phone = '';
+		break;
 	case 'free_services':
 	case 'free_cod':
 	case 'free_enabled_service':
@@ -187,5 +223,8 @@ echo json_encode( array(
 	'customer_meta_reads' => WC()->customer->meta_reads,
 	'coupon_rate_meta' => WC()->session->get( 'kiriof_shipping_coupon_rate_meta' ),
 	'warnings' => $GLOBALS['buyer_shipping_warnings'],
+	'notices' => $GLOBALS['buyer_shipping_notices'],
+	'location_reads' => $wpdb->location_reads,
+	'legacy_origin' => $wpdb->settings['origin_sub_district_id'],
 	'raw_response' => $GLOBALS['buyer_shipping_response'],
 ), JSON_THROW_ON_ERROR );

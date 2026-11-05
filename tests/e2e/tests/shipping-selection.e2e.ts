@@ -190,7 +190,7 @@ function table(chosen: string, ids = [3]) {
   }).html).join('')}</tbody></table>`;
 }
 function classicHTML(fallback = false) {
-  return `<!doctype html><html><head><style>${classicCss()}${read('assets/buyer/css/kiriof-classic-choices.css')}</style></head><body>
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${classicCss()}${read('assets/buyer/css/kiriof-classic-choices.css')}</style></head><body>
   <form class="checkout"><div id="order_review">${table(cargo)}</div><label><input type="checkbox" id="terms">Accept terms</label><button type="submit">Place order</button></form><p id="terms-error" role="alert" hidden></p>
   ${scripts([
     readFileSync(new URL('../node_modules/jquery/dist/jquery.min.js', import.meta.url), 'utf8'),

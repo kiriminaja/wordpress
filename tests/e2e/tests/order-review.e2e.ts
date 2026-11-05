@@ -265,7 +265,7 @@ for (const width of [1200, 390]) {
           label: label.textContent, price: row.querySelector('.kiriof-buyer-courier-current')?.textContent,
           original: row.querySelector('del')?.textContent || null, savings: row.querySelector('.kiriof-buyer-courier-savings')?.textContent || null,
           note: row.querySelector('.kiriof-buyer-courier-note')?.textContent || null,
-          images: row.querySelectorAll('img').length, svg: row.querySelectorAll('svg').length, badges: row.querySelectorAll('.kiriof-buyer-courier-logo').length,
+          images: row.querySelectorAll('img').length, svg: row.querySelectorAll('.kiriof-buyer-courier svg').length, badges: row.querySelectorAll('.kiriof-buyer-courier-logo').length,
           noCopiedText: Array.from(row.childNodes).every(node => node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()),
           alignment: css.textAlign === 'start' ? 'left' : css.textAlign, justify: getComputedStyle(row.querySelector('.kiriof-buyer-courier')!).justifyContent === 'normal' ? 'flex-start' : getComputedStyle(row.querySelector('.kiriof-buyer-courier')!).justifyContent, copyAlignment: getComputedStyle(label).textAlign === 'start' ? 'left' : getComputedStyle(label).textAlign,
           below: pricesRect.top >= labelRect.bottom, sameLeft: Math.abs(pricesRect.left - labelRect.left) < 1,

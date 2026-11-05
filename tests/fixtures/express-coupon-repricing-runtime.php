@@ -101,7 +101,7 @@ $cod = new class extends \KiriminAjaOfficial\Repositories\CodFeeApiRepository { 
 $GLOBALS['factory'] = new \KiriminAjaOfficial\Services\CheckoutServiceFactory( $GLOBALS['repo'], new \KiriminAjaOfficial\Repositories\TransactionRepository(), $meta, $GLOBALS['api'], $cod, new \KiriminAjaOfficial\Services\ShipmentLocationService( null, $GLOBALS['repo'] ) );
 require ABSPATH . 'wc/KiriminajaShippingMethod.php';
 kiriof_shipping_method();
-$package = array( 'contents' => WC()->cart->contents, 'destination' => array( 'country' => 'ID', 'postcode' => '', 'address_1' => 'Jalan Indonesia 123' ) );
+$package = array( 'origin' => array( 'origin_sub_district_id' => 123, 'origin_name' => 'Warehouse', 'origin_phone' => '081234567890', 'origin_address' => 'Jalan Gudang 123', 'origin_zip_code' => '55791' ), 'contents' => WC()->cart->contents, 'destination' => array( 'country' => 'ID', 'postcode' => '', 'address_1' => 'Jalan Indonesia 123' ) );
 $service = new \KiriminAjaOfficial\Services\ShippingDiscountCouponService();
 $result = array();
 foreach ( array( 'none', 'fixed', 'removed', 'fixed_again', 'removed_again', 'percent', 'over_cap', 'free', 'free_removed' ) as $state ) {
