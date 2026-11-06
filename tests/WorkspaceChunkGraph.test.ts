@@ -112,6 +112,26 @@ afterAll(() => {
   if (outputDirectory) rmSync(outputDirectory, { recursive: true, force: true });
 });
 
+describe('Settings production chunk graph', () => {
+  test('keeps the root within its initial JavaScript budget', () => {
+    const initial = graph([entry, 'src/lib/SettingsRoot.svelte']);
+    const files = new Set([...initial].map((key) => chunk(key).file));
+    const bytes = [...files].reduce(
+      (total, file) => total + gzipSync(readFileSync(resolve(outputDirectory, file)), { level: 9 }).length,
+      0,
+    );
+    expect(files.size).toBeLessThanOrEqual(14);
+    expect(bytes).toBeLessThan(80_500);
+  });
+
+  test('uses native connection controls without the bits-ui button dependency', () => {
+    const source = readFileSync(resolve(root, 'src/lib/SettingsRoot.svelte'), 'utf8');
+    expect(source).not.toContain("from 'bits-ui'");
+    expect(source).toContain('<button type="button" class="button button-primary" disabled={connecting} onclick={connect}>');
+    expect(source).toContain('<a class="button" href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer">');
+  });
+});
+
 for (const route of routes) {
   describe(`${route.name} production chunk graph`, () => {
     test('keeps dialogs and the calendar outside the initial route graph', () => {
