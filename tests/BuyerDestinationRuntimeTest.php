@@ -75,25 +75,38 @@ final class BuyerDestinationRuntimeTest extends TestCase {
             '1: properties[district_id][type]' => array( 'string', 'integer' ),
             '2: properties[address_type][enum]' => array( 'shipping' ),
             '3: properties[version][enum]' => array( 1, 2 ),
-            '4: array_key_exists( destination_latitude, properties )' => true,
-            '5: array_key_exists( destination_longitude, properties )' => true,
+            '4: properties[destination_latitude][type]' => array( 'string', 'number', 'null' ),
+            '5: properties[destination_longitude][type]' => array( 'string', 'number', 'null' ),
             '6: result[schema][schema][destination][required]' => array_keys( self::destination() ),
             '7: properties[destination_latitude][minimum]' => -90,
             '8: properties[destination_longitude][maximum]' => 180,
-            '9: properties[shipping_address][required]' => array_keys( self::mapDestination()['shipping_address'] ),
+            '9: properties[shipping_address][oneOf][1][required]' => array_keys( self::mapDestination()['shipping_address'] ),
             ];
         $actualCases[$contractCase . " / " . (count( $expectedCases ) - 1)] = [
             '1: properties[district_id][type]' => $properties['district_id']['type'],
             '2: properties[address_type][enum]' => $properties['address_type']['enum'],
             '3: properties[version][enum]' => $properties['version']['enum'],
-            '4: array_key_exists( destination_latitude, properties )' => array_key_exists( 'destination_latitude', $properties ),
-            '5: array_key_exists( destination_longitude, properties )' => array_key_exists( 'destination_longitude', $properties ),
+            '4: properties[destination_latitude][type]' => $properties['destination_latitude']['type'],
+            '5: properties[destination_longitude][type]' => $properties['destination_longitude']['type'],
             '6: result[schema][schema][destination][required]' => $result['schema']['schema']['destination']['required'],
             '7: properties[destination_latitude][minimum]' => $properties['destination_latitude']['minimum'],
             '8: properties[destination_longitude][maximum]' => $properties['destination_longitude']['maximum'],
-            '9: properties[shipping_address][required]' => $properties['shipping_address']['required'],
+            '9: properties[shipping_address][oneOf][1][required]' => $properties['shipping_address']['oneOf'][1]['required'],
             ];
         $this->assertSame( $expectedCases, $actualCases );
+    }
+
+    #[Test]
+    public function nullable_store_api_fields_do_not_relax_version_two_pin_requirements(): void {
+        $destination = self::mapDestination();
+        unset( $destination['shipping_address'] );
+        $result = $this->runFixture( array( 'operation' => 'normalize', 'destination' => $destination ) );
+        $this->assertSame( 'Invalid shipping destination.', $result['error']['message'] );
+
+        $destination = self::mapDestination();
+        $destination['destination_latitude'] = null;
+        $result = $this->runFixture( array( 'operation' => 'normalize', 'destination' => $destination ) );
+        $this->assertSame( 'Invalid shipping destination.', $result['error']['message'] );
     }
 
     #[Test]
