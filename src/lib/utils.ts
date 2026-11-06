@@ -1,4 +1,4 @@
-export { cn } from 'cnfast';
+export { cn } from 'cn';
 export type {
   WithElementRef,
   WithoutChild,

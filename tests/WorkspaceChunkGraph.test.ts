@@ -132,6 +132,17 @@ describe('Settings production chunk graph', () => {
   });
 });
 
+test('keeps shared JavaScript chunks below the single-merger gzip budget', () => {
+  const shared = Object.values(manifest).filter(
+    (current) => !current.isEntry && !current.isDynamicEntry && current.file.endsWith('.js'),
+  );
+  expect(shared.length).toBeGreaterThan(0);
+  for (const current of shared) {
+    const bytes = gzipSync(readFileSync(resolve(outputDirectory, current.file)), { level: 9 }).length;
+    expect(bytes).toBeLessThan(35_000);
+  }
+});
+
 for (const route of routes) {
   describe(`${route.name} production chunk graph`, () => {
     test('keeps dialogs and the calendar outside the initial route graph', () => {

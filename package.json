@@ -11,7 +11,7 @@
     "format:check": "oxfmt --check src vite.config.ts vite.buyer.config.ts svelte.config.js package.json components.json scripts/build-buyer.mjs scripts/frontend-cache.mjs scripts/test-cache.mjs tests/FrontendBuildCache.test.ts tests/JavaScriptTestCache.test.ts scripts/check-svelte-utility-first.mjs scripts/check-tailwind-apply.mjs scripts/check-semantic-style-tokens.mjs tsconfig.json .oxlintrc.json .oxfmtrc.json",
     "frontend:check": "node scripts/test-cache.mjs -- bun run frontend:check:all",
     "frontend:check:all": "bun run build:buyer && bun run format:check && bun run lint && bun run check && bun run check:utility-first && bun run check:tailwind-apply && bun run check:semantic-style-tokens && bun run test:payments && bun run test:buyer && bun run test:instant && bun run test:transactions && bun run test:maps && bun run test:workspace && bun run test:frontend-cache",
-    "test:workspace": "node scripts/test-cache.mjs -- bun test --timeout 20000 tests/WorkspaceNavigationRuntime.test.ts tests/DeferredDialogRuntime.test.ts tests/WorkspaceChunkGraph.test.ts",
+    "test:workspace": "node scripts/test-cache.mjs -- bun test --timeout 20000 tests/ClassMerging.test.ts tests/WorkspaceNavigationRuntime.test.ts tests/DeferredDialogRuntime.test.ts tests/WorkspaceChunkGraph.test.ts",
     "benchmark:workspace": "node scripts/benchmark-workspace.mjs",
     "benchmark:payments": "php scripts/benchmark-payment-list.php",
     "benchmark:buyer-origin": "php scripts/benchmark-buyer-origin.php",
@@ -38,7 +38,7 @@
     "@svelte-put/qr": "^2.1.3",
     "@tabler/icons-svelte": "^3.47.0",
     "bits-ui": "^2.19.2",
-    "cnfast": "^0.2.0",
+    "cn": "^0.5.2",
     "leaflet": "^1.9.4",
     "tailwind-variants": "^3.3.1"
   },
