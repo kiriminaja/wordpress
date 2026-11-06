@@ -62,6 +62,9 @@ export type OnboardingBootstrap = {
       zipcode: string;
       subdistrict: string;
       searchSubdistrict: string;
+      loading?: string;
+      actionError?: string;
+      retry?: string;
       mapHelp: string;
     };
   };

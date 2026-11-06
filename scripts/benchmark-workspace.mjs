@@ -76,9 +76,12 @@ console.log(
       measurement:
         'Unique production JS in entry + selected route static dependency graph; excludes deferred dialogs, CSS, images and HTML. Per-file gzip level 9. Not browser timing.',
       entry: graph([entry]),
-      routes: Object.fromEntries(
-        Object.entries(routes).map(([route, key]) => [route, graph([entry, key])]),
-      ),
+      routes: {
+        ...Object.fromEntries(
+          Object.entries(routes).map(([route, key]) => [route, graph([entry, key])]),
+        ),
+        onboarding: graph(['src/entries/onboarding-progress.ts']),
+      },
       interactions: Object.fromEntries(
         Object.entries(interactions).map(([name, [route, key]]) => {
           const initial = graph([entry, routes[route]]);

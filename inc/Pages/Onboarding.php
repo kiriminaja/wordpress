@@ -55,10 +55,10 @@ class Onboarding extends BaseInit {
 		}
 
 		$state_service = new OnboardingSetupStateService();
-		$steps            = $state_service->get_steps();
+		$steps            = $state_service->get_required_steps();
 		$origin_values    = $state_service->get_origin_values();
 		$connection_state = $state_service->get_connection_state();
-		$current_step     = $state_service->is_required_complete() ? 'complete' : $state_service->get_first_incomplete_step();
+		$current_step     = $state_service->is_required_complete() ? 'complete' : $state_service->get_first_incomplete_step( true );
 
 		$kiriof_is_connected = $connection_state['is_connected'];
 		$kiriof_profile      = $connection_state['profile'];
@@ -161,6 +161,9 @@ class Onboarding extends BaseInit {
 					'zipcode'           => __( 'Zipcode', 'kiriminaja-official' ),
 					'subdistrict'       => __( 'Subdistrict', 'kiriminaja-official' ),
 					'searchSubdistrict' => __( 'Search subdistrict', 'kiriminaja-official' ),
+					'loading' => __( 'Loading address search…', 'kiriminaja-official' ),
+					'actionError' => __( 'Unable to load address search.', 'kiriminaja-official' ),
+					'retry' => __( 'Retry', 'kiriminaja-official' ),
 					'mapHelp'           => __( 'Move the map to place the pin at your pickup location.', 'kiriminaja-official' ),
 				),
 			),
@@ -170,6 +173,7 @@ class Onboarding extends BaseInit {
 				'i18n'        => array_merge( \KiriminAjaOfficial\Services\CourierServiceUiData::translations(), array(
 					'enableAll'  => __( 'Enable all', 'kiriminaja-official' ),
 					'loading'    => __( 'Loading couriers…', 'kiriminaja-official' ),
+					'actionError' => __( 'Unable to load courier selection.', 'kiriminaja-official' ),
 					'empty'      => __( 'No courier services are available.', 'kiriminaja-official' ),
 					'enabled'    => __( 'enabled', 'kiriminaja-official' ),
 					'enable'     => __( 'Enable', 'kiriminaja-official' ),

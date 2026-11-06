@@ -112,6 +112,26 @@ afterAll(() => {
   if (outputDirectory) rmSync(outputDirectory, { recursive: true, force: true });
 });
 
+test('onboarding defers step widgets and Google code outside its full static entry graph', () => {
+  const initial = graph(['src/entries/onboarding-progress.ts']);
+  const files = new Set([...initial].map((key) => chunk(key).file));
+  for (const key of [
+    'src/lib/couriers/CourierServicePicker.svelte',
+    'src/lib/onboarding/SubdistrictCombobox.svelte',
+    'src/buyer/map/providers.ts',
+  ]) {
+    expect(chunk(key).isDynamicEntry).toBe(true);
+    expect(files.has(chunk(key).file)).toBe(false);
+  }
+  const gzipBytes = [...files].reduce(
+    (total, file) =>
+      total + gzipSync(readFileSync(resolve(outputDirectory, file)), { level: 9 }).length,
+    0,
+  );
+  expect(gzipBytes).toBeLessThan(110_000);
+  expect(files.size).toBeLessThanOrEqual(26);
+});
+
 for (const route of routes) {
   describe(`${route.name} production chunk graph`, () => {
     test('keeps dialogs and the calendar outside the initial route graph', () => {

@@ -15,6 +15,7 @@ use KiriminAjaOfficial\Repositories\SettingRepository;
  */
 class OnboardingSetupStateService {
 	private ?array $steps = null;
+	private ?array $required_steps = null;
 	private ProductVolumetricReadinessRepositoryInterface $product_readiness_repository;
 	private SettingRepository $setting_repository;
 	private ?WooCommerceShippingMethodRegistrationService $shipping_method_service;
@@ -35,6 +36,35 @@ class OnboardingSetupStateService {
 	public function get_steps(): array {
 		if ( null !== $this->steps ) {
 			return $this->steps;
+		}
+
+		$this->steps = array_merge(
+			$this->get_required_steps(),
+			array(
+				'products' => array(
+					'key'         => 'products',
+					'required'    => false,
+					'done'        => $this->are_products_ready(),
+					'title'       => __( 'Complete product details', 'kiriminaja-official' ),
+					'description' => __( 'Add weight and dimensions for accurate shipping rates.', 'kiriminaja-official' ),
+				),
+				'tracking' => array(
+					'key'         => 'tracking',
+					'required'    => false,
+					'done'        => kiriof_get_tracking_page_id() > 0,
+					'title'       => __( 'Create a tracking page', 'kiriminaja-official' ),
+					'description' => __( 'Let customers track their shipments from your store.', 'kiriminaja-official' ),
+				),
+			)
+		);
+
+		return $this->steps;
+	}
+
+	/** Required setup state without the optional product and tracking checks. */
+	public function get_required_steps(): array {
+		if ( null !== $this->required_steps ) {
+			return $this->required_steps;
 		}
 
 		$repo            = $this->setting_repository;
@@ -71,7 +101,7 @@ class OnboardingSetupStateService {
 		$shipping_countries = ( function_exists( 'WC' ) && WC()->countries ) ? WC()->countries->get_shipping_countries() : array();
 		$locations_ready    = 'disabled' !== $ship_to_countries && ! empty( $shipping_countries );
 
-		$this->steps = array(
+		$this->required_steps = array(
 			'account'         => array(
 				'key'      => 'account',
 				'required' => true,
@@ -106,27 +136,13 @@ class OnboardingSetupStateService {
 				'shipping_ready' => $shipping_ready,
 				'locations_ready' => $locations_ready,
 			),
-			'products'       => array(
-				'key'      => 'products',
-				'required' => false,
-				'done'     => $this->are_products_ready(),
-				'title'    => __( 'Complete product details', 'kiriminaja-official' ),
-				'description' => __( 'Add weight and dimensions for accurate shipping rates.', 'kiriminaja-official' ),
-			),
-			'tracking'       => array(
-				'key'      => 'tracking',
-				'required' => false,
-				'done'     => kiriof_get_tracking_page_id() > 0,
-				'title'    => __( 'Create a tracking page', 'kiriminaja-official' ),
-				'description' => __( 'Let customers track their shipments from your store.', 'kiriminaja-official' ),
-			),
 		);
 
-		return $this->steps;
+		return $this->required_steps;
 	}
 
 	public function is_required_complete(): bool {
-		foreach ( $this->get_steps() as $step ) {
+		foreach ( $this->get_required_steps() as $step ) {
 			if ( $step['required'] && ! $step['done'] ) {
 				return false;
 			}
@@ -135,8 +151,10 @@ class OnboardingSetupStateService {
 		return true;
 	}
 
-	public function get_first_incomplete_step(): string {
-		foreach ( $this->get_steps() as $key => $step ) {
+	/** Optional steps remain eligible unless the caller requests required steps only. */
+	public function get_first_incomplete_step( bool $required_only = false ): string {
+		$steps = $required_only ? $this->get_required_steps() : $this->get_steps();
+		foreach ( $steps as $key => $step ) {
 			if ( ! $step['done'] ) {
 				return $key;
 			}
