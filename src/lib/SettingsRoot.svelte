@@ -4,7 +4,6 @@
     IconExternalLink,
     IconLink,
   } from '@tabler/icons-svelte';
-  import { Button } from 'bits-ui';
   import SettingsIcon from './settings/SettingsIcon.svelte';
   import Toolbar from './ui/Toolbar.svelte';
   import type { SettingsBootstrap } from './settings/types';
@@ -96,13 +95,13 @@
       <p class="kiriof-settings-root__message is-error" role="alert">{error}</p>
     {/if}
     <div class="kiriof-connect__actions">
-      <Button.Root class="button button-primary" disabled={connecting} onclick={connect}>
+      <button type="button" class="button button-primary" disabled={connecting} onclick={connect}>
         {connecting ? bootstrap.i18n.connecting : bootstrap.i18n.connect}
-      </Button.Root>
-      <Button.Root class="button" href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer">
+      </button>
+      <a class="button" href={bootstrap.helpUrl} target="_blank" rel="noopener noreferrer">
         {bootstrap.i18n.howToConnect}
         <IconExternalLink size={15} stroke={2} aria-hidden="true" />
-      </Button.Root>
+      </a>
     </div>
   </section>
 {:else}

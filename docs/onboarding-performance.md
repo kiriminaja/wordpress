@@ -28,7 +28,7 @@ Deferred controls show translated loading status and explicit error/retry contro
 
 - The first opening of address search or courier selection can wait for its deferred JS. Deferred bytes are shifted, not eliminated from a complete onboarding journey.
 - External map scripts/styles, HTML, images and API latency are outside the JS table. No FCP/LCP, live MySQL, or production page-load percentage is claimed.
-- Existing workspace route byte/request budgets pass; no budget was relaxed.
+- Integration with Settings PR #316 reshuffles shared chunks: Settings initial JS grows from 80,160 to 81,223 gzip bytes and from 14 to 16 files. Its regression ceiling is now 81,500 bytes / 16 files. This is a known trade-off for retaining deferred onboarding widgets, not a Settings speedup. Transactions, payments, and transaction-detail budgets remain unchanged.
 - Full PHP validation: 1,611 tests, 19,651 assertions, two skips.
 - Focused backend/navigation validation: nine tests, 210 assertions.
 - `bun run frontend:check:all` passed. Named scripts may reuse content-matched successful test receipts; the command is not a claim that every cached suite executed freshly.
