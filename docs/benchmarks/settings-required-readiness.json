@@ -1,0 +1,66 @@
+{
+  "baseline": "fac00656003d700fe33b93712c7c1423d8bb16a9",
+  "measurement": "Production onboarding service with isolated WordPress boundaries and query-recording wpdb; not live MySQL or browser timing.",
+  "cases": [
+    {
+      "missing": "none",
+      "required_complete": true,
+      "checklist_matches": true,
+      "first_incomplete_matches": true,
+      "before_gate_catalog_queries": 2,
+      "after_gate_catalog_queries": 0,
+      "before_gate_tracking_calls": 1,
+      "after_gate_tracking_calls": 0
+    },
+    {
+      "missing": "account",
+      "required_complete": false,
+      "checklist_matches": true,
+      "first_incomplete_matches": true,
+      "before_gate_catalog_queries": 2,
+      "after_gate_catalog_queries": 0,
+      "before_gate_tracking_calls": 1,
+      "after_gate_tracking_calls": 0
+    },
+    {
+      "missing": "address",
+      "required_complete": false,
+      "checklist_matches": true,
+      "first_incomplete_matches": true,
+      "before_gate_catalog_queries": 2,
+      "after_gate_catalog_queries": 0,
+      "before_gate_tracking_calls": 1,
+      "after_gate_tracking_calls": 0
+    },
+    {
+      "missing": "couriers",
+      "required_complete": false,
+      "checklist_matches": true,
+      "first_incomplete_matches": true,
+      "before_gate_catalog_queries": 2,
+      "after_gate_catalog_queries": 0,
+      "before_gate_tracking_calls": 1,
+      "after_gate_tracking_calls": 0
+    },
+    {
+      "missing": "shipping",
+      "required_complete": false,
+      "checklist_matches": true,
+      "first_incomplete_matches": true,
+      "before_gate_catalog_queries": 2,
+      "after_gate_catalog_queries": 0,
+      "before_gate_tracking_calls": 1,
+      "after_gate_tracking_calls": 0
+    },
+    {
+      "missing": "locations",
+      "required_complete": false,
+      "checklist_matches": true,
+      "first_incomplete_matches": true,
+      "before_gate_catalog_queries": 2,
+      "after_gate_catalog_queries": 0,
+      "before_gate_tracking_calls": 1,
+      "after_gate_tracking_calls": 0
+    }
+  ]
+}
