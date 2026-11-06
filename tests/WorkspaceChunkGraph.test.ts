@@ -112,6 +112,26 @@ afterAll(() => {
   if (outputDirectory) rmSync(outputDirectory, { recursive: true, force: true });
 });
 
+test('onboarding defers step widgets and Google code outside its full static entry graph', () => {
+  const initial = graph(['src/entries/onboarding-progress.ts']);
+  const files = new Set([...initial].map((key) => chunk(key).file));
+  for (const key of [
+    'src/lib/couriers/CourierServicePicker.svelte',
+    'src/lib/onboarding/SubdistrictCombobox.svelte',
+    'src/buyer/map/providers.ts',
+  ]) {
+    expect(chunk(key).isDynamicEntry).toBe(true);
+    expect(files.has(chunk(key).file)).toBe(false);
+  }
+  const gzipBytes = [...files].reduce(
+    (total, file) =>
+      total + gzipSync(readFileSync(resolve(outputDirectory, file)), { level: 9 }).length,
+    0,
+  );
+  expect(gzipBytes).toBeLessThan(110_000);
+  expect(files.size).toBeLessThanOrEqual(26);
+});
+
 describe('Settings production chunk graph', () => {
   test('keeps the root within its initial JavaScript budget', () => {
     const initial = graph([entry, 'src/lib/SettingsRoot.svelte']);
@@ -120,8 +140,9 @@ describe('Settings production chunk graph', () => {
       (total, file) => total + gzipSync(readFileSync(resolve(outputDirectory, file)), { level: 9 }).length,
       0,
     );
-    expect(files.size).toBeLessThanOrEqual(14);
-    expect(bytes).toBeLessThan(80_500);
+    // Onboarding's deferred widgets extract shared helpers into two extra files.
+    expect(files.size).toBeLessThanOrEqual(16);
+    expect(bytes).toBeLessThan(81_500);
   });
 
   test('uses native connection controls without the bits-ui button dependency', () => {

@@ -3,8 +3,6 @@
   import type * as L from 'leaflet';
   import { preloadedLeaflet } from '../transaction-detail/instant-route-map';
   import { resolveMapConfig } from '../../buyer/map/config';
-  import { createProviderMapSession } from '../../buyer/map/providers';
-  import { loadGoogleMaps } from '../../buyer/map/google-loader';
   import type { MapSession } from '../../buyer/map/types';
   import { Alert, AlertDescription, AlertTitle } from '$lib/components/ui/alert';
   import { Badge } from '$lib/components/ui/badge';
@@ -27,7 +25,7 @@
   import * as InputGroup from '$lib/components/ui/input-group';
   import { Input } from '$lib/components/ui/input';
   import { Separator } from '$lib/components/ui/separator';
-  import CourierServicePicker from '$lib/couriers/CourierServicePicker.svelte';
+
   import {
     initializeSelection,
     hasSelection,
@@ -37,7 +35,8 @@
     type SelectionState,
   } from '$lib/couriers/selection';
   import { Textarea } from '$lib/components/ui/textarea';
-  import SubdistrictCombobox from './SubdistrictCombobox.svelte';
+  import DeferredStep from './DeferredStep.svelte';
+
   import {
     IconAlertCircle,
     IconCheck,
@@ -56,6 +55,8 @@
 
   type Step = OnboardingStep;
   type Area = { id: string | number; text?: string; label?: string };
+  const loadCourierPicker = () => import('../couriers/CourierServicePicker.svelte');
+  const loadSubdistrictCombobox = () => import('./SubdistrictCombobox.svelte');
 
   let {
     bootstrap,
@@ -529,6 +530,11 @@
       const config = resolveMapConfig(bootstrap.map);
       googleMap = config.provider === 'google';
       if (config.provider === 'google') {
+        const [{ loadGoogleMaps }, { createProviderMapSession }] = await Promise.all([
+          import('../../buyer/map/google-loader'),
+          import('../../buyer/map/providers'),
+        ]);
+        if (generation !== mapGeneration || element !== mapElement || current !== 'address') return;
         const google = await loadGoogleMaps(config.apiKey);
         if (generation !== mapGeneration || element !== mapElement || current !== 'address') return;
         const session = await createProviderMapSession({
@@ -762,7 +768,9 @@
                 </Field>
                 <Field>
                   <FieldLabel>{bootstrap.address.i18n.subdistrict}</FieldLabel>
-                  <SubdistrictCombobox
+                  <DeferredStep compact load={loadSubdistrictCombobox} i18n={bootstrap.address.i18n}>
+                    {#snippet children(loaded)}
+                      <loaded.default
                     value={subdistrictQuery || address.origin_sub_district_name || ''}
                     areas={subdistricts}
                     loading={subdistrictLoading}
@@ -772,7 +780,9 @@
                     typeMoreText={bootstrap.i18n.subdistrictTypeMore}
                     onSearch={searchSubdistrict}
                     onSelect={selectSubdistrict}
-                  />
+                      />
+                    {/snippet}
+                  </DeferredStep>
                 </Field>
               </div>
             </FieldGroup>
@@ -868,7 +878,9 @@
               <p>{bootstrap.couriers.i18n.empty || 'No courier services are available.'}</p>
             </div>
           {:else}
-            <CourierServicePicker
+            <DeferredStep load={loadCourierPicker} i18n={bootstrap.couriers.i18n}>
+              {#snippet children(loaded)}
+                <loaded.default
               {couriers}
               compact
               bind:search={courierSearch}
@@ -876,8 +888,10 @@
               state={courierState}
               i18n={bootstrap.couriers.i18n}
               disabled={busy || couriersLoading || !courierLoaded}
-              onChange={changeCourierSelection}
-            />
+                  onChange={changeCourierSelection}
+                />
+              {/snippet}
+            </DeferredStep>
             <p class="mt-3 text-xs leading-5 text-muted-foreground">
               {bootstrap.couriers.i18n.onboardingSaveHint ||
                 'Your selection is saved when you continue.'}

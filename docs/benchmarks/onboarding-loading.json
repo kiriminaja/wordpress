@@ -1,0 +1,1220 @@
+{
+  "baseline": "84c242a1",
+  "measurement": "Production Vite static dependency graph; gzip level 9 per file. Not browser timing. External map-provider assets excluded.",
+  "before_onboarding": {
+    "files": [
+      {
+        "file": "kiriminaja-onboarding-progress.js",
+        "bytes": 39500,
+        "gzipBytes": 12110
+      },
+      {
+        "file": "assets/index-client-D-VAUqEt.js",
+        "bytes": 54535,
+        "gzipBytes": 20456
+      },
+      {
+        "file": "assets/disclose-version-xihTtKlq.js",
+        "bytes": 65,
+        "gzipBytes": 80
+      },
+      {
+        "file": "assets/instant-route-map-C37Tdawt.js",
+        "bytes": 7896,
+        "gzipBytes": 3324
+      },
+      {
+        "file": "assets/scroll-lock-_47QCm1j.js",
+        "bytes": 125721,
+        "gzipBytes": 40459
+      },
+      {
+        "file": "assets/alert-CxBBTi0a.js",
+        "bytes": 2041,
+        "gzipBytes": 880
+      },
+      {
+        "file": "assets/alert-circle-C5tGCg9W.js",
+        "bytes": 527,
+        "gzipBytes": 373
+      },
+      {
+        "file": "assets/check-CiM5T-7y.js",
+        "bytes": 451,
+        "gzipBytes": 338
+      },
+      {
+        "file": "assets/popover-DpM3Jd6O.js",
+        "bytes": 12766,
+        "gzipBytes": 3718
+      },
+      {
+        "file": "assets/ActionTooltip-csuYSrzx.js",
+        "bytes": 61088,
+        "gzipBytes": 17954
+      },
+      {
+        "file": "assets/chevron-left-D-iHkWVi.js",
+        "bytes": 456,
+        "gzipBytes": 343
+      },
+      {
+        "file": "assets/refresh-LYrPpd08.js",
+        "bytes": 530,
+        "gzipBytes": 378
+      },
+      {
+        "file": "assets/search-Dl0zqvmQ.js",
+        "bytes": 500,
+        "gzipBytes": 361
+      },
+      {
+        "file": "assets/card-Bguwye1H.js",
+        "bytes": 3449,
+        "gzipBytes": 1085
+      },
+      {
+        "file": "assets/field-CfMhZBHe.js",
+        "bytes": 6614,
+        "gzipBytes": 2073
+      },
+      {
+        "file": "assets/separator-t91G2r-M.js",
+        "bytes": 1882,
+        "gzipBytes": 951
+      },
+      {
+        "file": "assets/command-0QoO3HRx.js",
+        "bytes": 29057,
+        "gzipBytes": 8011
+      },
+      {
+        "file": "assets/sr-only-styles-CVlmIVRZ.js",
+        "bytes": 253,
+        "gzipBytes": 216
+      },
+      {
+        "file": "assets/input-group-D3B7GTmD.js",
+        "bytes": 5429,
+        "gzipBytes": 1876
+      },
+      {
+        "file": "assets/input-DoDzCnZO.js",
+        "bytes": 2131,
+        "gzipBytes": 754
+      },
+      {
+        "file": "assets/CourierServicePicker-DiBuPGt4.js",
+        "bytes": 11172,
+        "gzipBytes": 4089
+      },
+      {
+        "file": "assets/SettingSwitch-B_A-dtFN.js",
+        "bytes": 5564,
+        "gzipBytes": 2127
+      },
+      {
+        "file": "assets/hidden-input-CTjCW9jI.js",
+        "bytes": 755,
+        "gzipBytes": 468
+      },
+      {
+        "file": "assets/CourierLogo-CNLUD05m.js",
+        "bytes": 1029,
+        "gzipBytes": 607
+      },
+      {
+        "file": "assets/truck-Bdm4fiXH.js",
+        "bytes": 598,
+        "gzipBytes": 400
+      },
+      {
+        "file": "assets/courier-images-aPafy5UJ.js",
+        "bytes": 1488,
+        "gzipBytes": 641
+      }
+    ],
+    "bytes": 375497,
+    "gzipBytes": 124072,
+    "requests": 26
+  },
+  "after": {
+    "measurement": "Unique production JS in entry + selected route static dependency graph; excludes deferred dialogs, CSS, images and HTML. Per-file gzip level 9. Not browser timing.",
+    "entry": {
+      "bytes": 67536,
+      "gzipBytes": 25282,
+      "requests": 3,
+      "files": [
+        "assets/index-client-D-VAUqEt.js",
+        "assets/preload-helper-uBIymjUX.js",
+        "kiriminaja-admin-workspace.js"
+      ],
+      "css": {
+        "bytes": 90882,
+        "gzipBytes": 11439,
+        "requests": 1,
+        "files": [
+          "kiriminaja-admin-workspace.css"
+        ]
+      }
+    },
+    "routes": {
+      "transactions": {
+        "bytes": 450785,
+        "gzipBytes": 142077,
+        "requests": 36,
+        "files": [
+          "assets/ActionTooltip-WgYIcc6o.js",
+          "assets/CopyableValue-hxYW1jCV.js",
+          "assets/CourierLogo-LdeYJLQP.js",
+          "assets/DateRangeFilter-C2qmUUN4.js",
+          "assets/DeferredDialog-CA_G96wN.js",
+          "assets/KiriofCard-DbZx0pks.js",
+          "assets/KiriofCheckbox-Cj6ZLVw6.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/TransactionsApp-BofceGIm.js",
+          "assets/arrays-C17Pq2Cz.js",
+          "assets/card-BGT841ci.js",
+          "assets/cash-B-94yNFL.js",
+          "assets/check-Dw7Rv7Ha.js",
+          "assets/chevron-left-BUdE0c7V.js",
+          "assets/courier-images-aPafy5UJ.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/empty-BrdA-N-o.js",
+          "assets/eye-lFGw9WMf.js",
+          "assets/hidden-input-BwOjo6ep.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/input-DaxWr90z.js",
+          "assets/input-group-CP3mf30i.js",
+          "assets/map-pin-DMOzBpKu.js",
+          "assets/popover-Q5TK3stl.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/printer-Bfmq1-3W.js",
+          "assets/refresh-DNp5JI2Q.js",
+          "assets/rolldown-runtime-DK3Fl9T5.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/search-CH8eVUfw.js",
+          "assets/separator-hLctvQmk.js",
+          "assets/sr-only-styles-CofuqTKI.js",
+          "assets/table-Hm7AVaB1.js",
+          "assets/truck-NiLbik4z.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 91171,
+          "gzipBytes": 11588,
+          "requests": 2,
+          "files": [
+            "kiriminaja-TransactionsApp.css",
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "payments": {
+        "bytes": 361698,
+        "gzipBytes": 117586,
+        "requests": 23,
+        "files": [
+          "assets/ActionTooltip-WgYIcc6o.js",
+          "assets/DateRangeFilter-C2qmUUN4.js",
+          "assets/DeferredDialog-CA_G96wN.js",
+          "assets/KiriofCard-DbZx0pks.js",
+          "assets/PaymentsList-B3qvI5aN.js",
+          "assets/StatusBadge-SBw4jiHE.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/card-BGT841ci.js",
+          "assets/chevron-left-BUdE0c7V.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/eye-lFGw9WMf.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/input-DaxWr90z.js",
+          "assets/input-group-CP3mf30i.js",
+          "assets/popover-Q5TK3stl.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/refresh-DNp5JI2Q.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/search-CH8eVUfw.js",
+          "assets/separator-hLctvQmk.js",
+          "assets/table-Hm7AVaB1.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "transaction-detail": {
+        "bytes": 336094,
+        "gzipBytes": 111068,
+        "requests": 22,
+        "files": [
+          "assets/ActionTooltip-WgYIcc6o.js",
+          "assets/CopyableValue-hxYW1jCV.js",
+          "assets/DeferredDialog-CA_G96wN.js",
+          "assets/KiriofCard-DbZx0pks.js",
+          "assets/StatusBadge-SBw4jiHE.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/TransactionDetail-BwbSV3qT.js",
+          "assets/card-BGT841ci.js",
+          "assets/check-Dw7Rv7Ha.js",
+          "assets/courier-images-aPafy5UJ.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/instant-route-map-CevmkQqT.js",
+          "assets/map-pin-DMOzBpKu.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/printer-Bfmq1-3W.js",
+          "assets/rolldown-runtime-DK3Fl9T5.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/truck-NiLbik4z.js",
+          "assets/use-id-Daj0O3vh.js",
+          "assets/user-B3XnsnMD.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "pickup-detail": {
+        "bytes": 303772,
+        "gzipBytes": 100292,
+        "requests": 19,
+        "files": [
+          "assets/ActionTooltip-WgYIcc6o.js",
+          "assets/KiriofCard-DbZx0pks.js",
+          "assets/PickupDetail-DhBc7_FL.js",
+          "assets/StatusBadge-SBw4jiHE.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/card-BGT841ci.js",
+          "assets/cash-B-94yNFL.js",
+          "assets/courier-images-aPafy5UJ.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/eye-lFGw9WMf.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/map-pin-DMOzBpKu.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/printer-Bfmq1-3W.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/table-Hm7AVaB1.js",
+          "assets/truck-NiLbik4z.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "settings": {
+        "bytes": 238625,
+        "gzipBytes": 81725,
+        "requests": 17,
+        "files": [
+          "assets/SettingSwitch-B5d4Ia7H.js",
+          "assets/SettingsRoot-DI_2sBKi.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/button-DXwK9VUq.js",
+          "assets/cash-B-94yNFL.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/hidden-input-BwOjo6ep.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/link-ByqUxsgD.js",
+          "assets/map-pin-DMOzBpKu.js",
+          "assets/navigation-DKpeyFT0.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/sr-only-styles-CofuqTKI.js",
+          "assets/use-id-Daj0O3vh.js",
+          "assets/user-B3XnsnMD.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "account": {
+        "bytes": 292356,
+        "gzipBytes": 96986,
+        "requests": 15,
+        "files": [
+          "assets/AccountSection-MVL8AvS8.js",
+          "assets/ActionTooltip-WgYIcc6o.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/courier-images-aPafy5UJ.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/eye-lFGw9WMf.js",
+          "assets/eye-off-D6tnKOX2.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/input-DaxWr90z.js",
+          "assets/link-ByqUxsgD.js",
+          "assets/navigation-DKpeyFT0.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "couriers": {
+        "bytes": 258927,
+        "gzipBytes": 89739,
+        "requests": 24,
+        "files": [
+          "assets/CourierLogo-LdeYJLQP.js",
+          "assets/CourierServicePicker-C-UyrsWb.js",
+          "assets/CouriersSection-BC9ah8qv.js",
+          "assets/SettingSwitch-B5d4Ia7H.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/alert-BTmBcP7J.js",
+          "assets/alert-circle-r_cRR_Uu.js",
+          "assets/check-Dw7Rv7Ha.js",
+          "assets/courier-images-aPafy5UJ.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/hidden-input-BwOjo6ep.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/input-DaxWr90z.js",
+          "assets/input-group-CP3mf30i.js",
+          "assets/navigation-DKpeyFT0.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/refresh-DNp5JI2Q.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/search-CH8eVUfw.js",
+          "assets/selection-B0Bq3PAL.js",
+          "assets/sr-only-styles-CofuqTKI.js",
+          "assets/truck-NiLbik4z.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "tracking": {
+        "bytes": 222969,
+        "gzipBytes": 75460,
+        "requests": 10,
+        "files": [
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/TrackingSection-BR3YUWuy.js",
+          "assets/button-DXwK9VUq.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/navigation-DKpeyFT0.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "technical": {
+        "bytes": 257543,
+        "gzipBytes": 88190,
+        "requests": 20,
+        "files": [
+          "assets/TechnicalSection-CcYCnj9D.js",
+          "assets/Toolbar-wCTu9MWr.js",
+          "assets/alert-BTmBcP7J.js",
+          "assets/check-Dw7Rv7Ha.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/download-Cq9XZ30W.js",
+          "assets/eye-lFGw9WMf.js",
+          "assets/eye-off-D6tnKOX2.js",
+          "assets/field-B2buGARz.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/input-DaxWr90z.js",
+          "assets/input-group-CP3mf30i.js",
+          "assets/navigation-DKpeyFT0.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/refresh-DNp5JI2Q.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/separator-hLctvQmk.js",
+          "assets/spinner-B2gYBZN3.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-admin-workspace.js"
+        ],
+        "css": {
+          "bytes": 90882,
+          "gzipBytes": 11439,
+          "requests": 1,
+          "files": [
+            "kiriminaja-admin-workspace.css"
+          ]
+        }
+      },
+      "onboarding": {
+        "bytes": 310019,
+        "gzipBytes": 104151,
+        "requests": 21,
+        "files": [
+          "assets/ActionTooltip-WgYIcc6o.js",
+          "assets/alert-BTmBcP7J.js",
+          "assets/alert-circle-r_cRR_Uu.js",
+          "assets/card-BGT841ci.js",
+          "assets/check-Dw7Rv7Ha.js",
+          "assets/chevron-left-BUdE0c7V.js",
+          "assets/disclose-version-xihTtKlq.js",
+          "assets/field-B2buGARz.js",
+          "assets/index-client-D-VAUqEt.js",
+          "assets/input-DaxWr90z.js",
+          "assets/input-group-CP3mf30i.js",
+          "assets/instant-route-map-CevmkQqT.js",
+          "assets/preload-helper-uBIymjUX.js",
+          "assets/refresh-DNp5JI2Q.js",
+          "assets/rolldown-runtime-DK3Fl9T5.js",
+          "assets/scroll-lock-2HbWhUMb.js",
+          "assets/search-CH8eVUfw.js",
+          "assets/selection-B0Bq3PAL.js",
+          "assets/separator-hLctvQmk.js",
+          "assets/use-id-Daj0O3vh.js",
+          "kiriminaja-onboarding-progress.js"
+        ],
+        "css": {
+          "bytes": 25397,
+          "gzipBytes": 8337,
+          "requests": 1,
+          "files": [
+            "kiriminaja-onboarding-progress.css"
+          ]
+        }
+      }
+    },
+    "interactions": {
+      "transactions:instant-process": {
+        "additional": {
+          "bytes": 82346,
+          "gzipBytes": 28669,
+          "requests": 9,
+          "files": [
+            "assets/InstantProcessDialog-PuwkPSxo.js",
+            "assets/ShipmentOperationProgress-CojtaEey.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrow-up-DALk1IwM.js",
+            "assets/field-B2buGARz.js",
+            "assets/instant-payment-poller-CS2DlQ7a.js",
+            "assets/radio-group-B1SLzkz_.js",
+            "assets/spinner-B2gYBZN3.js",
+            "assets/svg-DidGFO-M.js"
+          ]
+        },
+        "total": {
+          "bytes": 533131,
+          "gzipBytes": 170746,
+          "requests": 45,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/CopyableValue-hxYW1jCV.js",
+            "assets/CourierLogo-LdeYJLQP.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/InstantProcessDialog-PuwkPSxo.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/KiriofCheckbox-Cj6ZLVw6.js",
+            "assets/ShipmentOperationProgress-CojtaEey.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/TransactionsApp-BofceGIm.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrays-C17Pq2Cz.js",
+            "assets/arrow-up-DALk1IwM.js",
+            "assets/card-BGT841ci.js",
+            "assets/cash-B-94yNFL.js",
+            "assets/check-Dw7Rv7Ha.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/courier-images-aPafy5UJ.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/empty-BrdA-N-o.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/field-B2buGARz.js",
+            "assets/hidden-input-BwOjo6ep.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/instant-payment-poller-CS2DlQ7a.js",
+            "assets/map-pin-DMOzBpKu.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/printer-Bfmq1-3W.js",
+            "assets/radio-group-B1SLzkz_.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/rolldown-runtime-DK3Fl9T5.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/spinner-B2gYBZN3.js",
+            "assets/sr-only-styles-CofuqTKI.js",
+            "assets/svg-DidGFO-M.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/truck-NiLbik4z.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 91171,
+            "gzipBytes": 11588,
+            "requests": 2,
+            "files": [
+              "kiriminaja-TransactionsApp.css",
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "transactions:request-pickup": {
+        "additional": {
+          "bytes": 53060,
+          "gzipBytes": 18582,
+          "requests": 6,
+          "files": [
+            "assets/RequestPickupDialog-CNCvOEtR.js",
+            "assets/ShipmentOperationProgress-CojtaEey.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/field-B2buGARz.js",
+            "assets/radio-group-B1SLzkz_.js",
+            "assets/spinner-B2gYBZN3.js"
+          ]
+        },
+        "total": {
+          "bytes": 503845,
+          "gzipBytes": 160659,
+          "requests": 42,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/CopyableValue-hxYW1jCV.js",
+            "assets/CourierLogo-LdeYJLQP.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/KiriofCheckbox-Cj6ZLVw6.js",
+            "assets/RequestPickupDialog-CNCvOEtR.js",
+            "assets/ShipmentOperationProgress-CojtaEey.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/TransactionsApp-BofceGIm.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrays-C17Pq2Cz.js",
+            "assets/card-BGT841ci.js",
+            "assets/cash-B-94yNFL.js",
+            "assets/check-Dw7Rv7Ha.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/courier-images-aPafy5UJ.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/empty-BrdA-N-o.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/field-B2buGARz.js",
+            "assets/hidden-input-BwOjo6ep.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/map-pin-DMOzBpKu.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/printer-Bfmq1-3W.js",
+            "assets/radio-group-B1SLzkz_.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/rolldown-runtime-DK3Fl9T5.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/spinner-B2gYBZN3.js",
+            "assets/sr-only-styles-CofuqTKI.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/truck-NiLbik4z.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 91171,
+            "gzipBytes": 11588,
+            "requests": 2,
+            "files": [
+              "kiriminaja-TransactionsApp.css",
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "transactions:action": {
+        "additional": {
+          "bytes": 59138,
+          "gzipBytes": 16742,
+          "requests": 4,
+          "files": [
+            "assets/TransactionActionDialogs-CG3i4keN.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrow-up-DALk1IwM.js",
+            "assets/command-TXJolxKS.js"
+          ]
+        },
+        "total": {
+          "bytes": 509923,
+          "gzipBytes": 158819,
+          "requests": 40,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/CopyableValue-hxYW1jCV.js",
+            "assets/CourierLogo-LdeYJLQP.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/KiriofCheckbox-Cj6ZLVw6.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/TransactionActionDialogs-CG3i4keN.js",
+            "assets/TransactionsApp-BofceGIm.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrays-C17Pq2Cz.js",
+            "assets/arrow-up-DALk1IwM.js",
+            "assets/card-BGT841ci.js",
+            "assets/cash-B-94yNFL.js",
+            "assets/check-Dw7Rv7Ha.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/command-TXJolxKS.js",
+            "assets/courier-images-aPafy5UJ.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/empty-BrdA-N-o.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/hidden-input-BwOjo6ep.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/map-pin-DMOzBpKu.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/printer-Bfmq1-3W.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/rolldown-runtime-DK3Fl9T5.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/sr-only-styles-CofuqTKI.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/truck-NiLbik4z.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 91171,
+            "gzipBytes": 11588,
+            "requests": 2,
+            "files": [
+              "kiriminaja-TransactionsApp.css",
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "transactions:calendar": {
+        "additional": {
+          "bytes": 76236,
+          "gzipBytes": 18862,
+          "requests": 1,
+          "files": [
+            "assets/DateRangePanel-Dg1rcsFd.js"
+          ]
+        },
+        "total": {
+          "bytes": 527021,
+          "gzipBytes": 160939,
+          "requests": 37,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/CopyableValue-hxYW1jCV.js",
+            "assets/CourierLogo-LdeYJLQP.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DateRangePanel-Dg1rcsFd.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/KiriofCheckbox-Cj6ZLVw6.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/TransactionsApp-BofceGIm.js",
+            "assets/arrays-C17Pq2Cz.js",
+            "assets/card-BGT841ci.js",
+            "assets/cash-B-94yNFL.js",
+            "assets/check-Dw7Rv7Ha.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/courier-images-aPafy5UJ.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/empty-BrdA-N-o.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/hidden-input-BwOjo6ep.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/map-pin-DMOzBpKu.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/printer-Bfmq1-3W.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/rolldown-runtime-DK3Fl9T5.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/sr-only-styles-CofuqTKI.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/truck-NiLbik4z.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 91171,
+            "gzipBytes": 11588,
+            "requests": 2,
+            "files": [
+              "kiriminaja-TransactionsApp.css",
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "payments:scan-to-pay": {
+        "additional": {
+          "bytes": 21503,
+          "gzipBytes": 8803,
+          "requests": 4,
+          "files": [
+            "assets/ScanToPayDialog-Dh54yP0o.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/alert-circle-r_cRR_Uu.js",
+            "assets/svg-DidGFO-M.js"
+          ]
+        },
+        "total": {
+          "bytes": 383201,
+          "gzipBytes": 126389,
+          "requests": 27,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/PaymentsList-B3qvI5aN.js",
+            "assets/ScanToPayDialog-Dh54yP0o.js",
+            "assets/StatusBadge-SBw4jiHE.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/alert-circle-r_cRR_Uu.js",
+            "assets/card-BGT841ci.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/svg-DidGFO-M.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 90882,
+            "gzipBytes": 11439,
+            "requests": 1,
+            "files": [
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "payments:instant-scan-to-pay": {
+        "additional": {
+          "bytes": 22544,
+          "gzipBytes": 9581,
+          "requests": 5,
+          "files": [
+            "assets/InstantScanToPayDialog-nIpLsnU-.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/instant-payment-poller-CS2DlQ7a.js",
+            "assets/spinner-B2gYBZN3.js",
+            "assets/svg-DidGFO-M.js"
+          ]
+        },
+        "total": {
+          "bytes": 384242,
+          "gzipBytes": 127167,
+          "requests": 28,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/InstantScanToPayDialog-nIpLsnU-.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/PaymentsList-B3qvI5aN.js",
+            "assets/StatusBadge-SBw4jiHE.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/card-BGT841ci.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/instant-payment-poller-CS2DlQ7a.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/spinner-B2gYBZN3.js",
+            "assets/svg-DidGFO-M.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 90882,
+            "gzipBytes": 11439,
+            "requests": 1,
+            "files": [
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "payments:calendar": {
+        "additional": {
+          "bytes": 77904,
+          "gzipBytes": 19630,
+          "requests": 3,
+          "files": [
+            "assets/DateRangePanel-Dg1rcsFd.js",
+            "assets/arrays-C17Pq2Cz.js",
+            "assets/sr-only-styles-CofuqTKI.js"
+          ]
+        },
+        "total": {
+          "bytes": 439602,
+          "gzipBytes": 137216,
+          "requests": 26,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/DateRangeFilter-C2qmUUN4.js",
+            "assets/DateRangePanel-Dg1rcsFd.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/PaymentsList-B3qvI5aN.js",
+            "assets/StatusBadge-SBw4jiHE.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/arrays-C17Pq2Cz.js",
+            "assets/card-BGT841ci.js",
+            "assets/chevron-left-BUdE0c7V.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/eye-lFGw9WMf.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/refresh-DNp5JI2Q.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/separator-hLctvQmk.js",
+            "assets/sr-only-styles-CofuqTKI.js",
+            "assets/table-Hm7AVaB1.js",
+            "assets/use-id-Daj0O3vh.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 90882,
+            "gzipBytes": 11439,
+            "requests": 1,
+            "files": [
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      },
+      "transaction-detail:action": {
+        "additional": {
+          "bytes": 88610,
+          "gzipBytes": 26844,
+          "requests": 11,
+          "files": [
+            "assets/KiriofCheckbox-Cj6ZLVw6.js",
+            "assets/TransactionActionDialogs-CG3i4keN.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrow-up-DALk1IwM.js",
+            "assets/command-TXJolxKS.js",
+            "assets/hidden-input-BwOjo6ep.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/sr-only-styles-CofuqTKI.js"
+          ]
+        },
+        "total": {
+          "bytes": 424704,
+          "gzipBytes": 137912,
+          "requests": 33,
+          "files": [
+            "assets/ActionTooltip-WgYIcc6o.js",
+            "assets/CopyableValue-hxYW1jCV.js",
+            "assets/DeferredDialog-CA_G96wN.js",
+            "assets/KiriofCard-DbZx0pks.js",
+            "assets/KiriofCheckbox-Cj6ZLVw6.js",
+            "assets/StatusBadge-SBw4jiHE.js",
+            "assets/Toolbar-wCTu9MWr.js",
+            "assets/TransactionActionDialogs-CG3i4keN.js",
+            "assets/TransactionDetail-BwbSV3qT.js",
+            "assets/alert-BTmBcP7J.js",
+            "assets/arrow-up-DALk1IwM.js",
+            "assets/card-BGT841ci.js",
+            "assets/check-Dw7Rv7Ha.js",
+            "assets/command-TXJolxKS.js",
+            "assets/courier-images-aPafy5UJ.js",
+            "assets/disclose-version-xihTtKlq.js",
+            "assets/hidden-input-BwOjo6ep.js",
+            "assets/index-client-D-VAUqEt.js",
+            "assets/input-DaxWr90z.js",
+            "assets/input-group-CP3mf30i.js",
+            "assets/instant-route-map-CevmkQqT.js",
+            "assets/map-pin-DMOzBpKu.js",
+            "assets/popover-Q5TK3stl.js",
+            "assets/preload-helper-uBIymjUX.js",
+            "assets/printer-Bfmq1-3W.js",
+            "assets/rolldown-runtime-DK3Fl9T5.js",
+            "assets/scroll-lock-2HbWhUMb.js",
+            "assets/search-CH8eVUfw.js",
+            "assets/sr-only-styles-CofuqTKI.js",
+            "assets/truck-NiLbik4z.js",
+            "assets/use-id-Daj0O3vh.js",
+            "assets/user-B3XnsnMD.js",
+            "kiriminaja-admin-workspace.js"
+          ],
+          "css": {
+            "bytes": 90882,
+            "gzipBytes": 11439,
+            "requests": 1,
+            "files": [
+              "kiriminaja-admin-workspace.css"
+            ]
+          }
+        }
+      }
+    },
+    "emittedJavaScript": {
+      "bytes": 880908,
+      "gzipBytes": 281998,
+      "requests": 80,
+      "files": [
+        "assets/AccountSection-MVL8AvS8.js",
+        "assets/ActionTooltip-WgYIcc6o.js",
+        "assets/CopyableValue-hxYW1jCV.js",
+        "assets/CourierLogo-LdeYJLQP.js",
+        "assets/CourierServicePicker-C-UyrsWb.js",
+        "assets/CouriersSection-BC9ah8qv.js",
+        "assets/DateRangeFilter-C2qmUUN4.js",
+        "assets/DateRangePanel-Dg1rcsFd.js",
+        "assets/DeferredDialog-CA_G96wN.js",
+        "assets/InstantOperationDialog-CEbXQKYj.js",
+        "assets/InstantProcessDialog-PuwkPSxo.js",
+        "assets/InstantScanToPayDialog-nIpLsnU-.js",
+        "assets/KiriofCard-DbZx0pks.js",
+        "assets/KiriofCheckbox-Cj6ZLVw6.js",
+        "assets/PaymentScheduleDialog-BeJ4PCPz.js",
+        "assets/PaymentsList-B3qvI5aN.js",
+        "assets/PickupDetail-DhBc7_FL.js",
+        "assets/PrintPreviewDialog-D1LsTJJS.js",
+        "assets/RequestPickupDialog-CNCvOEtR.js",
+        "assets/ScanToPayDialog-Dh54yP0o.js",
+        "assets/SettingSwitch-B5d4Ia7H.js",
+        "assets/SettingsRoot-DI_2sBKi.js",
+        "assets/ShipmentOperationProgress-CojtaEey.js",
+        "assets/StatusBadge-SBw4jiHE.js",
+        "assets/SubdistrictCombobox-DwHttx7a.js",
+        "assets/TechnicalSection-CcYCnj9D.js",
+        "assets/Toolbar-wCTu9MWr.js",
+        "assets/TrackingSection-BR3YUWuy.js",
+        "assets/TransactionActionDialogs-CG3i4keN.js",
+        "assets/TransactionDetail-BwbSV3qT.js",
+        "assets/TransactionsApp-BofceGIm.js",
+        "assets/alert-BTmBcP7J.js",
+        "assets/alert-circle-r_cRR_Uu.js",
+        "assets/arrays-C17Pq2Cz.js",
+        "assets/arrow-up-DALk1IwM.js",
+        "assets/button-DXwK9VUq.js",
+        "assets/card-BGT841ci.js",
+        "assets/cash-B-94yNFL.js",
+        "assets/check-Dw7Rv7Ha.js",
+        "assets/chevron-left-BUdE0c7V.js",
+        "assets/command-TXJolxKS.js",
+        "assets/courier-images-aPafy5UJ.js",
+        "assets/disclose-version-xihTtKlq.js",
+        "assets/download-Cq9XZ30W.js",
+        "assets/empty-BrdA-N-o.js",
+        "assets/eye-lFGw9WMf.js",
+        "assets/eye-off-D6tnKOX2.js",
+        "assets/field-B2buGARz.js",
+        "assets/hidden-input-BwOjo6ep.js",
+        "assets/index-client-D-VAUqEt.js",
+        "assets/input-DaxWr90z.js",
+        "assets/input-group-CP3mf30i.js",
+        "assets/instant-payment-poller-CS2DlQ7a.js",
+        "assets/instant-route-map-CevmkQqT.js",
+        "assets/link-ByqUxsgD.js",
+        "assets/map-pin-DMOzBpKu.js",
+        "assets/navigation-DKpeyFT0.js",
+        "assets/popover-Q5TK3stl.js",
+        "assets/preload-helper-uBIymjUX.js",
+        "assets/printer-Bfmq1-3W.js",
+        "assets/providers-D4C8HgV5.js",
+        "assets/radio-group-B1SLzkz_.js",
+        "assets/refresh-DNp5JI2Q.js",
+        "assets/rolldown-runtime-DK3Fl9T5.js",
+        "assets/scroll-lock-2HbWhUMb.js",
+        "assets/search-CH8eVUfw.js",
+        "assets/selection-B0Bq3PAL.js",
+        "assets/separator-hLctvQmk.js",
+        "assets/spinner-B2gYBZN3.js",
+        "assets/sr-only-styles-CofuqTKI.js",
+        "assets/svg-DidGFO-M.js",
+        "assets/table-Hm7AVaB1.js",
+        "assets/truck-NiLbik4z.js",
+        "assets/use-id-Daj0O3vh.js",
+        "assets/user-B3XnsnMD.js",
+        "kiriminaja-admin-theme.js",
+        "kiriminaja-admin-workspace.js",
+        "kiriminaja-coupon-panels.js",
+        "kiriminaja-onboarding-progress.js",
+        "kiriminaja-order-metabox.js"
+      ]
+    },
+    "largestChunks": [
+      {
+        "file": "assets/use-id-Daj0O3vh.js",
+        "bytes": 104333,
+        "gzipBytes": 33790,
+        "requests": 1,
+        "files": [
+          "assets/use-id-Daj0O3vh.js"
+        ]
+      },
+      {
+        "file": "assets/TransactionsApp-BofceGIm.js",
+        "bytes": 80446,
+        "gzipBytes": 19176,
+        "requests": 1,
+        "files": [
+          "assets/TransactionsApp-BofceGIm.js"
+        ]
+      },
+      {
+        "file": "assets/DateRangePanel-Dg1rcsFd.js",
+        "bytes": 76236,
+        "gzipBytes": 18862,
+        "requests": 1,
+        "files": [
+          "assets/DateRangePanel-Dg1rcsFd.js"
+        ]
+      },
+      {
+        "file": "assets/ActionTooltip-WgYIcc6o.js",
+        "bytes": 61120,
+        "gzipBytes": 17973,
+        "requests": 1,
+        "files": [
+          "assets/ActionTooltip-WgYIcc6o.js"
+        ]
+      },
+      {
+        "file": "assets/index-client-D-VAUqEt.js",
+        "bytes": 54535,
+        "gzipBytes": 20456,
+        "requests": 1,
+        "files": [
+          "assets/index-client-D-VAUqEt.js"
+        ]
+      },
+      {
+        "file": "assets/DateRangeFilter-C2qmUUN4.js",
+        "bytes": 32212,
+        "gzipBytes": 8764,
+        "requests": 1,
+        "files": [
+          "assets/DateRangeFilter-C2qmUUN4.js"
+        ]
+      },
+      {
+        "file": "kiriminaja-onboarding-progress.js",
+        "bytes": 31598,
+        "gzipBytes": 9473,
+        "requests": 1,
+        "files": [
+          "kiriminaja-onboarding-progress.js"
+        ]
+      },
+      {
+        "file": "assets/TransactionDetail-BwbSV3qT.js",
+        "bytes": 29737,
+        "gzipBytes": 8160,
+        "requests": 1,
+        "files": [
+          "assets/TransactionDetail-BwbSV3qT.js"
+        ]
+      },
+      {
+        "file": "assets/command-TXJolxKS.js",
+        "bytes": 29090,
+        "gzipBytes": 8029,
+        "requests": 1,
+        "files": [
+          "assets/command-TXJolxKS.js"
+        ]
+      },
+      {
+        "file": "assets/TransactionActionDialogs-CG3i4keN.js",
+        "bytes": 27190,
+        "gzipBytes": 7451,
+        "requests": 1,
+        "files": [
+          "assets/TransactionActionDialogs-CG3i4keN.js"
+        ]
+      }
+    ]
+  }
+}

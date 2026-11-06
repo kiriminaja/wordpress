@@ -61,7 +61,8 @@ class OnboardingSetupStateService {
 		return $this->steps;
 	}
 
-	private function get_required_steps(): array {
+	/** Required setup state without the optional product and tracking checks. */
+	public function get_required_steps(): array {
 		if ( null !== $this->required_steps ) {
 			return $this->required_steps;
 		}
@@ -150,8 +151,10 @@ class OnboardingSetupStateService {
 		return true;
 	}
 
-	public function get_first_incomplete_step(): string {
-		foreach ( $this->get_steps() as $key => $step ) {
+	/** Optional steps remain eligible unless the caller requests required steps only. */
+	public function get_first_incomplete_step( bool $required_only = false ): string {
+		$steps = $required_only ? $this->get_required_steps() : $this->get_steps();
+		foreach ( $steps as $key => $step ) {
 			if ( ! $step['done'] ) {
 				return $key;
 			}
