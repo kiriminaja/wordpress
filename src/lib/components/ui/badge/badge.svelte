@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { type VariantProps, tv } from "tailwind-variants";
+	import { type VariantProps, tv } from "tailwind-variants/lite";
 
 	/**
 	 * Unified badge, mirroring the Shopify admin `s-badge` contract:
