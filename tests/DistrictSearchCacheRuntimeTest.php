@@ -88,6 +88,23 @@ final class DistrictSearchCacheRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function transient_failures_use_a_short_cooldown_without_serving_fake_options(): void {
+        $repository = $this->repository();
+        $repository->expects( $this->once() )->method( 'sub_district_search' )->with( '12345' )
+            ->willReturn( array( 'status' => false, 'retryable' => true ) );
+        $factory = $this->factory( $repository );
+
+        $first = $factory->districtSearch( '12345' );
+        $second = $factory->districtSearch( '12345' );
+
+        $this->assertSame( 400, $first->status );
+        $this->assertSame( 400, $second->status );
+        $this->assertSame( 'address_lookup_cooldown', $second->customCode );
+        $this->assertSame( array(), $second->data );
+        $this->assertSame( array(), $GLOBALS['district_search_writes'] );
+    }
+
+    #[Test]
     #[DataProvider( 'invalidCachedRows' )]
     public function unusable_v4_cache_entries_are_not_served( $cached ): void {
         $key = 'kiriof_district_search_v4_' . md5( '12345' );

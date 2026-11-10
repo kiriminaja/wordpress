@@ -69,9 +69,46 @@ function kiriof_override_woocommerce_template( $template, $template_name, $templ
         return $template;
     }
 
+    // Respect a theme or another extension that already supplied this template.
+    // Replacing a child-theme checkout template is a common source of broken
+    // checkout markup and duplicate fields. The plugin override is only a
+    // fallback when WooCommerce selected its own core template.
+    if ( kiriof_is_non_core_template( $template, $template_name ) ) {
+        return $template;
+    }
+
     // Template directory.
     // E.g. /wp-content/plugins/my-plugin/woocommerce/
     $template_directory = str_replace('\\','/',untrailingslashit( str_replace( 'wc/','',plugin_dir_path( __FILE__ ) ) ) . '/templates/woocommerce/');
     $path = $template_directory . $template_name;
     return file_exists( $path ) ? $path : $template;
+}
+
+/**
+ * Determine whether WooCommerce selected a theme/plugin template instead of core.
+ *
+ * @param string $template      Resolved template path.
+ * @param string $template_name Template relative path.
+ * @return bool
+ */
+function kiriof_is_non_core_template( $template, $template_name ) {
+    if ( ! is_string( $template ) || '' === $template || ! file_exists( $template ) ) {
+        return false;
+    }
+
+    $core_template = '';
+    if ( defined( 'WC_TEMPLATE_PATH' ) ) {
+        $core_template = trailingslashit( WC_TEMPLATE_PATH ) . $template_name;
+    } elseif ( function_exists( 'WC' ) && WC() && method_exists( WC(), 'plugin_path' ) ) {
+        $core_template = trailingslashit( WC()->plugin_path() ) . 'templates/' . $template_name;
+    }
+
+    if ( '' === $core_template || ! file_exists( $core_template ) ) {
+        return false;
+    }
+
+    $resolved_template = realpath( $template );
+    $resolved_core     = realpath( $core_template );
+
+    return false !== $resolved_template && false !== $resolved_core && $resolved_template !== $resolved_core;
 }

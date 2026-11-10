@@ -233,12 +233,12 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     public function getPricing( $payload ) {
         $origin = AddressHierarchyResolver::resolve( $payload['subdistrict_origin'] ?? null, $payload['origin_postcode'] ?? '', array( $this, 'sub_district_search' ) );
         if ( null === $origin ) {
-            $this->log_pricing_hierarchy_failure( 'origin_hierarchy_unavailable' );
+            $this->log_pricing_hierarchy_failure( 'origin_hierarchy_unavailable', AddressHierarchyResolver::failureWasSuppressed() );
             return array( 'status' => false, 'data' => 'Could not resolve shipping address hierarchy.' );
         }
         $destination = AddressHierarchyResolver::resolve( $payload['subdistrict_destination'] ?? null, $payload['destination_postcode'] ?? '', array( $this, 'sub_district_search' ) );
         if ( null === $destination ) {
-            $this->log_pricing_hierarchy_failure( 'destination_hierarchy_unavailable' );
+            $this->log_pricing_hierarchy_failure( 'destination_hierarchy_unavailable', AddressHierarchyResolver::failureWasSuppressed() );
             return array( 'status' => false, 'data' => 'Could not resolve shipping address hierarchy.' );
         }
         return $this->post(
@@ -265,8 +265,8 @@ class KiriminajaApiRepository extends KiriminAjaApi {
     }
 
 	/** Log failed mapping verification without retaining customer or warehouse data. */
-	private function log_pricing_hierarchy_failure( string $code ): void {
-		if ( function_exists( 'kiriof_log' ) ) {
+	private function log_pricing_hierarchy_failure( string $code, bool $suppressed = false ): void {
+		if ( ! $suppressed && function_exists( 'kiriof_log' ) ) {
 			kiriof_log( 'warning', 'Express shipping address verification failed.', array( 'operation' => 'get_pricing', 'code' => $code, 'backtrace' => false ), 'kiriminaja_shipping' );
 		}
 	}

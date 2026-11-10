@@ -14,7 +14,9 @@ final class AddressHierarchyResolver {
     private const REFRESH_QUEUE = 'kiriof_address_hierarchy_refresh_queue_v1';
     private const REFRESH_INTERVAL = 300;
     private const MAX_REFRESHES = 20;
+    private const FAILURE_COOLDOWN = 60;
     private static array $identities = array();
+    private static bool $failure_suppressed = false;
 
     /** Re-admit only complete, internally consistent official option rows. */
     public static function rememberCachedRows( $rows, string $postcode ): bool {
@@ -113,6 +115,7 @@ final class AddressHierarchyResolver {
 
     /** Never infer a parent from an ID, label, or an undocumented endpoint. */
     public static function resolve( $village, $postcode, callable $search ): ?array {
+        self::$failure_suppressed = false;
         if ( ( ! is_int( $village ) && ! is_string( $village ) ) || false === filter_var( $village, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) ) ) {
             return null;
         }
@@ -133,10 +136,22 @@ final class AddressHierarchyResolver {
         if ( '' === $postcode ) {
             return null;
         }
-        $response = $search( $postcode );
-        if ( empty( $response['status'] ) ) {
+        $failure_key = self::failure_key( $postcode );
+        if ( function_exists( 'get_transient' ) && false !== get_transient( $failure_key ) ) {
+            self::$failure_suppressed = true;
             self::scheduleRefresh( $postcode );
             return null;
+        }
+        $response = $search( $postcode );
+        if ( empty( $response['status'] ) ) {
+            if ( true === ( $response['retryable'] ?? false ) && function_exists( 'set_transient' ) ) {
+                set_transient( $failure_key, 1, self::FAILURE_COOLDOWN );
+            }
+            self::scheduleRefresh( $postcode );
+            return null;
+        }
+        if ( function_exists( 'delete_transient' ) ) {
+            delete_transient( $failure_key );
         }
         $cache = self::cache();
         if ( ! isset( $cache[ $key ] ) || $postcode !== $cache[ $key ]['postcode'] ) {
@@ -145,8 +160,17 @@ final class AddressHierarchyResolver {
         return isset( $cache[ $key ] ) && $postcode === $cache[ $key ]['postcode'] ? $cache[ $key ] : null;
     }
 
+    /** Whether this request was short-circuited by a known upstream outage. */
+    public static function failureWasSuppressed(): bool {
+        return self::$failure_suppressed;
+    }
+
     private static function key( $village ): string {
         return hash( 'sha256', 'unified-village:' . (int) $village );
+    }
+
+    private static function failure_key( string $postcode ): string {
+        return 'kiriof_address_failure_v1_' . md5( $postcode );
     }
 
     private static function cache(): array {

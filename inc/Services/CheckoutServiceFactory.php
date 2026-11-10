@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class CheckoutServiceFactory
 {
+    private const DISTRICT_FAILURE_TTL = 30;
+
     private SettingRepository $setting_repository;
     private TransactionRepository $transaction_repository;
     private WpPostMetaRepository $post_meta_repository;
@@ -61,6 +63,7 @@ class CheckoutServiceFactory
         $cache_key = preg_match( '/^\d{5}$/D', $search ) === 1
             ? 'kiriof_district_search_v4_' . md5( $search )
             : null;
+        $failure_key = null !== $cache_key ? 'kiriof_district_failure_v1_' . md5( $search ) : null;
         // Legacy ID/label-only entries cannot establish an official hierarchy.
         $cacheable = static function ( $rows ) use ( $search ): bool {
             return AddressHierarchyResolver::rememberCachedRows( $rows, $search );
@@ -71,11 +74,19 @@ class CheckoutServiceFactory
                 AddressHierarchyResolver::scheduleRefresh( $search );
                 return new ServiceResponse( $cached, 'success', 200 );
             }
+            if ( null !== $failure_key && false !== get_transient( $failure_key ) ) {
+                return new ServiceResponse( array(), 'Could not load subdistricts.', 400, 'address_lookup_cooldown' );
+            }
         }
 
         $response = ( new KiriminajaApiService( $this->api_repository ) )->sub_district_search( $search );
         if ( null !== $cache_key && 200 === $response->status && $cacheable( $response->data ) && function_exists( 'set_transient' ) ) {
             set_transient( $cache_key, $response->data, 300 );
+            if ( function_exists( 'delete_transient' ) && null !== $failure_key ) {
+                delete_transient( $failure_key );
+            }
+        } elseif ( null !== $failure_key && 'subdistrict_lookup_transient' === $response->customCode && function_exists( 'set_transient' ) ) {
+            set_transient( $failure_key, 1, self::DISTRICT_FAILURE_TTL );
         }
 
         return $response;
