@@ -10,7 +10,7 @@ KiriminAja Official is a WooCommerce shipping plugin for Indonesian online selle
 - **Namespace:** `KiriminAjaOfficial`
 - **PHP autoloading:** PSR-4 via Composer (`"KiriminAjaOfficial\\" → "./inc"`)
 - **Minimum WooCommerce:** 8.0.0
-- **WC tested up to:** 10.6
+- **WC tested up to:** 11.2
 - **Text domain:** `kiriminaja-official`
 - **Version:** Defined in both `kiriminaja.php` header and `KIRIOF_VERSION` constant.
 

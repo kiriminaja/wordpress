@@ -14,6 +14,7 @@ use KiriminAja\Responses\ServiceResponse;
 use KiriminAja\Services\KiriminAja;
 use KiriminAjaOfficial\Base\KiriminAjaApi;
 use KiriminAjaOfficial\Utils\CreditBalance;
+use KiriminAjaOfficial\Utils\LogThrottle;
 
 /** Official SDK adapter for Instant delivery; never retries remote operations. */
 class InstantDeliveryApiRepository extends KiriminAjaApi {
@@ -443,7 +444,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 		} catch ( \Throwable $throwable ) {
 			// Remote messages can contain credentials; unknown balance fails closed.
 		}
-		if ( function_exists( 'kiriof_log' ) ) {
+		if ( function_exists( 'kiriof_log' ) && LogThrottle::allow( 'credit_balance_unavailable' ) ) {
 			kiriof_log( 'warning', 'Unable to verify credit balance.', array( 'source' => 'kiriminaja_api', 'operation' => 'credit_balance', 'reason' => 'balance_unavailable' ) );
 		}
 		return $this->failure( 'Unable to verify credit balance.' );

@@ -376,7 +376,18 @@ class ShippingDiscountRegionCacheService extends BaseService {
         }
 
         foreach ( $citiesByProvince as $pid => $cities ) {
-            $regionRepo->upsertCities( $pid, $cities );
+            if ( ! $regionRepo->upsertCities( $pid, $cities ) ) {
+                kiriof_log(
+                    'error',
+                    'Bundled region data fallback failed while saving city data for a province.',
+                    array(
+                        'source'      => 'kiriminaja_import',
+                        'province_id' => (int) $pid,
+                        'city_count'  => count( $cities ),
+                    )
+                );
+                return self::error( array(), __( 'Failed to seed city data from bundle.', 'kiriminaja-official' ) );
+            }
         }
 
         return self::success(

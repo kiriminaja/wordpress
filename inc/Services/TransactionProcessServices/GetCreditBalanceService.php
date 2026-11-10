@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use KiriminAjaOfficial\Base\BaseService;
 use KiriminAjaOfficial\Utils\CreditBalance;
+use KiriminAjaOfficial\Utils\LogThrottle;
 
 class GetCreditBalanceService extends BaseService {
 	public function call() {
@@ -29,7 +30,7 @@ class GetCreditBalanceService extends BaseService {
 	}
 
 	private function log_unavailable(): void {
-		if ( function_exists( 'kiriof_log' ) ) {
+		if ( function_exists( 'kiriof_log' ) && LogThrottle::allow( 'credit_balance_unavailable' ) ) {
 			kiriof_log( 'warning', 'Unable to verify credit balance.', array( 'source' => 'kiriminaja_api', 'operation' => 'credit_balance', 'reason' => 'balance_unavailable' ) );
 		}
 	}
