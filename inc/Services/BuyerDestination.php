@@ -109,12 +109,21 @@ final class BuyerDestination {
                 'postcode' => array( 'type' => 'string', 'maxLength' => 255 ),
                 'country' => array( 'type' => 'string', 'pattern' => '^[A-Za-z]{2}$' ),
                 'address_type' => array( 'type' => 'string', 'enum' => array( 'shipping' ) ),
-                'destination_latitude' => array( 'type' => array( 'string', 'number' ), 'minimum' => -90, 'maximum' => 90, 'pattern' => '^(-?(90(\\.0+)?|([0-9]|[1-8][0-9])(\\.[0-9]+)?))?$' ),
-                'destination_longitude' => array( 'type' => array( 'string', 'number' ), 'minimum' => -180, 'maximum' => 180, 'pattern' => '^(-?(180(\\.0+)?|(1[0-7][0-9]|[1-9][0-9]|[0-9])(\\.[0-9]+)?))?$' ),
+                'destination_latitude' => array( 'type' => array( 'string', 'number', 'null' ), 'minimum' => -90, 'maximum' => 90, 'pattern' => '^(-?(90(\\.0+)?|([0-9]|[1-8][0-9])(\\.[0-9]+)?))?$' ),
+                'destination_longitude' => array( 'type' => array( 'string', 'number', 'null' ), 'minimum' => -180, 'maximum' => 180, 'pattern' => '^(-?(180(\\.0+)?|(1[0-7][0-9]|[1-9][0-9]|[0-9])(\\.[0-9]+)?))?$' ),
                 'shipping_address' => array(
-                    'type' => 'object',
-                    'required' => self::ADDRESS_FIELDS,
-                    'properties' => array_fill_keys( self::ADDRESS_FIELDS, array( 'type' => 'string', 'maxLength' => 255 ) ),
+                    'type' => array( 'object', 'null' ),
+                    // Keep nested properties inside the union. WooCommerce's
+                    // recursive extension sanitizer otherwise turns an absent
+                    // optional object into an empty array before validation.
+                    'oneOf' => array(
+                        array( 'type' => 'null' ),
+                        array(
+                            'type' => 'object',
+                            'required' => self::ADDRESS_FIELDS,
+                            'properties' => array_fill_keys( self::ADDRESS_FIELDS, array( 'type' => 'string', 'maxLength' => 255 ) ),
+                        ),
+                    ),
                 ),
                 'version' => array( 'type' => 'integer', 'enum' => array( 1, 2 ) ),
             ),
