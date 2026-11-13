@@ -13,5 +13,7 @@ coverage
 *.tsbuildinfo
 .phpunit.cache
 .env
+auth.toml
+auth.json
 .paratest.cache
 release-notes.md

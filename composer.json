@@ -1,11 +1,6 @@
 {
   "name": "kiriminaja/wordpress",
   "description": "KiriminAja Official WordPress Plugin for WooCommerce",
-  "autoload": {
-    "psr-4": {
-      "KiriminAjaOfficial\\": "./inc"
-    }
-  },
   "authors": [
     {
       "name": "Yanuar",
@@ -16,30 +11,5 @@
       "email": "faizniflehim@gmail.com"
     }
   ],
-  "config": {
-    "platform-check": false,
-    "platform": {
-      "php": "8.2.35"
-    },
-    "allow-plugins": {
-      "php-http/discovery": true
-    }
-  },
-  "require-dev": {
-    "brianium/paratest": "~7.3.0",
-    "php-stubs/wordpress-stubs": "^7.1",
-    "phpstan/phpstan": "^2.2",
-    "szepeviktor/phpstan-wordpress": "^2.0",
-    "php-stubs/woocommerce-stubs": "^10.0",
-    "mockery/mockery": "^1.6"
-  },
-  "require": {
-    "php": ">=8.2.35",
-    "kiriminaja/kiriminaja-php": "^2.1.4"
-  },
-  "scripts": {
-    "test": "@php scripts/test-cache.php -- vendor/bin/paratest --configuration paratest.xml --testdox",
-    "phpstan": "phpstan analyse --memory-limit=1G",
-    "test:force": "@php scripts/test-cache.php --force -- vendor/bin/paratest --configuration paratest.xml --testdox"
-  }
+  "license": "GPL-2.0-or-later"
 }

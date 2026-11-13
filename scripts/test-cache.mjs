@@ -33,7 +33,7 @@ const ignored = new Set([
   'test-results',
   '.idea',
   '.vscode',
-  'composer-vendor-cache',
+  'phast-vendor-cache',
 ]);
 const generated = ['assets/admin/dist', 'assets/buyer/dist'];
 const bookkeeping = (name) =>
@@ -67,7 +67,18 @@ function inventory(root, relative, records, mode = 'complete', entry) {
     return;
   }
 
-  if (stat.isSymbolicLink()) throw new Error(`Uncacheable symlink: ${relative}`);
+  if (stat.isSymbolicLink()) {
+    // Phast's vendor launchers are links; all other symlink inputs fail closed.
+    const target = realpathSync(absolute);
+    if (
+      path.dirname(relative) !== 'vendor/bin' ||
+      !target.startsWith(`${root}/vendor/`) ||
+      !lstatSync(target).isFile()
+    )
+      throw new Error(`Uncacheable symlink: ${relative}`);
+    records.push([relative, readlinkSync(absolute), target, hash(readFileSync(target))]);
+    return;
+  }
   if (stat.isDirectory()) {
     const name = path.basename(relative);
     if (
