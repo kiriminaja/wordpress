@@ -1,0 +1,2640 @@
+version = 1
+content-hash = "sha256:16a0a80d11d9d194a9146d5655a8639a89caecf8f434d7161386cabb2cb9e592"
+
+[metadata]
+generated-by = "phast 0.1.0"
+generated-at = "2026-11-13T07:08:31.875245+00:00"
+
+[[packages]]
+name = "clue/stream-filter"
+version = "v1.7.0"
+type = "library"
+description = "A simple and modern approach to stream filtering in PHP"
+homepage = "https://github.com/clue/stream-filter"
+time = "2023-12-20T15:40:13+00:00"
+license = ["MIT"]
+keywords = [
+    "stream",
+    "filter",
+    "callback",
+    "php_user_filter",
+    "stream_filter_append",
+    "stream_filter_register",
+    "bucket brigade",
+]
+
+[packages.require]
+php = ">=5.3"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/clue/stream-filter/zipball/049509fef80032cb3f051595029ab75b49a3c2f7"
+reference = "049509fef80032cb3f051595029ab75b49a3c2f7"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/clue/stream-filter.git"
+reference = "049509fef80032cb3f051595029ab75b49a3c2f7"
+
+[[packages.authors]]
+name = "Christian Lück"
+email = "christian@clue.engineering"
+
+[packages.support]
+issues = "https://github.com/clue/stream-filter/issues"
+source = "https://github.com/clue/stream-filter/tree/v1.7.0"
+
+[packages.autoload]
+files = ["src/functions_include.php"]
+
+[packages.autoload.psr-4]
+'Clue\StreamFilter\' = ["src/"]
+
+[[packages]]
+name = "php-http/discovery"
+version = "1.20.0"
+type = "composer-plugin"
+description = "Finds and installs PSR-7, PSR-17, PSR-18 and HTTPlug implementations"
+homepage = "http://php-http.org"
+time = "2024-10-02T11:20:13+00:00"
+license = ["MIT"]
+keywords = [
+    "http",
+    "client",
+    "message",
+    "adapter",
+    "factory",
+    "discovery",
+    "psr7",
+    "psr17",
+]
+
+[packages.require]
+composer-plugin-api = "^1.0|^2.0"
+php = "^7.1 || ^8.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-http/discovery/zipball/82fe4c73ef3363caed49ff8dd1539ba06044910d"
+reference = "82fe4c73ef3363caed49ff8dd1539ba06044910d"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-http/discovery.git"
+reference = "82fe4c73ef3363caed49ff8dd1539ba06044910d"
+
+[[packages.authors]]
+name = "Márk Sági-Kazár"
+email = "mark.sagikazar@gmail.com"
+
+[packages.support]
+issues = "https://github.com/php-http/discovery/issues"
+source = "https://github.com/php-http/discovery/tree/1.20.0"
+
+[packages.extra]
+class = 'Http\Discovery\Composer\Plugin'
+plugin-optional = true
+
+[packages.autoload]
+exclude = ["src/Composer/Plugin.php"]
+
+[packages.autoload.psr-4]
+'Http\Discovery\' = ["src/"]
+
+[packages.provide]
+"php-http/async-client-implementation" = "*"
+"php-http/client-implementation" = "*"
+"psr/http-client-implementation" = "*"
+"psr/http-factory-implementation" = "*"
+"psr/http-message-implementation" = "*"
+
+[[packages]]
+name = "php-http/promise"
+version = "1.3.1"
+type = "library"
+description = "Promise used for asynchronous HTTP requests"
+homepage = "http://httplug.io"
+time = "2024-03-15T13:55:21+00:00"
+license = ["MIT"]
+keywords = ["promise"]
+
+[packages.require]
+php = "^7.1 || ^8.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-http/promise/zipball/fc85b1fba37c169a69a07ef0d5a8075770cc1f83"
+reference = "fc85b1fba37c169a69a07ef0d5a8075770cc1f83"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-http/promise.git"
+reference = "fc85b1fba37c169a69a07ef0d5a8075770cc1f83"
+
+[[packages.authors]]
+name = "Joel Wurtz"
+email = "joel.wurtz@gmail.com"
+
+[[packages.authors]]
+name = "Márk Sági-Kazár"
+email = "mark.sagikazar@gmail.com"
+
+[packages.support]
+issues = "https://github.com/php-http/promise/issues"
+source = "https://github.com/php-http/promise/tree/1.3.1"
+
+[packages.autoload.psr-4]
+'Http\Promise\' = ["src/"]
+
+[[packages]]
+name = "psr/http-message"
+version = "2.0"
+type = "library"
+description = "Common interface for HTTP messages"
+homepage = "https://github.com/php-fig/http-message"
+time = "2023-04-04T09:54:51+00:00"
+license = ["MIT"]
+keywords = [
+    "http",
+    "response",
+    "request",
+    "psr",
+    "psr-7",
+    "http-message",
+]
+
+[packages.require]
+php = "^7.2 || ^8.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-fig/http-message/zipball/402d35bcb92c70c026d1a6a9883f06b2ead23d71"
+reference = "402d35bcb92c70c026d1a6a9883f06b2ead23d71"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-fig/http-message.git"
+reference = "402d35bcb92c70c026d1a6a9883f06b2ead23d71"
+
+[[packages.authors]]
+name = "PHP-FIG"
+homepage = "https://www.php-fig.org/"
+
+[packages.support]
+source = "https://github.com/php-fig/http-message/tree/2.0"
+
+[packages.extra.branch-alias]
+dev-master = "2.0.x-dev"
+
+[packages.autoload.psr-4]
+'Psr\Http\Message\' = ["src/"]
+
+[[packages]]
+name = "symfony/deprecation-contracts"
+version = "v3.8.1"
+type = "library"
+description = "A generic function and convention to trigger deprecation notices"
+homepage = "https://symfony.com"
+time = "2026-09-16T14:15:10+00:00"
+license = ["MIT"]
+
+[packages.require]
+php = ">=8.1"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/deprecation-contracts/zipball/feb1edf4e546af3b85c5caebe8359a20db230ca3"
+reference = "feb1edf4e546af3b85c5caebe8359a20db230ca3"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/symfony/deprecation-contracts.git"
+reference = "feb1edf4e546af3b85c5caebe8359a20db230ca3"
+
+[[packages.authors]]
+name = "Nicolas Grekas"
+email = "p@tchwork.com"
+
+[[packages.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages.support]
+source = "https://github.com/symfony/deprecation-contracts/tree/v3.8.1"
+
+[packages.extra.branch-alias]
+dev-main = "3.8-dev"
+
+[packages.extra.thanks]
+name = "symfony/contracts"
+url = "https://github.com/symfony/contracts"
+
+[packages.autoload]
+files = ["function.php"]
+
+[[packages]]
+name = "php-http/message"
+version = "1.16.2"
+type = "library"
+description = "HTTP Message related tools"
+homepage = "http://php-http.org"
+time = "2024-10-02T11:34:13+00:00"
+license = ["MIT"]
+keywords = [
+    "http",
+    "message",
+    "psr-7",
+]
+
+[packages.require]
+"clue/stream-filter" = "^1.5"
+php = "^7.2 || ^8.0"
+"psr/http-message" = "^1.1 || ^2.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-http/message/zipball/06dd5e8562f84e641bf929bfe699ee0f5ce8080a"
+reference = "06dd5e8562f84e641bf929bfe699ee0f5ce8080a"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-http/message.git"
+reference = "06dd5e8562f84e641bf929bfe699ee0f5ce8080a"
+
+[[packages.authors]]
+name = "Márk Sági-Kazár"
+email = "mark.sagikazar@gmail.com"
+
+[packages.support]
+issues = "https://github.com/php-http/message/issues"
+source = "https://github.com/php-http/message/tree/1.16.2"
+
+[packages.autoload]
+files = ["src/filters.php"]
+
+[packages.autoload.psr-4]
+'Http\Message\' = ["src/"]
+
+[packages.provide]
+"php-http/message-factory-implementation" = "1.0"
+
+[[packages]]
+name = "psr/http-client"
+version = "1.0.3"
+type = "library"
+description = "Common interface for HTTP clients"
+homepage = "https://github.com/php-fig/http-client"
+time = "2023-09-23T14:17:50+00:00"
+license = ["MIT"]
+keywords = [
+    "http",
+    "psr",
+    "http-client",
+    "psr-18",
+]
+
+[packages.require]
+php = "^7.0 || ^8.0"
+"psr/http-message" = "^1.0 || ^2.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-fig/http-client/zipball/bb5906edc1c324c9a05aa0873d40117941e5fa90"
+reference = "bb5906edc1c324c9a05aa0873d40117941e5fa90"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-fig/http-client.git"
+reference = "bb5906edc1c324c9a05aa0873d40117941e5fa90"
+
+[[packages.authors]]
+name = "PHP-FIG"
+homepage = "https://www.php-fig.org/"
+
+[packages.support]
+source = "https://github.com/php-fig/http-client"
+
+[packages.extra.branch-alias]
+dev-master = "1.0.x-dev"
+
+[packages.autoload.psr-4]
+'Psr\Http\Client\' = ["src/"]
+
+[[packages]]
+name = "psr/http-factory"
+version = "1.1.0"
+type = "library"
+description = "PSR-17: Common interfaces for PSR-7 HTTP message factories"
+homepage = ""
+time = "2024-04-15T12:06:14+00:00"
+license = ["MIT"]
+keywords = [
+    "http",
+    "response",
+    "message",
+    "request",
+    "factory",
+    "psr",
+    "psr-7",
+    "psr-17",
+]
+
+[packages.require]
+php = ">=7.1"
+"psr/http-message" = "^1.0 || ^2.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-fig/http-factory/zipball/2b4765fddfe3b508ac62f829e852b1501d3f6e8a"
+reference = "2b4765fddfe3b508ac62f829e852b1501d3f6e8a"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-fig/http-factory.git"
+reference = "2b4765fddfe3b508ac62f829e852b1501d3f6e8a"
+
+[[packages.authors]]
+name = "PHP-FIG"
+homepage = "https://www.php-fig.org/"
+
+[packages.support]
+source = "https://github.com/php-fig/http-factory"
+
+[packages.extra.branch-alias]
+dev-master = "1.0.x-dev"
+
+[packages.autoload.psr-4]
+'Psr\Http\Message\' = ["src/"]
+
+[[packages]]
+name = "symfony/options-resolver"
+version = "v7.4.22"
+type = "library"
+description = "Provides an improved replacement for the array_replace PHP function"
+homepage = "https://symfony.com"
+time = "2026-10-18T14:39:27+00:00"
+license = ["MIT"]
+keywords = [
+    "configuration",
+    "config",
+    "options",
+]
+
+[packages.require]
+php = ">=8.2"
+"symfony/deprecation-contracts" = "^2.5|^3"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/options-resolver/zipball/c95dd81729944936b48f9fecb38ff524eeaf97c0"
+reference = "c95dd81729944936b48f9fecb38ff524eeaf97c0"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/symfony/options-resolver.git"
+reference = "c95dd81729944936b48f9fecb38ff524eeaf97c0"
+
+[[packages.authors]]
+name = "Fabien Potencier"
+email = "fabien@symfony.com"
+
+[[packages.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages.support]
+source = "https://github.com/symfony/options-resolver/tree/v7.4.22"
+
+[packages.autoload]
+exclude = ["/Tests/"]
+
+[packages.autoload.psr-4]
+'Symfony\Component\OptionsResolver\' = [""]
+
+[[packages]]
+name = "php-http/httplug"
+version = "2.4.1"
+type = "library"
+description = "HTTPlug, the HTTP client abstraction for PHP"
+homepage = "http://httplug.io"
+time = "2024-09-23T11:39:58+00:00"
+license = ["MIT"]
+keywords = [
+    "http",
+    "client",
+]
+
+[packages.require]
+php = "^7.1 || ^8.0"
+"php-http/promise" = "^1.1"
+"psr/http-client" = "^1.0"
+"psr/http-message" = "^1.0 || ^2.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-http/httplug/zipball/5cad731844891a4c282f3f3e1b582c46839d22f4"
+reference = "5cad731844891a4c282f3f3e1b582c46839d22f4"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-http/httplug.git"
+reference = "5cad731844891a4c282f3f3e1b582c46839d22f4"
+
+[[packages.authors]]
+name = "Eric GELOEN"
+email = "geloen.eric@gmail.com"
+
+[[packages.authors]]
+name = "Márk Sági-Kazár"
+email = "mark.sagikazar@gmail.com"
+homepage = "https://sagikazarmark.hu"
+
+[packages.support]
+issues = "https://github.com/php-http/httplug/issues"
+source = "https://github.com/php-http/httplug/tree/2.4.1"
+
+[packages.autoload.psr-4]
+'Http\Client\' = ["src/"]
+
+[[packages]]
+name = "nyholm/psr7"
+version = "1.8.2"
+type = "library"
+description = "A fast PHP7 implementation of PSR-7"
+homepage = "https://tnyholm.se"
+time = "2024-09-09T07:06:30+00:00"
+license = ["MIT"]
+keywords = [
+    "psr-7",
+    "psr-17",
+]
+
+[packages.require]
+php = ">=7.2"
+"psr/http-factory" = "^1.0"
+"psr/http-message" = "^1.1 || ^2.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/Nyholm/psr7/zipball/a71f2b11690f4b24d099d6b16690a90ae14fc6f3"
+reference = "a71f2b11690f4b24d099d6b16690a90ae14fc6f3"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/Nyholm/psr7.git"
+reference = "a71f2b11690f4b24d099d6b16690a90ae14fc6f3"
+
+[[packages.authors]]
+name = "Tobias Nyholm"
+email = "tobias.nyholm@gmail.com"
+
+[[packages.authors]]
+name = "Martijn van der Ven"
+email = "martijn@vanderven.se"
+
+[packages.support]
+issues = "https://github.com/Nyholm/psr7/issues"
+source = "https://github.com/Nyholm/psr7/tree/1.8.2"
+
+[packages.extra.branch-alias]
+dev-master = "1.8-dev"
+
+[packages.autoload.psr-4]
+'Nyholm\Psr7\' = ["src/"]
+
+[packages.provide]
+"php-http/message-factory-implementation" = "1.0"
+"psr/http-factory-implementation" = "1.0"
+"psr/http-message-implementation" = "1.0"
+
+[[packages]]
+name = "php-http/curl-client"
+version = "2.4.0"
+type = "library"
+description = "PSR-18 and HTTPlug Async client with cURL"
+homepage = "http://php-http.org"
+time = "2025-12-09T12:02:56+00:00"
+license = ["MIT"]
+keywords = [
+    "curl",
+    "http",
+    "psr-18",
+]
+
+[packages.require]
+ext-curl = "*"
+php = "^8.1"
+"php-http/discovery" = "^1.6"
+"php-http/httplug" = "^2.0"
+"php-http/message" = "^1.2"
+"psr/http-client" = "^1.0"
+"psr/http-factory-implementation" = "^1.0"
+"symfony/options-resolver" = "^3.4 || ^4.0 || ^5.0 || ^6.0 || ^7.0 || ^8.0"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-http/curl-client/zipball/f59d6992065f44be8b8fb484dd678a919c27dbf2"
+reference = "f59d6992065f44be8b8fb484dd678a919c27dbf2"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/php-http/curl-client.git"
+reference = "f59d6992065f44be8b8fb484dd678a919c27dbf2"
+
+[[packages.authors]]
+name = "Михаил Красильников"
+email = "m.krasilnikov@yandex.ru"
+
+[packages.support]
+issues = "https://github.com/php-http/curl-client/issues"
+source = "https://github.com/php-http/curl-client/tree/2.4.0"
+
+[packages.autoload.psr-4]
+'Http\Client\Curl\' = ["src/"]
+
+[packages.provide]
+"php-http/async-client-implementation" = "1.0"
+"php-http/client-implementation" = "1.0"
+"psr/http-client-implementation" = "1.0"
+
+[[packages]]
+name = "kiriminaja/kiriminaja-php"
+version = "2.1.7"
+type = "library"
+description = "PHP clients for KiriminAja API"
+homepage = "https://kiriminaja.com"
+time = "2026-10-21T10:14:46+00:00"
+license = ["MIT"]
+keywords = [
+    "fulfillment",
+    "cod",
+    "kiriminaja",
+    "kirimin aja",
+    "shipment aggregator",
+]
+
+[packages.require]
+ext-json = "*"
+"nyholm/psr7" = "^1.8"
+php = ">=8.1"
+"php-http/curl-client" = "^2.4"
+
+[packages.dist]
+type = "zip"
+url = "https://api.github.com/repos/kiriminaja/php/zipball/980d4618ae1b4a07dae9e1004be683522ced3978"
+reference = "980d4618ae1b4a07dae9e1004be683522ced3978"
+shasum = ""
+
+[packages.source]
+type = "git"
+url = "https://github.com/kiriminaja/php.git"
+reference = "980d4618ae1b4a07dae9e1004be683522ced3978"
+
+[[packages.authors]]
+name = "Daewu Bintara"
+email = "daewubintara@kiriminaja.com"
+
+[[packages.authors]]
+name = "Yanuar Aditia"
+email = "yanuar@kiriminaja.com"
+
+[packages.support]
+issues = "https://github.com/kiriminaja/php/issues"
+source = "https://github.com/kiriminaja/php/tree/2.1.7"
+
+[packages.extra.laravel]
+providers = ['KiriminAja\Laravel\KiriminAjaServiceProvider']
+
+[packages.autoload.psr-4]
+'KiriminAja\' = ["src/"]
+
+[[packages-dev]]
+name = "fidry/cpu-core-counter"
+version = "1.4.1"
+type = "library"
+description = "Tiny utility to get the number of CPU cores."
+homepage = ""
+time = "2026-09-29T22:11:39+00:00"
+license = ["MIT"]
+keywords = [
+    "core",
+    "CPU",
+]
+
+[packages-dev.require]
+php = "^7.2 || ^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/theofidry/cpu-core-counter/zipball/d384a7d0d6e67aa497327260ca95023e92dc2032"
+reference = "d384a7d0d6e67aa497327260ca95023e92dc2032"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/theofidry/cpu-core-counter.git"
+reference = "d384a7d0d6e67aa497327260ca95023e92dc2032"
+
+[[packages-dev.authors]]
+name = "Théo FIDRY"
+email = "theo.fidry@gmail.com"
+
+[packages-dev.support]
+issues = "https://github.com/theofidry/cpu-core-counter/issues"
+source = "https://github.com/theofidry/cpu-core-counter/tree/1.4.1"
+
+[packages-dev.autoload.psr-4]
+'Fidry\CpuCoreCounter\' = ["src/"]
+
+[[packages-dev]]
+name = "hamcrest/hamcrest-php"
+version = "v3.0.0"
+type = "library"
+description = "This is the PHP port of Hamcrest Matchers"
+homepage = ""
+time = "2026-03-17T11:56:53+00:00"
+license = ["BSD-3-Clause"]
+keywords = ["test"]
+
+[packages-dev.require]
+ext-ctype = "*"
+ext-dom = "*"
+php = "^7.4|^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/hamcrest/hamcrest-php/zipball/b61cd040da1a4925bc90a51c074f5297e7c0fa52"
+reference = "b61cd040da1a4925bc90a51c074f5297e7c0fa52"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/hamcrest/hamcrest-php.git"
+reference = "b61cd040da1a4925bc90a51c074f5297e7c0fa52"
+
+[packages-dev.support]
+issues = "https://github.com/hamcrest/hamcrest-php/issues"
+source = "https://github.com/hamcrest/hamcrest-php/tree/v3.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-master = "3.0-dev"
+
+[packages-dev.autoload]
+classmap = ["hamcrest"]
+
+[[packages-dev]]
+name = "jean85/pretty-package-versions"
+version = "2.0.6"
+type = "library"
+description = "A library to get pretty versions strings of installed dependencies"
+homepage = ""
+time = "2024-03-08T09:58:59+00:00"
+license = ["MIT"]
+keywords = [
+    "package",
+    "composer",
+    "release",
+    "versions",
+]
+
+[packages-dev.require]
+composer-runtime-api = "^2.0.0"
+php = "^7.1|^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/Jean85/pretty-package-versions/zipball/f9fdd29ad8e6d024f52678b570e5593759b550b4"
+reference = "f9fdd29ad8e6d024f52678b570e5593759b550b4"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/Jean85/pretty-package-versions.git"
+reference = "f9fdd29ad8e6d024f52678b570e5593759b550b4"
+
+[[packages-dev.authors]]
+name = "Alessandro Lai"
+email = "alessandro.lai85@gmail.com"
+
+[packages-dev.support]
+issues = "https://github.com/Jean85/pretty-package-versions/issues"
+source = "https://github.com/Jean85/pretty-package-versions/tree/2.0.6"
+
+[packages-dev.extra.branch-alias]
+dev-master = "1.x-dev"
+
+[packages-dev.autoload.psr-4]
+'Jean85\' = ["src/"]
+
+[[packages-dev]]
+name = "myclabs/deep-copy"
+version = "1.14.0"
+type = "library"
+description = "Create deep copies (clones) of your objects"
+homepage = ""
+time = "2026-08-11T10:17:44+00:00"
+license = ["MIT"]
+keywords = [
+    "object",
+    "clone",
+    "object graph",
+    "duplicate",
+    "copy",
+]
+
+[packages-dev.require]
+php = "^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/myclabs/DeepCopy/zipball/8680aa248f8e07bc8fb43f56f0f5fc77a0c96aae"
+reference = "8680aa248f8e07bc8fb43f56f0f5fc77a0c96aae"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/myclabs/DeepCopy.git"
+reference = "8680aa248f8e07bc8fb43f56f0f5fc77a0c96aae"
+
+[packages-dev.support]
+issues = "https://github.com/myclabs/DeepCopy/issues"
+source = "https://github.com/myclabs/DeepCopy/tree/1.14.0"
+
+[packages-dev.autoload]
+files = ["src/DeepCopy/deep_copy.php"]
+
+[packages-dev.autoload.psr-4]
+'DeepCopy\' = ["src/DeepCopy/"]
+
+[[packages-dev]]
+name = "nikic/php-parser"
+version = "v5.9.0"
+type = "library"
+description = "A PHP parser written in PHP"
+homepage = ""
+time = "2026-09-13T18:51:52+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "php",
+    "parser",
+]
+bin = ["bin/php-parse"]
+
+[packages-dev.require]
+ext-json = "*"
+ext-tokenizer = "*"
+php = ">=7.4"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/nikic/PHP-Parser/zipball/9e33da9553fe7786f0962b35f4e4ecf01be89def"
+reference = "9e33da9553fe7786f0962b35f4e4ecf01be89def"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/nikic/PHP-Parser.git"
+reference = "9e33da9553fe7786f0962b35f4e4ecf01be89def"
+
+[[packages-dev.authors]]
+name = "Nikita Popov"
+
+[packages-dev.support]
+issues = "https://github.com/nikic/PHP-Parser/issues"
+source = "https://github.com/nikic/PHP-Parser/tree/v5.9.0"
+
+[packages-dev.extra.branch-alias]
+dev-master = "5.x-dev"
+
+[packages-dev.autoload.psr-4]
+'PhpParser\' = ["lib/PhpParser"]
+
+[[packages-dev]]
+name = "phar-io/version"
+version = "3.2.1"
+type = "library"
+description = "Library for handling version information and constraints"
+homepage = ""
+time = "2022-02-21T01:04:05+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = "^7.2 || ^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/phar-io/version/zipball/4f7fd7836c6f332bb2933569e566a0d6c4cbed74"
+reference = "4f7fd7836c6f332bb2933569e566a0d6c4cbed74"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/phar-io/version.git"
+reference = "4f7fd7836c6f332bb2933569e566a0d6c4cbed74"
+
+[[packages-dev.authors]]
+name = "Arne Blankerts"
+email = "arne@blankerts.de"
+role = "Developer"
+
+[[packages-dev.authors]]
+name = "Sebastian Heuer"
+email = "sebastian@phpeople.de"
+role = "Developer"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "Developer"
+
+[packages-dev.support]
+issues = "https://github.com/phar-io/version/issues"
+source = "https://github.com/phar-io/version/tree/3.2.1"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "php-stubs/wordpress-stubs"
+version = "v7.1.2"
+type = "library"
+description = "WordPress function and class declaration stubs for static analysis."
+homepage = "https://github.com/php-stubs/wordpress-stubs"
+time = "2026-10-06T06:59:21+00:00"
+license = ["MIT"]
+keywords = [
+    "wordpress",
+    "static analysis",
+    "PHPStan",
+]
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-stubs/wordpress-stubs/zipball/6926c5156431a3ff909d43faa16a92a0bc0c2428"
+reference = "6926c5156431a3ff909d43faa16a92a0bc0c2428"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/php-stubs/wordpress-stubs.git"
+reference = "6926c5156431a3ff909d43faa16a92a0bc0c2428"
+
+[packages-dev.support]
+issues = "https://github.com/php-stubs/wordpress-stubs/issues"
+source = "https://github.com/php-stubs/wordpress-stubs/tree/v7.1.2"
+
+[packages-dev.autoload]
+
+[[packages-dev]]
+name = "phpstan/phpstan"
+version = "2.3.5"
+type = "library"
+description = "PHPStan - PHP Static Analysis Tool"
+homepage = ""
+time = "2026-11-03T12:14:22+00:00"
+license = ["MIT"]
+keywords = [
+    "static analysis",
+    "dev",
+]
+bin = [
+    "phpstan",
+    "phpstan.phar",
+]
+
+[packages-dev.require]
+php = "^7.4|^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/phpstan/phpstan/zipball/645a1bd6bead15fc1b8474137467961d0fa30a79"
+reference = "645a1bd6bead15fc1b8474137467961d0fa30a79"
+shasum = ""
+
+[[packages-dev.authors]]
+name = "Ondřej Mirtes"
+
+[[packages-dev.authors]]
+name = "Markus Staab"
+
+[[packages-dev.authors]]
+name = "Vincent Langlet"
+
+[packages-dev.support]
+docs = "https://phpstan.org/user-guide/getting-started"
+forum = "https://github.com/phpstan/phpstan/discussions"
+issues = "https://github.com/phpstan/phpstan/issues"
+security = "https://github.com/phpstan/phpstan/security/policy"
+source = "https://github.com/phpstan/phpstan-src"
+
+[packages-dev.autoload]
+files = ["bootstrap.php"]
+
+[[packages-dev]]
+name = "phpunit/php-file-iterator"
+version = "4.1.0"
+type = "library"
+description = "FilterIterator implementation that filters files based on a list of suffixes."
+homepage = "https://github.com/sebastianbergmann/php-file-iterator/"
+time = "2023-08-31T06:24:48+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "filesystem",
+    "iterator",
+]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/php-file-iterator/zipball/a95037b6d9e608ba092da1b23931e537cadc3c3c"
+reference = "a95037b6d9e608ba092da1b23931e537cadc3c3c"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/php-file-iterator.git"
+reference = "a95037b6d9e608ba092da1b23931e537cadc3c3c"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/php-file-iterator/issues"
+security = "https://github.com/sebastianbergmann/php-file-iterator/security/policy"
+source = "https://github.com/sebastianbergmann/php-file-iterator/tree/4.1.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "4.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "phpunit/php-invoker"
+version = "4.0.0"
+type = "library"
+description = "Invoke callables with a timeout"
+homepage = "https://github.com/sebastianbergmann/php-invoker/"
+time = "2023-02-03T06:56:09+00:00"
+license = ["BSD-3-Clause"]
+keywords = ["process"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/php-invoker/zipball/f5e568ba02fa5ba0ddd0f618391d5a9ea50b06d7"
+reference = "f5e568ba02fa5ba0ddd0f618391d5a9ea50b06d7"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/php-invoker.git"
+reference = "f5e568ba02fa5ba0ddd0f618391d5a9ea50b06d7"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/php-invoker/issues"
+source = "https://github.com/sebastianbergmann/php-invoker/tree/4.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "4.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "phpunit/php-text-template"
+version = "3.0.1"
+type = "library"
+description = "Simple template engine."
+homepage = "https://github.com/sebastianbergmann/php-text-template/"
+time = "2023-08-31T14:07:24+00:00"
+license = ["BSD-3-Clause"]
+keywords = ["template"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/php-text-template/zipball/0c7b06ff49e3d5072f057eb1fa59258bf287a748"
+reference = "0c7b06ff49e3d5072f057eb1fa59258bf287a748"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/php-text-template.git"
+reference = "0c7b06ff49e3d5072f057eb1fa59258bf287a748"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/php-text-template/issues"
+security = "https://github.com/sebastianbergmann/php-text-template/security/policy"
+source = "https://github.com/sebastianbergmann/php-text-template/tree/3.0.1"
+
+[packages-dev.extra.branch-alias]
+dev-main = "3.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "phpunit/php-timer"
+version = "6.0.0"
+type = "library"
+description = "Utility class for timing"
+homepage = "https://github.com/sebastianbergmann/php-timer/"
+time = "2023-02-03T06:57:52+00:00"
+license = ["BSD-3-Clause"]
+keywords = ["timer"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/php-timer/zipball/e2a2d67966e740530f4a3343fe2e030ffdc1161d"
+reference = "e2a2d67966e740530f4a3343fe2e030ffdc1161d"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/php-timer.git"
+reference = "e2a2d67966e740530f4a3343fe2e030ffdc1161d"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/php-timer/issues"
+source = "https://github.com/sebastianbergmann/php-timer/tree/6.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "6.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "psr/container"
+version = "2.0.2"
+type = "library"
+description = "Common Container Interface (PHP FIG PSR-11)"
+homepage = "https://github.com/php-fig/container"
+time = "2021-11-05T16:47:00+00:00"
+license = ["MIT"]
+keywords = [
+    "container",
+    "psr",
+    "container-interop",
+    "PSR-11",
+    "container-interface",
+]
+
+[packages-dev.require]
+php = ">=7.4.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-fig/container/zipball/c71ecc56dfe541dbd90c5360474fbc405f8d5963"
+reference = "c71ecc56dfe541dbd90c5360474fbc405f8d5963"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/php-fig/container.git"
+reference = "c71ecc56dfe541dbd90c5360474fbc405f8d5963"
+
+[[packages-dev.authors]]
+name = "PHP-FIG"
+homepage = "https://www.php-fig.org/"
+
+[packages-dev.support]
+issues = "https://github.com/php-fig/container/issues"
+source = "https://github.com/php-fig/container/tree/2.0.2"
+
+[packages-dev.extra.branch-alias]
+dev-master = "2.0.x-dev"
+
+[packages-dev.autoload.psr-4]
+'Psr\Container\' = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/cli-parser"
+version = "2.0.1"
+type = "library"
+description = "Library for parsing CLI options"
+homepage = "https://github.com/sebastianbergmann/cli-parser"
+time = "2024-03-02T07:12:49+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/cli-parser/zipball/c34583b87e7b7a8055bf6c450c2c77ce32a24084"
+reference = "c34583b87e7b7a8055bf6c450c2c77ce32a24084"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/cli-parser.git"
+reference = "c34583b87e7b7a8055bf6c450c2c77ce32a24084"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/cli-parser/issues"
+security = "https://github.com/sebastianbergmann/cli-parser/security/policy"
+source = "https://github.com/sebastianbergmann/cli-parser/tree/2.0.1"
+
+[packages-dev.extra.branch-alias]
+dev-main = "2.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/code-unit"
+version = "2.0.0"
+type = "library"
+description = "Collection of value objects that represent the PHP code units"
+homepage = "https://github.com/sebastianbergmann/code-unit"
+time = "2023-02-03T06:58:43+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/code-unit/zipball/a81fee9eef0b7a76af11d121767abc44c104e503"
+reference = "a81fee9eef0b7a76af11d121767abc44c104e503"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/code-unit.git"
+reference = "a81fee9eef0b7a76af11d121767abc44c104e503"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/code-unit/issues"
+source = "https://github.com/sebastianbergmann/code-unit/tree/2.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "2.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/code-unit-reverse-lookup"
+version = "3.0.0"
+type = "library"
+description = "Looks up which function or method a line of code belongs to"
+homepage = "https://github.com/sebastianbergmann/code-unit-reverse-lookup/"
+time = "2023-02-03T06:59:15+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/code-unit-reverse-lookup/zipball/5e3a687f7d8ae33fb362c5c0743794bbb2420a1d"
+reference = "5e3a687f7d8ae33fb362c5c0743794bbb2420a1d"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/code-unit-reverse-lookup.git"
+reference = "5e3a687f7d8ae33fb362c5c0743794bbb2420a1d"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/code-unit-reverse-lookup/issues"
+source = "https://github.com/sebastianbergmann/code-unit-reverse-lookup/tree/3.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "3.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/diff"
+version = "5.1.1"
+type = "library"
+description = "Diff implementation"
+homepage = "https://github.com/sebastianbergmann/diff"
+time = "2024-03-02T07:15:17+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "diff",
+    "udiff",
+    "unified diff",
+    "unidiff",
+]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/diff/zipball/c41e007b4b62af48218231d6c2275e4c9b975b2e"
+reference = "c41e007b4b62af48218231d6c2275e4c9b975b2e"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/diff.git"
+reference = "c41e007b4b62af48218231d6c2275e4c9b975b2e"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[[packages-dev.authors]]
+name = "Kore Nordmann"
+email = "mail@kore-nordmann.de"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/diff/issues"
+security = "https://github.com/sebastianbergmann/diff/security/policy"
+source = "https://github.com/sebastianbergmann/diff/tree/5.1.1"
+
+[packages-dev.extra.branch-alias]
+dev-main = "5.1-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/environment"
+version = "6.1.0"
+type = "library"
+description = "Provides functionality to handle HHVM/PHP environments"
+homepage = "https://github.com/sebastianbergmann/environment"
+time = "2024-03-23T08:47:14+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "Xdebug",
+    "environment",
+    "hhvm",
+]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/environment/zipball/8074dbcd93529b357029f5cc5058fd3e43666984"
+reference = "8074dbcd93529b357029f5cc5058fd3e43666984"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/environment.git"
+reference = "8074dbcd93529b357029f5cc5058fd3e43666984"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/environment/issues"
+security = "https://github.com/sebastianbergmann/environment/security/policy"
+source = "https://github.com/sebastianbergmann/environment/tree/6.1.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "6.1-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/object-reflector"
+version = "3.0.0"
+type = "library"
+description = "Allows reflection of object attributes, including inherited and non-public ones"
+homepage = "https://github.com/sebastianbergmann/object-reflector/"
+time = "2023-02-03T07:06:18+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/object-reflector/zipball/24ed13d98130f0e7122df55d06c5c4942a577957"
+reference = "24ed13d98130f0e7122df55d06c5c4942a577957"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/object-reflector.git"
+reference = "24ed13d98130f0e7122df55d06c5c4942a577957"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/object-reflector/issues"
+source = "https://github.com/sebastianbergmann/object-reflector/tree/3.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "3.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/recursion-context"
+version = "5.0.2"
+type = "library"
+description = "Provides functionality to recursively process PHP variables"
+homepage = "https://github.com/sebastianbergmann/recursion-context"
+time = "2026-08-11T05:27:39+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/recursion-context/zipball/5d32fe257a9b39cb63146924d6b4e32a22d4502a"
+reference = "5d32fe257a9b39cb63146924d6b4e32a22d4502a"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/recursion-context.git"
+reference = "5d32fe257a9b39cb63146924d6b4e32a22d4502a"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[[packages-dev.authors]]
+name = "Jeff Welch"
+email = "whatthejeff@gmail.com"
+
+[[packages-dev.authors]]
+name = "Adam Harvey"
+email = "aharvey@php.net"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/recursion-context/issues"
+security = "https://github.com/sebastianbergmann/recursion-context/security/policy"
+source = "https://github.com/sebastianbergmann/recursion-context/tree/5.0.2"
+
+[packages-dev.extra.branch-alias]
+dev-main = "5.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/type"
+version = "4.0.0"
+type = "library"
+description = "Collection of value objects that represent the types of the PHP type system"
+homepage = "https://github.com/sebastianbergmann/type"
+time = "2023-02-03T07:10:45+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/type/zipball/462699a16464c3944eefc02ebdd77882bd3925bf"
+reference = "462699a16464c3944eefc02ebdd77882bd3925bf"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/type.git"
+reference = "462699a16464c3944eefc02ebdd77882bd3925bf"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/type/issues"
+source = "https://github.com/sebastianbergmann/type/tree/4.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "4.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/version"
+version = "4.0.1"
+type = "library"
+description = "Library that helps with managing the version number of Git-hosted PHP projects"
+homepage = "https://github.com/sebastianbergmann/version"
+time = "2023-02-07T11:34:05+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/version/zipball/c51fa83a5d8f43f1402e3f32a005e6262244ef17"
+reference = "c51fa83a5d8f43f1402e3f32a005e6262244ef17"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/version.git"
+reference = "c51fa83a5d8f43f1402e3f32a005e6262244ef17"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/version/issues"
+source = "https://github.com/sebastianbergmann/version/tree/4.0.1"
+
+[packages-dev.extra.branch-alias]
+dev-main = "4.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "symfony/polyfill-ctype"
+version = "v1.37.0"
+type = "library"
+description = "Symfony polyfill for ctype functions"
+homepage = "https://symfony.com"
+time = "2026-04-10T16:19:22+00:00"
+license = ["MIT"]
+keywords = [
+    "compatibility",
+    "portable",
+    "polyfill",
+    "ctype",
+]
+
+[packages-dev.require]
+php = ">=7.2"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/polyfill-ctype/zipball/141046a8f9477948ff284fa65be2095baafb94f2"
+reference = "141046a8f9477948ff284fa65be2095baafb94f2"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/polyfill-ctype.git"
+reference = "141046a8f9477948ff284fa65be2095baafb94f2"
+
+[[packages-dev.authors]]
+name = "Gert de Pagter"
+email = "BackEndTea@gmail.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/polyfill-ctype/tree/v1.37.0"
+
+[packages-dev.extra.thanks]
+name = "symfony/polyfill"
+url = "https://github.com/symfony/polyfill"
+
+[packages-dev.autoload]
+files = ["bootstrap.php"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Polyfill\Ctype\' = [""]
+
+[packages-dev.provide]
+ext-ctype = "*"
+
+[[packages-dev]]
+name = "symfony/polyfill-intl-grapheme"
+version = "v1.43.3"
+type = "library"
+description = "Symfony polyfill for intl's grapheme_* functions"
+homepage = "https://symfony.com"
+time = "2026-10-15T09:18:53+00:00"
+license = ["MIT"]
+keywords = [
+    "intl",
+    "compatibility",
+    "portable",
+    "grapheme",
+    "polyfill",
+    "shim",
+]
+
+[packages-dev.require]
+php = ">=7.2"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/polyfill-intl-grapheme/zipball/5a8f33c87aeecffce24e721b5064fab05f4becf8"
+reference = "5a8f33c87aeecffce24e721b5064fab05f4becf8"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/polyfill-intl-grapheme.git"
+reference = "5a8f33c87aeecffce24e721b5064fab05f4becf8"
+
+[[packages-dev.authors]]
+name = "Nicolas Grekas"
+email = "p@tchwork.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/polyfill-intl-grapheme/tree/v1.43.3"
+
+[packages-dev.extra.thanks]
+name = "symfony/polyfill"
+url = "https://github.com/symfony/polyfill"
+
+[packages-dev.autoload]
+files = ["bootstrap.php"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Polyfill\Intl\Grapheme\' = [""]
+
+[[packages-dev]]
+name = "symfony/polyfill-intl-normalizer"
+version = "v1.43.0"
+type = "library"
+description = "Symfony polyfill for intl's Normalizer class and related functions"
+homepage = "https://symfony.com"
+time = "2026-09-23T22:02:09+00:00"
+license = ["MIT"]
+keywords = [
+    "intl",
+    "compatibility",
+    "normalizer",
+    "portable",
+    "polyfill",
+    "shim",
+]
+
+[packages-dev.require]
+php = ">=7.2"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/polyfill-intl-normalizer/zipball/ebd57ccc7edb93d632e184efbe7693d2517bab3b"
+reference = "ebd57ccc7edb93d632e184efbe7693d2517bab3b"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/polyfill-intl-normalizer.git"
+reference = "ebd57ccc7edb93d632e184efbe7693d2517bab3b"
+
+[[packages-dev.authors]]
+name = "Nicolas Grekas"
+email = "p@tchwork.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/polyfill-intl-normalizer/tree/v1.43.0"
+
+[packages-dev.extra.thanks]
+name = "symfony/polyfill"
+url = "https://github.com/symfony/polyfill"
+
+[packages-dev.autoload]
+classmap = ["Resources/stubs"]
+files = ["bootstrap.php"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Polyfill\Intl\Normalizer\' = [""]
+
+[[packages-dev]]
+name = "symfony/polyfill-mbstring"
+version = "v1.43.3"
+type = "library"
+description = "Symfony polyfill for the Mbstring extension"
+homepage = "https://symfony.com"
+time = "2026-10-28T09:35:49+00:00"
+license = ["MIT"]
+keywords = [
+    "mbstring",
+    "compatibility",
+    "portable",
+    "polyfill",
+    "shim",
+]
+
+[packages-dev.require]
+ext-iconv = "*"
+php = ">=7.2"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/122889ed24dc000165bcbfd77ec412f15cbdfc6a"
+reference = "122889ed24dc000165bcbfd77ec412f15cbdfc6a"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/polyfill-mbstring.git"
+reference = "122889ed24dc000165bcbfd77ec412f15cbdfc6a"
+
+[[packages-dev.authors]]
+name = "Nicolas Grekas"
+email = "p@tchwork.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/polyfill-mbstring/tree/v1.43.3"
+
+[packages-dev.extra.thanks]
+name = "symfony/polyfill"
+url = "https://github.com/symfony/polyfill"
+
+[packages-dev.autoload]
+files = ["bootstrap.php"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Polyfill\Mbstring\' = [""]
+
+[packages-dev.provide]
+ext-mbstring = "*"
+
+[[packages-dev]]
+name = "symfony/process"
+version = "v7.4.22"
+type = "library"
+description = "Executes commands in sub-processes"
+homepage = "https://symfony.com"
+time = "2026-10-25T14:40:16+00:00"
+license = ["MIT"]
+
+[packages-dev.require]
+php = ">=8.2"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/process/zipball/a5a6912edbbfc4c98cd080bc4bbe37c8e7eeb20a"
+reference = "a5a6912edbbfc4c98cd080bc4bbe37c8e7eeb20a"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/process.git"
+reference = "a5a6912edbbfc4c98cd080bc4bbe37c8e7eeb20a"
+
+[[packages-dev.authors]]
+name = "Fabien Potencier"
+email = "fabien@symfony.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/process/tree/v7.4.22"
+
+[packages-dev.autoload]
+exclude = ["/Tests/"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Component\Process\' = [""]
+
+[[packages-dev]]
+name = "theseer/tokenizer"
+version = "1.3.1"
+type = "library"
+description = "A small library for converting tokenized PHP source code into XML and potentially other formats"
+homepage = ""
+time = "2025-11-17T20:03:58+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+ext-dom = "*"
+ext-tokenizer = "*"
+ext-xmlwriter = "*"
+php = "^7.2 || ^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/theseer/tokenizer/zipball/b7489ce515e168639d17feec34b8847c326b0b3c"
+reference = "b7489ce515e168639d17feec34b8847c326b0b3c"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/theseer/tokenizer.git"
+reference = "b7489ce515e168639d17feec34b8847c326b0b3c"
+
+[[packages-dev.authors]]
+name = "Arne Blankerts"
+email = "arne@blankerts.de"
+role = "Developer"
+
+[packages-dev.support]
+issues = "https://github.com/theseer/tokenizer/issues"
+source = "https://github.com/theseer/tokenizer/tree/1.3.1"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "mockery/mockery"
+version = "1.6.15"
+type = "library"
+description = "Mockery is a simple yet flexible PHP mock object framework"
+homepage = "https://github.com/mockery/mockery"
+time = "2026-08-19T19:37:52+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "testing",
+    "library",
+    "BDD",
+    "TDD",
+    "test",
+    "mockery",
+    "mock",
+    "stub",
+    "test double",
+    "mock objects",
+]
+
+[packages-dev.require]
+"hamcrest/hamcrest-php" = "^2.0 || ^3.0"
+php = ">=7.3"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/mockery/mockery/zipball/967a801bd188989a5669bd280f252d51c0fdc9ee"
+reference = "967a801bd188989a5669bd280f252d51c0fdc9ee"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/mockery/mockery.git"
+reference = "967a801bd188989a5669bd280f252d51c0fdc9ee"
+
+[[packages-dev.authors]]
+name = "Pádraic Brady"
+email = "padraic.brady@gmail.com"
+homepage = "https://github.com/padraic"
+role = "Author"
+
+[[packages-dev.authors]]
+name = "Dave Marshall"
+email = "dave.marshall@atstsolutions.co.uk"
+homepage = "https://davedevelopment.co.uk"
+role = "Developer"
+
+[[packages-dev.authors]]
+name = "Nathanael Esayeas"
+email = "nathanael.esayeas@protonmail.com"
+homepage = "https://github.com/ghostwriter"
+role = "Lead Developer"
+
+[packages-dev.support]
+docs = "https://docs.mockery.io/"
+issues = "https://github.com/mockery/mockery/issues"
+rss = "https://github.com/mockery/mockery/releases.atom"
+security = "https://github.com/mockery/mockery/security/advisories"
+source = "https://github.com/mockery/mockery"
+
+[packages-dev.autoload]
+files = [
+    "library/helpers.php",
+    "library/Mockery.php",
+]
+
+[packages-dev.autoload.psr-4]
+'Mockery\' = ["library/Mockery"]
+
+[[packages-dev]]
+name = "sebastian/complexity"
+version = "3.2.0"
+type = "library"
+description = "Library for calculating the complexity of PHP code units"
+homepage = "https://github.com/sebastianbergmann/complexity"
+time = "2023-12-21T08:37:17+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+"nikic/php-parser" = "^4.18 || ^5.0"
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/complexity/zipball/68ff824baeae169ec9f2137158ee529584553799"
+reference = "68ff824baeae169ec9f2137158ee529584553799"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/complexity.git"
+reference = "68ff824baeae169ec9f2137158ee529584553799"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/complexity/issues"
+security = "https://github.com/sebastianbergmann/complexity/security/policy"
+source = "https://github.com/sebastianbergmann/complexity/tree/3.2.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "3.2-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/lines-of-code"
+version = "2.0.2"
+type = "library"
+description = "Library for counting the lines of code in PHP source code"
+homepage = "https://github.com/sebastianbergmann/lines-of-code"
+time = "2023-12-21T08:38:20+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+"nikic/php-parser" = "^4.18 || ^5.0"
+php = ">=8.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/lines-of-code/zipball/856e7f6a75a84e339195d48c556f23be2ebf75d0"
+reference = "856e7f6a75a84e339195d48c556f23be2ebf75d0"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/lines-of-code.git"
+reference = "856e7f6a75a84e339195d48c556f23be2ebf75d0"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/lines-of-code/issues"
+security = "https://github.com/sebastianbergmann/lines-of-code/security/policy"
+source = "https://github.com/sebastianbergmann/lines-of-code/tree/2.0.2"
+
+[packages-dev.extra.branch-alias]
+dev-main = "2.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "phar-io/manifest"
+version = "2.0.4"
+type = "library"
+description = "Component for reading phar.io manifest information from a PHP Archive (PHAR)"
+homepage = ""
+time = "2024-03-03T12:33:53+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+ext-dom = "*"
+ext-libxml = "*"
+ext-phar = "*"
+ext-xmlwriter = "*"
+"phar-io/version" = "^3.0.1"
+php = "^7.2 || ^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/phar-io/manifest/zipball/54750ef60c58e43759730615a392c31c80e23176"
+reference = "54750ef60c58e43759730615a392c31c80e23176"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/phar-io/manifest.git"
+reference = "54750ef60c58e43759730615a392c31c80e23176"
+
+[[packages-dev.authors]]
+name = "Arne Blankerts"
+email = "arne@blankerts.de"
+role = "Developer"
+
+[[packages-dev.authors]]
+name = "Sebastian Heuer"
+email = "sebastian@phpeople.de"
+role = "Developer"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "Developer"
+
+[packages-dev.support]
+issues = "https://github.com/phar-io/manifest/issues"
+source = "https://github.com/phar-io/manifest/tree/2.0.4"
+
+[packages-dev.extra.branch-alias]
+dev-master = "2.0.x-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "php-stubs/woocommerce-stubs"
+version = "v10.9.4"
+type = "library"
+description = "WooCommerce function and class declaration stubs for static analysis."
+homepage = "https://github.com/php-stubs/woocommerce-stubs"
+time = "2026-07-16T18:17:41+00:00"
+license = ["MIT"]
+keywords = [
+    "wordpress",
+    "static analysis",
+    "woocommerce",
+    "PHPStan",
+]
+
+[packages-dev.require]
+"php-stubs/wordpress-stubs" = "^5.3 || ^6.0 || ^7.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/php-stubs/woocommerce-stubs/zipball/a569e43283b86178628beb7aa22cc34b4076b435"
+reference = "a569e43283b86178628beb7aa22cc34b4076b435"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/php-stubs/woocommerce-stubs.git"
+reference = "a569e43283b86178628beb7aa22cc34b4076b435"
+
+[packages-dev.support]
+issues = "https://github.com/php-stubs/woocommerce-stubs/issues"
+source = "https://github.com/php-stubs/woocommerce-stubs/tree/v10.9.4"
+
+[packages-dev.autoload]
+
+[[packages-dev]]
+name = "szepeviktor/phpstan-wordpress"
+version = "v2.0.4"
+type = "phpstan-extension"
+description = "WordPress extensions for PHPStan"
+homepage = ""
+time = "2026-05-22T16:22:09+00:00"
+license = ["MIT"]
+keywords = [
+    "wordpress",
+    "static analysis",
+    "code analysis",
+    "PHPStan",
+    "code analyse",
+]
+
+[packages-dev.require]
+php = "^7.4 || ^8.0"
+"php-stubs/wordpress-stubs" = ">=6.6.2"
+"phpstan/phpstan" = "^2.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/szepeviktor/phpstan-wordpress/zipball/84577e2ea1e4c2a95537fe5ea2ac8e18f4ceab1a"
+reference = "84577e2ea1e4c2a95537fe5ea2ac8e18f4ceab1a"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/szepeviktor/phpstan-wordpress.git"
+reference = "84577e2ea1e4c2a95537fe5ea2ac8e18f4ceab1a"
+
+[packages-dev.support]
+issues = "https://github.com/szepeviktor/phpstan-wordpress/issues"
+source = "https://github.com/szepeviktor/phpstan-wordpress/tree/v2.0.4"
+
+[packages-dev.extra.phpstan]
+includes = ["extension.neon"]
+
+[packages-dev.autoload.psr-4]
+'SzepeViktor\PHPStan\WordPress\' = ["src/"]
+
+[[packages-dev]]
+name = "symfony/service-contracts"
+version = "v3.8.1"
+type = "library"
+description = "Generic abstractions related to writing services"
+homepage = "https://symfony.com"
+time = "2026-10-20T17:38:25+00:00"
+license = ["MIT"]
+keywords = [
+    "interfaces",
+    "standards",
+    "interoperability",
+    "contracts",
+    "abstractions",
+    "decoupling",
+]
+
+[packages-dev.require]
+php = ">=8.1"
+"psr/container" = "^1.1|^2.0"
+"symfony/deprecation-contracts" = "^2.5|^3"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/service-contracts/zipball/052852a96fd5e5ebdb617dba22031e41a3300fb5"
+reference = "052852a96fd5e5ebdb617dba22031e41a3300fb5"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/service-contracts.git"
+reference = "052852a96fd5e5ebdb617dba22031e41a3300fb5"
+
+[[packages-dev.authors]]
+name = "Nicolas Grekas"
+email = "p@tchwork.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/service-contracts/tree/v3.8.1"
+
+[packages-dev.extra.branch-alias]
+dev-main = "3.8-dev"
+
+[packages-dev.extra.thanks]
+name = "symfony/contracts"
+url = "https://github.com/symfony/contracts"
+
+[packages-dev.autoload]
+exclude = ["/Test/"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Contracts\Service\' = [""]
+
+[[packages-dev]]
+name = "sebastian/exporter"
+version = "5.1.4"
+type = "library"
+description = "Provides the functionality to export PHP variables for visualization"
+homepage = "https://www.github.com/sebastianbergmann/exporter"
+time = "2025-09-24T06:09:11+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "export",
+    "exporter",
+]
+
+[packages-dev.require]
+ext-mbstring = "*"
+php = ">=8.1"
+"sebastian/recursion-context" = "^5.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/exporter/zipball/0735b90f4da94969541dac1da743446e276defa6"
+reference = "0735b90f4da94969541dac1da743446e276defa6"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/exporter.git"
+reference = "0735b90f4da94969541dac1da743446e276defa6"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[[packages-dev.authors]]
+name = "Jeff Welch"
+email = "whatthejeff@gmail.com"
+
+[[packages-dev.authors]]
+name = "Volker Dusch"
+email = "github@wallbash.com"
+
+[[packages-dev.authors]]
+name = "Adam Harvey"
+email = "aharvey@php.net"
+
+[[packages-dev.authors]]
+name = "Bernhard Schussek"
+email = "bschussek@gmail.com"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/exporter/issues"
+security = "https://github.com/sebastianbergmann/exporter/security/policy"
+source = "https://github.com/sebastianbergmann/exporter/tree/5.1.4"
+
+[packages-dev.extra.branch-alias]
+dev-main = "5.1-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/global-state"
+version = "6.0.2"
+type = "library"
+description = "Snapshotting of global state"
+homepage = "https://www.github.com/sebastianbergmann/global-state"
+time = "2024-03-02T07:19:19+00:00"
+license = ["BSD-3-Clause"]
+keywords = ["global state"]
+
+[packages-dev.require]
+php = ">=8.1"
+"sebastian/object-reflector" = "^3.0"
+"sebastian/recursion-context" = "^5.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/global-state/zipball/987bafff24ecc4c9ac418cab1145b96dd6e9cbd9"
+reference = "987bafff24ecc4c9ac418cab1145b96dd6e9cbd9"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/global-state.git"
+reference = "987bafff24ecc4c9ac418cab1145b96dd6e9cbd9"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/global-state/issues"
+security = "https://github.com/sebastianbergmann/global-state/security/policy"
+source = "https://github.com/sebastianbergmann/global-state/tree/6.0.2"
+
+[packages-dev.extra.branch-alias]
+dev-main = "6.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/object-enumerator"
+version = "5.0.0"
+type = "library"
+description = "Traverses array structures and object graphs to enumerate all referenced objects"
+homepage = "https://github.com/sebastianbergmann/object-enumerator/"
+time = "2023-02-03T07:08:32+00:00"
+license = ["BSD-3-Clause"]
+
+[packages-dev.require]
+php = ">=8.1"
+"sebastian/object-reflector" = "^3.0"
+"sebastian/recursion-context" = "^5.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/object-enumerator/zipball/202d0e344a580d7f7d04b3fafce6933e59dae906"
+reference = "202d0e344a580d7f7d04b3fafce6933e59dae906"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/object-enumerator.git"
+reference = "202d0e344a580d7f7d04b3fafce6933e59dae906"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/object-enumerator/issues"
+source = "https://github.com/sebastianbergmann/object-enumerator/tree/5.0.0"
+
+[packages-dev.extra.branch-alias]
+dev-main = "5.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "symfony/string"
+version = "v7.4.22"
+type = "library"
+description = "Provides an object-oriented API to strings and deals with bytes, UTF-8 code points and grapheme clusters in a unified way"
+homepage = "https://symfony.com"
+time = "2026-10-23T16:51:52+00:00"
+license = ["MIT"]
+keywords = [
+    "i18n",
+    "utf8",
+    "utf-8",
+    "string",
+    "unicode",
+    "grapheme",
+]
+
+[packages-dev.require]
+php = ">=8.2"
+"symfony/deprecation-contracts" = "^2.5|^3.0"
+"symfony/polyfill-ctype" = "~1.8"
+"symfony/polyfill-intl-grapheme" = "~1.33"
+"symfony/polyfill-intl-normalizer" = "~1.0"
+"symfony/polyfill-mbstring" = "~1.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/string/zipball/8dff7da3a56638f1d189c5368183294102de4ced"
+reference = "8dff7da3a56638f1d189c5368183294102de4ced"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/string.git"
+reference = "8dff7da3a56638f1d189c5368183294102de4ced"
+
+[[packages-dev.authors]]
+name = "Nicolas Grekas"
+email = "p@tchwork.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/string/tree/v7.4.22"
+
+[packages-dev.autoload]
+files = ["Resources/functions.php"]
+exclude = ["/Tests/"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Component\String\' = [""]
+
+[[packages-dev]]
+name = "phpunit/php-code-coverage"
+version = "10.1.16"
+type = "library"
+description = "Library that provides collection, processing, and rendering functionality for PHP code coverage information."
+homepage = "https://github.com/sebastianbergmann/php-code-coverage"
+time = "2024-08-22T04:31:57+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "testing",
+    "coverage",
+    "xunit",
+]
+
+[packages-dev.require]
+ext-dom = "*"
+ext-libxml = "*"
+ext-xmlwriter = "*"
+"nikic/php-parser" = "^4.19.1 || ^5.1.0"
+php = ">=8.1"
+"phpunit/php-file-iterator" = "^4.1.0"
+"phpunit/php-text-template" = "^3.0.1"
+"sebastian/code-unit-reverse-lookup" = "^3.0.0"
+"sebastian/complexity" = "^3.2.0"
+"sebastian/environment" = "^6.1.0"
+"sebastian/lines-of-code" = "^2.0.2"
+"sebastian/version" = "^4.0.1"
+"theseer/tokenizer" = "^1.2.3"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/php-code-coverage/zipball/7e308268858ed6baedc8704a304727d20bc07c77"
+reference = "7e308268858ed6baedc8704a304727d20bc07c77"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/php-code-coverage.git"
+reference = "7e308268858ed6baedc8704a304727d20bc07c77"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/php-code-coverage/issues"
+security = "https://github.com/sebastianbergmann/php-code-coverage/security/policy"
+source = "https://github.com/sebastianbergmann/php-code-coverage/tree/10.1.16"
+
+[packages-dev.extra.branch-alias]
+dev-main = "10.1.x-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "sebastian/comparator"
+version = "5.0.5"
+type = "library"
+description = "Provides the functionality to compare PHP values for equality"
+homepage = "https://github.com/sebastianbergmann/comparator"
+time = "2026-01-24T09:25:16+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "equality",
+    "compare",
+    "comparator",
+]
+
+[packages-dev.require]
+ext-dom = "*"
+ext-mbstring = "*"
+php = ">=8.1"
+"sebastian/diff" = "^5.0"
+"sebastian/exporter" = "^5.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/comparator/zipball/55dfef806eb7dfeb6e7a6935601fef866f8ca48d"
+reference = "55dfef806eb7dfeb6e7a6935601fef866f8ca48d"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/comparator.git"
+reference = "55dfef806eb7dfeb6e7a6935601fef866f8ca48d"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+
+[[packages-dev.authors]]
+name = "Jeff Welch"
+email = "whatthejeff@gmail.com"
+
+[[packages-dev.authors]]
+name = "Volker Dusch"
+email = "github@wallbash.com"
+
+[[packages-dev.authors]]
+name = "Bernhard Schussek"
+email = "bschussek@2bepublished.at"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/comparator/issues"
+security = "https://github.com/sebastianbergmann/comparator/security/policy"
+source = "https://github.com/sebastianbergmann/comparator/tree/5.0.5"
+
+[packages-dev.extra.branch-alias]
+dev-main = "5.0-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+
+[[packages-dev]]
+name = "symfony/console"
+version = "v7.4.23"
+type = "library"
+description = "Eases the creation of beautiful and testable command line interfaces"
+homepage = "https://symfony.com"
+time = "2026-11-03T21:47:07+00:00"
+license = ["MIT"]
+keywords = [
+    "cli",
+    "console",
+    "command-line",
+    "terminal",
+]
+
+[packages-dev.require]
+php = ">=8.2"
+"symfony/deprecation-contracts" = "^2.5|^3"
+"symfony/polyfill-mbstring" = "~1.0"
+"symfony/service-contracts" = "^2.5|^3"
+"symfony/string" = "^7.2|^8.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/symfony/console/zipball/81957c2440c05c962fe8291f318de6e85f8db330"
+reference = "81957c2440c05c962fe8291f318de6e85f8db330"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/symfony/console.git"
+reference = "81957c2440c05c962fe8291f318de6e85f8db330"
+
+[[packages-dev.authors]]
+name = "Fabien Potencier"
+email = "fabien@symfony.com"
+
+[[packages-dev.authors]]
+name = "Symfony Community"
+homepage = "https://symfony.com/contributors"
+
+[packages-dev.support]
+source = "https://github.com/symfony/console/tree/v7.4.23"
+
+[packages-dev.autoload]
+exclude = ["/Tests/"]
+
+[packages-dev.autoload.psr-4]
+'Symfony\Component\Console\' = [""]
+
+[packages-dev.provide]
+"psr/log-implementation" = "1.0|2.0|3.0"
+
+[[packages-dev]]
+name = "phpunit/phpunit"
+version = "10.5.66"
+type = "library"
+description = "The PHP Unit Testing framework."
+homepage = "https://phpunit.de/"
+time = "2026-10-05T05:46:26+00:00"
+license = ["BSD-3-Clause"]
+keywords = [
+    "testing",
+    "phpunit",
+    "xunit",
+]
+bin = ["phpunit"]
+
+[packages-dev.require]
+ext-dom = "*"
+ext-filter = "*"
+ext-json = "*"
+ext-libxml = "*"
+ext-mbstring = "*"
+ext-xmlwriter = "*"
+"myclabs/deep-copy" = "^1.14.0"
+"phar-io/manifest" = "^2.0.4"
+"phar-io/version" = "^3.2.1"
+php = ">=8.1"
+"phpunit/php-code-coverage" = "^10.1.16"
+"phpunit/php-file-iterator" = "^4.1.0"
+"phpunit/php-invoker" = "^4.0.0"
+"phpunit/php-text-template" = "^3.0.1"
+"phpunit/php-timer" = "^6.0.0"
+"sebastian/cli-parser" = "^2.0.1"
+"sebastian/code-unit" = "^2.0.0"
+"sebastian/comparator" = "^5.0.5"
+"sebastian/diff" = "^5.1.1"
+"sebastian/environment" = "^6.1.0"
+"sebastian/exporter" = "^5.1.4"
+"sebastian/global-state" = "^6.0.2"
+"sebastian/object-enumerator" = "^5.0.0"
+"sebastian/recursion-context" = "^5.0.2"
+"sebastian/type" = "^4.0.0"
+"sebastian/version" = "^4.0.1"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/sebastianbergmann/phpunit/zipball/747c9889613d0b3ffa08b74272e50ed3b8fa6d72"
+reference = "747c9889613d0b3ffa08b74272e50ed3b8fa6d72"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/sebastianbergmann/phpunit.git"
+reference = "747c9889613d0b3ffa08b74272e50ed3b8fa6d72"
+
+[[packages-dev.authors]]
+name = "Sebastian Bergmann"
+email = "sebastian@phpunit.de"
+role = "lead"
+
+[packages-dev.support]
+issues = "https://github.com/sebastianbergmann/phpunit/issues"
+security = "https://github.com/sebastianbergmann/phpunit/security/policy"
+source = "https://github.com/sebastianbergmann/phpunit/tree/10.5.66"
+
+[packages-dev.extra.branch-alias]
+dev-main = "10.5-dev"
+
+[packages-dev.autoload]
+classmap = ["src/"]
+files = ["src/Framework/Assert/Functions.php"]
+
+[[packages-dev]]
+name = "brianium/paratest"
+version = "v7.3.2"
+type = "library"
+description = "Parallel testing for PHP"
+homepage = "https://github.com/paratestphp/paratest"
+time = "2026-02-10T07:06:59+00:00"
+license = ["MIT"]
+keywords = [
+    "testing",
+    "phpunit",
+    "parallel",
+    "concurrent",
+]
+bin = [
+    "bin/paratest",
+    "bin/paratest.bat",
+    "bin/paratest_for_phpstorm",
+]
+
+[packages-dev.require]
+ext-dom = "*"
+ext-pcre = "*"
+ext-reflection = "*"
+ext-simplexml = "*"
+"fidry/cpu-core-counter" = "^0.5.1 || ^1.0.0"
+"jean85/pretty-package-versions" = "^2.0.5"
+php = "~8.1.0 || ~8.2.0 || ~8.3.0"
+"phpunit/php-code-coverage" = "^10.1.7"
+"phpunit/php-file-iterator" = "^4.1.0"
+"phpunit/php-timer" = "^6.0"
+"phpunit/phpunit" = "^10.5.62"
+"sebastian/environment" = "^6.0.1"
+"symfony/console" = "^6.3.4 || ^7.0.0"
+"symfony/process" = "^6.3.4 || ^7.0.0"
+
+[packages-dev.dist]
+type = "zip"
+url = "https://api.github.com/repos/paratestphp/paratest/zipball/553f39a2f3d86c14e0234a40cff7e4055facbf60"
+reference = "553f39a2f3d86c14e0234a40cff7e4055facbf60"
+shasum = ""
+
+[packages-dev.source]
+type = "git"
+url = "https://github.com/paratestphp/paratest.git"
+reference = "553f39a2f3d86c14e0234a40cff7e4055facbf60"
+
+[[packages-dev.authors]]
+name = "Brian Scaturro"
+email = "scaturrob@gmail.com"
+role = "Developer"
+
+[[packages-dev.authors]]
+name = "Filippo Tessarotto"
+email = "zoeslam@gmail.com"
+role = "Developer"
+
+[packages-dev.support]
+issues = "https://github.com/paratestphp/paratest/issues"
+source = "https://github.com/paratestphp/paratest/tree/v7.3.2"
+
+[packages-dev.autoload.psr-4]
+'ParaTest\' = ["src/"]
+
+[autoload.psr-4]
+'KiriminAjaOfficial\' = ["./inc"]

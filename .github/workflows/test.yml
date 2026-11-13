@@ -31,23 +31,10 @@ jobs:
         with:
           php-version: "8.2.35"
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
-          tools: composer
           coverage: none
 
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+      - name: Setup phast and install PHP dependencies
+        uses: ./.github/actions/setup-phast
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -106,23 +93,10 @@ jobs:
         with:
           php-version: "8.2.35"
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
-          tools: composer
           coverage: none
 
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+      - name: Setup phast and install PHP dependencies
+        uses: ./.github/actions/setup-phast
 
       - name: Download validated package
         uses: actions/download-artifact@v4
@@ -138,7 +112,7 @@ jobs:
           rsync -a build/kiriminaja-official/lang/ lang/
 
       - name: Run PHP behavior and package tests
-        run: make test
+        run: phast run test
 
   wordpress:
     name: "WP-CLI smoke + Plugin Check (WP ${{ matrix.wp }} / WC ${{ matrix.wc }} / PHP 8.2.35)"
@@ -174,28 +148,13 @@ jobs:
         with:
           php-version: "8.2.35"
           extensions: mysqli, intl, zip
-          tools: composer, wp-cli
-
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-no-dev-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-no-dev-
+          tools: wp-cli
 
       - name: Cache WP-CLI downloads
         uses: actions/cache@v6
         with:
           path: ~/.wp-cli/cache
           key: ${{ runner.os }}-wp-cli-cache
-
-      - name: Install composer dependencies
-        run: composer install --no-dev --no-interaction --prefer-dist
 
       - name: Install WordPress
         run: |

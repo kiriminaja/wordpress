@@ -27,6 +27,9 @@ jobs:
         with:
           php-version: "8.2.35"
 
+      - name: Setup phast and install PHP dependencies
+        uses: ./.github/actions/setup-phast
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 

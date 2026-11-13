@@ -99,7 +99,11 @@ final class PluginStructureTest extends TestCase
             $buildDir . '/composer.json',
             'Packaged Composer vendor files need composer.json for Plugin Check attribution'
         );
-        $this->assertFileDoesNotExist($buildDir . '/composer.lock');
+        foreach (['composer.lock', 'phast.toml', 'phast.lock', 'auth.toml', 'auth.json'] as $file) {
+            $this->assertFileDoesNotExist($buildDir . '/' . $file);
+        }
+        $metadata = json_decode(file_get_contents($buildDir . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertEqualsCanonicalizing(['name', 'description', 'authors', 'license'], array_keys($metadata));
 		$this->assertFileDoesNotExist($buildDir . '/phpstan.neon');
 		$this->assertFileDoesNotExist($buildDir . '/phpstan.neon.dist');
 		$this->assertFileDoesNotExist($buildDir . '/phpstan-baseline.neon');

@@ -1,0 +1,59 @@
+name: Setup phast
+description: Install pinned phast and PHP dependencies without changing the committed lockfile.
+inputs:
+  no-dev:
+    description: Exclude development dependencies.
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Configure phast environment
+      shell: bash
+      run: |
+        echo "PHAST_VERSION=v0.1.0" >> "$GITHUB_ENV"
+        echo "PHAST_INSTALL_DIR=$RUNNER_TEMP/phast-bin" >> "$GITHUB_ENV"
+        echo "PHAST_CACHE_DIR=$RUNNER_TEMP/phast-cache" >> "$GITHUB_ENV"
+        echo "$RUNNER_TEMP/phast-bin" >> "$GITHUB_PATH"
+
+    - name: Install pinned phast
+      shell: bash
+      run: |
+        installer=$(mktemp "$RUNNER_TEMP/phast-install.XXXXXX")
+        trap 'rm -f "$installer"' EXIT
+        # Require checksum verification rather than the installer's fallback.
+        command -v sha256sum >/dev/null 2>&1 || command -v shasum >/dev/null 2>&1
+        curl -fsSL \
+          https://raw.githubusercontent.com/phast-sh/phast/72327fe994aa3ca0bf6d0a01b216651802c6cadc/install.sh \
+          -o "$installer"
+        sh "$installer"
+
+    - name: Cache phast dependencies
+      uses: actions/cache@v6
+      with:
+        path: ${{ runner.temp }}/phast-cache
+        key: ${{ runner.os }}-${{ runner.arch }}-phast-v0.1.0-${{ hashFiles('phast.toml', 'phast.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-phast-v0.1.0-
+
+    - name: Install PHP dependencies from committed lockfile
+      shell: bash
+      env:
+        PHAST_NO_DEV: ${{ inputs.no-dev }}
+      run: |
+        test -s phast.lock || { echo "::error::A nonempty committed phast.lock is required."; exit 1; }
+        git ls-files --error-unmatch phast.lock >/dev/null
+        lock_snapshot=$(mktemp "$RUNNER_TEMP/phast-lock.XXXXXX")
+        trap 'rm -f "$lock_snapshot"' EXIT
+        cp phast.lock "$lock_snapshot"
+        args=(install --no-scripts)
+        case "$PHAST_NO_DEV" in
+          true) args+=(--no-dev) ;;
+          false) ;;
+          *) echo "::error::no-dev must be true or false."; exit 1 ;;
+        esac
+        phast "${args[@]}"
+        cmp -s "$lock_snapshot" phast.lock || {
+          echo "::error::phast install changed phast.lock. Regenerate and commit the lockfile locally."
+          exit 1
+        }

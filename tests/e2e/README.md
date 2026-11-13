@@ -1,7 +1,7 @@
 # TesterArmy e2e business-flow pilot
 
 Optional, isolated test project using [tester-army/e2e](https://github.com/tester-army/e2e).
-Node >=24.8 (or >=22.22.3), Bun, PHP, and the root Composer dependencies are required.
+Node >=24.8 (or >=22.22.3), Bun, PHP, and the root PHP dependencies (`phast install`) are required.
 
 ```sh
 cd tests/e2e
