@@ -42,25 +42,29 @@ https://developer.kiriminaja.com/docs
 
 ### Setup
 
+Install [phast 0.1.0](https://docs.phast.sh/getting-started/installation/) first (CI pins this version). PHP dependencies and scripts are managed exclusively by `phast.toml` and the committed `phast.lock`. The root `composer.json` is attribution metadata for WordPress Plugin Check, not an install manifest. Do not run Composer to install this project.
+
 ```bash
 git clone git@github.com:kiriminaja/plugin-wp.git
 cd plugin-wp
-composer install
+phast install
 bun install --frozen-lockfile
 ```
 
 ### Running Tests
+
+Use `phast run` to list PHP scripts, `phast run phpstan` for static analysis, and `phast update` to intentionally update dependencies. This migration re-resolves the former Composer lock; review dependency changes in `phast.lock` when upgrading. `jean85/pretty-package-versions` is pinned to 2.0.6 because its newer releases require an InstalledVersions API missing from phast 0.1.0; this keeps ParaTest working without vendor patches. CI caches phast downloads and rejects lockfile changes during installation (phast 0.1.0 has no frozen-install flag). Install and packaging never run tests automatically.
 
 ```bash
 make zip                     # required before source/package parity checks
 make test
 ```
 
-This runs the PHP unit/runtime tests and repository validation checks through ParaTest, with test files parallelized using `paratest.xml`. `make test` and `composer test` reuse an unchanged successful suite; cache hits are explicitly printed instead of pretending to execute tests.
+This runs the PHP unit/runtime tests and repository validation checks through ParaTest, with test files parallelized using `paratest.xml`. `make test` and `phast run test` reuse an unchanged successful suite; cache hits are explicitly printed instead of pretending to execute tests.
 
 ```bash
 make test-force                         # fresh PHP execution, no result reuse
-composer test:force                     # same fresh ParaTest suite
+phast run test:force                    # same fresh ParaTest suite
 bun run test:js                         # cached JS test groups
 bun run test:js:force                   # rerun every JS group
 KIRIOF_TEST_FORCE=1 make test            # environment equivalent
@@ -115,7 +119,7 @@ make zip
 
 Produces `kiriminaja-official.zip` ready for distribution (`make zip dev` and `make zip stg` use versioned environment-specific names).
 
-Packaging does not copy the development `vendor/` tree. It caches a separate production-only Composer install under `build/composer-vendor-cache`, keyed by the manifests, PHP/platform/Composer identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading. The SDK retains its required source install; other packages use dist archives. `make clean` removes this cache as well as the staged build. The first build installs production dependencies; unchanged subsequent builds reuse them. Packaging verifies its files but does not run test or validation suites.
+Packaging does not copy the development `vendor/` tree. It caches a separate production-only `phast install --no-dev --no-scripts` under `build/phast-vendor-cache`, keyed by the phast manifest/lock, PHP/platform/phast identity, and packaging helper. Every reuse verifies the complete vendor file inventory and runtime SDK autoloading; an SDK archive missing its API client source is rejected. A changed lockfile also fails packaging rather than silently updating dependencies. `make clean` removes this cache as well as the staged build. The first build installs production dependencies; unchanged subsequent builds reuse them. Packaging verifies its files but does not run test or validation suites.
 
 On a test cache miss, deterministic fixture results are reused inside a worker and heavy UI matrices are batched with fresh case state. Forced test runs skip fingerprinting and receipt publication entirely; they invalidate any old success and execute immediately. Compiled Svelte suites build once per test process, then evaluate those bytes at a unique module path for each fresh DOM Window; production module state and native DOM caches are never shared between fixtures. Fixture teardown is also checked after failed setup.
 

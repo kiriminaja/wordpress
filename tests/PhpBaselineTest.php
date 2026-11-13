@@ -4,12 +4,12 @@ use PHPUnit\Framework\TestCase;
 
 final class PhpBaselineTest extends TestCase {
 	public function test_plugin_dependency_and_tooling_baselines_are_php_82(): void {
-		$composer = json_decode( file_get_contents( PLUGIN_DIR . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
-		$lock = json_decode( file_get_contents( PLUGIN_DIR . '/composer.lock' ), true, 512, JSON_THROW_ON_ERROR );
-		$this->assertSame( '>=8.2.35', $composer['require']['php'] ?? null );
-		$this->assertSame( '8.2.35', $composer['config']['platform']['php'] );
-		$this->assertSame( '>=8.2.35', $lock['platform']['php'] ?? null );
-		$this->assertSame( '8.2.35', $lock['platform-overrides']['php'] );
+		$manifest = file_get_contents( PLUGIN_DIR . '/phast.toml' );
+		$this->assertMatchesRegularExpression( '/^\[require\]\s*\n(?:(?!\[).+\n)*?php\s*=\s*">=8\.2\.35"\s*$/m', $manifest );
+		$this->assertMatchesRegularExpression( '/^\[config\.platform\]\s*\nphp\s*=\s*"8\.2\.35"\s*$/m', $manifest );
+		$this->assertMatchesRegularExpression( '/^\[config\]\s*\nplatform-check\s*=\s*"off"\s*$/m', $manifest );
+		$this->assertFileExists( PLUGIN_DIR . '/phast.lock' );
+		$this->assertNotSame( '', trim( file_get_contents( PLUGIN_DIR . '/phast.lock' ) ) );
 		foreach ( array( 'kiriminaja.php', 'readme.txt' ) as $file ) {
 			$this->assertMatchesRegularExpression( '/^\s*(?:\*\s*)?Requires PHP:\s*8\.2\.35\s*$/m', file_get_contents( PLUGIN_DIR . '/' . $file ), $file );
 		}

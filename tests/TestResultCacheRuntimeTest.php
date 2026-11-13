@@ -17,7 +17,8 @@ final class TestResultCacheRuntimeTest extends TestCase {
 		copy( __DIR__ . '/fixtures/test-cache-runtime.php', $this->root . '/vendor/bin/paratest' );
 		file_put_contents( $this->root . '/inc/source.php', '<?php // original' );
 		file_put_contents( $this->root . '/paratest.xml', '<phpunit/>' );
-		file_put_contents( $this->root . '/composer.lock', '{}' );
+		file_put_contents( $this->root . '/phast.toml', "[require]\nphp = \">=8.2.35\"\n" );
+		file_put_contents( $this->root . '/phast.lock', 'fixture lock' );
 		file_put_contents( $this->root . '/vendor/library.php', '<?php // vendor A' );
 	}
 
@@ -109,7 +110,8 @@ final class TestResultCacheRuntimeTest extends TestCase {
 			'inc/source.php' => '<?php // changed',
 			'inc/new.php' => '<?php // new',
 			'paratest.xml' => '<phpunit colors="true"/>',
-			'composer.lock' => '{"changed":true}',
+			'phast.toml' => "[require]\nphp = \">=8.2.35\"\n# changed\n",
+			'phast.lock' => 'changed lock',
 			'assets/buyer/dist/app.js' => 'buyer',
 			'assets/admin/dist/app.js' => 'admin',
 			'build/kiriminaja-official/plugin.php' => '<?php // staged',
@@ -141,7 +143,7 @@ final class TestResultCacheRuntimeTest extends TestCase {
 		touch( $path, $mtime );
 		$this->assertSame( 0, $this->runCache() );
 		$this->assertSame( 2, $this->countRuns() );
-		foreach ( array( 'node_modules/cache', '.e2e/report', 'build/cache', 'build/composer-vendor-cache', '.paratest/cache', 'coverage' ) as $directory ) {
+		foreach ( array( 'node_modules/cache', '.e2e/report', 'build/cache', 'build/phast-vendor-cache', '.paratest/cache', 'coverage' ) as $directory ) {
 			mkdir( $this->root . '/' . $directory, 0777, true );
 			file_put_contents( $this->root . '/' . $directory . '/ignored.php', 'noise' );
 		}
@@ -186,6 +188,27 @@ final class TestResultCacheRuntimeTest extends TestCase {
 		$this->assertSame( 4, $this->countRuns() );
 		$this->assertSame( 0, $this->runCache() );
 		$this->assertSame( 4, $this->countRuns() );
+	}
+
+	public function test_phast_launcher_links_cache_internal_targets_and_reject_external_targets(): void {
+		$launcher = $this->root . '/vendor/bin/paratest';
+		$target = $this->root . '/vendor/brianium/paratest/bin/paratest';
+		mkdir( dirname( $target ), 0777, true );
+		$fixture = str_replace( "dirname( __DIR__, 2 ) . '/.paratest.cache/runtime'", var_export( $this->state, true ), file_get_contents( $launcher ) );
+		file_put_contents( $target, $fixture );
+		unlink( $launcher );
+		symlink( '../brianium/paratest/bin/paratest', $launcher );
+		$this->assertSame( 0, $this->runCache() );
+		$this->assertSame( 0, $this->runCache() );
+		$this->assertSame( 1, $this->countRuns() );
+		file_put_contents( $target, $fixture . "\n// Changed launcher bytes.\n" );
+		$this->assertSame( 0, $this->runCache() );
+		$this->assertSame( 2, $this->countRuns() );
+		unlink( $launcher );
+		file_put_contents( $this->state . '/external.php', $fixture );
+		symlink( $this->state . '/external.php', $launcher );
+		$this->assertSame( 1, $this->runCache() );
+		$this->assertSame( 2, $this->countRuns(), 'External launchers must not execute.' );
 	}
 
 	public function test_unverifiable_input_bypasses_cache_and_invalidates_old_success(): void {
@@ -261,6 +284,6 @@ final class TestResultCacheRuntimeTest extends TestCase {
 		}
 		file_put_contents( $ini, "; changed comment only\nprecision=14\n" );
 		$this->assertNotSame( $first['ini'], $fingerprint( array( '-c', $ini ) )['ini'] );
-		$this->assertNotSame( $first['environment'], $fingerprint( array( '-c', $ini ), array( 'COMPOSER_BINARY' => '/different/composer' ) )['environment'] );
+		$this->assertNotSame( $first['environment'], $fingerprint( array( '-c', $ini ), array( 'KIRIOF_PHAST' => '/different/phast' ) )['environment'] );
 	}
 }

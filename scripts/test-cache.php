@@ -86,11 +86,22 @@ function kiriof_test_runtime(): array {
 /** Prune noisy trees before descent; generated trees get their own full inventories. */
 function kiriof_test_inventory( string $root ): array {
 	$records = array();
-	$ignored = array( '.git', 'node_modules', 'vendor', 'build', 'cache', '.cache', 'coverage', '.e2e', '.paratest', '.paratest.cache', '.phpunit.cache', '.svelte-kit', '.vite', 'playwright-report', 'test-results', '.idea', '.vscode', 'composer-vendor-cache' );
+	$ignored = array( '.git', 'node_modules', 'vendor', 'build', 'cache', '.cache', 'coverage', '.e2e', '.paratest', '.paratest.cache', '.phpunit.cache', '.svelte-kit', '.vite', 'playwright-report', 'test-results', '.idea', '.vscode', 'phast-vendor-cache' );
 	$generated = array( 'vendor', 'assets/admin/dist', 'assets/buyer/dist', 'build/kiriminaja-official' );
 	$visit = function ( string $relative, bool $complete ) use ( &$visit, &$records, $root, $ignored, $generated ): void {
 		$absolute = $root . '/' . $relative;
 		if ( is_link( $absolute ) ) {
+			// Phast links vendor binaries to their package entry points. Admit only
+			// internal file targets and fingerprint both the link and target bytes.
+			$target = realpath( $absolute );
+			if ( 'vendor/bin' === dirname( $relative ) && false !== $target && str_starts_with( $target, $root . '/vendor/' ) && is_file( $target ) ) {
+				$hash = hash_file( 'sha256', $target );
+				if ( false === $hash ) {
+					throw new RuntimeException( 'Vendor launcher unreadable' );
+				}
+				$records[] = array( $relative, readlink( $absolute ), $target, $hash );
+				return;
+			}
 			throw new RuntimeException( 'Symlink inputs are not cacheable' );
 		}
 		if ( ! file_exists( $absolute ) ) {
@@ -158,7 +169,8 @@ function kiriof_test_main( array $args ): int {
 	$root = dirname( __DIR__ );
 	$executable = array_shift( $args );
 	$expected = $root . '/vendor/bin/paratest';
-	if ( ! is_string( $executable ) || ! in_array( $executable, array( 'vendor/bin/paratest', './vendor/bin/paratest', $expected ), true ) || ! is_file( $expected ) || is_link( $expected ) ) {
+	$valid_link = ! is_link( $expected ) || realpath( $expected ) === $root . '/vendor/brianium/paratest/bin/paratest';
+	if ( ! is_string( $executable ) || ! in_array( $executable, array( 'vendor/bin/paratest', './vendor/bin/paratest', $expected ), true ) || ! is_file( $expected ) || ! $valid_link ) {
 		throw new InvalidArgumentException( 'Only the repository vendor/bin/paratest PHP launcher is supported' );
 	}
 	$command = array_merge( array( PHP_BINARY, $expected ), $args );

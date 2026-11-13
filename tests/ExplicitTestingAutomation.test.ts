@@ -31,8 +31,8 @@ test.each(['release', 'publish', 'zip', 'frontend'])(
     const result = spawnSync('make', ['-j4', target], { cwd: root, encoding: 'utf8' });
     expect(result.status).not.toBe(0);
     expect(result.stdout).toContain('Node dependencies is unavailable');
-    expect(result.stdout).toContain('Composer vendor is unavailable');
-    expect(result.stdout).toContain('Run composer install & bun install first');
+    expect(result.stdout).toContain('PHP vendor is unavailable');
+    expect(result.stdout).toContain('Run phast install & bun install first');
     expect(result.stdout).not.toContain('run build');
     expect(existsSync(path.join(root, 'mutated'))).toBe(false);
     expect(readFileSync(path.join(root, 'kiriminaja.php'), 'utf8')).toContain('3.0.10');
@@ -42,7 +42,7 @@ test.each(['release', 'publish', 'zip', 'frontend'])(
 test('hotfix releases do not require prior validation or run tests', () => {
   const workflow = read('.github/workflows/release.yml');
   expect(workflow).not.toMatch(
-    /check-release-validation|RELEASE_SHA|actions: read|make test|frontend:check|bun run test/,
+    /check-release-validation|RELEASE_SHA|actions: read|make test|phast run test|frontend:check|bun run test/,
   );
   expect(workflow).toContain('run: make zip plain');
   expect(workflow).toContain('softprops/action-gh-release');
@@ -72,7 +72,7 @@ test('manual suites and explicit PR validation remain available', () => {
     'bun run frontend:check',
     'php scripts/check-php-literal-escapes.php',
     'make zip',
-    'make test',
+    'phast run test',
   ])
     expect(workflow).toContain(command);
   expect(workflow.indexOf('run: bun run frontend:check')).toBeLessThan(
@@ -80,9 +80,30 @@ test('manual suites and explicit PR validation remain available', () => {
   );
   for (const name of ['release', 'staging', 'development']) {
     expect(read(`.github/workflows/${name}.yml`)).not.toMatch(
-      /make test|frontend:check|bun run test/,
+      /make test|phast run test|frontend:check|bun run test/,
     );
   }
+});
+
+test('CI installs locked PHP dependencies through the pinned phast action without running tests', () => {
+  for (const name of ['development', 'staging', 'release', 'test', 'e2e']) {
+    const workflow = read(`.github/workflows/${name}.yml`);
+    expect(workflow).toContain('uses: ./.github/actions/setup-phast');
+    expect(workflow).not.toMatch(/composer\s+install|ramsey\/composer-install/);
+  }
+  const action = read('.github/actions/setup-phast/action.yml');
+  expect(action).toMatch(/PHAST_VERSION=v\d+\.\d+\.\d+/);
+  expect(action).toMatch(/phast-sh\/phast\/[a-f0-9]{40}\/install\.sh/);
+  expect(action).toContain('actions/cache@');
+  expect(action).toContain("hashFiles('phast.toml', 'phast.lock')");
+  expect(action).toContain('test -s phast.lock');
+  expect(action).toContain('git ls-files --error-unmatch phast.lock');
+  expect(action).toContain('args=(install --no-scripts)');
+  expect(action).toContain('args+=(--no-dev)');
+  expect(action).toContain('cmp -s "$lock_snapshot" phast.lock');
+  expect(action).not.toMatch(/phast run test|make test|bun (?:run )?test/);
+  expect(read('Makefile')).toContain('phast run test');
+  expect(read('Makefile')).toContain('phast run test:force');
 });
 
 test('legacy pre-commit script succeeds even without Git or Bun', () => {

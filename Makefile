@@ -51,6 +51,11 @@ RSYNC_EXCLUDES := \
 	--exclude=Makefile \
 	--exclude=*.zip \
 	--exclude=paratest.xml \
+	--exclude=phast.toml \
+	--exclude=phast.lock \
+	--exclude=auth.toml \
+	--exclude=auth.json \
+	--exclude=composer.lock \
 	--exclude=phpstan.neon \
 	--exclude=phpstan.neon.dist \
 	--exclude=phpstan-baseline.neon \
@@ -107,10 +112,10 @@ ifneq ($(RELEASE_GOALS),)
 endif
 
 test:
-	php scripts/test-cache.php -- vendor/bin/paratest --configuration paratest.xml --testdox
+	phast run test
 
 test-force:
-	php scripts/test-cache.php --force -- vendor/bin/paratest --configuration paratest.xml --testdox
+	phast run test:force
 
 check-dependencies:
 	@missing=0; \
@@ -119,11 +124,11 @@ check-dependencies:
 		missing=1; \
 	fi; \
 	if [ ! -f vendor/autoload.php ] || [ ! -f vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php ]; then \
-		echo "Composer vendor is unavailable"; \
+		echo "PHP vendor is unavailable"; \
 		missing=1; \
 	fi; \
 	if [ "$$missing" -ne 0 ]; then \
-		printf '\nRun composer install & bun install first\n'; \
+		printf '\nRun phast install & bun install first\n'; \
 		exit 1; \
 	fi
 
@@ -183,8 +188,7 @@ zip: frontend
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
-	@if [ -f composer.lock ]; then cp composer.lock $(STAGE_DIR)/; fi
-	php scripts/package-production-vendor.php . $(STAGE_DIR)/vendor $(BUILD_DIR)/composer-vendor-cache
+	php scripts/package-production-vendor.php . $(STAGE_DIR)/vendor $(BUILD_DIR)/phast-vendor-cache
 	@test -f $(STAGE_DIR)/vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php || (echo "KiriminAja SDK API client source is missing from the package." && exit 1)
 	rm -f $(STAGE_DIR)/composer.lock $(STAGE_DIR)/vendor/bin/.phpunit.result.cache
 	@CUSTOM_LOCATION_LIMIT=$$(if [ -f .env ]; then grep '^MAX_CUSTOM_SHIPMENT_LOCATIONS=' .env | head -1 | cut -d= -f2- | xargs; fi); \

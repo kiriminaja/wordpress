@@ -120,6 +120,23 @@ describe('JavaScript success receipts', () => {
     rmSync(launcher);
     expect((await f.run()).cached).toBe(false);
   });
+  test('phast vendor launcher links track internal bytes and reject external targets', async () => {
+    const f = fixture();
+    f.put('vendor/example/cli.php', '<?php // first');
+    mkdirSync(path.join(f.root, 'vendor/bin'));
+    const launcher = path.join(f.root, 'vendor/bin/example');
+    symlinkSync('../example/cli.php', launcher);
+    expect((await f.run()).cached).toBe(false);
+    expect((await f.run()).cached).toBe(true);
+    f.put('vendor/example/cli.php', '<?php // changed');
+    expect((await f.run()).cached).toBe(false);
+    rmSync(launcher);
+    f.put('inc/external.php', '<?php // outside vendor');
+    symlinkSync('../../inc/external.php', launcher);
+    expect((await f.run()).cached).toBe(false);
+    expect((await f.run()).cached).toBe(false);
+    expect(f.receipts()).toHaveLength(0);
+  });
   test('generated ZIPs, logs and local browser reports do not invalidate tests', async () => {
     const f = fixture();
     f.put('tests/e2e/README.md', 'browser tests');

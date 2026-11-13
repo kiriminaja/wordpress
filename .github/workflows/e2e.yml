@@ -23,16 +23,16 @@ jobs:
         with:
           php-version: "8.2.35"
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml
-          tools: composer
+      - name: Setup phast and install PHP dependencies
+        uses: ./.github/actions/setup-phast
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.4.2"
-      - name: Install production fixtures and frontend dependencies
+      - name: Install frontend dependencies
         run: |
-          composer install --no-interaction --prefer-dist
           bun install --frozen-lockfile
           cd tests/e2e
           bun install --frozen-lockfile
