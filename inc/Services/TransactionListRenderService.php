@@ -242,7 +242,7 @@ class TransactionListRenderService
                 "instantPriceIncrease" => __("Price increase", "kiriminaja-official"),
                 "instantPriceDecrease" => __("Price decrease", "kiriminaja-official"),
                 "instantTotalShipment" => __("Total Shipment", "kiriminaja-official"),
-                "instantTotalScope" => __("Totals include selected eligible shipments only and compare carrier shipping charges. Checkout insurance and customer admin fees are not included.", "kiriminaja-official"),
+                "instantTotalScope" => __("Totals include selected eligible shipments only and include the customer-paid admin fee. Checkout insurance is not included.", "kiriminaja-official"),
                 "instantQuoteRefreshFailed" => __("Prices could not be refreshed. Review prices again to continue; no shipment has been booked.", "kiriminaja-official"),
                 "instantRefreshingPrices" => __("Refreshing prices…", "kiriminaja-official"),
                 "instantContinuePayment" => __("Confirm & continue to payment", "kiriminaja-official"),
