@@ -1,0 +1,48 @@
+name: Setup Composer
+description: Install PHP dependencies with Composer without changing the committed lockfile.
+inputs:
+  no-dev:
+    description: Exclude development dependencies.
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    # Callers supply Composer 2 through shivammathur/setup-php.
+    - name: Locate Composer download cache
+      id: cache
+      shell: bash
+      run: echo "directory=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Composer downloads
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.cache.outputs.directory }}
+        key: ${{ runner.os }}-${{ runner.arch }}-composer-v2-${{ hashFiles('composer.json', 'composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}-composer-v2-
+
+    - name: Install PHP dependencies from committed lockfile
+      shell: bash
+      env:
+        COMPOSER_NO_DEV_INPUT: ${{ inputs.no-dev }}
+      run: |
+        test -s composer.lock || { echo "::error::A nonempty committed composer.lock is required."; exit 1; }
+        git ls-files --error-unmatch composer.lock >/dev/null
+        git diff --exit-code HEAD -- composer.lock
+        lock_snapshot=$(mktemp "$RUNNER_TEMP/composer-lock.XXXXXX")
+        trap 'rm -f "$lock_snapshot"' EXIT
+        cp composer.lock "$lock_snapshot"
+        composer validate --strict
+        args=(install --prefer-dist --no-interaction --no-progress --no-scripts)
+        case "$COMPOSER_NO_DEV_INPUT" in
+          true) args+=(--no-dev) ;;
+          false) ;;
+          *) echo "::error::no-dev must be true or false."; exit 1 ;;
+        esac
+        composer "${args[@]}"
+        cmp -s "$lock_snapshot" composer.lock || {
+          echo "::error::composer install changed composer.lock. Regenerate and commit the lockfile locally."
+          exit 1
+        }
+        git diff --exit-code HEAD -- composer.lock

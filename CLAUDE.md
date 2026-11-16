@@ -23,8 +23,8 @@ This repository is the KiriminAja Official WordPress plugin for WooCommerce. Kee
 - `simple-git-hooks` has no managed hooks and preserves other hooks. Keep the legacy frontend pre-commit script a no-op so stale installations cannot run tests.
 
 - Use ParaTest as the default test runner: `make test`.
-- `make test` / `phast run test` and the named JS test scripts reuse content-matched successful runs. Use `make test-force`, `phast run test:force`, or `KIRIOF_TEST_FORCE=1` when fresh execution is required; report cache hits as reused results, not newly executed tests.
-- ParaTest is the only supported PHP test entry point (`make test` or `phast run test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
+- `make test` / `composer run test` and the named JS test scripts reuse content-matched successful runs. Use `make test-force`, `composer run test:force`, or `KIRIOF_TEST_FORCE=1` when fresh execution is required; report cache hits as reused results, not newly executed tests.
+- ParaTest is the only supported PHP test entry point (`make test` or `composer run test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
 - For focused checks, run `vendor/bin/paratest --configuration paratest.xml --filter <Name>`.
 - Keep `tests/` string/structure assertions aligned with the current implementation when behavior is intentionally changed.
 
@@ -32,3 +32,10 @@ This repository is the KiriminAja Official WordPress plugin for WooCommerce. Kee
 
 - `CLAUDE.md`, `AGENTS.md`, `paratest.xml`, tests, development files, and cache directories must not be included in the distributable zip.
 - The distributable archive is produced by `make zip`.
+
+## PHP Dependencies
+
+- Manage PHP dependencies and scripts with Composer and the committed `composer.json` / `composer.lock`; a nonempty tracked lockfile is mandatory.
+- Install with `composer install --prefer-dist --no-interaction --no-progress --no-scripts`; CI caches the Composer download directory and rejects lockfile changes. Do not use `composer update` in CI.
+- Keep tests explicit: use `composer run test` or `make test`; dependency installation, commits, and packaging must not run tests automatically.
+- Packaging uses a separate production install (`composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader`) under `build/composer-vendor-cache`, not the development `vendor/` tree. Preserve cache inventory and runtime SDK autoload integrity checks.

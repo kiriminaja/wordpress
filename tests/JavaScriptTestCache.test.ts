@@ -45,6 +45,8 @@ function fixture() {
   );
   put('node_modules/example/node_modules/nested/index.js', 'nested');
   put('tests/sample.test.ts', 'sample');
+  put('composer.json', JSON.stringify({ require: { php: '>=8.2.35' } }));
+  put('composer.lock', JSON.stringify({ packages: [] }));
   put('vendor/example.php', '<?php echo 1;');
   put('assets/buyer/dist/buyer.js', 'buyer');
   put('assets/admin/dist/admin.js', 'admin');
@@ -120,7 +122,7 @@ describe('JavaScript success receipts', () => {
     rmSync(launcher);
     expect((await f.run()).cached).toBe(false);
   });
-  test('phast vendor launcher links track internal bytes and reject external targets', async () => {
+  test('PHP vendor runtime links track internal bytes and reject external targets', async () => {
     const f = fixture();
     f.put('vendor/example/cli.php', '<?php // first');
     mkdirSync(path.join(f.root, 'vendor/bin'));
@@ -147,6 +149,8 @@ describe('JavaScript success receipts', () => {
       'local.tsbuildinfo',
       '.DS_Store',
       'tests/e2e/.e2e-desktop/report.json',
+      'build/composer-vendor-cache/cache.json',
+      'composer-vendor-cache/cache.json',
     ]) {
       f.put(file, 'generated output');
     }
@@ -168,6 +172,8 @@ describe('JavaScript success receipts', () => {
   test.each([
     'tests/sample.test.ts',
     'package.json',
+    'composer.json',
+    'composer.lock',
     'vendor/example.php',
     'node_modules/example/index.js',
     'node_modules/example/node_modules/nested/index.js',
@@ -178,7 +184,8 @@ describe('JavaScript success receipts', () => {
     await f.run();
     const absolute = path.join(f.root, file),
       before = readFileSync(absolute, 'utf8');
-    if (file === 'package.json') f.put(file, `${before}\n`);
+    if (['package.json', 'composer.json', 'composer.lock'].includes(file))
+      f.put(file, `${before}\n`);
     else f.put(file, `${before}!`);
     utimesSync(absolute, new Date(0), new Date(0));
     expect((await f.run()).cached).toBe(false);

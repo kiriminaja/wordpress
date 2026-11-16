@@ -54,7 +54,14 @@ export function quoteSummary(quote: InstantQuote, checked: Record<string, boolea
     selectedCount++;
     if (row.changed) changedCount++;
   }
-  return { before, after, gap: after - before, selectedCount, changedCount, unavailableCount };
+  return {
+    before,
+    after,
+    gap: after - before,
+    selectedCount,
+    changedCount,
+    unavailableCount,
+  };
 }
 
 export interface InstantQuoteClockDeps {

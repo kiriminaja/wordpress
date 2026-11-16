@@ -33,7 +33,7 @@ const ignored = new Set([
   'test-results',
   '.idea',
   '.vscode',
-  'phast-vendor-cache',
+  'composer-vendor-cache',
 ]);
 const generated = ['assets/admin/dist', 'assets/buyer/dist'];
 const bookkeeping = (name) =>
@@ -68,7 +68,7 @@ function inventory(root, relative, records, mode = 'complete', entry) {
   }
 
   if (stat.isSymbolicLink()) {
-    // Phast's vendor launchers are links; all other symlink inputs fail closed.
+    // PHP vendor runtime links are allowed; other symlink inputs fail closed.
     const target = realpathSync(absolute);
     if (
       path.dirname(relative) !== 'vendor/bin' ||

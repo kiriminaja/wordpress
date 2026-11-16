@@ -7,31 +7,72 @@ use PHPUnit\Framework\TestCase;
 /** Offline coverage of cache reuse, invalidation, and production install policy. */
 final class ProductionVendorPackagingTest extends TestCase
 {
-    public function test_exact_phast_inputs_and_full_payload_integrity_control_cache_reuse(): void
+    public function test_package_uses_composer_and_coexists_with_an_existing_composer_loader(): void
+    {
+        $vendor = PLUGIN_DIR . '/build/' . PLUGIN_SLUG . '/vendor';
+        $this->assertFileExists($vendor . '/composer/ClassLoader.php');
+        $this->assertDirectoryDoesNotExist($vendor . '/phast');
+        $classmap = require $vendor . '/composer/autoload_classmap.php';
+        $this->assertArrayNotHasKey('Http\\Discovery\\Composer\\Plugin', $classmap);
+        $probe = <<<'PHP'
+$first = require $argv[1];
+$before = \Composer\InstalledVersions::getRawData();
+$second = require $argv[2];
+if ($first === $second || $before !== \Composer\InstalledVersions::getRawData()) { exit(2); }
+if ($second !== (require $argv[2])) { exit(3); }
+if (!class_exists('KiriminAja\Base\Api\Api')) { exit(4); }
+$file = $second->findFile('KiriminAjaOfficial\Services\InstantDispatchService');
+if (realpath($file) !== realpath(dirname($argv[2], 2) . '/inc/Services/InstantDispatchService.php')) { exit(5); }
+echo 'OK';
+PHP;
+        exec(kiriof_test_fixture_php_shell(array('-r', $probe, PLUGIN_DIR . '/vendor/autoload.php', $vendor . '/autoload.php')) . ' 2>&1', $output, $status);
+        $this->assertSame(0, $status, implode("\n", $output));
+        $this->assertSame('OK', implode("\n", $output));
+    }
+
+    public function test_preloaded_phast_symbols_cannot_redeclare_the_packaged_loader(): void
+    {
+        $probe = <<<'PHP'
+namespace Phast\Autoload {
+    class ClassLoader {}
+    function includeFile($file) { throw new \RuntimeException('Foreign loader must not be called.'); }
+}
+namespace Phast { class InstalledVersions {} }
+namespace {
+    $loader = require $argv[1];
+    if (!$loader instanceof \Composer\Autoload\ClassLoader) { exit(2); }
+    if (!class_exists('KiriminAja\Base\Api\Api')) { exit(3); }
+    echo 'OK';
+}
+PHP;
+        exec(kiriof_test_fixture_php_shell(array('-r', $probe, PLUGIN_DIR . '/build/' . PLUGIN_SLUG . '/vendor/autoload.php')) . ' 2>&1', $output, $status);
+        $this->assertSame(0, $status, implode("\n", $output));
+        $this->assertSame('OK', implode("\n", $output));
+    }
+
+    public function test_exact_composer_inputs_and_full_payload_integrity_control_cache_reuse(): void
     {
         $root = sys_get_temp_dir() . '/kiriof-vendor-test-' . bin2hex(random_bytes(8));
         mkdir($root, 0700);
-        $phast = $root . '/phast';
-        file_put_contents($phast, '#!' . PHP_BINARY . "\n" . <<<'PHP'
+        $composer = $root . '/composer';
+        file_put_contents($composer, '#!' . PHP_BINARY . "\n" . <<<'PHP'
 <?php
 if (in_array('--version', $argv, true)) {
-    echo "phast 0.1.0\n";
+    echo "composer 0.1.0\n";
     exit(0);
 }
-$expected = ['install', '--no-dev', '--no-scripts'];
+$expected = ['install', '--no-dev', '--no-scripts', '--no-plugins', '--no-interaction', '--no-progress', '--prefer-dist', '--optimize-autoloader'];
 $project = null;
 foreach ($argv as $argument) {
-    if (str_starts_with($argument, '--project-dir=')) {
+    if (str_starts_with($argument, '--working-dir=')) {
         $project = substr($argument, 14);
     }
 }
-if ($project === null || array_slice($argv, 1, 3) !== $expected
-    || count($argv) !== 5 || !is_file($project . '/phast.toml') || !is_file($project . '/phast.lock')
-    || is_file($project . '/composer.json') || is_file($project . '/composer.lock')) {
+if ($project === null || array_slice($argv, 1, count($expected)) !== $expected
+    || count($argv) !== 10 || !is_file($project . '/composer.json') || !is_file($project . '/composer.lock')) {
     exit(2);
 }
-if (hash_file('sha256', $project . '/phast.toml') !== hash_file('sha256', __DIR__ . '/phast.toml')
-    || hash_file('sha256', $project . '/phast.lock') !== hash_file('sha256', __DIR__ . '/phast.lock')
+if (hash_file('sha256', $project . '/composer.lock') !== hash_file('sha256', __DIR__ . '/composer.lock')
     || $project === __DIR__) {
     exit(3);
 }
@@ -49,12 +90,12 @@ file_put_contents($project . '/vendor/autoload.php', '<?php require __DIR__ . "/
 file_put_contents($project . '/vendor/other-runtime.php', '<?php // Must be integrity-checked too.');
 PHP
         );
-        chmod($phast, 0700);
-        file_put_contents($root . '/phast.toml', "[package]\nname = \"fixture\"\n[require]\nphp = \">=8.2.35\"\n");
-        file_put_contents($root . '/phast.lock', 'fixture lock');
+        chmod($composer, 0700);
+            file_put_contents($root . '/composer.json', '{"name":"fixture/changed","require":{"php":">=8.2.35"}}');
+        file_put_contents($root . '/composer.lock', 'fixture lock');
 
-        $run = function () use ($root, $phast): void {
-            $command = 'KIRIOF_PHAST=' . escapeshellarg($phast) . ' '
+        $run = function () use ($root, $composer): void {
+            $command = 'KIRIOF_COMPOSER=' . escapeshellarg($composer) . ' '
                 . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(dirname(__DIR__) . '/scripts/package-production-vendor.php')
                 . ' ' . escapeshellarg($root) . ' ' . escapeshellarg($root . '/package/vendor')
                 . ' ' . escapeshellarg($root . '/cache') . ' 2>&1';
@@ -82,10 +123,10 @@ PHP
             unlink($cachedVendor . '/other-runtime.php');
             $run();
             $this->assertSame(3, $installCount(), 'Deleted runtime files must invalidate the cache.');
-            file_put_contents($root . '/phast.lock', 'changed lock');
+            file_put_contents($root . '/composer.lock', 'changed lock');
             $run();
             $this->assertSame(4, $installCount(), 'Exact lock bytes must invalidate the cache.');
-            file_put_contents($root . '/phast.toml', "[package]\nname = \"changed\"\n");
+        file_put_contents($root . '/composer.json', '{"name":"fixture/project","require":{"php":">=8.2.35"}}');
             $run();
             $this->assertSame(5, $installCount(), 'Exact manifest bytes must invalidate the cache.');
         } finally {
@@ -93,29 +134,31 @@ PHP
         }
     }
 
-    public function test_changed_phast_lock_fails_packaging(): void
+    public function test_changed_composer_lock_fails_packaging(): void
     {
         $root = sys_get_temp_dir() . '/kiriof-lock-test-' . bin2hex(random_bytes(8));
         mkdir($root, 0700);
-        $phast = $root . '/phast';
-        file_put_contents($phast, <<<'SH'
+        $composer = $root . '/composer';
+        file_put_contents($composer, <<<'SH'
 #!/bin/sh
-if [ "$1" = "--version" ]; then echo phast; exit 0; fi
-project="${4#--project-dir=}"
-printf changed > "$project/phast.lock"
+if [ "$1" = "--version" ]; then echo composer; exit 0; fi
+for argument in "$@"; do
+    case "$argument" in --working-dir=*) project="${argument#--working-dir=}" ;; esac
+done
+printf changed > "$project/composer.lock"
 SH
         );
-        chmod($phast, 0700);
-        file_put_contents($root . '/phast.toml', '[package]');
-        file_put_contents($root . '/phast.lock', 'original');
-        $command = 'KIRIOF_PHAST=' . escapeshellarg($phast) . ' ' . escapeshellarg(PHP_BINARY) . ' '
+        chmod($composer, 0700);
+        file_put_contents($root . '/composer.json', '{"name":"fixture/project","require":{"php":">=8.2.35"}}');
+        file_put_contents($root . '/composer.lock', 'original');
+        $command = 'KIRIOF_COMPOSER=' . escapeshellarg($composer) . ' ' . escapeshellarg(PHP_BINARY) . ' '
             . escapeshellarg(dirname(__DIR__) . '/scripts/package-production-vendor.php') . ' ' . escapeshellarg($root) . ' '
             . escapeshellarg($root . '/package/vendor') . ' ' . escapeshellarg($root . '/cache') . ' 2>&1';
         try {
             exec($command, $output, $status);
             $this->assertNotSame(0, $status);
-            $this->assertStringContainsString('phast.lock', implode("\n", $output));
-            $this->assertSame('original', file_get_contents($root . '/phast.lock'));
+            $this->assertStringContainsString('composer.lock', implode("\n", $output));
+            $this->assertSame('original', file_get_contents($root . '/composer.lock'));
             $this->assertDirectoryDoesNotExist($root . '/package/vendor');
             $this->assertSame([], glob($root . '/cache/*/integrity.json'));
         } finally {

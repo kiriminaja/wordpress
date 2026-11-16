@@ -22,9 +22,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2.35"
+          tools: composer:v2
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml
-      - name: Setup phast and install PHP dependencies
-        uses: ./.github/actions/setup-phast
+      - name: Setup Composer and install PHP dependencies
+        uses: ./.github/actions/setup-composer
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
