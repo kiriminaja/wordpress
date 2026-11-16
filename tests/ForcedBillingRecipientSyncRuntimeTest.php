@@ -1,4 +1,7 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 use PHPUnit\Framework\TestCase;
 
 final class ForcedBillingRecipientSyncRuntimeTest extends TestCase {

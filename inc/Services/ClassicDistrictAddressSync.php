@@ -12,6 +12,8 @@ final class ClassicDistrictAddressSync {
 	private static array $default_lookups = array();
 	private bool $checkout_verified = false;
 	private array $checkout_input = array();
+	private bool $forced_billing_conflict = false;
+	private bool $forced_billing_conflict_notice_added = false;
 
 	public function __construct( ?callable $lookup = null ) {
 		$this->lookup = $lookup;
@@ -99,6 +101,29 @@ final class ClassicDistrictAddressSync {
 			$data = array_replace( $data, $this->forcedBillingFields( $data ) );
 		}
 		return $data;
+	}
+
+	private function forcedBillingShippingConflict( array $data, array $verified ): bool {
+		foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+			$key = 'shipping_' . $field;
+			if ( ! array_key_exists( $key, $data ) ) {
+				continue;
+			}
+			if ( ! is_string( $data[ $key ] ) || ( '' !== trim( $data[ $key ] ) && $data[ $key ] !== $verified[ $field ] ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private function addForcedBillingConflictNotice(): void {
+		if ( $this->forced_billing_conflict_notice_added ) {
+			return;
+		}
+		$this->forced_billing_conflict_notice_added = true;
+		if ( function_exists( 'wc_add_notice' ) ) {
+			wc_add_notice( __( 'Please verify your shipping address before placing the order.', 'kiriminaja-official' ), 'error' );
+		}
 	}
 
 	/** Forced billing forms can omit FunnelKit's optional billing-toggle flags. */
@@ -408,6 +433,16 @@ final class ClassicDistrictAddressSync {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Verified by WC_Checkout; normalize validates the address evidence.
 		$data = wp_unslash( $_POST );
 		$this->checkout_input = $data;
+		$this->forced_billing_conflict = false;
+		$this->forced_billing_conflict_notice_added = false;
+		if ( $this->forcedBillingForm( $data ) ) {
+			$verified = $this->forcedBillingContext( $this->normalize( $data, false ) );
+			if ( null !== $verified && $this->forcedBillingShippingConflict( $data, $verified ) ) {
+				$this->forced_billing_conflict = true;
+				$this->addForcedBillingConflictNotice();
+				return;
+			}
+		}
 		foreach ( $this->repairs( $data, $this->normalize( $data ) ) as $key => $value ) {
 			$_POST[ $key ] = wp_slash( $value );
 		}
@@ -444,6 +479,10 @@ final class ClassicDistrictAddressSync {
 			}
 			$verified = $this->forcedBillingContext( $effective );
 			if ( null === $verified ) {
+				return $data;
+			}
+			if ( $this->forced_billing_conflict || $this->forcedBillingShippingConflict( $data, $verified ) ) {
+				$this->addForcedBillingConflictNotice();
 				return $data;
 			}
 			$data = array_replace( $data, $updates );

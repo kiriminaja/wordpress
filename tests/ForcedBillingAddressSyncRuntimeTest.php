@@ -1,4 +1,7 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 use PHPUnit\Framework\TestCase;
 
 final class ForcedBillingAddressSyncRuntimeTest extends TestCase {
@@ -172,6 +175,18 @@ final class ForcedBillingAddressSyncRuntimeTest extends TestCase {
 			foreach ( array( 'city' => 'Sleman', 'state' => 'YO', 'postcode' => '55581' ) as $field => $value ) {
 				$this->assertSame( $value, $result['data'][ 'shipping_' . $field ] );
 			}
+		}
+	}
+
+	public function test_final_conflicting_shipping_hierarchy_fails_closed_with_one_checkout_notice(): void {
+		foreach ( array( 'shipping_city' => 'Other city', 'shipping_state' => 'JK', 'shipping_postcode' => '99999' ) as $field => $value ) {
+			$result = $this->runFixture( array(
+				'mode' => 'checkout',
+				'form' => $this->form(),
+				'posted' => array( 'billing_city' => 'Sleman', 'billing_state' => 'YO', 'billing_postcode' => '55581', $field => $value ),
+			) );
+			$this->assertSame( $value, $result['data'][ $field ] ?? null );
+			$this->assertSame( array( array( 'message' => 'Please verify your shipping address before placing the order.', 'type' => 'error' ) ), $result['notices'] );
 		}
 	}
 }
