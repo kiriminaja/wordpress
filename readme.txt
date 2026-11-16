@@ -5,7 +5,7 @@ Tags: shipping, woocommerce, kiriminaja, ecommerce, cod
 Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 8.2.35
-Stable tag: 3.0.15
+Stable tag: 3.0.16
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 WC requires at least: 8.5
@@ -147,6 +147,12 @@ Create a WordPress page and add the KiriminAja tracking shortcode available from
 7. Technical page for cache and support tools.
 
 == Changelog ==
+= 3.0.16 =
+- fix(checkout): FunnelKit forced billing checkout compatibility (#322)
+- fix(instant): include admin fee in credit processing total (#323)
+
+Full Changelog: https://github.com/kiriminaja/wordpress/compare/v3.0.15...v3.0.16
+
 = 3.0.15 =
 - perf: speed up settings loading (#316)
 - perf: speed up onboarding loading (#317)
