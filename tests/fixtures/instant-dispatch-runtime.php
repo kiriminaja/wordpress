@@ -128,7 +128,9 @@ class DispatchApi extends \KiriminAjaOfficial\Repositories\InstantDeliveryApiRep
     public function price(array $payload): array {
         ++$this->prices;
         $in = $GLOBALS['input'];
-        return ['status'=>true, 'data'=>(object)['result'=>[['name'=>'gosend','costs'=>[['service_type'=>'other','price'=>['shipping_costs'=>1]],['service_type'=>$in['price_service'] ?? 'sameday','price'=>['shipping_costs'=>$in['price'] ?? 18000]]]]]]];
+        $shipping = $in['price'] ?? 18000;
+        $admin = $in['admin_fee'] ?? 1000;
+        return ['status'=>true, 'data'=>(object)['result'=>[['name'=>'gosend','costs'=>[['service_type'=>'other','price'=>['shipping_costs'=>1,'admin_fee'=>0,'total_price'=>1]],['service_type'=>$in['price_service'] ?? 'sameday','price'=>['shipping_costs'=>$shipping,'admin_fee'=>$admin,'total_price'=>$shipping + $admin]]]]]]];
     }
     public function validateCredit(string $pin, int|float $amount): array { $this->credits[] = ['amount'=>$amount,'valid_pin'=>strlen($pin) === 6]; if (!empty($GLOBALS['input']['credit_throw'])) { throw new RuntimeException('Secret PIN ' . $pin); } return ['status'=>empty($GLOBALS['input']['credit_fail'])]; }
     public function creditBalance(): array { return ['status'=>true, 'data'=>(object)['balance'=>$GLOBALS['input']['credit_balance'] ?? 4000724100]]; }

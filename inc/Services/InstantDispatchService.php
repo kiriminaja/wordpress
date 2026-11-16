@@ -78,7 +78,7 @@ class InstantDispatchService {
 					$reports[] = $report;
 					continue;
 				}
-				$price = $this->price( $this->api->price( $ctx['pricing'] ), $ctx['package'] );
+				$pricing = $this->price( $this->api->price( $ctx['pricing'] ), $ctx['package'] );
 				// Eligible presentation is an explicit allowlist, never the context or API response.
 				$report['courier'] = sanitize_text_field( $ctx['package']['service'] );
 				$report['service'] = sanitize_text_field( $ctx['package']['service_type'] );
@@ -93,10 +93,12 @@ class InstantDispatchService {
 				if ( '' !== $destination_label ) {
 					$report['destination_label'] = $destination_label;
 				}
-				$ctx['price'] = $price;
+				$ctx['price'] = $pricing['shipping_cost'];
+				$ctx['admin_fee'] = $pricing['admin_fee'];
+				$ctx['total_price'] = $pricing['total_price'];
 				$contexts[ $id ] = $ctx;
-				$report['after'] = $price;
-				$report['changed'] = (int) $report['before'] !== $price;
+				$report['after'] = $pricing['total_price'];
+				$report['changed'] = (int) $report['before'] !== $pricing['shipping_cost'];
 				$report['eligible'] = true;
 			} catch ( \Throwable $error ) {
 				// Never echo an API exception: upstream errors may contain credentials.
@@ -138,11 +140,13 @@ class InstantDispatchService {
 			if ( ! hash_equals( $quote['contexts'][ $id ]['fingerprint'], $ctx['fingerprint'] ) ) {
 				throw new InvalidArgumentException( esc_html__( 'The shipment has changed. Request a new Instant quote.', 'kiriminaja-official' ) );
 			}
+			$total_price = $quote['contexts'][ $id ]['total_price'] ?? null;
 			$price = $quote['contexts'][ $id ]['price'] ?? null;
-			if ( ! is_int( $price ) || $price < 0 || $total > PHP_INT_MAX - $price ) {
+			$admin_fee = $quote['contexts'][ $id ]['admin_fee'] ?? null;
+			if ( ! is_int( $price ) || ! is_int( $admin_fee ) || $price < 0 || $admin_fee < 0 || $total_price !== $price + $admin_fee || $total > PHP_INT_MAX - $total_price ) {
 				throw new InvalidArgumentException( esc_html__( 'The Instant total is invalid.', 'kiriminaja-official' ) );
 			}
-			$total += $price;
+			$total += $total_price;
 		}
 		if ( $quote['expires'] <= time() ) {
 			throw new InvalidArgumentException( esc_html__( 'The Instant quote is invalid or expired.', 'kiriminaja-official' ) );
@@ -204,12 +208,17 @@ class InstantDispatchService {
 					throw new RuntimeException( esc_html__( 'The shipment has changed. Request a new Instant quote.', 'kiriminaja-official' ) );
 				}
 				$ctx['price'] = $quote['contexts'][ $id ]['price'];
-				$ctx['package']['shipping_cost'] = $ctx['price'];
-				$contexts[ $id ] = $ctx;
-				if ( $total > PHP_INT_MAX - $ctx['price'] ) {
+				$ctx['total_price'] = $quote['contexts'][ $id ]['total_price'];
+				$ctx['admin_fee'] = $quote['contexts'][ $id ]['admin_fee'];
+				if ( $ctx['total_price'] !== $ctx['price'] + $ctx['admin_fee'] ) {
 					throw new RuntimeException( esc_html__( 'The Instant total is invalid.', 'kiriminaja-official' ) );
 				}
-				$total += $ctx['price'];
+				$ctx['package']['shipping_cost'] = $ctx['price'];
+				$contexts[ $id ] = $ctx;
+				if ( $total > PHP_INT_MAX - $ctx['total_price'] ) {
+					throw new RuntimeException( esc_html__( 'The Instant total is invalid.', 'kiriminaja-official' ) );
+				}
+				$total += $ctx['total_price'];
 			}
 			$methods = $this->paymentMethods();
 			if ( $methods !== $quote['methods'] || ! in_array( $method, $methods, true ) ) {
@@ -646,7 +655,8 @@ class InstantDispatchService {
 		}
 	}
 
-	private function price( array $response, array $package ): int {
+	/** @return array{shipping_cost:int,admin_fee:int,total_price:int} */
+	private function price( array $response, array $package ): array {
 		if ( true !== ( $response['status'] ?? false ) ) {
 			throw new RuntimeException();
 		}
@@ -660,7 +670,13 @@ class InstantDispatchService {
 				$cost = (array) $cost;
 				if ( ( $cost['service_type'] ?? null ) === $package['service_type'] ) {
 					$price = (array) ( $cost['price'] ?? array() );
-					$matches[] = $this->integer( $price['shipping_costs'] ?? null );
+					$shipping_cost = $this->integer( $price['shipping_costs'] ?? null );
+				$admin_fee = $this->integer( $price['admin_fee'] ?? null );
+				$total_price = $this->integer( $price['total_price'] ?? null );
+				if ( $total_price !== $shipping_cost + $admin_fee ) {
+					continue;
+				}
+				$matches[] = array( 'shipping_cost' => $shipping_cost, 'admin_fee' => $admin_fee, 'total_price' => $total_price );
 				}
 			}
 		}
