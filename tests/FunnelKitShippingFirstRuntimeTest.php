@@ -2,6 +2,46 @@
 use PHPUnit\Framework\TestCase;
 
 final class FunnelKitShippingFirstRuntimeTest extends TestCase {
+	public function test_forced_billing_single_address_reaches_real_rates_and_final_recipient(): void {
+		$input = array(
+			'billing_only' => true,
+			'final' => true,
+			'omit' => array( 'shipping_first_name', 'shipping_last_name', 'shipping_phone' ),
+			'override' => array(
+				'billing_first_name' => 'Fixture Buyer', 'billing_last_name' => '',
+				'billing_address_1' => 'Jalan Pembeli number 123 Jakarta', 'billing_address_2' => '', 'billing_country' => 'ID',
+				'billing_city' => '', 'billing_state' => '', 'billing_postcode' => '',
+				'billing_phone' => '81229917900',
+				'kiriof_funnelkit_phone_context' => '{"billing":{"value":"81229917900","iso2":"id","dialCode":"62"}}',
+			),
+		);
+		foreach ( array( true, false ) as $with_toggle ) {
+			if ( ! $with_toggle ) {
+				$input['omit'][] = 'wfacp_billing_same_as_shipping';
+			}
+			$result = $this->runFixture( $input );
+			$this->assertSame( array( 'kiriminaja-instant:11:gosend:GO-INSTANT' ), $result['rates'] );
+			$this->assertSame( 1, $result['calls'] );
+			$this->assertSame( 'shipping', $result['destination']['address_type'] );
+			$this->assertSame( '42', $result['destination']['district_id'] );
+			foreach ( array( 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345' ) as $field => $value ) {
+				$this->assertSame( $value, $result['customer'][ 'billing_' . $field ] );
+				$this->assertSame( $value, $result['package'][ $field ] );
+				$this->assertSame( $value, $result['final'][ 'billing_' . $field ] );
+			}
+			$this->assertSame( '6281229917900', $result['customer']['shipping_phone'] );
+			$this->assertSame( '6281229917900', $result['final']['shipping_phone'] );
+			$this->assertSame( '81229917900', $result['final']['billing_phone'] );
+		}
+		foreach ( array( array( 'billing_address_2' => 'Different unit' ), array( 'billing_city' => 'Different city' ), array( 'billing_phone' => '' ) ) as $override ) {
+			$invalid = $input;
+			$invalid['override'] = array_replace( $input['override'], $override );
+			$result = $this->runFixture( $invalid );
+			$this->assertSame( array(), $result['rates'] );
+			$this->assertSame( 0, $result['calls'] );
+		}
+	}
+
 	private function runFixture( array $input = array() ): array {
 		$input['funnelkit'] = true;
 		exec( kiriof_test_fixture_php_shell( array( __DIR__ . '/fixtures/classic-instant-restored-pin-runtime.php', json_encode( $input, JSON_THROW_ON_ERROR ) ) ) . ' 2>&1', $output, $status );

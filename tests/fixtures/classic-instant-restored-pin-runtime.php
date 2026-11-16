@@ -1,6 +1,7 @@
 <?php
 /** Production quote/rate services with an offline API; native cache lifecycle modeled explicitly. */
 $recovery_input = json_decode( $argv[1] ?? '{}', true, 512, JSON_THROW_ON_ERROR );
+$GLOBALS['recovery_input'] = $recovery_input;
 $argv[1] = '{}';
 ob_start();
 require __DIR__ . '/instant-checkout-quote-runtime.php';
@@ -32,6 +33,7 @@ $session->set( 'shipping_for_package_0', array( 'rates' => array( 'kiriminaja-of
 $GLOBALS['refresh_hook'] = '';
 $GLOBALS['refresh_hooks'] = array();
 function current_filter() { return $GLOBALS['refresh_hook']; }
+function wc_ship_to_billing_address_only() { return ! empty( $GLOBALS['recovery_input']['billing_only'] ); }
 function add_action( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['refresh_hooks'][ $name ][ $priority ][] = $callback; }
 function add_filter( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['refresh_filters'][ $name ][ $priority ][] = $callback; }
 function absint( $value ) { return abs( (int) $value ); }

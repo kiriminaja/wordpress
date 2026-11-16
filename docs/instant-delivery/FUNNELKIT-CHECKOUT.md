@@ -8,6 +8,16 @@ Classic review requests now validate the current phone against that metadata and
 
 In shipping-first forms with shared billing, empty hidden shipping-name fields inherit the current billing names. Separate billing does not authorize that name fallback. Explicit phone clears, mismatched country codes, and malformed metadata remain invalid rather than reusing previous customer/session values.
 
+## Forced billing destination
+
+When WooCommerce forces shipping to the billing address, Classic pinpoint saves and clears use the billing draft scope even if FunnelKit submits a shipping-labelled pin. Existing shipping-only drafts must be saved again; the plugin does not revive them from session history.
+
+For Indonesian FunnelKit single-address forms, missing billing city, state, postcode, and district fields can be recovered from the current shipping district selection. Recovery requires exact matching streets and unit/address-line-2 values, a unique server-verified district and postcode, and no conflicting populated billing fields or review-request address aliases. Optional billing-toggle fields are not required. Pickup methods, foreign countries, malformed input, and failed or ambiguous district lookups do not authorize recovery.
+
+Review aliases and final checkout fields use that same verified hierarchy, including when WooCommerce has already copied some repaired billing fields. Forced-billing recipient phones use the existing matching Indonesian widget context during both review and final checkout; native billing phone values remain unchanged. Invalid widget evidence explicitly clears the effective shipping phone rather than falling back to a saved or raw billing number.
+
+Regression fixtures cover saving/replacing/clearing pins, address conflicts, omitted toggle fields, review aliases, final fieldset omissions, current and legacy phone metadata, and the offline quote/rate lifecycle. Live checkout, payment, and courier booking still require staging verification.
+
 ## Hierarchy recovery
 
 District option caches and hierarchy identity caches are separate. A complete, verified postcode option-cache hit now restores its hierarchy identities without a network lookup. Legacy or malformed option rows are revalidated through the official address API. A village/postcode mismatch requires authoritative revalidation; labels are never used to invent parent IDs.

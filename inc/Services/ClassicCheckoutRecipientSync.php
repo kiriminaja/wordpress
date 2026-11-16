@@ -30,6 +30,10 @@ final class ClassicCheckoutRecipientSync {
 				$data[ 'shipping_' . $field ] = $value;
 			}
 		}
+		$phone = $this->forcedBillingWidgetPhone( $raw );
+		if ( null !== $phone ) {
+			$data['shipping_phone'] = $phone;
+		}
 		return $data;
 	}
 
@@ -46,8 +50,9 @@ final class ClassicCheckoutRecipientSync {
 		// The hook receives WooCommerce's already-unslashed serialized checkout payload.
 		parse_str( $post_data, $data );
 		$separate = ClassicDistrictAddressSync::separate( $data );
+		$billing_phone = $this->forcedBillingWidgetPhone( $data );
 		$contact = $separate && ClassicDistrictAddressSync::shippingFirst( $data ) ? $this->contact( $data ) : null;
-		InstantCheckoutRecipient::classicPhone( $wc->customer, $separate && ClassicDistrictAddressSync::shippingFirst( $data ) ? $this->value( $data, 'shipping_phone' ) : null );
+		InstantCheckoutRecipient::classicPhone( $wc->customer, $separate && ClassicDistrictAddressSync::shippingFirst( $data ) ? $this->value( $data, 'shipping_phone' ) : ( ! $separate ? $billing_phone : null ) );
 		InstantCheckoutRecipient::classicContact( $wc->customer, $contact );
 		$changed  = false;
 		foreach ( InstantCheckoutRecipient::FIELDS as $field ) {
@@ -59,8 +64,9 @@ final class ClassicCheckoutRecipientSync {
 			}
 
 			if ( ! $separate ) {
-				if ( null !== $billing ) {
-					$changed = $this->set( $wc->customer, 'shipping', $field, $billing ) || $changed;
+				$value = 'phone' === $field ? ( $billing_phone ?? $billing ) : $billing;
+				if ( null !== $value ) {
+					$changed = $this->set( $wc->customer, 'shipping', $field, $value ) || $changed;
 				}
 				continue;
 			}
@@ -81,6 +87,16 @@ final class ClassicCheckoutRecipientSync {
 		if ( $changed ) {
 			ClassicShippingRateCache::invalidate();
 		}
+	}
+
+	/** Null leaves native contact handling intact; an invalid widget explicitly clears shipping. */
+	private function forcedBillingWidgetPhone( array $data ): ?string {
+		if ( ! function_exists( 'wc_ship_to_billing_address_only' ) || ! wc_ship_to_billing_address_only()
+			|| 'ID' !== ( $data['billing_country'] ?? null ) || 'ID' !== ( $data['shipping_country'] ?? null )
+			|| ( ! array_key_exists( 'kiriof_funnelkit_phone_context', $data ) && ! array_key_exists( 'wfacp_input_phone_field', $data ) ) ) {
+			return null;
+		}
+		return $this->phone( $data, 'billing_phone', is_string( $data['billing_phone'] ?? null ) ? $data['billing_phone'] : null );
 	}
 
 	private function contact( array $data ): array {

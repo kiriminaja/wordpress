@@ -49,7 +49,7 @@ final class ClassicDistrictAddressSync {
 	}
 
 	/** The input is unslashed; client labels supply lookup postcodes, never address values. */
-	public function normalize( array $data ): array {
+	public function normalize( array $data, bool $complete_billing = true ): array {
 		foreach ( array( 'billing', 'shipping' ) as $scope ) {
 			if ( 'ID' !== ( $data[ $scope . '_country' ] ?? null ) ) {
 				continue;
@@ -95,7 +95,154 @@ final class ClassicDistrictAddressSync {
 				}
 			}
 		}
+		if ( $complete_billing && function_exists( 'wc_ship_to_billing_address_only' ) && wc_ship_to_billing_address_only() ) {
+			$data = array_replace( $data, $this->forcedBillingFields( $data ) );
+		}
 		return $data;
+	}
+
+	/** Forced billing forms can omit FunnelKit's optional billing-toggle flags. */
+	private function forcedBillingForm( array $data ): bool {
+		return function_exists( 'wc_ship_to_billing_address_only' ) && wc_ship_to_billing_address_only()
+			&& null !== $this->districtId( $data['_wfacp_post_id'] ?? null )
+			&& array_key_exists( 'shipping_country', $data );
+	}
+
+	/** Complete only missing billing fields from a verified single-address context. */
+	private function forcedBillingFields( array $data ): array {
+		$verified = $this->forcedBillingContext( $data );
+		if ( null === $verified ) {
+			return array();
+		}
+		$updates = array();
+		foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+			if ( ! array_key_exists( 'billing_' . $field, $data ) || '' === trim( $data[ 'billing_' . $field ] ) ) {
+				$updates[ 'billing_' . $field ] = $verified[ $field ];
+			}
+		}
+		if ( ! array_key_exists( 'kiriof_destination_area', $data ) || '' === trim( (string) $data['kiriof_destination_area'] ) ) {
+			$updates['kiriof_destination_area'] = $verified['id'];
+		}
+		if ( ! array_key_exists( 'kiriof_destination_area_name', $data ) || '' === trim( (string) $data['kiriof_destination_area_name'] ) ) {
+			$updates['kiriof_destination_area_name'] = $verified['label'];
+		}
+		return $updates;
+	}
+
+	/** Return canonical fields independently of whether the form needs repairs. */
+	private function forcedBillingContext( array $data ): ?array {
+		if ( ! $this->forcedBillingForm( $data ) || 'ID' !== ( $data['shipping_country'] ?? null ) || 'ID' !== ( $data['billing_country'] ?? null ) ) {
+			return null;
+		}
+		if ( array_key_exists( 'shipping_method', $data ) ) {
+			if ( ! is_array( $data['shipping_method'] ) ) {
+				return null;
+			}
+			foreach ( $data['shipping_method'] as $method ) {
+				if ( ! is_string( $method ) || in_array( explode( ':', $method, 2 )[0], array( 'local_pickup', 'pickup_location' ), true ) ) {
+					return null;
+				}
+			}
+		}
+		foreach ( array( 'address_1', 'address_2' ) as $field ) {
+			$billing = array_key_exists( 'billing_' . $field, $data ) ? $data[ 'billing_' . $field ] : '';
+			$shipping = array_key_exists( 'shipping_' . $field, $data ) ? $data[ 'shipping_' . $field ] : '';
+			if ( ! is_string( $billing ) || ! is_string( $shipping ) || $billing !== $shipping || ( 'address_1' === $field && '' === trim( $billing ) ) ) {
+				return null;
+			}
+		}
+		foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+			$billing = array_key_exists( 'billing_' . $field, $data ) ? $data[ 'billing_' . $field ] : '';
+			$shipping = array_key_exists( 'shipping_' . $field, $data ) ? $data[ 'shipping_' . $field ] : '';
+			if ( ! is_string( $billing ) || ! is_string( $shipping ) || ( '' !== trim( $billing ) && $billing !== $shipping ) ) {
+				return null;
+			}
+		}
+		foreach ( array( 'kiriof_destination_area', 'kiriof_destination_area_name' ) as $key ) {
+			if ( array_key_exists( $key, $data ) && ! is_string( $data[ $key ] ) && ! is_int( $data[ $key ] ) ) {
+				return null;
+			}
+		}
+		if ( ! $this->reviewAliasesMatch( $data ) ) {
+			return null;
+		}
+		$verified = $this->verifiedShippingDistrict( $data );
+		if ( null === $verified ) {
+			return null;
+		}
+		foreach ( array( 'kiriof_destination_area' => $verified['id'], 'kiriof_destination_area_name' => $verified['label'] ) as $key => $value ) {
+			if ( array_key_exists( $key, $data ) && '' !== trim( (string) $data[ $key ] ) && (string) $data[ $key ] !== $value ) {
+				return null;
+			}
+		}
+		if ( 'woocommerce_checkout_update_order_review' === current_filter() ) {
+			foreach ( array( '', 's_' ) as $prefix ) {
+				foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+					$key = $prefix . $field;
+					// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WooCommerce verified the nonce; compare original unslashed aliases only.
+					if ( array_key_exists( $key, $_POST ) && ( ! is_string( $_POST[ $key ] ) || ( '' !== trim( wp_unslash( $_POST[ $key ] ) ) && wp_unslash( $_POST[ $key ] ) !== $verified[ $field ] ) ) ) {
+						return null;
+					}
+				}
+			}
+		}
+		return $verified;
+	}
+
+	private function reviewAliasesMatch( array $data ): bool {
+		if ( 'woocommerce_checkout_update_order_review' !== current_filter() || ! $this->forcedBillingForm( $data ) ) {
+			return true;
+		}
+		foreach ( array( '' => 'billing', 's_' => 'shipping' ) as $prefix => $scope ) {
+			foreach ( array( 'country', 'address', 'address_2' ) as $field ) {
+				$key = $prefix . $field;
+				if ( ! array_key_exists( $key, $_POST ) ) {
+					continue;
+				}
+				// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WooCommerce verified the review nonce; compare without accepting address values.
+				$value = wp_unslash( $_POST[ $key ] );
+				$expected_field = 'address' === $field ? 'address_1' : $field;
+				$expected = $data[ $scope . '_' . $expected_field ] ?? '';
+				if ( ! is_string( $value ) || ! is_string( $expected ) || $value !== $expected ) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private function verifiedShippingDistrict( array $data, bool $strict = true ): ?array {
+		$id = $this->districtId( $data['kiriof_shipping_destination_area'] ?? null );
+		$postcode = $data['shipping_postcode'] ?? null;
+		if ( array_key_exists( 'kiriof_shipping_destination_area_name', $data ) && ! is_string( $data['kiriof_shipping_destination_area_name'] ) ) {
+			return null;
+		}
+		if ( null === $id || ! is_string( $postcode ) || ! preg_match( '/\A[0-9]{5}\z/', $postcode ) ) {
+			return null;
+		}
+		$matches = array();
+		foreach ( $this->rows( $postcode ) as $row ) {
+			if ( ( is_array( $row ) || is_object( $row ) ) && $id === $this->districtId( ( (array) $row )['id'] ?? null ) ) {
+				$matches[] = (array) $row;
+			}
+		}
+		if ( 1 !== count( $matches ) ) {
+			return null;
+		}
+		$canonical = $this->parts( $matches[0]['text'] ?? null );
+		if ( null === $canonical || $canonical[4] !== $postcode || ( isset( $matches[0]['zip_code'] ) && $matches[0]['zip_code'] !== $postcode ) ) {
+			return null;
+		}
+		$state = $strict ? $this->state( $canonical[3] ) : null;
+		if ( $strict && null === $state ) {
+			return null;
+		}
+		foreach ( $strict ? array( 'city' => $canonical[2], 'state' => $state, 'postcode' => $postcode ) : array() as $field => $value ) {
+			if ( '' !== trim( (string) ( $data[ 'shipping_' . $field ] ?? '' ) ) && $data[ 'shipping_' . $field ] !== $value ) {
+				return null;
+			}
+		}
+		return array( 'id' => (string) $id, 'label' => implode( ', ', $canonical ), 'city' => $canonical[2], 'state' => $state, 'postcode' => $postcode );
 	}
 
 	private function derivedFields( array $data, string $scope ): array {
@@ -116,6 +263,9 @@ final class ClassicDistrictAddressSync {
 	}
 
 	private function sharedBillingDistrict( array $data ): array {
+		if ( function_exists( 'wc_ship_to_billing_address_only' ) && wc_ship_to_billing_address_only() ) {
+			return $this->forcedBillingFields( $this->normalize( $data, false ) );
+		}
 		if ( ! self::shippingFirst( $data ) || ! self::sharedBilling( $data ) || 'ID' !== ( $data['shipping_country'] ?? null ) ) {
 			return array();
 		}
@@ -152,28 +302,14 @@ final class ClassicDistrictAddressSync {
 		if ( array_key_exists( 'kiriof_shipping_destination_area_name', $data ) && ! is_string( $data['kiriof_shipping_destination_area_name'] ) ) {
 			return array();
 		}
-		$id = $this->districtId( $data['kiriof_shipping_destination_area'] ?? null );
-		$postcode = $data['shipping_postcode'] ?? null;
-		if ( null === $id || ! is_string( $postcode ) || ! preg_match( '/\A[0-9]{5}\z/', $postcode ) ) {
-			return array();
-		}
-		$matches = array();
-		foreach ( $this->rows( $postcode ) as $row ) {
-			if ( ( is_array( $row ) || is_object( $row ) ) && $id === $this->districtId( ( (array) $row )['id'] ?? null ) ) {
-				$matches[] = (array) $row;
-			}
-		}
-		if ( 1 !== count( $matches ) ) {
-			return array();
-		}
-		$canonical = $this->parts( $matches[0]['text'] ?? null );
-		if ( null === $canonical || $postcode !== $canonical[4] || ( isset( $matches[0]['zip_code'] ) && $postcode !== $matches[0]['zip_code'] ) ) {
+		$verified = $this->verifiedShippingDistrict( $data, false );
+		if ( null === $verified ) {
 			return array();
 		}
 		$updates = array();
 		foreach ( array( 'kiriof_destination_area', 'kiriof_shipping_destination_area' ) as $key ) {
-			$updates[ $key ] = (string) $id;
-			$updates[ $key . '_name' ] = implode( ', ', $canonical );
+			$updates[ $key ] = $verified['id'];
+			$updates[ $key . '_name' ] = $verified['label'];
 		}
 		return $updates;
 	}
@@ -185,6 +321,11 @@ final class ClassicDistrictAddressSync {
 		}
 		parse_str( $post_data, $data );
 		$normalized = $this->normalize( $data );
+		foreach ( array( 'kiriof_destination_area', 'kiriof_destination_area_name' ) as $key ) {
+			if ( array_key_exists( $key, $normalized ) && ( ! array_key_exists( $key, $data ) || $data[ $key ] !== $normalized[ $key ] ) ) {
+				$_POST[ $key ] = wp_slash( $normalized[ $key ] );
+			}
+		}
 		$separate = self::separate( $data );
 		foreach ( $this->repairs( $data, $normalized ) as $key => $value ) {
 			$_POST[ $key ] = wp_slash( $value );
@@ -213,6 +354,21 @@ final class ClassicDistrictAddressSync {
 	}
 
 	private function repairReviewAliases( array $data, bool $separate ): void {
+		if ( $this->forcedBillingForm( $data ) ) {
+			$verified = $this->forcedBillingContext( $this->normalize( $data, false ) );
+			if ( null === $verified ) {
+				return;
+			}
+			foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+				foreach ( array( $field, 's_' . $field ) as $alias ) {
+					// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- WooCommerce verified the review nonce; preserve nonblank or malformed aliases.
+					if ( ! array_key_exists( $alias, $_POST ) || ( is_string( $_POST[ $alias ] ) && '' === trim( wp_unslash( $_POST[ $alias ] ) ) ) ) {
+						$_POST[ $alias ] = wp_slash( $verified[ $field ] );
+					}
+				}
+			}
+			return;
+		}
 		$candidate = $data;
 		$targets = array();
 		foreach ( array( '' => 'billing', 's_' => $separate ? 'shipping' : 'billing' ) as $prefix => $scope ) {
@@ -235,7 +391,7 @@ final class ClassicDistrictAddressSync {
 		if ( empty( $targets ) ) {
 			return;
 		}
-		$repairs = $this->repairs( $candidate, $this->normalize( $candidate ) );
+		$repairs = $this->repairs( $candidate, $this->normalize( $candidate, false ) );
 		foreach ( $targets as $alias => $key ) {
 			if ( array_key_exists( $key, $repairs ) ) {
 				$_POST[ $alias ] = wp_slash( $repairs[ $key ] );
@@ -267,6 +423,45 @@ final class ClassicDistrictAddressSync {
 		// Custom marker fields need not be registered in WooCommerce's checkout fieldset.
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- The process hook verified the lifecycle; normalize validates this evidence.
 		$raw = wp_unslash( $_POST );
+		if ( $this->forcedBillingForm( $this->checkout_input ) ) {
+			// Validate original evidence before WooCommerce's copies or synthetic blanks can hide conflicts.
+			$original = $this->normalize( $this->checkout_input, false );
+			if ( null === $this->forcedBillingContext( $original ) ) {
+				return $data;
+			}
+			$updates = $this->forcedBillingFields( $original );
+			$effective = $original;
+			foreach ( array( 'country', 'address_1', 'address_2', 'city', 'state', 'postcode' ) as $field ) {
+				$key = 'billing_' . $field;
+				if ( array_key_exists( $key, $data ) && ( ! is_string( $data[ $key ] ) || '' !== trim( $data[ $key ] ) ) ) {
+					$effective[ $key ] = $data[ $key ];
+				}
+			}
+			foreach ( array( 'kiriof_destination_area', 'kiriof_destination_area_name' ) as $key ) {
+				if ( array_key_exists( $key, $data ) && '' !== $data[ $key ] ) {
+					$effective[ $key ] = $data[ $key ];
+				}
+			}
+			$verified = $this->forcedBillingContext( $effective );
+			if ( null === $verified ) {
+				return $data;
+			}
+			$data = array_replace( $data, $updates );
+			foreach ( array( 'city', 'state', 'postcode' ) as $field ) {
+				foreach ( array( 'billing_', 'shipping_' ) as $prefix ) {
+					$key = $prefix . $field;
+					if ( ! array_key_exists( $key, $data ) || ( is_string( $data[ $key ] ) && '' === trim( $data[ $key ] ) ) ) {
+						$data[ $key ] = $verified[ $field ];
+					}
+				}
+			}
+			foreach ( array( 'kiriof_destination_area' => 'id', 'kiriof_destination_area_name' => 'label' ) as $key => $field ) {
+				if ( ! array_key_exists( $key, $data ) || ( is_string( $data[ $key ] ) && '' === trim( $data[ $key ] ) ) ) {
+					$data[ $key ] = $verified[ $field ];
+				}
+			}
+			return $data;
+		}
 		if ( self::separate( $raw ) && self::shippingFirst( $raw ) ) {
 			foreach ( array_merge( BuyerDestination::ADDRESS_FIELDS, InstantCheckoutRecipient::FIELDS ) as $field ) {
 				$key = 'shipping_' . $field;

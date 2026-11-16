@@ -8,6 +8,25 @@ final class ClassicPinDraftServiceRuntimeTest extends TestCase {
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_forced_billing_saves_replaces_and_clears_shipping_labelled_pins(): void {
+		foreach ( array( 'review', 'final' ) as $mode ) {
+			$result = $this->runFixture( array( 'billing_only' => true, 'saves' => array( $this->save( 'shipping' ) ), 'form' => $this->form(), 'mode' => $mode ) );
+			$this->assertSame( array(), $result['errors'] );
+			$this->assertSame( array( 'billing' => $this->save()['coordinates'] ), $result['session']['kiriof_classic_pin_drafts'] );
+			$this->assertSame( 'billing', $result['session']['kiriof_classic_pin_scope'] );
+			$this->assertSame( '31554', $result['session']['kiriof_buyer_destination']['district_id'] );
+		}
+		$replacement = array_replace( $this->save( 'shipping' ), array( 'coordinates' => array( 'latitude' => '-7.76', 'longitude' => '110.41' ) ) );
+		$result = $this->runFixture( array( 'billing_only' => true, 'saves' => array( $this->save(), $replacement ), 'form' => $this->form() ) );
+		$this->assertSame( '-7.76', $result['session']['kiriof_buyer_destination']['destination_latitude'] );
+		$clear = array_replace( $replacement, array( 'coordinates' => null ) );
+		$result = $this->runFixture( array( 'billing_only' => true, 'saves' => array( $replacement, $clear ), 'form' => $this->form() ) );
+		$this->assertSame( array( 'billing' => null ), $result['session']['kiriof_classic_pin_drafts'] );
+		$this->assertNull( $result['session']['kiriof_buyer_destination'] ?? null );
+		$result = $this->runFixture( array( 'billing_only' => true, 'saves' => array( array_replace( $replacement, array( 'address_scope' => 'invalid' ) ) ) ) );
+		$this->assertSame( array( 3 ), $result['errors'] );
+	}
+
 	public function test_partial_step_review_keeps_saved_coordinates_for_the_next_complete_address(): void {
 		foreach ( array( 'billing', 'shipping' ) as $scope ) {
 			$complete = $this->form( $scope );

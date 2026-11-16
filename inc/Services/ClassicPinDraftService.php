@@ -41,6 +41,9 @@ final class ClassicPinDraftService {
 		if ( ! in_array( $scope, array( 'billing', 'shipping' ), true ) ) {
 			throw new \InvalidArgumentException( 'Invalid address scope.', 3 );
 		}
+		if ( function_exists( 'wc_ship_to_billing_address_only' ) && wc_ship_to_billing_address_only() ) {
+			$scope = 'billing';
+		}
 		if ( 'ID' !== ( $data['country'] ?? null ) ) {
 			$wc->session->set( self::SESSION_KEY, null );
 			$wc->session->set( self::SCOPE_KEY, null );

@@ -16,6 +16,10 @@ namespace KiriminAjaOfficial\Services {
 namespace {
 	define( 'ABSPATH', __DIR__ );
 	$input = json_decode( $argv[1], true, 512, JSON_THROW_ON_ERROR );
+	$GLOBALS['input'] = $input;
+	function wc_ship_to_billing_address_only() { return ! empty( $GLOBALS['input']['billing_only'] ); }
+	function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : ( is_string( $value ) ? stripslashes( $value ) : $value ); }
+	function wp_slash( $value ) { return is_array( $value ) ? array_map( 'wp_slash', $value ) : ( is_string( $value ) ? addslashes( $value ) : $value ); }
 	if ( ! empty( $input['rest'] ) ) { define( 'REST_REQUEST', true ); }
 	$GLOBALS['hook'] = $input['hook'] ?? 'woocommerce_checkout_update_order_review';
 	$GLOBALS['actions'] = array();
@@ -68,11 +72,21 @@ namespace {
 	$service = new \KiriminAjaOfficial\Services\ClassicCheckoutRecipientSync();
 	$service->register();
 	$steps = array();
-	foreach ( $input['forms'] as $form ) {
+	foreach ( $input['forms'] ?? array() as $form ) {
 		$customer->writes = array();
 		$session->writes = array();
 		$service->sync( is_array( $form ) ? http_build_query( $form ) : $form );
 		$steps[] = array( 'customer' => $customer->data, 'writes' => $customer->writes, 'invalidations' => $session->writes, 'recipient' => \KiriminAjaOfficial\Services\InstantCheckoutRecipient::resolve( array(), $customer ) );
+	}
+	$posted = null;
+	if ( isset( $input['final'] ) ) {
+		$_POST = wp_slash( $input['final'] );
+		if ( $input['process'] ?? true ) {
+			$GLOBALS['hook'] = $input['process_hook'] ?? 'woocommerce_checkout_process';
+			$service->process();
+		}
+		$GLOBALS['hook'] = $input['posted_hook'] ?? 'woocommerce_checkout_posted_data';
+		$posted = $service->posted( $input['posted'] ?? $input['final'] );
 	}
 	$address = array( 'address_1' => 'Jalan Example number 123', 'address_2' => '', 'city' => 'Jakarta', 'state' => 'JK', 'postcode' => '12345', 'country' => 'ID' );
 	$session->data['kiriof_buyer_destination'] = array( 'district_id' => '123', 'district_label' => 'District', 'postcode' => '12345', 'country' => 'ID', 'address_type' => 'shipping', 'version' => 2, 'destination_latitude' => '-6.3', 'destination_longitude' => '106.9', 'shipping_address' => $address );
@@ -81,5 +95,5 @@ namespace {
 	$quotes = new \KiriminAjaOfficial\Services\InstantCheckoutQuoteService();
 	$method = new Kiriof_Instant_Shipping_Method_Controller( 11, $quotes );
 	$method->calculate_shipping( array( 'contents' => array( array( 'quantity' => 1, 'data' => new class { public function needs_shipping() { return true; } } ) ), 'destination' => $address ) );
-	echo json_encode( array( 'steps' => $steps, 'saves' => $customer->saves, 'session' => $session->data, 'calls' => $quotes->calls, 'rates' => array_keys( $method->rates ), 'hooks' => array_keys( $GLOBALS['actions'] ), 'registration' => $GLOBALS['actions']['woocommerce_checkout_update_order_review'][0][1] ) );
+	echo json_encode( array( 'steps' => $steps, 'posted' => $posted, 'saves' => $customer->saves, 'session' => $session->data, 'calls' => $quotes->calls, 'rates' => array_keys( $method->rates ), 'hooks' => array_keys( $GLOBALS['actions'] ), 'registration' => $GLOBALS['actions']['woocommerce_checkout_update_order_review'][0][1] ) );
 }
