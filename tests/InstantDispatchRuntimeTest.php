@@ -26,9 +26,20 @@ final class InstantDispatchRuntimeTest extends TestCase {
             } else {
                 $this->assertNull($r['quote']['credit_balance']);
             }
+
         }
         $r = $this->runFixture(array('quote_only'=>true, 'profile'=>'TOP'));
         $this->assertNull($r['quote']['credit_balance']);
+    }
+
+    #[Test]
+    public function credit_uses_customer_total_while_booking_keeps_carrier_shipping_cost(): void {
+        $r = $this->runFixture(array('validate_credit'=>true, 'profile'=>'CREDIT', 'method'=>'credit', 'pin'=>'123456', 'price'=>19500, 'admin_fee'=>1000));
+        $this->assertSame(20500, $r['quote']['rows'][0]['after']);
+        $this->assertSame(20500, $r['credits'][0]['amount']);
+        $this->assertSame(20500, $r['credits'][1]['amount']);
+        $this->assertSame(19500, $r['books'][0]['packages'][0]['shipping_cost']);
+        $this->assertSame('booked', $r['dispatch']['rows'][0]['status']);
     }
 
     #[Test]
@@ -75,7 +86,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $expectedContracts[$case] = [
                 'validation' => array('valid'=>true),
                 'quote.credit_balance' => 4000724100,
-                'credits' => array(array('amount'=>4000724100, 'valid_pin'=>true)),
+                'credits' => array(array('amount'=>4000726100, 'valid_pin'=>true)),
             ];
         $actualContracts[$case] = [
                 'validation' => $r['validation'],
@@ -85,7 +96,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $this->assertReadOnlyValidation($r);
         $r = $this->runFixture(array('validate_credit'=>true, 'quote_only'=>true, 'profile'=>'CREDIT', 'pin'=>'123456', 'count'=>2, 'dispatch_ids'=>array('KA-2')));
         $case = (__FUNCTION__) . ' #' . count($expectedContracts);
-        $expectedContracts[$case] = 18000;
+        $expectedContracts[$case] = 19000;
         $actualContracts[$case] = $r['credits'][0]['amount'];
         $this->assertReadOnlyValidation($r);
     
@@ -121,7 +132,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $case = (__FUNCTION__) . ' #' . count($expectedContracts);
         $expectedContracts[$case] = [
                 'count(r.credits)' => 2,
-                'credits.1.amount' => 18000,
+                'credits.1.amount' => 19000,
                 'dispatch.rows.0.status' => 'booked',
             ];
         $actualContracts[$case] = [
@@ -702,7 +713,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $r = $this->runFixture(['quote_only'=>true, 'repeat_quote'=>true, 'count'=>2, 'distinct_last'=>true]);
         $this->assertSame('', $r['error']);
         $this->assertSame([
-            'id'=>'KA-1', 'before'=>15000, 'after'=>18000, 'changed'=>true, 'eligible'=>true, 'error'=>'',
+            'id'=>'KA-1', 'before'=>15000, 'after'=>19000, 'changed'=>true, 'eligible'=>true, 'error'=>'',
             'wc_order_number'=>'SHOP-1001', 'courier'=>'gosend', 'service'=>'sameday',
             'origin_label'=>'Test Sender', 'destination_label'=>'Booked Full Name',
         ], $r['quote']['rows'][0]);
@@ -860,7 +871,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
                     'error' => '',
                     'quote.rows.0.eligible' => true,
                     'quote.rows.0.before' => 18000,
-                    'quote.rows.0.after' => $provider_price,
+                    'quote.rows.0.after' => $provider_price + 1000,
                     'quote.rows.0.changed' => $provider_price !== 18000,
                 ],
                 [
@@ -887,7 +898,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
             $this->assertReadOnlyValidation($r);
             $this->assertSame(
                 [
-                    'credits' => array_fill(0, 2, array('amount'=>$provider_price, 'valid_pin'=>true)),
+                    'credits' => array_fill(0, 2, array('amount'=>$provider_price + 1000, 'valid_pin'=>true)),
                     'dispatch.rows.0.status' => 'booked',
                     'count(r.books)' => 1,
                     'books.0.payment_method' => 'credit',
@@ -984,7 +995,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $this->assertSame(
             [
                 'error' => '',
-                'quote.rows.0.after' => 18000,
+                    'quote.rows.0.after' => 19000,
                 'quote.rows.0.changed' => true,
                 'dispatch.rows.0.status' => 'booked',
                 'rows.0.rejected_reason' => null,
@@ -1425,7 +1436,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
         $r = $this->runFixture(['count'=>11,'method'=>'credit','pin'=>'654321','echo_pin'=>true,'echo_pin_qr'=>true]);
         $this->assertSame(
             [
-                'credits' => [['amount'=>198000,'valid_pin'=>true]],
+                'credits' => [['amount'=>209000,'valid_pin'=>true]],
                 'redaction: json_encode(r), \'654321\'' => 0,
             ],
             [
