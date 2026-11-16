@@ -8,9 +8,12 @@ if ( ! empty( $input['rest'] ) ) { define( 'REST_REQUEST', true ); }
 $hooks = array();
 $hook = '';
 $calls = array();
+$notices = array();
 function add_action( $name, $callback, $priority = 10, $args = 1 ) { $GLOBALS['hooks'][ $name ] = $priority; }
 function add_filter( $name, $callback, $priority = 10, $args = 1 ) { add_action( $name, $callback, $priority, $args ); }
 function current_filter() { return $GLOBALS['hook']; }
+function __( $value, $domain ) { return $value; }
+function wc_add_notice( $message, $type ) { $GLOBALS['notices'][] = array( 'message' => $message, 'type' => $type ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( $value ) ); }
 function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : ( is_string( $value ) ? stripslashes( $value ) : $value ); }
 function wp_slash( $value ) { return is_array( $value ) ? array_map( 'wp_slash', $value ) : ( is_string( $value ) ? addslashes( $value ) : $value ); }
@@ -46,4 +49,4 @@ if ( 'review' === ( $input['mode'] ?? '' ) ) {
 	$result = $service->normalize( $form );
 	$service->normalize( $form );
 }
-echo json_encode( array( 'data' => $result, 'post' => $_POST, 'unslashed' => wp_unslash( $_POST ), 'calls' => $calls, 'hooks' => $hooks ), JSON_THROW_ON_ERROR );
+echo json_encode( array( 'data' => $result, 'post' => $_POST, 'unslashed' => wp_unslash( $_POST ), 'calls' => $calls, 'hooks' => $hooks, 'notices' => $notices ), JSON_THROW_ON_ERROR );
