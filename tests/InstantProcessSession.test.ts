@@ -31,42 +31,35 @@ const quote: InstantQuote = {
 };
 
 describe('Instant review session', () => {
-  test('admin fees contribute to payable totals but not carrier price gaps', () => {
+  test('compares saved and current totals with their respective admin fees', () => {
     const row = {
       id: 'fee',
-      before: 19500,
-      after: 20500,
-      carrier_after: 19500,
+      before: 12000,
+      after: 12000,
       changed: false,
       eligible: true,
       error: '',
     };
     expect(quoteSummary({ ...quote, rows: [row] }, { fee: true })).toEqual({
-      before: 19500,
-      after: 20500,
+      before: 12000,
+      after: 12000,
       gap: 0,
       selectedCount: 1,
       changedCount: 0,
       unavailableCount: 0,
     });
     expect(
-      quoteSummary(
-        { ...quote, rows: [{ ...row, after: 21500, carrier_after: 20500, changed: true }] },
-        { fee: true },
-      ).gap,
+      quoteSummary({ ...quote, rows: [{ ...row, after: 12500, changed: true }] }, { fee: true })
+        .gap,
+    ).toBe(500);
+    expect(
+      quoteSummary({ ...quote, rows: [{ ...row, after: 13000, changed: true }] }, { fee: true })
+        .gap,
     ).toBe(1000);
     expect(
-      quoteSummary(
-        { ...quote, rows: [{ ...row, after: 19500, carrier_after: 18500, changed: true }] },
-        { fee: true },
-      ).gap,
+      quoteSummary({ ...quote, rows: [{ ...row, after: 11000, changed: true }] }, { fee: true })
+        .gap,
     ).toBe(-1000);
-    for (const carrier_after of [null, NaN, Infinity, -1, 21500]) {
-      expect(
-        quoteSummary({ ...quote, rows: [{ ...row, carrier_after }] }, { fee: true })
-          .unavailableCount,
-      ).toBe(1);
-    }
   });
 
   test('expiry is inclusive and malformed expiry fails closed', () => {

@@ -36,7 +36,6 @@ final class InstantDispatchRuntimeTest extends TestCase {
     public function credit_uses_customer_total_while_booking_keeps_carrier_shipping_cost(): void {
         $r = $this->runFixture(array('validate_credit'=>true, 'profile'=>'CREDIT', 'method'=>'credit', 'pin'=>'123456', 'price'=>19500, 'admin_fee'=>1000));
         $this->assertSame(20500, $r['quote']['rows'][0]['after']);
-        $this->assertSame(19500, $r['quote']['rows'][0]['carrier_after']);
         $this->assertSame(20500, $r['credits'][0]['amount']);
         $this->assertSame(20500, $r['credits'][1]['amount']);
         $this->assertSame(19500, $r['books'][0]['packages'][0]['shipping_cost']);
@@ -103,6 +102,23 @@ final class InstantDispatchRuntimeTest extends TestCase {
     
         $this->assertSame($expectedContracts, $actualContracts, __FUNCTION__ . ' behavior matrix');
 }
+
+    #[Test]
+    public function saved_and_current_prices_include_their_own_admin_fees(): void {
+        $receipt = json_encode(array('_kiriof_instant_admin_fee'=>1000), JSON_THROW_ON_ERROR);
+        foreach (array(array(11000, 1000, 12000, false), array(11000, 1500, 12500, true), array(12000, 1000, 13000, true), array(10000, 1000, 11000, true)) as [$shipping, $fee, $total, $changed]) {
+            $r = $this->runFixture(array('quote_only'=>true, 'price'=>$shipping, 'admin_fee'=>$fee, 'row'=>array('shipping_cost'=>11000, 'shipping_info'=>$receipt)));
+            $this->assertSame(12000, $r['quote']['rows'][0]['before']);
+            $this->assertSame($total, $r['quote']['rows'][0]['after']);
+            $this->assertSame($changed, $r['quote']['rows'][0]['changed']);
+        }
+        foreach (array(-1, 'invalid', array(1000), null, PHP_INT_MAX) as $fee) {
+            $r = $this->runFixture(array('quote_only'=>true, 'row'=>array('shipping_info'=>json_encode(array('_kiriof_instant_admin_fee'=>$fee), JSON_THROW_ON_ERROR))));
+            $this->assertFalse($r['quote']['rows'][0]['eligible']);
+        }
+        $r = $this->runFixture(array('quote_only'=>true, 'row'=>array('shipping_info'=>'{}')));
+        $this->assertSame(15000, $r['quote']['rows'][0]['before']);
+    }
 
     private function assertReadOnlyValidation(array $r): void {
         $this->assertSame($r['before_validation_rows'], $r['after_validation']['rows']);
@@ -717,7 +733,6 @@ final class InstantDispatchRuntimeTest extends TestCase {
             'id'=>'KA-1', 'before'=>15000, 'after'=>19000, 'changed'=>true, 'eligible'=>true, 'error'=>'',
             'wc_order_number'=>'SHOP-1001', 'courier'=>'gosend', 'service'=>'sameday',
             'origin_label'=>'Test Sender', 'destination_label'=>'Booked Full Name',
-            'carrier_after'=>18000,
         ], $r['quote']['rows'][0]);
         $this->assertSame(
             [
@@ -872,9 +887,9 @@ final class InstantDispatchRuntimeTest extends TestCase {
                 [
                     'error' => '',
                     'quote.rows.0.eligible' => true,
-                    'quote.rows.0.before' => 18000,
+                    'quote.rows.0.before' => 19000,
                     'quote.rows.0.after' => $provider_price + 1000,
-                    'quote.rows.0.changed' => $provider_price !== 18000,
+                    'quote.rows.0.changed' => $provider_price + 1000 !== 19000,
                 ],
                 [
                     'error' => $r['error'],

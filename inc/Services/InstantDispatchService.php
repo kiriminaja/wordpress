@@ -69,7 +69,7 @@ class InstantDispatchService {
 			}
 			try {
 				// Database decimals commonly arrive as strings; return a numeric JSON price.
-				$report['before'] = $this->integer( $row->shipping_cost ?? null );
+				$report['before'] = $this->savedTotal( $row );
 				try {
 					$ctx = $this->context->build( $row );
 				} catch ( InvalidArgumentException $error ) {
@@ -98,8 +98,7 @@ class InstantDispatchService {
 				$ctx['total_price'] = $pricing['total_price'];
 				$contexts[ $id ] = $ctx;
 				$report['after'] = $pricing['total_price'];
-				$report['carrier_after'] = $pricing['shipping_cost'];
-				$report['changed'] = (int) $report['before'] !== $pricing['shipping_cost'];
+				$report['changed'] = $report['before'] !== $pricing['total_price'];
 				$report['eligible'] = true;
 			} catch ( \Throwable $error ) {
 				// Never echo an API exception: upstream errors may contain credentials.
@@ -654,6 +653,23 @@ class InstantDispatchService {
 		} catch ( \Throwable $error ) {
 			throw new RuntimeException( esc_html__( 'Unable to verify Instant account payment methods.', 'kiriminaja-official' ) );
 		}
+	}
+
+	/** Compare the saved carrier charge and saved checkout fee with the current total. */
+	private function savedTotal( object $row ): int {
+		$shipping = $this->integer( $row->shipping_cost ?? null );
+		$receipt = $row->shipping_info ?? null;
+		if ( is_string( $receipt ) ) {
+			$receipt = json_decode( $receipt, true );
+		} elseif ( is_object( $receipt ) ) {
+			$receipt = (array) $receipt;
+		}
+		$fee = is_array( $receipt ) && array_key_exists( '_kiriof_instant_admin_fee', $receipt )
+			? $this->integer( $receipt['_kiriof_instant_admin_fee'] ) : 0;
+		if ( $shipping > PHP_INT_MAX - $fee ) {
+			throw new RuntimeException();
+		}
+		return $shipping + $fee;
 	}
 
 	/** @return array{shipping_cost:int,admin_fee:int,total_price:int} */

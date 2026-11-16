@@ -32,12 +32,10 @@ export function reviewSelection(
 export function quoteSummary(quote: InstantQuote, checked: Record<string, boolean>) {
   let before = 0;
   let after = 0;
-  let carrierAfter = 0;
   let selectedCount = 0;
   let changedCount = 0;
   let unavailableCount = 0;
   for (const row of quote.rows) {
-    const carrier = row.carrier_after === undefined ? row.after : row.carrier_after;
     if (
       !row.eligible ||
       typeof row.before !== 'number' ||
@@ -45,11 +43,7 @@ export function quoteSummary(quote: InstantQuote, checked: Record<string, boolea
       row.before < 0 ||
       typeof row.after !== 'number' ||
       !Number.isFinite(row.after) ||
-      row.after < 0 ||
-      typeof carrier !== 'number' ||
-      !Number.isFinite(carrier) ||
-      carrier < 0 ||
-      carrier > row.after
+      row.after < 0
     ) {
       unavailableCount++;
       continue;
@@ -57,14 +51,13 @@ export function quoteSummary(quote: InstantQuote, checked: Record<string, boolea
     if (!checked[row.id]) continue;
     before += row.before;
     after += row.after;
-    carrierAfter += carrier;
     selectedCount++;
     if (row.changed) changedCount++;
   }
   return {
     before,
     after,
-    gap: carrierAfter - before,
+    gap: after - before,
     selectedCount,
     changedCount,
     unavailableCount,

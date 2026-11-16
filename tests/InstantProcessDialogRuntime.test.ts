@@ -394,6 +394,31 @@ describe('InstantProcessDialog compiled Svelte 5 lifecycle (real DOM)', () => {
       await h.click(h.button('instantClose')); expect(h.target.textContent).toBe('');
     } finally { await h.cleanup(); }
   });
+  runtimeTest('saved and current admin-inclusive totals do not create a false price gap', async () => {
+    const h = await fixture(); try {
+      const q = h.quote();
+      q.rows = q.rows.map((row: any) => ({ ...row, before: 12000, after: 12000, changed: false }));
+      await h.reply(q);
+      expect(h.query('[aria-label="instantShippingInformation"]').textContent).toContain('Rp72.000');
+      expect(h.target.textContent).not.toContain('instantOrdersChanged');
+      expect(h.target.textContent).not.toContain('instantPriceGap');
+      await h.click(h.query('[data-slot="collapsible-trigger"]'));
+      expect(h.target.textContent).not.toContain('→');
+      expect(h.target.textContent).toContain('Rp12.000');
+    } finally { await h.cleanup(); }
+  });
+  runtimeTest('fee-only changes compare two admin-inclusive totals', async () => {
+    const h = await fixture(); try {
+      const q = h.quote();
+      q.rows = q.rows.map((row: any) => ({ ...row, before: 12000, after: 12000, changed: false }));
+      q.rows[0] = { ...q.rows[0], after: 12500, changed: true };
+      await h.reply(q);
+      expect(h.query('[aria-label="instantShippingInformation"]').textContent).toContain('Rp72.500');
+      expect(h.target.textContent).toContain('Rp500');
+      await h.click(h.query('[data-slot="collapsible-trigger"]'));
+      expect(h.target.textContent).toMatch(/Rp12\.000 →\s*Rp12\.500/);
+    } finally { await h.cleanup(); }
+  });
   runtimeTest('Confirm explicitly accepts changed prices for every selected row without extra consent', async () => {
     const h = await fixture(); try {
       const q = h.quote(); q.rows[0] = { ...q.rows[0], after: 1200, changed: true };
