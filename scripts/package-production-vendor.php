@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Build and cache the production phast vendor tree.
+ * Build and cache the production composer vendor tree.
  *
  * Usage: php package-production-vendor.php <source-root> <destination-vendor> <cache-root>
  */
@@ -15,40 +15,40 @@ if ($argc !== 4) {
 
 [$script, $sourceRoot, $destination, $cacheRoot] = $argv;
 $sourceRoot = realpath($sourceRoot);
-if ($sourceRoot === false || !is_file($sourceRoot . '/phast.toml')) {
-    fwrite(STDERR, "Phast source root is invalid.\n");
+if ($sourceRoot === false || !is_file($sourceRoot . '/composer.json')) {
+    fwrite(STDERR, "Composer source root is invalid.\n");
     exit(1);
 }
 
-if (!is_file($sourceRoot . '/phast.lock') || filesize($sourceRoot . '/phast.lock') === 0) {
-    fwrite(STDERR, "A nonempty phast.lock is required for reproducible packaging.\n");
+if (!is_file($sourceRoot . '/composer.lock') || filesize($sourceRoot . '/composer.lock') === 0) {
+    fwrite(STDERR, "A nonempty composer.lock is required for reproducible packaging.\n");
     exit(1);
 }
 
-$phast = getenv('KIRIOF_PHAST') ?: 'phast';
+$composer = getenv('KIRIOF_COMPOSER') ?: 'composer';
 $versionOutput = [];
-exec(escapeshellarg($phast) . ' --version 2>&1', $versionOutput, $versionStatus);
+exec(escapeshellarg($composer) . ' --version 2>&1', $versionOutput, $versionStatus);
 if ($versionStatus !== 0) {
-    fwrite(STDERR, "Unable to identify the phast runtime.\n");
+    fwrite(STDERR, "Unable to identify the composer runtime.\n");
     exit(1);
 }
-$phastVersion = trim(implode("\n", $versionOutput));
+$composerVersion = trim(implode("\n", $versionOutput));
 $extensions = [];
 foreach (get_loaded_extensions() as $extension) {
     $extensions[$extension] = phpversion($extension);
 }
 ksort($extensions);
 $inputs = [
-    'phast_toml' => hash_file('sha256', $sourceRoot . '/phast.toml'),
-    'phast_lock' => hash_file('sha256', $sourceRoot . '/phast.lock'),
+    'composer_json' => hash_file('sha256', $sourceRoot . '/composer.json'),
+    'composer_lock' => hash_file('sha256', $sourceRoot . '/composer.lock'),
     'php_binary' => PHP_BINARY,
     'php_binary_sha256' => hash_file('sha256', PHP_BINARY),
     'php_version' => PHP_VERSION,
     'php_ini' => ini_get_all(null, false),
     'platform' => PHP_OS_FAMILY . '/' . php_uname('m'),
     'extensions' => $extensions,
-    'phast' => $phast,
-    'phast_version' => $phastVersion,
+    'composer' => $composer,
+    'composer_version' => $composerVersion,
     'helper' => hash_file('sha256', __FILE__),
 ];
 $key = hash('sha256', json_encode($inputs, JSON_THROW_ON_ERROR));
@@ -108,32 +108,35 @@ $cacheValid = static function () use ($cache, $inputs, $inventory, $valid): bool
 if (!$cacheValid()) {
     $temporary = $cacheRoot . '/.tmp-' . bin2hex(random_bytes(8));
     if (!mkdir($temporary, 0700, true)) {
-        fwrite(STDERR, "Unable to create temporary phast directory.\n");
+        fwrite(STDERR, "Unable to create temporary composer directory.\n");
         exit(1);
     }
 
     $staging = null;
     try {
-        copy($sourceRoot . '/phast.toml', $temporary . '/phast.toml');
-        copy($sourceRoot . '/phast.lock', $temporary . '/phast.lock');
+        copy($sourceRoot . '/composer.json', $temporary . '/composer.json');
+        copy($sourceRoot . '/composer.lock', $temporary . '/composer.lock');
+        $manifest = json_decode(file_get_contents($temporary . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
+        $manifest['config']['autoloader-suffix'] = 'Kiriof' . substr($key, 0, 24);
+        file_put_contents($temporary . '/composer.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 
-        $run = static function (array $arguments) use ($phast, $temporary): void {
-            $command = array_merge([$phast], $arguments, ['--project-dir=' . $temporary]);
+        $run = static function (array $arguments) use ($composer, $temporary): void {
+            $command = array_merge([$composer], $arguments, ['--working-dir=' . $temporary]);
             $escaped = implode(' ', array_map('escapeshellarg', $command));
             passthru($escaped, $status);
             if ($status !== 0) {
-                throw new RuntimeException('Phast production install failed.');
+                throw new RuntimeException('Composer production install failed.');
             }
         };
 
         // Install only locked production packages; packaging must never run hooks.
-        $run(['install', '--no-dev', '--no-scripts']);
-        if (hash_file('sha256', $temporary . '/phast.lock') !== $inputs['phast_lock']) {
-            throw new RuntimeException('Phast changed phast.lock; regenerate and commit it before packaging.');
+        $run(['install', '--no-dev', '--no-scripts', '--no-plugins', '--no-interaction', '--no-progress', '--prefer-dist', '--optimize-autoloader']);
+        if (hash_file('sha256', $temporary . '/composer.lock') !== $inputs['composer_lock']) {
+            throw new RuntimeException('Composer changed composer.lock; regenerate and commit it before packaging.');
         }
 
         if (!$valid($temporary . '/vendor')) {
-            throw new RuntimeException('Phast produced an incomplete production vendor tree (SDK source is required).');
+            throw new RuntimeException('Composer produced an incomplete production vendor tree (SDK source is required).');
         }
 
         // Trim once, before caching/copying, including any upstream Git metadata.
@@ -181,7 +184,7 @@ if (!$cacheValid()) {
         exit(1);
     }
 } else {
-    echo "Reusing production phast vendor cache.\n";
+    echo "Reusing production composer vendor cache.\n";
 }
 
 if (is_dir($destination)) {

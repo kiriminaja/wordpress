@@ -4,12 +4,14 @@ use PHPUnit\Framework\TestCase;
 
 final class PhpBaselineTest extends TestCase {
 	public function test_plugin_dependency_and_tooling_baselines_are_php_82(): void {
-		$manifest = file_get_contents( PLUGIN_DIR . '/phast.toml' );
-		$this->assertMatchesRegularExpression( '/^\[require\]\s*\n(?:(?!\[).+\n)*?php\s*=\s*">=8\.2\.35"\s*$/m', $manifest );
-		$this->assertMatchesRegularExpression( '/^\[config\.platform\]\s*\nphp\s*=\s*"8\.2\.35"\s*$/m', $manifest );
-		$this->assertMatchesRegularExpression( '/^\[config\]\s*\nplatform-check\s*=\s*"off"\s*$/m', $manifest );
-		$this->assertFileExists( PLUGIN_DIR . '/phast.lock' );
-		$this->assertNotSame( '', trim( file_get_contents( PLUGIN_DIR . '/phast.lock' ) ) );
+		$manifest = json_decode( file_get_contents( PLUGIN_DIR . '/composer.json' ), true, 512, JSON_THROW_ON_ERROR );
+		$this->assertSame( '>=8.2.35', $manifest['require']['php'] );
+		$this->assertSame( '8.2.35', $manifest['config']['platform']['php'] );
+		$this->assertFalse( $manifest['config']['platform-check'] );
+		$this->assertFileExists( PLUGIN_DIR . '/composer.lock' );
+		$lock = json_decode( file_get_contents( PLUGIN_DIR . '/composer.lock' ), true, 512, JSON_THROW_ON_ERROR );
+		$this->assertIsArray( $lock );
+		$this->assertArrayHasKey( 'packages', $lock );
 		foreach ( array( 'kiriminaja.php', 'readme.txt' ) as $file ) {
 			$this->assertMatchesRegularExpression( '/^\s*(?:\*\s*)?Requires PHP:\s*8\.2\.35\s*$/m', file_get_contents( PLUGIN_DIR . '/' . $file ), $file );
 		}

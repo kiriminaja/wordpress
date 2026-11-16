@@ -8,7 +8,7 @@ KiriminAja Official is a WooCommerce shipping plugin for Indonesian online selle
 
 - **Plugin slug:** `kiriminaja-official`
 - **Namespace:** `KiriminAjaOfficial`
-- **PHP autoloading:** PSR-4 via phast (`"KiriminAjaOfficial\\" → "./inc"`)
+- **PHP autoloading:** PSR-4 via Composer (`"KiriminAjaOfficial\\" → "./inc"`)
 - **Minimum WooCommerce:** 8.0.0
 - **WC tested up to:** 11.2
 - **Text domain:** `kiriminaja-official`
@@ -272,8 +272,8 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
 - `simple-git-hooks` has no managed hooks and preserves other hooks. Keep the legacy frontend pre-commit script a no-op so stale installations cannot run tests.
 
 - Test runner: ParaTest
-- `make test` / `phast run test` and the named JS test scripts reuse content-matched successful runs. Use `make test-force`, `phast run test:force`, or `KIRIOF_TEST_FORCE=1` when fresh execution is required; report cache hits as reused results, not newly executed tests.
-- ParaTest is the only supported PHP test entry point (`make test` or `phast run test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
+- `make test` / `composer run test` and the named JS test scripts reuse content-matched successful runs. Use `make test-force`, `composer run test:force`, or `KIRIOF_TEST_FORCE=1` when fresh execution is required; report cache hits as reused results, not newly executed tests.
+- ParaTest is the only supported PHP test entry point (`make test` or `composer run test`). Do not invoke the underlying PHPUnit binary directly; PHPUnit remains an internal dependency of ParaTest.
 - Test files: `tests/` directory
 - Run: `vendor/bin/paratest --configuration paratest.xml` or `make test`
 - Tests cover: access control (`AccessControlTest`), cancel transaction flow (`CancelTransactionFeatureTest`), i18n (`I18nValidationTest`), plugin structure (`PluginStructureTest`), prefix validation (`PrefixValidationTest`), security validation (`SecurityValidationTest`), syntax validation (`SyntaxValidationTest`).
@@ -316,3 +316,10 @@ Tables are created via `Migration\SetupMigration::register()` which calls `setti
 9. New admin pages must be added to `Pages\Admin::register()` sub-pages array. Hidden pages use `'hidden' => true`.
 10. After adding/removing source files, run `make zip` to keep the `build/` directory in sync (tests verify this).
 11. New admin template controllers should be added to `AccessControlTest::ADMIN_TEMPLATES`.
+
+## PHP Dependencies
+
+- Manage PHP dependencies and scripts with Composer and the committed `composer.json` / `composer.lock`; a nonempty tracked lockfile is mandatory.
+- Install with `composer install --prefer-dist --no-interaction --no-progress --no-scripts`; CI caches the Composer download directory and rejects lockfile changes. Do not use `composer update` in CI.
+- Keep tests explicit: use `composer run test` or `make test`; dependency installation, commits, and packaging must not run tests automatically.
+- Packaging uses a separate production install (`composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader`) under `build/composer-vendor-cache`, not the development `vendor/` tree. Preserve cache inventory and runtime SDK autoload integrity checks.

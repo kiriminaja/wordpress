@@ -30,11 +30,12 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2.35"
+          tools: composer:v2
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           coverage: none
 
-      - name: Setup phast and install PHP dependencies
-        uses: ./.github/actions/setup-phast
+      - name: Setup Composer and install PHP dependencies
+        uses: ./.github/actions/setup-composer
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -92,11 +93,12 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2.35"
+          tools: composer:v2
           extensions: curl, sqlite3, pdo_sqlite, mbstring, dom, xml, zip
           coverage: none
 
-      - name: Setup phast and install PHP dependencies
-        uses: ./.github/actions/setup-phast
+      - name: Setup Composer and install PHP dependencies
+        uses: ./.github/actions/setup-composer
 
       - name: Download validated package
         uses: actions/download-artifact@v4
@@ -112,7 +114,7 @@ jobs:
           rsync -a build/kiriminaja-official/lang/ lang/
 
       - name: Run PHP behavior and package tests
-        run: phast run test
+        run: composer run test
 
   wordpress:
     name: "WP-CLI smoke + Plugin Check (WP ${{ matrix.wp }} / WC ${{ matrix.wc }} / PHP 8.2.35)"

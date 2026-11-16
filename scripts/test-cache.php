@@ -86,12 +86,12 @@ function kiriof_test_runtime(): array {
 /** Prune noisy trees before descent; generated trees get their own full inventories. */
 function kiriof_test_inventory( string $root ): array {
 	$records = array();
-	$ignored = array( '.git', 'node_modules', 'vendor', 'build', 'cache', '.cache', 'coverage', '.e2e', '.paratest', '.paratest.cache', '.phpunit.cache', '.svelte-kit', '.vite', 'playwright-report', 'test-results', '.idea', '.vscode', 'phast-vendor-cache' );
+	$ignored = array( '.git', 'node_modules', 'vendor', 'build', 'cache', '.cache', 'coverage', '.e2e', '.paratest', '.paratest.cache', '.phpunit.cache', '.svelte-kit', '.vite', 'playwright-report', 'test-results', '.idea', '.vscode', 'composer-vendor-cache' );
 	$generated = array( 'vendor', 'assets/admin/dist', 'assets/buyer/dist', 'build/kiriminaja-official' );
 	$visit = function ( string $relative, bool $complete ) use ( &$visit, &$records, $root, $ignored, $generated ): void {
 		$absolute = $root . '/' . $relative;
 		if ( is_link( $absolute ) ) {
-			// Phast links vendor binaries to their package entry points. Admit only
+			// PHP vendor binaries may link to their package entry points. Admit only
 			// internal file targets and fingerprint both the link and target bytes.
 			$target = realpath( $absolute );
 			if ( 'vendor/bin' === dirname( $relative ) && false !== $target && str_starts_with( $target, $root . '/vendor/' ) && is_file( $target ) ) {

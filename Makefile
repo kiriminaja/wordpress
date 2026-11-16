@@ -112,10 +112,10 @@ ifneq ($(RELEASE_GOALS),)
 endif
 
 test:
-	phast run test
+	composer run test
 
 test-force:
-	phast run test:force
+	composer run test:force
 
 check-dependencies:
 	@missing=0; \
@@ -128,7 +128,7 @@ check-dependencies:
 		missing=1; \
 	fi; \
 	if [ "$$missing" -ne 0 ]; then \
-		printf '\nRun phast install & bun install first\n'; \
+		printf '\nRun composer install & bun install first\n'; \
 		exit 1; \
 	fi
 
@@ -188,7 +188,8 @@ zip: frontend
 	mkdir -p $(STAGE_DIR)
 	rsync -a $(RSYNC_EXCLUDES) ./ $(STAGE_DIR)/
 	cp composer.json $(STAGE_DIR)/
-	php scripts/package-production-vendor.php . $(STAGE_DIR)/vendor $(BUILD_DIR)/phast-vendor-cache
+	php scripts/package-production-vendor.php . $(STAGE_DIR)/vendor $(BUILD_DIR)/composer-vendor-cache
+	@php -r '$$file=$$argv[1]; $$manifest=json_decode(file_get_contents($$file),true,512,JSON_THROW_ON_ERROR); $$metadata=array_intersect_key($$manifest,array_flip(array("name","description","authors","license"))); file_put_contents($$file,json_encode($$metadata,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR)."\n");' $(STAGE_DIR)/composer.json
 	@test -f $(STAGE_DIR)/vendor/kiriminaja/kiriminaja-php/src/Base/Api/Api.php || (echo "KiriminAja SDK API client source is missing from the package." && exit 1)
 	rm -f $(STAGE_DIR)/composer.lock $(STAGE_DIR)/vendor/bin/.phpunit.result.cache
 	@CUSTOM_LOCATION_LIMIT=$$(if [ -f .env ]; then grep '^MAX_CUSTOM_SHIPMENT_LOCATIONS=' .env | head -1 | cut -d= -f2- | xargs; fi); \
