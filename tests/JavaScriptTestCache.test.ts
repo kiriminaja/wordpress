@@ -184,7 +184,8 @@ describe('JavaScript success receipts', () => {
     await f.run();
     const absolute = path.join(f.root, file),
       before = readFileSync(absolute, 'utf8');
-    if (['package.json', 'composer.json', 'composer.lock'].includes(file)) f.put(file, `${before}\n`);
+    if (['package.json', 'composer.json', 'composer.lock'].includes(file))
+      f.put(file, `${before}\n`);
     else f.put(file, `${before}!`);
     utimesSync(absolute, new Date(0), new Date(0));
     expect((await f.run()).cached).toBe(false);

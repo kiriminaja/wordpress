@@ -171,6 +171,7 @@ export interface InstantQuoteRow {
   destination_label?: string;
   before: number | null;
   after: number | null;
+  carrier_after?: number | null;
   changed: boolean;
   eligible: boolean;
   error: string;

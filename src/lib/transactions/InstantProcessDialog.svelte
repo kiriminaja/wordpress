@@ -58,7 +58,7 @@
   const expired = $derived(quote ? remaining <= 0 : false);
   const topAccount = $derived(quote ? isTopAccount(quote) : false);
   const summary = $derived(quote ? quoteSummary(quote, Object.fromEntries(quote.rows.map((row) => [row.id, true]))) : null);
-  const changedCount = $derived(quote?.rows.filter((row) => row.eligible && row.before !== row.after).length ?? 0);
+  const changedCount = $derived(quote?.rows.filter((row) => row.eligible && row.changed).length ?? 0);
   const ids = $derived(quote?.rows.map((row) => row.id) ?? []);
   const methods = $derived(quote?.payment_methods.filter((value) => ['top', 'qris', 'credit'].includes(value)) ?? []);
   const creditBalance = $derived(completeAmount(quote?.credit_balance ?? null) ? quote!.credit_balance! : null);
@@ -253,14 +253,14 @@
               <div class="grid gap-2 rounded-lg border p-3 text-sm" data-order-id={row.id}>
                 <div class="flex items-center justify-between gap-2">
                   <span class="min-w-0 break-words font-medium">{orderLabel(row.id)}</span>
-                  <span class="shrink-0 tabular-nums">{#if row.before !== row.after}{money(row.before)} → {/if}{money(row.after)}</span>
+                  <span class="shrink-0 tabular-nums">{#if row.changed}{money(row.before)} → {money(row.carrier_after ?? row.after)}{:else}{money(row.after)}{/if}</span>
                 </div>
                 <dl class="m-0 grid gap-2">
                   {#if row.courier}<div class="flex flex-wrap justify-between gap-2"><dt class="text-muted-foreground">{text('instantCourierService')}</dt><dd class="m-0 font-medium">{courierLabel(row.courier)} {row.service ?? ''}</dd></div>{/if}
                   {#if row.origin_label}<div class="flex flex-wrap justify-between gap-2"><dt class="text-muted-foreground">{text('instantOrigin')}</dt><dd class="m-0 max-w-full break-words">{row.origin_label}</dd></div>{/if}
                   {#if row.destination_label}<div class="flex flex-wrap justify-between gap-2"><dt class="text-muted-foreground">{text('instantRecipient')}</dt><dd class="m-0 max-w-full break-words">{row.destination_label}</dd></div>{/if}
                 </dl>
-                {#if !row.eligible}<span class="text-xs text-destructive">{text('instantUnavailable')}</span>{:else if row.before !== row.after}<span class="text-xs text-warning">{text('instantChanged')}</span>{/if}
+                {#if !row.eligible}<span class="text-xs text-destructive">{text('instantUnavailable')}</span>{:else if row.changed}<span class="text-xs text-warning">{text('instantChanged')}</span>{/if}
               </div>
             {/each}
             {/if}
@@ -272,7 +272,7 @@
             <dl class="m-0 grid gap-2 text-sm">
               {#if summary.gap !== 0}
                 <div class="flex justify-between gap-2"><dt>{text('instantBefore')}</dt><dd class="m-0 tabular-nums">{money(summary.before)}</dd></div>
-                <div class="flex justify-between gap-2"><dt>{text('instantAfter')}</dt><dd class="m-0 tabular-nums">{money(summary.after)}</dd></div>
+                <div class="flex justify-between gap-2"><dt>{text('instantAfter')}</dt><dd class="m-0 tabular-nums">{money(summary.before + summary.gap)}</dd></div>
                 <div class="flex justify-between gap-2"><dt>{text('instantPriceGap')}</dt><dd class={`m-0 flex items-center gap-1 tabular-nums ${summary.gap > 0 ? 'text-destructive' : 'text-success'}`}>{money(Math.abs(summary.gap))}{#if summary.gap > 0}<IconArrowUp class="size-4" aria-label={text('instantPriceIncrease')} />{:else}<IconArrowDown class="size-4" aria-label={text('instantPriceDecrease')} />{/if}</dd></div>
               {/if}
               <div class="flex justify-between gap-2 font-semibold" title={text('instantTotalScope')}><dt>{text('instantTotalShipment')}</dt><dd class="m-0 tabular-nums">{summary.unavailableCount > 0 ? '—' : money(summary.after)}</dd></div>

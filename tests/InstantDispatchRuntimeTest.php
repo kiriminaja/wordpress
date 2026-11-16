@@ -36,6 +36,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
     public function credit_uses_customer_total_while_booking_keeps_carrier_shipping_cost(): void {
         $r = $this->runFixture(array('validate_credit'=>true, 'profile'=>'CREDIT', 'method'=>'credit', 'pin'=>'123456', 'price'=>19500, 'admin_fee'=>1000));
         $this->assertSame(20500, $r['quote']['rows'][0]['after']);
+        $this->assertSame(19500, $r['quote']['rows'][0]['carrier_after']);
         $this->assertSame(20500, $r['credits'][0]['amount']);
         $this->assertSame(20500, $r['credits'][1]['amount']);
         $this->assertSame(19500, $r['books'][0]['packages'][0]['shipping_cost']);
@@ -716,6 +717,7 @@ final class InstantDispatchRuntimeTest extends TestCase {
             'id'=>'KA-1', 'before'=>15000, 'after'=>19000, 'changed'=>true, 'eligible'=>true, 'error'=>'',
             'wc_order_number'=>'SHOP-1001', 'courier'=>'gosend', 'service'=>'sameday',
             'origin_label'=>'Test Sender', 'destination_label'=>'Booked Full Name',
+            'carrier_after'=>18000,
         ], $r['quote']['rows'][0]);
         $this->assertSame(
             [

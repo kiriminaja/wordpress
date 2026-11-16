@@ -98,6 +98,7 @@ class InstantDispatchService {
 				$ctx['total_price'] = $pricing['total_price'];
 				$contexts[ $id ] = $ctx;
 				$report['after'] = $pricing['total_price'];
+				$report['carrier_after'] = $pricing['shipping_cost'];
 				$report['changed'] = (int) $report['before'] !== $pricing['shipping_cost'];
 				$report['eligible'] = true;
 			} catch ( \Throwable $error ) {
