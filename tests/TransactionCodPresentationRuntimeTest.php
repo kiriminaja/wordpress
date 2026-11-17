@@ -59,4 +59,52 @@ final class TransactionCodPresentationRuntimeTest extends TestCase {
 		$data = $this->render( 'detail', array( 'cod_fee' => 0, 'wc_order' => array( 'payment_method' => 'cod', 'shipping_total' => 7315, 'total' => 208515, 'subtotal' => 200000 ) ) )['transaction']['shipment'];
 		$this->assertSame( 208515, $data['codValue'] );
 	}
+
+	public function test_instant_list_shipping_includes_saved_admin_fee_once_for_both_couriers(): void {
+		foreach ( array( 'gosend', 'grab_express' ) as $service ) {
+			foreach ( array( false, array(
+				'payment_method' => 'bacs',
+				'shipping_total' => 12000,
+				'meta' => array( '_kiriof_instant_admin_fee' => 9000 ),
+				'fees' => array( array( 'type' => 'instant_admin_fee', 'total' => 9000 ), array( 'type' => 'other_fee', 'total' => 5000 ) ),
+			), array( 'shipping_total' => 14500 ) ) as $order ) {
+				$list = $this->render( 'list', array(
+					'delivery_type' => 'instant',
+					'service' => $service,
+					'shipping_cost' => 12000,
+					'discount_amount' => 0,
+					'insurance_cost' => 0,
+					'cod_fee' => 0,
+					'shipping_info' => json_encode( array( '_kiriof_instant_admin_fee' => 2500 ) ),
+					'wc_order' => $order,
+				) );
+				$this->assertSame( 14500, $list['package']['actualShipping'] );
+				$this->assertSame( 14500, $list['package']['paidShipping'] );
+				$this->assertSame( 0, $list['package']['shippingDiscount'] );
+				$this->assertSame( 12000, $list['actionData']['shippingCost'] );
+			}
+		}
+	}
+
+	public function test_instant_list_missing_zero_or_invalid_saved_admin_fee_does_not_invent_a_charge(): void {
+		foreach ( array( '{}', '{invalid', '{"_kiriof_instant_admin_fee":0}', '{"_kiriof_instant_admin_fee":-50}', '{"_kiriof_instant_admin_fee":"invalid"}' ) as $snapshot ) {
+			$list = $this->render( 'list', array(
+				'delivery_type' => 'instant',
+				'service' => 'gosend',
+				'shipping_cost' => 12000,
+				'shipping_info' => $snapshot,
+				'wc_order' => false,
+			) );
+			$this->assertSame( 12000, $list['package']['actualShipping'] );
+			$this->assertSame( 12000, $list['package']['paidShipping'] );
+			$this->assertSame( 0, $list['package']['shippingDiscount'] );
+		}
+	}
+
+	public function test_express_list_does_not_add_instant_snapshot_admin_fee(): void {
+		$list = $this->render( 'list', array( 'shipping_info' => '{"_kiriof_instant_admin_fee":2500}' ) );
+		$this->assertSame( 7700, $list['package']['actualShipping'] );
+		$this->assertSame( 7315, $list['package']['paidShipping'] );
+		$this->assertSame( 385, $list['package']['shippingDiscount'] );
+	}
 }
