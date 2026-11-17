@@ -1,6 +1,8 @@
 <?php
 namespace KiriminAjaOfficial\Repositories;
 
+use KiriminAjaOfficial\Services\PhoneNumberNormalizer;
+
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -287,6 +289,7 @@ class KiriminajaApiRepository extends KiriminAjaApi {
         if ( 'credit' !== $method ) {
             unset( $payload['pin'] );
         }
+        $payload = $this->normalizePickupPhones( $payload );
         // Booking errors can echo PINs. Never pass them to the generic API logger.
         try {
             [ $transport, $body ] = $this->create_api_client()->post( 'api/mitra/v6.2/request_pickup', $payload );
@@ -308,6 +311,23 @@ class KiriminajaApiRepository extends KiriminAjaApi {
             $this->captureFailedPickupPayload( $payload );
         }
         return array( 'status' => false, 'data' => 'Unable to request Express pickup.' );
+    }
+
+    /** Normalize only the outbound copy; stored order and address values keep their original formatting. */
+    private function normalizePickupPhones( array $payload ): array {
+        foreach ( array( 'phone' ) as $field ) {
+            if ( array_key_exists( $field, $payload ) ) {
+                $payload[ $field ] = PhoneNumberNormalizer::normalize( $payload[ $field ] );
+            }
+        }
+        if ( is_array( $payload['packages'] ?? null ) ) {
+            foreach ( $payload['packages'] as $index => $package ) {
+                if ( is_array( $package ) && array_key_exists( 'destination_phone', $package ) ) {
+                    $payload['packages'][ $index ]['destination_phone'] = PhoneNumberNormalizer::normalize( $package['destination_phone'] );
+                }
+            }
+        }
+        return $payload;
     }
 
     private function captureFailedPickupPayload( array $payload ): void {

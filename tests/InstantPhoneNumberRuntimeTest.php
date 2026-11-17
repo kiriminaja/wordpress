@@ -10,6 +10,10 @@ final class InstantPhoneNumberRuntimeTest extends TestCase {
         return json_decode(implode("\n", $lines), true, 512, JSON_THROW_ON_ERROR);
     }
 
+    public function test_normalizer_converts_indonesian_landlines_to_international_digits(): void {
+        $this->assertSame( '62215551234', InstantPhoneNumber::normalize( '(021) 555-1234' ) );
+    }
+
     public function test_malformed_prefixes_and_unbalanced_groups_are_not_repaired(): void {
         foreach (['6-281200002222', '0-81200002222', '62))))81200002222', '+62812(0000-2222', '+62 ()81200002222', '(+62)81200002222', '(0812))00002222', '((0812))00002222'] as $phone) {
             $this->assertSame('', InstantPhoneNumber::normalize($phone), $phone);

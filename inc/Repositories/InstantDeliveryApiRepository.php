@@ -1,6 +1,8 @@
 <?php
 namespace KiriminAjaOfficial\Repositories;
 
+use KiriminAjaOfficial\Services\PhoneNumberNormalizer;
+
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -231,6 +233,14 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 
 	public function book( array $payload ): array {
 		$this->booking_diagnostics = array( 'code' => 'local_validation_failed' );
+		$payload['phone'] = PhoneNumberNormalizer::normalize( $payload['phone'] ?? null );
+		if ( is_array( $payload['packages'] ?? null ) ) {
+			foreach ( $payload['packages'] as $index => $package ) {
+				if ( is_array( $package ) && is_array( $package['destination'] ?? null ) ) {
+					$payload['packages'][ $index ]['destination']['phone'] = PhoneNumberNormalizer::normalize( $package['destination']['phone'] ?? null );
+				}
+			}
+		}
 		if ( isset( $payload['origin'] ) || ! $this->valid_location( $payload, 'latitude', 'longitude' ) ) {
 			return $this->notSubmittedFailure( 'Instant origin requires an address and coordinates.' );
 		}
