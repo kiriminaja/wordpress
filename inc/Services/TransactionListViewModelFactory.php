@@ -136,7 +136,7 @@ class TransactionListViewModelFactory {
 				array(
 					(string) $recipient['address_1'],
 					(string) $recipient['address_2'],
-					implode( ', ', array_filter( array( (string) ( $row->destination_sub_district ?? '' ), (string) $recipient['city'], (string) $recipient['state'] ) ) ),
+					implode( ', ', array_filter( array( (string) ( $row->destination_sub_district ?? '' ), (string) $recipient['city'], $is_express ? (string) $recipient['state'] : $this->recipient_resolver->stateName( $recipient['country'], $recipient['state'] ) ) ) ),
 					implode( ', ', array_filter( array( (string) $recipient['postcode'], (string) $recipient['country'] ) ) ),
 				),
 				static fn ( $value ) => '' !== trim( $value )

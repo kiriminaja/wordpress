@@ -6,6 +6,20 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 final class InstantShipmentContextRuntimeTest extends TestCase {
+    #[Test]
+    public function destination_province_is_readable_without_changing_saved_address_checks(): void {
+        foreach ([['SU', false, 'Sumatera Utara'], ['Sumatera Utara', false, 'Sumatera Utara'], ['UNKNOWN', false, 'UNKNOWN'], ['SU', true, 'SU']] as [$state, $missing, $expected]) {
+            $result = $this->runFixture([
+                'address' => ['state' => $state],
+                'snapshot' => ['_shipping_state' => $state],
+                'missing_countries' => $missing,
+            ]);
+            $this->assertTrue($result['ok']);
+            $this->assertSame('Jalan Sudirman Number 123, Tower A, Jakarta, ' . $expected . ', 12345', $result['context']['package']['destination']['address']);
+            $this->assertSame('Tower A', $result['context']['package']['destination']['address_note']);
+        }
+    }
+
     private function runFixture(array $input = []): array {
         // Inputs fully define this isolated fixture; arrays are returned by value.
         static $snapshots = [];

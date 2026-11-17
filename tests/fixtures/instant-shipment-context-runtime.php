@@ -10,6 +10,12 @@ function apply_filters($name, $value, ...$args) { return $GLOBALS['input']['pack
 function wc_get_weight($value, $unit) { return (float) $value * 1000; }
 function wc_get_dimension($value, $unit) { return (float) $value / 10; }
 function wc_get_order($id) { return empty($GLOBALS['input']['missing_order']) ? $GLOBALS['order'] : false; }
+function WC() {
+    if (!empty($GLOBALS['input']['missing_countries'])) { return null; }
+    return (object) ['countries' => new class {
+        public function get_states($country) { return 'ID' === $country ? ['SU' => 'Sumatera Utara'] : false; }
+    }];
+}
 class ContextLocations extends \KiriminAjaOfficial\Services\ShipmentLocationService {
     public function __construct() {}
     public function originForLocation($id) { ++$GLOBALS['lookups']; return $GLOBALS['live_origin']; }

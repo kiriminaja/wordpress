@@ -13,6 +13,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * transactions whose WooCommerce order no longer contains a value.
  */
 class RecipientDataResolver {
+    /** Resolve a presentation-only province label without changing stored address codes. */
+    public function stateName( string $country, string $state ): string {
+        if ( '' === $state || '' === $country || ! function_exists( 'WC' ) ) {
+            return $state;
+        }
+        $wc = WC();
+        if ( ! $wc || ! isset( $wc->countries ) || ! is_callable( array( $wc->countries, 'get_states' ) ) ) {
+            return $state;
+        }
+        $states = $wc->countries->get_states( $country );
+        $name = is_array( $states ) ? ( $states[ $state ] ?? null ) : null;
+        return is_string( $name ) && '' !== trim( $name ) ? $name : $state;
+    }
+
     public function resolve( $order, $shipping_info, $transaction ): array {
         $shipping = $this->get_order_address( $order, 'shipping' );
         $billing  = $this->get_order_address( $order, 'billing' );

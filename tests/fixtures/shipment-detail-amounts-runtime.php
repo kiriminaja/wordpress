@@ -15,6 +15,11 @@ namespace KiriminAjaOfficial\Services {
     }
 }
 namespace {
+    function WC() {
+        return (object) ['countries' => new class {
+            public function get_states($country) { return 'ID' === $country ? ['SU' => 'Sumatera Utara'] : false; }
+        }];
+    }
     define('ABSPATH', dirname(__DIR__, 2) . '/');
     define('KIRIOF_URL', '/plugin/');
     define('KIRIOF_NONCE', 'test');
