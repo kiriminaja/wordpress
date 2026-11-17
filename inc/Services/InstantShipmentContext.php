@@ -193,7 +193,7 @@ class InstantShipmentContext {
 			'phone'     => $current['phone'],
 			'latitude'  => $this->coordinate( $transaction->destination_latitude ?? null, 90 ),
 			'longitude' => $this->coordinate( $transaction->destination_longitude ?? null, 180 ),
-			'address'   => implode( ', ', array_filter( array( $current['address_1'], $current['address_2'], $current['city'], $current['state'], $current['postcode'] ), static fn( $value ) => '' !== $value ) ),
+			'address'   => implode( ', ', array_filter( array( $current['address_1'], $current['address_2'], $current['city'], $this->recipients->stateName( $current['country'], $current['state'] ), $current['postcode'] ), static fn( $value ) => '' !== $value ) ),
 		);
 		// Use the current address line, not an order comment or a saved fallback.
 		$destination['address_note'] = $this->value( $address, array( 'address_2' ) );

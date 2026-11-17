@@ -3,6 +3,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 use PHPUnit\Framework\TestCase;
 
 final class TransactionCodPresentationRuntimeTest extends TestCase {
+	public function test_only_instant_list_expands_recipient_province_codes(): void {
+		foreach ( array( 'instant' => 'Sumatera Utara', 'express' => 'SU' ) as $type => $expected ) {
+			$list = $this->render( 'list', array(
+				'delivery_type' => $type,
+				'service' => 'instant' === $type ? 'gosend' : 'jne',
+				'wc_order' => array( 'address' => array( 'city' => 'Deli Serdang', 'state' => 'SU', 'country' => 'ID' ) ),
+			) );
+			$this->assertContains( 'Deli Serdang, ' . $expected, $list['route']['addressLines'] );
+		}
+	}
+
 	private function render( string $mode, array $overrides = array() ): array {
 		$payload = array_replace( array(
 			'mode' => $mode,
