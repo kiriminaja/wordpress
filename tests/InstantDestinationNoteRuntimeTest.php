@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 final class InstantDestinationNoteRuntimeTest extends TestCase {
 	private function payload(): array {
 		$location = array( 'name' => 'Private recipient', 'phone' => '081234567890', 'address' => str_repeat( 'Full address 🏠 é, ', 12 ), 'latitude' => -7.8, 'longitude' => 110.3, 'zipcode' => '12345', 'extra' => 'untouched' );
-		return $location + array( 'address_note' => str_repeat( 'Origin unchanged ', 12 ), 'payment_method' => 'credit', 'pin' => '123456', 'extra_top' => 'retained', 'packages' => array(
+		return $location + array( 'address_note' => 'Pickup entrance', 'payment_method' => 'credit', 'pin' => '123456', 'extra_top' => 'retained', 'packages' => array(
 			array( 'service' => 'gosend', 'order_id' => 'one', 'shipping_cost' => 12000, 'items' => array( array( 'name' => 'Item', 'qty' => 1 ) ), 'destination' => $location ),
 			array( 'service' => 'grab_express', 'order_id' => 'two', 'shipping_cost' => 15000, 'items' => array( array( 'name' => 'Other', 'qty' => 2 ) ), 'destination' => $location ),
 		) );
@@ -24,7 +24,7 @@ final class InstantDestinationNoteRuntimeTest extends TestCase {
 		return $result;
 	}
 
-	private function assertSent( array $payload, array $expectedNotes ): void {
+	private function assertSent( array $payload, array $expectedNotes, string $expectedOriginNote = 'Pickup entrance' ): void {
 		$result = $this->runFixture( $payload );
 		$this->assertTrue( $result['response']['status'] );
 		$this->assertCount( 1, $result['requests'] );
@@ -34,51 +34,61 @@ final class InstantDestinationNoteRuntimeTest extends TestCase {
 		$this->assertSame( 'https://example.invalid/api/mitra/v6.2/instant/request_pickup', $request['url'] );
 		$this->assertSame( 'wordpress', $request['agent'] );
 		$expected = $payload;
+		$expected['address_note'] = $expectedOriginNote;
 		foreach ( $expectedNotes as $index => $note ) { $expected['packages'][ $index ]['destination']['address_note'] = $note; }
-		// Whole-payload equality protects main addresses, origin note and all other keys.
+		// Whole-payload equality protects full addresses and all non-note keys.
 		$this->assertSame( $expected, json_decode( $request['body'], true, 512, JSON_THROW_ON_ERROR ) );
 	}
 
-	public function test_explicit_notes_at_99_100_and_101_codepoints_preserve_whitespace(): void {
-		foreach ( array( 99, 100, 101 ) as $length ) {
+	public function test_explicit_notes_at_63_64_and_65_codepoints_preserve_whitespace(): void {
+		foreach ( array( 63, 64, 65 ) as $length ) {
 			$payload = $this->payload();
 			$note = ' ' . str_repeat( 'a', $length - 2 ) . ' ';
+			$payload['address_note'] = $note;
 			$payload['packages'][0]['destination']['address_note'] = $note;
 			$payload['packages'][1]['destination']['address_note'] = "Other note\n ";
-			$this->assertSent( $payload, array( substr( $note, 0, 100 ), "Other note\n " ) );
+			$this->assertSent( $payload, array( substr( $note, 0, 64 ), "Other note\n " ), substr( $note, 0, 64 ) );
 		}
 	}
 
 	public function test_unicode_is_counted_as_codepoints_not_bytes_or_graphemes(): void {
 		foreach ( array(
-			array( str_repeat( '🏠', 101 ), str_repeat( '🏠', 100 ) ),
-			array( str_repeat( '漢', 99 ) . '🚚tail', str_repeat( '漢', 99 ) . '🚚' ),
-			array( str_repeat( "e\u{0301}", 51 ), str_repeat( "e\u{0301}", 50 ) ),
-			array( str_repeat( 'a', 99 ) . "e\u{0301}", str_repeat( 'a', 99 ) . 'e' ),
+			array( str_repeat( '🏠', 65 ), str_repeat( '🏠', 64 ) ),
+			array( str_repeat( '漢', 63 ) . '🚚tail', str_repeat( '漢', 63 ) . '🚚' ),
+			array( str_repeat( "e\u{0301}", 33 ), str_repeat( "e\u{0301}", 32 ) ),
+			array( str_repeat( 'a', 63 ) . "e\u{0301}", str_repeat( 'a', 63 ) . 'e' ),
 			array( "Keep 🏠 e\u{0301}\n ", "Keep 🏠 e\u{0301}\n " ),
 		) as [ $note, $expected ] ) {
 			$payload = $this->payload();
+			$payload['address_note'] = $note;
 			foreach ( $payload['packages'] as &$package ) { $package['destination']['address_note'] = $note; }
 			unset( $package );
-			$this->assertSent( $payload, array( $expected, $expected ) );
+			$this->assertSent( $payload, array( $expected, $expected ), $expected );
 		}
 	}
 
 	public function test_missing_empty_and_whitespace_notes_use_bounded_full_address_fallback(): void {
 		foreach ( array( null, '', " \t\n " ) as $note ) {
 			$payload = $this->payload();
-			$address = str_repeat( '🏠', 99 ) . 'e' . "\u{0301}" . ' Full private address';
+			$address = str_repeat( '🏠', 63 ) . 'e' . "\u{0301}" . ' Full private address';
+			$payload['address'] = $address;
+			unset( $payload['address_note'] );
+			if ( null !== $note ) { $payload['address_note'] = $note; }
 			foreach ( $payload['packages'] as &$package ) {
 				$package['destination']['address'] = $address;
 				if ( null !== $note ) { $package['destination']['address_note'] = $note; }
 			}
 			unset( $package );
-			$this->assertSent( $payload, array( str_repeat( '🏠', 99 ) . 'e', str_repeat( '🏠', 99 ) . 'e' ) );
+			$expected = str_repeat( '🏠', 63 ) . 'e';
+			$this->assertSent( $payload, array( $expected, $expected ), $expected );
 		}
 	}
 
 	public function test_invalid_nonstring_notes_remain_local_failures(): void {
 		foreach ( array( 123, false, array( 'Private recipient' ) ) as $note ) {
+			$payload = $this->payload();
+			$payload['address_note'] = $note;
+			$this->assertNotSubmitted( $payload, 'Instant address notes must be text.' );
 			$payload = $this->payload();
 			$payload['packages'][1]['destination']['address_note'] = $note;
 			$this->assertNotSubmitted( $payload, 'Instant address notes must be text.' );
@@ -86,8 +96,12 @@ final class InstantDestinationNoteRuntimeTest extends TestCase {
 	}
 
 	public function test_invalid_utf8_including_after_the_limit_is_rejected_without_http_or_pii(): void {
-		foreach ( array( "\xc3\x28", str_repeat( 'a', 100 ) . "\xff" ) as $note ) {
+		foreach ( array( "\xc3\x28", str_repeat( 'a', 64 ) . "\xff" ) as $note ) {
 			foreach ( array( 'explicit', 'fallback' ) as $mode ) {
+				$payload = $this->payload();
+				if ( 'fallback' === $mode ) { unset( $payload['address_note'] ); }
+				$payload[ 'explicit' === $mode ? 'address_note' : 'address' ] = 'Private recipient ' . $note;
+				$this->assertNotSubmitted( $payload, 'Instant origin address notes must be valid UTF-8 text.' );
 				$payload = $this->payload();
 				$payload['packages'][0]['destination']['address_note'] = 'Valid first package';
 				$payload['packages'][1]['destination'][ 'explicit' === $mode ? 'address_note' : 'address' ] = 'Private recipient ' . $note;

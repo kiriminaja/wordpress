@@ -76,6 +76,9 @@ class TransactionListViewModelFactory {
 		$coupon_scopes         = $this->coupon_service->splitCouponCodesByScope( $coupon_codes );
 		$shipping_discount     = $wc_order ? max( 0.0, $shipping_cost - (float) $wc_order->get_shipping_total() ) : max( 0.0, $discount_amount );
 		$paid_shipping         = $wc_order ? max( 0.0, (float) $wc_order->get_shipping_total() ) : max( 0.0, $shipping_cost - $shipping_discount );
+		// Instant processing validates the saved carrier charge plus checkout admin fee.
+		// Use that same total, not WooCommerce's separate shipping line or other fees.
+		$instant_shipping_total = $shipping_cost + ( $is_express ? 0.0 : ShipmentDetailAmounts::adminFee( false, $row ) );
 		$wc_total              = $wc_order ? (float) $wc_order->get_total() : 0.0;
 		$wc_subtotal           = $wc_order ? (float) $wc_order->get_subtotal() : 0.0;
 		$deficit_minimum       = $shipping_cost + $insurance_cost + $cod_fee;
@@ -167,13 +170,13 @@ class TransactionListViewModelFactory {
 			'package'         => array(
 				'weight'           => (float) ( $row->weight ?? 0 ),
 				'quantity'         => isset( $row->quantity ) ? (int) $row->quantity : 1,
-				'actualShipping'   => $shipping_cost,
-				'paidShipping'     => $paid_shipping,
+				'actualShipping'   => $is_express ? $shipping_cost : $instant_shipping_total,
+				'paidShipping'     => $is_express ? $paid_shipping : $instant_shipping_total,
 				'insurance'        => $insurance_cost,
 				'codFee'           => $cod_fee,
 				'codValue'         => $cod_value,
 				'itemDiscount'     => $item_discount,
-				'shippingDiscount' => $shipping_discount,
+				'shippingDiscount' => $is_express ? $shipping_discount : 0.0,
 				'itemCoupon'       => (string) ( $coupon_scopes['item'][0] ?? '' ),
 				'shippingCoupon'   => (string) ( $coupon_scopes['shipping'][0] ?? '' ),
 			),

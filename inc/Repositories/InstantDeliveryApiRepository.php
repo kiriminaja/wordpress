@@ -260,6 +260,11 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			return $this->notSubmittedFailure( 'Instant address notes must be text.' );
 		}
 		$payload['address_note'] = '' !== trim( $payload['address_note'] ?? '' ) ? $payload['address_note'] : $payload['address'];
+		// Bound only the API note; the full pickup address stays intact.
+		if ( 1 !== preg_match( '/\A.{0,64}/us', $payload['address_note'], $matches ) ) {
+			return $this->notSubmittedFailure( 'Instant origin address notes must be valid UTF-8 text.' );
+		}
+		$payload['address_note'] = $matches[0];
 		if ( ! is_array( $packages ) || ! array_is_list( $packages ) || count( $packages ) < 1 || count( $packages ) > 10 ) {
 			return $this->notSubmittedFailure( 'Instant booking requires 1 to 10 packages.' );
 		}
@@ -283,7 +288,7 @@ class InstantDeliveryApiRepository extends KiriminAjaApi {
 			}
 			$note = '' !== trim( $package['destination']['address_note'] ?? '' ) ? $package['destination']['address_note'] : $package['destination']['address'];
 			// Bound only the API note; the separate full destination address stays intact.
-			if ( 1 !== preg_match( '/\A.{0,100}/us', $note, $matches ) ) {
+			if ( 1 !== preg_match( '/\A.{0,64}/us', $note, $matches ) ) {
 				return $this->notSubmittedFailure( 'Instant destination address notes must be valid UTF-8 text.' );
 			}
 			$payload['packages'][ $index ]['destination']['address_note'] = $matches[0];
