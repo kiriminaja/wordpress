@@ -223,6 +223,6 @@ final class ExpressPickupPayloadRuntimeTest extends TestCase {
 			'addresses' => array( 1 => array( 'shipping' => array(), 'billing' => array( 'phone' => '+62 (812) 3456-7890' ) ) ),
 		) );
 		$this->assertSame( 200, $result['status'] );
-		$this->assertSame( '+62 (812) 3456-7890', $result['requests'][0]['payload']['packages'][0]['destination_phone'] );
+		$this->assertSame( '6281234567890', $result['requests'][0]['payload']['packages'][0]['destination_phone'] );
 	}
 }

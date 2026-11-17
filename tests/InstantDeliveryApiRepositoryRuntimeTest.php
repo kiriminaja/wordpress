@@ -187,6 +187,14 @@ PHP;
 		return json_decode( implode( "\n", $output ), true, 512, JSON_THROW_ON_ERROR );
 	}
 
+	public function test_booking_normalizes_formatted_origin_and_destination_phones_on_wire(): void {
+		$fixture = $this->run_fixture( '$book["phone"] = "+62 (812) 3456-7890"; $book["packages"][0]["destination"]["phone"] = "(0812) 3456-7890"; $result = $repository->book( $book );' );
+		$this->assertTrue( $fixture['result']['status'] );
+		$payload = $fixture['calls'][0][2];
+		$this->assertSame( '6281234567890', $payload['phone'] );
+		$this->assertSame( '081234567890', $payload['packages'][0]['destination']['phone'] );
+	}
+
 	public function test_price_maps_real_sdk_dto_and_retains_all_result_rows(): void {
 		$fixture = $this->run_fixture( '$result = $repository->price( $price );' );
 		$this->assertSame(
