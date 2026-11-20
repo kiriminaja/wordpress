@@ -46,6 +46,7 @@ final class ShipmentLocationValidationRuntimeTest extends TestCase {
     public static function invalidPayloadProvider(): array {
         return array(
             'missing name'          => array( array( 'name' => '' ) ),
+            'name too short'        => array( array( 'name' => 'reprobug' ) ),
             'missing phone'         => array( array( 'phone' => '' ) ),
             'missing address'       => array( array( 'address' => '' ) ),
             'missing area'          => array( array( 'sub_district_id' => 0 ) ),

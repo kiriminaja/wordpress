@@ -199,7 +199,8 @@ class SettingController{
         $longitude = isset( $data['longitude'] ) && is_numeric( $data['longitude'] ) ? (float) $data['longitude'] : null;
 
         return is_array( $data )
-            && '' !== trim( (string) ( $data['name'] ?? '' ) )
+            && 10 <= ( function_exists( 'mb_strlen' ) ? mb_strlen( trim( (string) ( $data['name'] ?? '' ) ) ) : strlen( trim( (string) ( $data['name'] ?? '' ) ) ) )
+            && 40 >= ( function_exists( 'mb_strlen' ) ? mb_strlen( trim( (string) ( $data['name'] ?? '' ) ) ) : strlen( trim( (string) ( $data['name'] ?? '' ) ) ) )
             && '' !== trim( (string) ( $data['phone'] ?? '' ) )
             && '' !== trim( (string) ( $data['address'] ?? '' ) )
             && 0 < (int) ( $data['sub_district_id'] ?? 0 )
