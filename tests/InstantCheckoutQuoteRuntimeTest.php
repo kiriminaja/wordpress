@@ -12,6 +12,14 @@ final class InstantCheckoutQuoteRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function origin_address_2_counts_toward_the_instant_address_minimum(): void {
+        $result = $this->runFixture( array( 'scenario' => 'origin_address_2_short' ) );
+
+        $this->assertTrue( $result['quote']['eligible'] );
+        $this->assertSame( 'Jl. A, Gedung B Lantai 2', $result['quote']['context']['origin']['address'] );
+    }
+
+    #[Test]
     public function outside_radius_never_reads_cached_rates_or_calls_the_api_and_old_selections_fail(): void {
         $r = $this->runFixture(['scenario'=>'outside_radius']);
         $this->assertSame(

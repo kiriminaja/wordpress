@@ -148,6 +148,11 @@ namespace {
         case 'country': $package['destination']['country'] = 'US'; break;
         case 'stale_address': $package['destination']['address_2'] = 'Apartment 1'; break;
         case 'origin_bad': $package['origin'] = []; break;
+        case 'origin_address_2_short':
+            $package['origin'] = $locations->locationToOrigin((object) []);
+            $package['origin']['origin_address'] = 'Jl. A';
+            $package['origin']['origin_address_2'] = 'Gedung B Lantai 2';
+            break;
         case 'origin_missing': $locations->missing = true; break;
         case 'timezone': $GLOBALS['timezone'] = 'UTC'; break;
         case 'timezone_invalid': $package['origin'] = $locations->locationToOrigin((object) []); $package['origin']['timezone'] = 'UTC'; break;
