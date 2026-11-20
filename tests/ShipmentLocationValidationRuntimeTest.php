@@ -38,6 +38,11 @@ final class ShipmentLocationValidationRuntimeTest extends TestCase {
     }
 
     #[Test]
+    public function three_character_name_is_valid(): void {
+        $this->assertTrue( $this->validate( array_merge( $this->validPayload(), array( 'name' => 'ABC' ) ) ) );
+    }
+
+    #[Test]
     #[DataProvider( 'invalidPayloadProvider' )]
     public function incomplete_or_invalid_location_payload_is_rejected( array $changes ): void {
         $this->assertFalse( $this->validate( array_merge( $this->validPayload(), $changes ) ) );
@@ -46,7 +51,7 @@ final class ShipmentLocationValidationRuntimeTest extends TestCase {
     public static function invalidPayloadProvider(): array {
         return array(
             'missing name'          => array( array( 'name' => '' ) ),
-            'name too short'        => array( array( 'name' => 'reprobug' ) ),
+            'name too short'        => array( array( 'name' => 'AB' ) ),
             'missing phone'         => array( array( 'phone' => '' ) ),
             'missing address'       => array( array( 'address' => '' ) ),
             'missing area'          => array( array( 'sub_district_id' => 0 ) ),
